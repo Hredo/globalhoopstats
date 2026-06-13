@@ -117,6 +117,30 @@ export type ResolvedEngine =
       providerId?: string
     }
 
+/**
+ * Try to resolve a default AI engine from environment variables. Used when the
+ * user hasn't configured their own provider (anonymous users or accounts with
+ * no AI key set).
+ *
+ * Env vars:
+ *   AI_DEFAULT_PROVIDER  — provider id from providers.ts (e.g. "openai", "groq")
+ *   AI_DEFAULT_MODEL     — model id (optional, falls back to provider default)
+ *   AI_DEFAULT_API_KEY   — API key for the provider (required if needsKey)
+ */
+export async function resolveDefaultEngine(): Promise<ResolvedEngine> {
+  const providerId = process.env.AI_DEFAULT_PROVIDER
+  if (!providerId) return { ok: false, reason: "not_selected" }
+  const provider = getProvider(providerId)
+  if (!provider) return { ok: false, reason: "unknown_provider", providerId }
+  const model = resolveModel(provider, process.env.AI_DEFAULT_MODEL ?? null)
+  if (!provider.needsKey) {
+    return { ok: true, provider, model, apiKey: null }
+  }
+  const apiKey = process.env.AI_DEFAULT_API_KEY
+  if (!apiKey) return { ok: false, reason: "no_key", providerId }
+  return { ok: true, provider, model, apiKey }
+}
+
 export async function resolveEngine(
   userId: string,
   feature: AiFeature,
@@ -127,9 +151,9 @@ export async function resolveEngine(
   const modelPref =
     feature === "advisor" ? settings.advisorModel : settings.compareModel
 
-  if (!providerId) return { ok: false, reason: "not_selected" }
+  if (!providerId) return resolveDefaultEngine()
   const provider = getProvider(providerId)
-  if (!provider) return { ok: false, reason: "unknown_provider", providerId }
+  if (!provider) return resolveDefaultEngine()
 
   const model = resolveModel(provider, modelPref)
 
@@ -146,6 +170,8 @@ export async function resolveEngine(
       .from(userApiKeys)
       .where(eq(userApiKeys.userId, userId))
     const hasRow = exists.length > 0
+    // If user has no key at all, fall back to default engine
+    if (!hasRow) return resolveDefaultEngine()
     return {
       ok: false,
       reason: hasRow ? "decrypt_failed" : "no_key",

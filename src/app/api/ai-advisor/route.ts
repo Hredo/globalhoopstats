@@ -9,7 +9,7 @@ import {
   type AdvisorOutput,
 } from "@/lib/ai/local-advisor"
 import { generateAdvisorResponse, lastLlmError } from "@/lib/ai/llm"
-import { resolveEngine } from "@/lib/ai/user-provider"
+import { resolveDefaultEngine, resolveEngine } from "@/lib/ai/user-provider"
 import { getProvider, resolveModel } from "@/lib/ai/providers"
 import { getCurrentUser } from "@/lib/auth/current-user"
 // NOTE: Import kept for when usage limits are re-enabled.
@@ -46,11 +46,8 @@ export async function POST(request: Request) {
   const origin = request.headers.get("origin")
   const referer = request.headers.get("referer")
 
-  // 0. Auth — middleware already gates this but defense in depth.
+  // 0. Auth — optional for anonymous users with default engine.
   const user = await getCurrentUser(request.headers.get("cookie"))
-  if (!user) {
-    return jsonError("Authentication required.", 401)
-  }
   // NOTE: plan check disabled until re-enabled later.
   // const plan = userPlan(user)
 
@@ -136,6 +133,9 @@ export async function POST(request: Request) {
       : null
   let conversationTitle: string | null = null
   if (conversationId) {
+    if (!user) {
+      return jsonError("Authentication required to resume conversations.", 401)
+    }
     const rows = await db
       .select({
         id: conversations.id,
@@ -249,8 +249,8 @@ export async function POST(request: Request) {
     )
   }
 
-  // 10b. Persist the new conversation (if not already existing).
-  if (conversationTitle) {
+  // 10b. Persist the new conversation (only for logged-in users).
+  if (conversationTitle && user) {
     try {
       await db.insert(conversations).values({
         id: conversationId!,
@@ -266,16 +266,18 @@ export async function POST(request: Request) {
     }
   }
 
-  // 10c. Insert user message into conversation.
-  try {
-    await db.insert(messages).values({
-      id: crypto.randomUUID(),
-      conversationId: conversationId!,
-      role: "user",
-      content: userMessage,
-    })
-  } catch (err) {
-    audit("message-insert-failed", { ip, err: String(err) })
+  // 10c. Insert user message into conversation (only for logged-in users).
+  if (user) {
+    try {
+      await db.insert(messages).values({
+        id: crypto.randomUUID(),
+        conversationId: conversationId!,
+        role: "user",
+        content: userMessage,
+      })
+    } catch (err) {
+      audit("message-insert-failed", { ip, err: String(err) })
+    }
   }
 
   // 11. Optional: find player profile for richer context.
@@ -287,12 +289,15 @@ export async function POST(request: Request) {
   }
 
   // 12. LLM call. Use the engine the user configured for the advisor (a cloud
-  // provider with their own key, or a local Ollama). Back-compat: an explicit
+  // provider with their own key, or a local Ollama), falling back to the
+  // default engine from env vars for anonymous users. Back-compat: an explicit
   // `X-User-LLM: ollama` header forces Ollama even before the user has picked a
   // provider in their account. If no engine is available we fall back to the
   // deterministic rule-based advisor and flag `aiConfigured: false` so the UI
   // can nudge the user to connect an AI.
-  let engine = await resolveEngine(user.id, "advisor")
+  let engine = user
+    ? await resolveEngine(user.id, "advisor")
+    : await resolveDefaultEngine()
   if (!engine.ok && request.headers.get("x-user-llm") === "ollama") {
     const ollama = getProvider("ollama")
     if (ollama) {
