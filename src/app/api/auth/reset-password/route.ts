@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { eq, and, gt } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
-import { users, passwordResetTokens } from "@/lib/db/schema"
+import { users, passwordResetTokens, sessions } from "@/lib/db/schema"
 import {
   hashPassword,
   isStrongPassword,
@@ -125,6 +125,9 @@ export async function POST(request: Request) {
         eq(passwordResetTokens.used, true),
       ),
     )
+
+  // Invalidate all active sessions so a stolen session cannot outlive the reset.
+  await db.delete(sessions).where(eq(sessions.userId, userId))
 
   return NextResponse.json({
     ok: true,
