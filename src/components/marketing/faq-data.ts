@@ -17,7 +17,7 @@ export const FAQ_DATA: FaqItem[] = [
   {
     question: "Do I need an account to browse?",
     answer:
-      "No. The full directory — players, teams, coaches, comparisons and league hubs — is open during the public beta.",
+      "No. The full directory — players, teams, coaches, comparisons and league hubs — is open to everyone.",
   },
   {
     question: "Which leagues are supported?",
@@ -36,11 +36,16 @@ export const FAQ_DATA: FaqItem[] = [
   {
     question: "How much does it cost?",
     answer:
-      "The public beta is free. We will introduce a paid tier for shortlists, exports and persistent AI advisor sessions, but the database and comparisons will stay open.",
+      "Everything is free during the public beta — the database, comparisons, exports and AI features are all open to everyone.",
   },
   {
     question: "Can I export or share a comparison?",
     answer:
       "Yes. The AI advisor and the compare page support export to PDF, Excel and Word.",
+  },
+  {
+    question: "The AI features say Beta — what does that mean?",
+    answer:
+      "It means they're available to everyone right now, and we're still refining them based on usage. During Beta there are no limits or paywalls.",
   },
 ]

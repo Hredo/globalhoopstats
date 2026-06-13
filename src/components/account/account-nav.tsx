@@ -79,16 +79,26 @@ export function AccountNav() {
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex shrink-0 items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-sm font-medium transition-all duration-200 lg:w-full",
+              "group relative flex shrink-0 items-center gap-3 rounded-xl border px-3.5 py-2.5 text-sm font-medium transition-all duration-200 lg:w-full",
               active
-                ? "border-brand-500/40 bg-brand-500/10 text-brand-100"
-                : "border-transparent text-ink-300 hover:bg-white/[0.04] hover:text-ink-50",
+                ? "border-brand-500/30 bg-brand-500/10 text-brand-100 shadow-sm"
+                : "border-transparent text-ink-300 hover:border-white/5 hover:bg-white/[0.04] hover:text-ink-50",
             )}
           >
-            <span className={active ? "text-brand-300" : "text-ink-500"}>
+            {active ? (
+              <span className="absolute left-0 top-1/2 hidden h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-brand-400 shadow-[0_0_6px_rgba(245,158,11,0.4)] lg:block" />
+            ) : null}
+            <span
+              className={cn(
+                "flex h-5 w-5 items-center justify-center transition-all duration-200",
+                active
+                  ? "text-brand-300"
+                  : "text-ink-500 group-hover:text-ink-300",
+              )}
+            >
               {item.icon}
             </span>
-            {item.label}
+            <span>{item.label}</span>
           </Link>
         )
       })}

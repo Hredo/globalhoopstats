@@ -97,7 +97,6 @@ export function PreferencesPanel() {
               className="max-w-xs"
             >
               <option value="en">English</option>
-              <option value="es">Español</option>
             </Select>
           </Field>
         )}

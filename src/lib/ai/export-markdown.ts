@@ -1,7 +1,7 @@
 import { saveAs } from "file-saver"
 import type { ChatMessage, TeamContext } from "./export"
 
-const FILE_BASE = "asesor-fichajes"
+const FILE_BASE = "signing-advisor"
 
 function escapeMd(input: string): string {
   return input.replace(/([|\\])/g, "\\$1")
@@ -24,20 +24,20 @@ function formatUserMessage(content: string): string {
 
 function buildMarkdown(team: TeamContext, messages: ChatMessage[]): string {
   const lines: string[] = []
-  lines.push(`# Asesor de Fichajes`)
+  lines.push(`# Signing Advisor`)
   lines.push(``)
-  lines.push(`**Equipo:** ${formatTeam(team)}`)
-  lines.push(`**Generado:** ${new Date().toLocaleString("es-ES")}`)
-  lines.push(`**Mensajes:** ${messages.length}`)
+  lines.push(`**Team:** ${formatTeam(team)}`)
+  lines.push(`**Generated:** ${new Date().toLocaleString("en-US")}`)
+  lines.push(`**Messages:** ${messages.length}`)
   lines.push(``)
   lines.push(`---`)
   lines.push(``)
-  lines.push(`## Conversación`)
+  lines.push(`## Conversation`)
   lines.push(``)
 
   messages.forEach((m, i) => {
-    const label = m.type === "user" ? `🙋 **Tú**` : `🤖 **Asesor**`
-    lines.push(`### ${label} · mensaje ${i + 1}`)
+    const label = m.type === "user" ? `🙋 **You**` : `🤖 **Advisor**`
+    lines.push(`### ${label} · message ${i + 1}`)
     lines.push(``)
     const content = m.type === "user"
       ? formatUserMessage(m.content)
@@ -47,9 +47,9 @@ function buildMarkdown(team: TeamContext, messages: ChatMessage[]): string {
       lines.push(``)
     }
     if (m.data?.recommendations?.length) {
-      lines.push(`**Candidatos:**`)
+      lines.push(`**Candidates:**`)
       lines.push(``)
-      lines.push(`| # | Jugador | Pos. | Liga | Edad | Contrato | Prioridad |`)
+      lines.push(`| # | Player | Pos. | League | Age | Contract | Priority |`)
       lines.push(`|---|---------|------|------|------|----------|-----------|`)
       m.data.recommendations.forEach((r, j) => {
         lines.push(
@@ -59,7 +59,7 @@ function buildMarkdown(team: TeamContext, messages: ChatMessage[]): string {
       lines.push(``)
     }
     if (m.data?.considerations?.length) {
-      lines.push(`**Consideraciones:**`)
+      lines.push(`**Considerations:**`)
       m.data.considerations.forEach((c) => {
         lines.push(`- ${c}`)
       })
@@ -81,7 +81,7 @@ export function exportToMarkdown(payload: {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "equipo"
+    .replace(/^-+|-+$/g, "") || "team"
   const now = new Date()
   const pad = (n: number) => String(n).padStart(2, "0")
   const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`

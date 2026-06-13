@@ -157,7 +157,7 @@ export function ExportMenu({ team, messages, disabled = false }: Props) {
     {
       id: "pdf",
       label: "PDF (.pdf)",
-      hint: "Documento formateado con análisis, fichas y conversación",
+      hint: "Formatted document with analysis, profiles, and conversation",
       icon: <PdfIcon />,
       accent: "text-rose-300 bg-rose-500/10 ring-rose-400/30",
       // jspdf/docx weigh several MB, so the export module only loads when a
@@ -170,7 +170,7 @@ export function ExportMenu({ team, messages, disabled = false }: Props) {
     {
       id: "word",
       label: "Word (.docx)",
-      hint: "Documento editable con todas las secciones",
+      hint: "Editable document with all sections",
       icon: <WordIcon />,
       accent: "text-sky-300 bg-sky-500/10 ring-sky-400/30",
       run: async ({ team, messages }) => {
@@ -203,8 +203,8 @@ export function ExportMenu({ team, messages, disabled = false }: Props) {
         aria-expanded={open}
         title={
           isEmpty
-            ? "Inicia una conversación para poder exportar"
-            : "Exportar conversación"
+            ? "Start a conversation to export"
+            : "Export conversation"
         }
         className="group relative inline-flex items-center gap-2.5 overflow-hidden rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 ring-1 ring-brand-400/40 transition hover:from-brand-400 hover:to-brand-500 hover:shadow-xl hover:shadow-brand-500/40 focus:outline-none focus:ring-2 focus:ring-brand-300 focus:ring-offset-2 focus:ring-offset-ink-950 disabled:cursor-not-allowed disabled:from-ink-700 disabled:to-ink-800 disabled:shadow-none disabled:ring-ink-700/40"
       >
@@ -214,10 +214,10 @@ export function ExportMenu({ team, messages, disabled = false }: Props) {
         />
         {busy ? <Spinner /> : <DownloadIcon />}
         <span className="flex flex-col items-start leading-none">
-          <span>{busy ? "Generando…" : "Exportar conversación"}</span>
+          <span>{busy ? "Generating…" : "Export conversation"}</span>
           {!isEmpty && !busy && (
             <span className="mt-0.5 text-[10px] font-medium text-white/80">
-              {messages.length} mensajes · {recCount} candidatos
+               {messages.length} messages · {recCount} candidates
             </span>
           )}
         </span>
@@ -244,10 +244,10 @@ export function ExportMenu({ team, messages, disabled = false }: Props) {
           >
             <div className="mb-1 flex items-center justify-between px-2.5 pt-1">
               <p className="text-[10px] font-bold uppercase tracking-widest text-ink-400">
-                Formato de descarga
+                Download format
               </p>
               <span className="rounded-full bg-brand-500/15 px-2 py-0.5 text-[10px] font-semibold text-brand-300 ring-1 ring-brand-500/30">
-                {recCount} candidatos
+                {recCount} candidates
               </span>
             </div>
             <div className="space-y-1">
@@ -278,8 +278,8 @@ export function ExportMenu({ team, messages, disabled = false }: Props) {
               ))}
             </div>
             <div className="mt-2 border-t border-white/5 px-2.5 py-2 text-[10px] leading-relaxed text-ink-500">
-              El informe incluye la conversación completa, las fichas de los
-              jugadores recomendados y el diagnóstico del equipo.
+              The report includes the full conversation, recommended player
+              profiles, and team diagnosis.
             </div>
           </motion.div>
         )}
