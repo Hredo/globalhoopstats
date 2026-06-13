@@ -10,7 +10,8 @@ import {
   verifyPassword,
 } from "@/lib/auth/password"
 import { parseSessionCookie, verifySessionToken } from "@/lib/auth/session"
-import { clientIp, readRateLimit } from "@/lib/security/ai-advisor"
+import { clientIp } from "@/lib/security/ai-advisor"
+import { consumeRateLimit } from "@/lib/security/rate-limit"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -25,7 +26,11 @@ export async function POST(request: Request) {
   if (!sessionUser) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 })
   }
-  const limited = readRateLimit(clientIp(request), "account:password", 5, 0.05)
+  const limited = await consumeRateLimit(
+    `account:password:${clientIp(request)}`,
+    5,
+    2 * 60 * 1000,
+  )
   if (!limited.ok) {
     return NextResponse.json(
       { error: "Too many attempts. Try again later." },
