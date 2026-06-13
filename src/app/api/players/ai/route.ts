@@ -3,7 +3,7 @@ import { getPlayerBySlug } from "@/lib/data/players"
 import { clientIp, cleanLlmOutput } from "@/lib/security/ai-advisor"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
 import { getCurrentUser } from "@/lib/auth/current-user"
-import { resolveEngine } from "@/lib/ai/user-provider"
+import { resolveEngine, resolveDefaultEngine } from "@/lib/ai/user-provider"
 import { chatComplete } from "@/lib/ai/chat"
 
 export const dynamic = "force-dynamic"
@@ -131,9 +131,9 @@ export async function POST(request: Request) {
             aiReason = "ai_error"
           }
         }
-      } else {
-        aiReason = engine.reason
       }
+    } else {
+      aiReason = engine.reason
     }
 
     return NextResponse.json({ analysis, aiProvider, aiConfigured, aiReason })

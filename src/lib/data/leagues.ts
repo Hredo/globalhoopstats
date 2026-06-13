@@ -103,6 +103,7 @@ async function fetchCounts(
 
 async function fetchTopScorers(
   db: ReturnType<typeof getDb>,
+  leagueId: string,
   seasonId: string,
   leagueId: string,
   limit = 3,
@@ -124,6 +125,7 @@ async function fetchTopScorers(
     .leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
     .where(
       and(
+        eq(playerSeasonStats.leagueId, leagueId),
         eq(playerSeasonStats.seasonId, seasonId),
         eq(playerSeasonStats.leagueId, leagueId),
         isNotNull(playerSeasonStats.pointsTotal),
