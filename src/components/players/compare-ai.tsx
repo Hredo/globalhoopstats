@@ -109,9 +109,14 @@ export function CompareAi({ aSlug, bSlug, aName, bName }: Props) {
             </svg>
           </div>
           <div>
-            <h2 className="font-display text-lg font-bold text-ink-50 sm:text-xl">
-              AI analysis
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-display text-lg font-bold text-ink-50 sm:text-xl">
+                AI analysis
+              </h2>
+              <span className="shrink-0 rounded-full border border-amber-400/50 bg-amber-400/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-300">
+                Beta
+              </span>
+            </div>
             <p className="text-xs text-ink-300 sm:text-sm">
               The scout AI weighs every category, flags edges and drops a
               verdict in seconds.

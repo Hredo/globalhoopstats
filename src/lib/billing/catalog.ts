@@ -26,8 +26,8 @@ export const PLANS: Record<PlanId, PlanDef> = {
     features: [
       "Full player, team & coach database",
       "Cross-league stats and profiles",
-      "1 AI Advisor preview conversation",
-      "1 AI player comparison",
+      "Unlimited AI Advisor conversations (Beta)",
+      "Unlimited AI comparisons (Beta)",
       "Bring your own AI key or local model",
     ],
   },

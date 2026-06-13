@@ -275,8 +275,8 @@ export function TeamSelector({
                 const isSelected = selected?.id === team.id;
                 const isHighlighted = i === highlightIdx;
                 return (
-                  <button
-                    key={team.id}
+                    <button
+                    key={`${team.id}-${team.leagueSlug}`}
                     id={`team-option-${team.id}`}
                     type="button"
                     role="option"

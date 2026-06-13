@@ -68,7 +68,7 @@ export function MobileNav() {
           role="dialog"
           aria-modal="true"
           aria-label="Site navigation"
-          className="fixed inset-0 z-[100] flex animate-overlay-in flex-col bg-surface-0/85 backdrop-blur-2xl md:hidden"
+          className="fixed inset-0 z-[100] flex animate-overlay-in flex-col bg-ink-950/95 md:hidden"
         >
           <div
             aria-hidden

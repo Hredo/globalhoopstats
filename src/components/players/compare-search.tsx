@@ -430,7 +430,7 @@ export function CompareSearch({ side, current, otherSlug }: Props) {
                       {results.map((o, idx) => {
                         const active = idx === activeIndex
                         return (
-                          <li key={o.id} data-index={idx}>
+                          <li key={o.slug} data-index={idx}>
                             <button
                               type="button"
                               onClick={() => pick(o.slug)}

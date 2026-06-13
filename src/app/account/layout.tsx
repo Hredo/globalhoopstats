@@ -36,30 +36,36 @@ export default async function AccountLayout({
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
-      <header className="flex items-center gap-4">
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-ember-600 text-lg font-bold text-ink-950 shadow-[var(--shadow-brand-glow)]">
-          {initials(user.name)}
-        </span>
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="truncate font-display text-xl font-bold text-ink-50 sm:text-2xl">
-              {user.name}
-            </h1>
-            <span
-              className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest ${
-                PLAN_BADGE[label] ?? PLAN_BADGE.Free
-              }`}
-            >
-              {label}
-            </span>
+      <header className="relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-ink-800/80 via-ink-900/80 to-ink-900/80 p-5 sm:p-6">
+        <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-brand-500/10 blur-3xl" />
+        <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-ember-500/8 blur-2xl" />
+        <div className="relative flex items-center gap-4">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-ember-600 text-lg font-bold text-ink-950 shadow-[var(--shadow-brand-glow)] ring-1 ring-white/10">
+            {initials(user.name)}
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="truncate font-display text-xl font-bold text-ink-50 sm:text-2xl">
+                {user.name}
+              </h1>
+              <span
+                className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest ${
+                  PLAN_BADGE[label] ?? PLAN_BADGE.Free
+                }`}
+              >
+                {label}
+              </span>
+            </div>
+            <p className="truncate text-sm text-ink-400">{user.email}</p>
           </div>
-          <p className="truncate text-sm text-ink-400">{user.email}</p>
         </div>
       </header>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[230px_minmax(0,1fr)]">
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <AccountNav />
+          <div className="rounded-xl border border-white/5 bg-ink-900/40 p-2">
+            <AccountNav />
+          </div>
         </aside>
         <main className="min-w-0 space-y-6">{children}</main>
       </div>

@@ -1,55 +1,53 @@
-# globalhoopstats / Basket-Estadistics
+# globalhoopstats 
 
 Basketball statistics tracking web application — work in progress.
 
-## Resumen
+## Summary
 
-`globalhoopstats` (carpeta `Basket-Estadistics`) es una aplicación web para recoger, agregar y mostrar estadísticas de baloncesto para jugadores, equipos y staff desde múltiples fuentes (EuroLeague, ACB, NBA y otras). Está construida con Next.js (App Router), TypeScript, Tailwind CSS y Drizzle ORM.
+`globalhoopstats` is a web application for collecting, aggregating, and displaying basketball statistics for players, teams, and staff from multiple sources (EuroLeague, ACB, NBA, and others). Built with Next.js (App Router), TypeScript, Tailwind CSS, and Drizzle ORM.
 
-## Últimos cambios (resumen)
+## Recent changes (summary)
 
-- Añadida y mejorada la ruta de búsqueda de jugadores (`src/app/api/players/search/route.ts`) para búsquedas más precisas.
-- Nuevos scripts de backfill y sincronización en `scripts/` para facilitar la importación de datos históricos.
-- Ajustes en las migraciones de Drizzle y snapshots en `drizzle/` para mejorar la reproducibilidad.
-- Documentación ampliada sobre problemas conocidos con OneDrive y recomendaciones para entornos locales.
-
-Si quieres que detalle los cambios uno por uno (commits o PRs), indícame qué nivel de detalle necesitas.
+- Added and improved player search route (`src/app/api/players/search/route.ts`) for more precise searches.
+- New backfill and sync scripts in `scripts/` to facilitate historical data import.
+- Drizzle migration adjustments and snapshots in `drizzle/` for better reproducibility.
+- Extended documentation on OneDrive caveats and local environment recommendations.
 
 ## Tech stack
 
 - Frontend: Next.js (App Router) + React + Tailwind CSS
-- Lenguaje: TypeScript (estricto)
-- ORM: Drizzle (ver `drizzle.config.ts`)
-- Gestor de paquetes: pnpm
+- Language: TypeScript (strict)
+- ORM: Drizzle (see `drizzle.config.ts`)
+- Package manager: pnpm
 
-## Qué incluye
+## What's included
 
-- Páginas y rutas para `players`, `teams`, `coaches`, `leagues` y `compare` (ver `src/app/`).
-- API route para búsqueda de jugadores en `src/app/api/players/search/route.ts`.
-- Componentes reutilizables en `src/components/`.
-- Adaptadores de datos y utilidades de sincronización en `src/lib/sources/` y `src/lib/sync/`.
-- Scripts para chequeos de base de datos, migraciones y sincronización en `scripts/`.
+- Pages and routes for `players`, `teams`, `coaches`, `leagues` and `compare` (see `src/app/`).
+- API route for player search at `src/app/api/players/search/route.ts`.
+- Reusable components in `src/components/`.
+- Data adapters and sync utilities in `src/lib/sources/` and `src/lib/sync/`.
+- Scripts for database checks, migrations, and syncing in `scripts/`.
 
-## Estado actual
+## Current status
 
-Proyecto en desarrollo activo. Tareas pendientes destacadas:
+Active development. Notable pending tasks:
 
-- Automatizar por completo el flujo de migraciones y seeds para entornos locales.
-- Implementar autenticación y control de acceso para áreas administrativas.
-- Mejoras de accesibilidad y pruebas UI.
-- Observabilidad y manejo de errores en los jobs de sincronización.
+- Fully automate the migration and seed flow for local environments.
+- Implement authentication and access control for admin areas.
+- Accessibility improvements and UI tests.
+- Observability and error handling for sync jobs.
 
-## Inicio rápido (desarrollador)
+## Quick start (developer)
 
-Pre-requisitos: Node.js (versión LTS recomendada), `pnpm`, y una base de datos relacional compatible con la configuración de Drizzle.
+Prerequisites: Node.js (LTS recommended), `pnpm`, and a relational database compatible with Drizzle configuration.
 
-1. Instalar dependencias:
+1. Install dependencies:
 
 ```bash
 pnpm install
 ```
 
-2. Crear el fichero de entorno local:
+2. Create the local environment file:
 
 ```powershell
 # PowerShell (Windows)
@@ -59,57 +57,57 @@ Copy-Item .env.example .env.local
 cp .env.example .env.local
 ```
 
-3. Configurar la conexión a base de datos en `drizzle.config.ts` y actualizar `.env.local`.
+3. Configure database connection in `drizzle.config.ts` and update `.env.local`.
 
-4. Aplicar migraciones (ver `scripts/` para detalles). Ejemplo:
+4. Apply migrations (see `scripts/` for details). Example:
 
 ```bash
 pnpm tsx scripts/apply-migrations.ts
 ```
 
-5. Levantar servidor de desarrollo:
+5. Start development server:
 
 ```bash
 pnpm dev
 ```
 
-## Scripts útiles
+## Useful scripts
 
-- `pnpm dev` — iniciar servidor de desarrollo
-- `pnpm build` — build para producción
-- `pnpm lint` — ejecutar ESLint
-- `pnpm typecheck` — comprobaciones TypeScript
-- `pnpm test` — ejecutar tests (si están configurados)
+- `pnpm dev` — start development server
+- `pnpm build` — build for production
+- `pnpm lint` — run ESLint
+- `pnpm typecheck` — TypeScript checks
+- `pnpm test` — run tests (if configured)
 
-Revisa la carpeta `scripts/` para utilidades adicionales como `sync.ts`, `backfill-players.ts` y comprobaciones DB.
+Check the `scripts/` folder for additional utilities like `sync.ts`, `backfill-players.ts`, and DB checks.
 
-## Sincronización de datos y fuentes
+## Data sync and sources
 
-Los adaptadores se encuentran en `src/lib/sources/`. Las tareas de importación y refresco se orquestan desde los scripts en `scripts/`. Dependiendo de la fuente, puede ser necesario configurar claves/API y ejecutar algunos scripts manualmente.
+Adapters are located in `src/lib/sources/`. Import and refresh tasks are orchestrated from scripts in `scripts/`. Depending on the source, you may need to configure API keys and run some scripts manually.
 
-## Estructura del proyecto (alto nivel)
+## Project structure (high level)
 
-- `src/app/` — páginas y rutas API (App Router)
-- `src/components/` — componentes de UI
-- `src/lib/` — utilidades, lógica de sincronización y cliente DB
-- `scripts/` — mantenimiento, migraciones y sincronización
-- `drizzle/` — migraciones y snapshots SQL
+- `src/app/` — pages and API routes (App Router)
+- `src/components/` — UI components
+- `src/lib/` — utilities, sync logic, and DB client
+- `scripts/` — maintenance, migrations, and sync
+- `drizzle/` — migrations and SQL snapshots
 
-## Notas de desarrollo / caveats
+## Development notes / caveats
 
-- OneDrive: si trabajas desde OneDrive pueden aparecer errores con `readlink()` y archivos reparse point en `.next/`. Si detectas problemas, borra `.next/` o excluye la carpeta de OneDrive.
-- Recomendación: usa una copia local no gestionada por OneDrive para entornos CI/producción.
+- OneDrive: If working from OneDrive, you may encounter `readlink()` errors and reparse point files in `.next/`. If you run into issues, delete `.next/` or exclude the folder from OneDrive.
+- Recommendation: use a local copy not managed by OneDrive for CI/production environments.
 
-## Cómo contribuir
+## How to contribute
 
-- Abre un issue para discutir cambios grandes o problemas con datos.
-- Haz PRs pequeñas y focalizadas: mejoras de migraciones, tests para adaptadores, o correcciones UI.
-- Para cambios en la DB, aporta migrations reproducibles y, si procede, un script de seed reducido.
+- Open an issue to discuss major changes or data problems.
+- Keep PRs small and focused: migration improvements, adapter tests, or UI fixes.
+- For DB changes, provide reproducible migrations and, if applicable, a reduced seed script.
 
-## Contacto
+## Contact
 
-- Autor: Hugo Redondo Valdés — Hrvaldes22@gmail.com
+- Author: Hugo Redondo Valdés — Hrvaldes22@gmail.com
 
-## Licencia
+## License
 
-Consulta `LICENSE.txt` en la raíz del repositorio para los detalles de licencia.
+See `LICENSE.txt` in the repository root for license details.
