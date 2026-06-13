@@ -59,24 +59,25 @@ type Block =
 function pickSectionEmoji(content: string): string | null {
   const c = content.toLowerCase()
   if (
-    c.startsWith("resumen") ||
-    c.startsWith("veredicto") ||
-    c.startsWith("conclusión")
+    c.startsWith("quick summary") ||
+    c.startsWith("summary") ||
+    c.startsWith("verdict") ||
+    c.startsWith("conclusion")
   )
     return "🏀"
-  if (c.startsWith("perfil") || c.startsWith("ficha")) return "📋"
-  if (c.startsWith("estad") || c.startsWith("stats") || c.startsWith("datos"))
+  if (c.startsWith("profile") || c.startsWith("recommended")) return "📋"
+  if (c.startsWith("stats") || c.startsWith("stat") || c.startsWith("data"))
     return "📊"
-  if (c.startsWith("encaje") || c.startsWith("fit") || c.startsWith("análisis"))
+  if (c.startsWith("fit") || c.startsWith("team fit") || c.startsWith("analysis"))
     return "🎯"
-  if (c.startsWith("defens") || c.startsWith("recomend")) return "🛡️"
+  if (c.startsWith("defens") || c.startsWith("recommend")) return "🛡️"
   if (
-    c.startsWith("antes de") ||
-    c.startsWith("considera") ||
-    c.startsWith("puntos a")
+    c.startsWith("before") ||
+    c.startsWith("consider") ||
+    c.startsWith("points to")
   )
     return "💡"
-  if (c.startsWith("por qué") || c.startsWith("pregunta")) return "❓"
+  if (c.startsWith("why") || c.startsWith("question")) return "❓"
   return null
 }
 
@@ -98,7 +99,7 @@ function parsePlayerHeader(content: string): {
   cleanContent: string
 } {
   const m =
-    /^\s*(?:\d+\.\s+)?([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñ'\- ]+?)\s+—\s+(.+)$/.exec(
+    /^\s*(?:\d+\.\s+)?([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñ'\- ]+?)\s+(?:—|-|–)\s+(.+)$/.exec(
       content,
     )
   if (m) {
@@ -310,9 +311,9 @@ function PlainHeader({
 function isStatTable(headers: string[]): boolean {
   const h = headers.map((s) => s.toLowerCase())
   return (
-    h.some((x) => /^(partidos|games|gp)$/.test(x)) ||
-    h.some((x) => /^(puntos|points)$/.test(x)) ||
-    h.some((x) => /^(rebotes|rebounds)$/.test(x))
+    h.some((x) => /^(games|gp)$/.test(x)) ||
+    h.some((x) => /^(points)$/.test(x)) ||
+    h.some((x) => /^(rebounds)$/.test(x))
   )
 }
 

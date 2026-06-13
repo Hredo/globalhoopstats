@@ -52,29 +52,29 @@ export function CookieConsent() {
   return (
     <div
       role="dialog"
-      aria-label="Aviso de cookies"
+      aria-label="Cookie notice"
       aria-live="polite"
       className="fixed inset-x-0 bottom-0 z-[150] px-4 pb-4 sm:px-6"
     >
       <div className="mx-auto flex max-w-4xl flex-col gap-4 rounded-2xl border border-hairline bg-surface-0/90 p-5 shadow-2xl backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <p className="text-sm leading-relaxed text-ink-200">
-          Usamos cookies propias necesarias para iniciar sesión y recordar tus
-          preferencias. No usamos cookies de publicidad ni de seguimiento de
-          terceros. Consulta nuestra{" "}
+          We use first-party cookies that are strictly necessary to keep you
+          signed in and remember your preferences. We do not use advertising or
+          third-party tracking cookies. See our{" "}
           <Link
             href="/privacy"
             className="font-semibold text-brand-400 underline-offset-2 hover:underline"
           >
-            política de privacidad
+            privacy policy
           </Link>
           .
         </p>
         <div className="flex shrink-0 gap-3">
           <Button variant="secondary" size="sm" onClick={() => decide("rejected")}>
-            Rechazar
+            Reject
           </Button>
           <Button variant="primary" size="sm" onClick={() => decide("accepted")}>
-            Aceptar
+            Accept
           </Button>
         </div>
       </div>

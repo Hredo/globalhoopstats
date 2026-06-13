@@ -9,6 +9,7 @@ type Feature = {
   cta: { href: string; label: string }
   bullets: string[]
   visual: "compare" | "radar" | "shot"
+  badge?: string
 }
 
 const FEATURES: Feature[] = [
@@ -47,6 +48,7 @@ const FEATURES: Feature[] = [
       "Export to PDF, Excel and Word",
     ],
     visual: "shot",
+    badge: "Beta",
   },
 ]
 
@@ -320,6 +322,11 @@ export function FeatureShowcase() {
                       {f.n}
                     </span>
                     <span className="h-px w-8 bg-hairline-strong" />
+                    {f.badge ? (
+                      <span className="rounded-full border border-amber-400/50 bg-amber-400/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-300">
+                        {f.badge}
+                      </span>
+                    ) : null}
                   </div>
                   <h3 className="mt-4 font-display text-2xl font-bold leading-tight tracking-[-0.02em] text-ink-50 sm:text-3xl">
                     {f.title}

@@ -188,22 +188,31 @@ export function UserMenu() {
       {open ? (
         <div
           ref={menuRef}
-          className="absolute right-0 z-50 mt-2 w-64 origin-top-right animate-menu-in overflow-hidden rounded-xl border border-white/10 bg-ink-900/95 p-1.5 shadow-2xl backdrop-blur-md"
+          className="absolute right-0 z-50 mt-2 w-64 origin-top-right animate-menu-in overflow-hidden rounded-xl border border-white/10 bg-ink-900/95 shadow-2xl backdrop-blur-md"
           role="menu"
         >
-          <div className="px-3 py-2.5">
-            <p className="text-sm font-semibold text-ink-50">{me.name}</p>
-            <p className="truncate text-xs text-ink-400">{me.email}</p>
-            <div className="mt-2 flex items-center gap-2">
+          <div className="bg-gradient-to-b from-brand-500/[0.06] to-transparent px-4 pb-3 pt-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-ink-950 shadow-lg shadow-brand-500/20">
+                {initials(me.name)}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-ink-50">
+                  {me.name}
+                </p>
+                <p className="truncate text-xs text-ink-400">{me.email}</p>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center gap-2">
               <span
-                className={`rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest ${badge.color}`}
+                className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest ${badge.color}`}
               >
                 {badge.label}
               </span>
               {me.plan === "free" && me.role !== "admin" ? (
                 <Link
                   href="/account/subscription"
-                  className="text-[11px] text-brand-300 transition hover:text-brand-200"
+                  className="text-[11px] font-medium text-brand-300 transition hover:text-brand-200"
                   onClick={() => setOpen(false)}
                 >
                   Upgrade →
@@ -211,71 +220,123 @@ export function UserMenu() {
               ) : null}
             </div>
           </div>
-          <div className="my-1 h-px bg-white/5" />
-          <MenuLink href="/account" onSelect={() => setOpen(false)}>
-            Account settings
-          </MenuLink>
-          <MenuLink href="/account/ai-keys" onSelect={() => setOpen(false)}>
-            AI &amp; keys
-          </MenuLink>
-          <MenuLink
-            href="/account/subscription"
-            onSelect={() => setOpen(false)}
-          >
-            Subscription
-          </MenuLink>
+          <div className="h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+          <div className="p-1.5">
+            <MenuLink
+              href="/account"
+              icon={<IconPath d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />}
+              onSelect={() => setOpen(false)}
+            >
+              Account settings
+            </MenuLink>
+            <MenuLink
+              href="/account/ai-keys"
+              icon={<IconPath d="M14 7a4 4 0 11-3.8 5.2L4 18v3h3v-2h2v-2h2l1.2-1.2A4 4 0 0114 7zm2.5 2.5h.01" />}
+              onSelect={() => setOpen(false)}
+            >
+              AI &amp; keys
+            </MenuLink>
+            <MenuLink
+              href="/account/subscription"
+              icon={<IconPath d="M3 7h18M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M3 7l2-3h14l2 3M7 14h4" />}
+              onSelect={() => setOpen(false)}
+            >
+              Subscription
+            </MenuLink>
+          </div>
           {me.role === "admin" ? (
             <>
-              <div className="my-1 h-px bg-white/5" />
-              <MenuLink href="/admin" onSelect={() => setOpen(false)}>
-                Admin
-              </MenuLink>
+              <div className="h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+              <div className="p-1.5">
+                <MenuLink
+                  href="/admin"
+                  icon={<IconPath d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6l7-3z" />}
+                  onSelect={() => setOpen(false)}
+                >
+                  Admin
+                </MenuLink>
+              </div>
             </>
           ) : null}
-          <div className="my-1 h-px bg-white/5" />
-          <MenuLink href="/ai-advisor" onSelect={() => setOpen(false)}>
-            AI Advisor
-          </MenuLink>
-          <MenuLink href="/compare" onSelect={() => setOpen(false)}>
-            Compare
-          </MenuLink>
-          <MenuLink href="/ai-setup" onSelect={() => setOpen(false)}>
-            Connect your AI
-          </MenuLink>
-          <div className="my-1 h-px bg-white/5" />
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-ink-200 transition hover:bg-white/[0.05] hover:text-ink-50"
-          >
-            <svg
-              className="h-3.5 w-3.5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              aria-hidden
+          <div className="h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+          <div className="p-1.5">
+            <MenuLink
+              href="/ai-advisor"
+              icon={<IconPath d="M9.5 2A2.5 2.5 0 0112 4.5v11a2.5 2.5 0 01-5 0v-11A2.5 2.5 0 019.5 2zm0 0v5m5 8a4 4 0 01-8 0m5-12a2 2 0 00-2 2" />}
+              onSelect={() => setOpen(false)}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15 12H3m0 0l4-4m-4 4l4 4m11-9V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2h9a2 2 0 002-2v-2"
-              />
-            </svg>
-            Sign out
-          </button>
+              AI Advisor
+            </MenuLink>
+            <MenuLink
+              href="/compare"
+              icon={<IconPath d="M4 20V4m4 16v-8a2 2 0 012-2h4a2 2 0 012 2v8m4 0V8a2 2 0 00-2-2h-4a2 2 0 00-2 2v12" />}
+              onSelect={() => setOpen(false)}
+            >
+              Compare
+            </MenuLink>
+            <MenuLink
+              href="/ai-setup"
+              icon={<IconPath d="M11.4 3.4a1 1 0 011.2 0l1.3 1a4 4 0 002.7.4l1.6-.3a1 1 0 011 .6l.6 1.5a4 4 0 001.4 2.2l1.1 1.1a1 1 0 010 1.4l-1.1 1.1a4 4 0 00-1.4 2.2l-.6 1.5a1 1 0 01-1 .6l-1.6-.3a4 4 0 00-2.7.4l-1.3 1a1 1 0 01-1.2 0l-1.3-1a4 4 0 00-2.7-.4l-1.6.3a1 1 0 01-1-.6l-.6-1.5a4 4 0 00-1.4-2.2L2 12a1 1 0 010-1.4l1.1-1.1a4 4 0 001.4-2.2l.6-1.5a1 1 0 011-.6l1.6.3a4 4 0 002.7-.4l1.3-1zM9 12a3 3 0 106 0 3 3 0 00-6 0z" />}
+              onSelect={() => setOpen(false)}
+            >
+              Connect your AI
+            </MenuLink>
+          </div>
+          <div className="h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+          <div className="p-1.5">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
+            >
+              <span className="flex h-4 w-4 items-center justify-center">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4"
+                  aria-hidden
+                >
+                  <path d="M15 12H3m0 0l4-4m-4 4l4 4m11-9V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2h9a2 2 0 002-2v-2" />
+                </svg>
+              </span>
+              Sign out
+            </button>
+          </div>
         </div>
       ) : null}
     </div>
   )
 }
 
+function IconPath({ d }: { d: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-4 w-4"
+      aria-hidden
+    >
+      <path d={d} />
+    </svg>
+  )
+}
+
 function MenuLink({
   href,
+  icon,
   children,
   onSelect,
 }: {
   href: string
+  icon: React.ReactNode
   children: React.ReactNode
   onSelect: () => void
 }) {
@@ -283,8 +344,11 @@ function MenuLink({
     <Link
       href={href}
       onClick={onSelect}
-      className="flex items-center rounded-md px-3 py-2 text-sm text-ink-200 transition hover:bg-white/[0.05] hover:text-ink-50"
+      className="group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-ink-200 transition hover:bg-white/[0.05] hover:text-ink-50"
     >
+      <span className="flex h-4 w-4 items-center justify-center text-ink-500 transition group-hover:text-brand-400">
+        {icon}
+      </span>
       {children}
     </Link>
   )

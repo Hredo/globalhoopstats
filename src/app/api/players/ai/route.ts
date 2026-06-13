@@ -42,7 +42,7 @@ function buildPlayerPrompt(
     `Shooting: ${fgp} FG / ${threep} 3P / ${ftp} FT`,
     `PER: ${per}`,
     "",
-    "Write a 2-3 sentence scouting report about this player. Mention their role, strenghts, weaknesses, and what kind of team they fit best. Plain prose, no lists, no markdown. Write in Spanish.",
+    "Write a 2-3 sentence scouting report about this player. Mention their role, strengths, weaknesses, and what kind of team they fit best. Plain prose, no lists, no markdown. Write in English.",
   ].join("\n")
 }
 
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
             model: engine.model,
             apiKey: engine.apiKey,
             system:
-              "You are a concise basketball scout. Given a player's stats, write a short scouting report in Spanish. Plain prose, no lists, no markdown.",
+              "You are a concise basketball scout. Given a player's stats, write a short scouting report in English. Plain prose, no lists, no markdown.",
             messages: [
               {
                 role: "user",
