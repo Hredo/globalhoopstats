@@ -5,6 +5,9 @@ const nextConfig = {
     maxInactiveAge: 1000 * 60 * 60,
     pagesBufferLength: 8,
   },
+  // docx ships as IIFE; Turbopack fails with "super" error when transpiling it.
+  // Remove the explicit transpile so Turbopack loads docx as-is.
+  // transpilePackages: [],
   async headers() {
     return [
       {
@@ -55,7 +58,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https: blob:",
               "font-src 'self' data:",
-              "connect-src 'self' https:",
+              "connect-src 'self' https: http://localhost:11434 http://127.0.0.1:11434",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
@@ -75,7 +78,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self' data:",
-              "connect-src 'self' http://localhost:11434 http://127.0.0.1:11434",
+              "connect-src 'self' https: http://localhost:11434 http://127.0.0.1:11434",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

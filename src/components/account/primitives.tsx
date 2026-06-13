@@ -17,24 +17,27 @@ export function AccountSection({
   return (
     <section
       className={cn(
-        "gh-card rounded-2xl border border-hairline bg-surface-1/60 p-5 sm:p-6",
+        "rounded-2xl border border-white/5 bg-gradient-to-b from-ink-800/40 to-ink-900/40 p-5 shadow-sm backdrop-blur-sm sm:p-6",
         className,
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-display text-base font-semibold text-ink-50 sm:text-lg">
-            {title}
-          </h2>
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand-400/60" />
+            <h2 className="font-display text-base font-semibold text-ink-50 sm:text-lg">
+              {title}
+            </h2>
+          </div>
           {description ? (
-            <p className="mt-1 max-w-prose text-[13px] leading-relaxed text-ink-400">
+            <p className="mt-1.5 max-w-prose text-[13px] leading-relaxed text-ink-400">
               {description}
             </p>
           ) : null}
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      <div className="mt-5">{children}</div>
+      {children ? <div className="mt-5 space-y-4">{children}</div> : null}
     </section>
   )
 }
@@ -54,17 +57,26 @@ export function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <label
-        htmlFor={htmlFor}
-        className="block text-[11px] font-semibold uppercase tracking-widest text-ink-400"
-      >
-        {label}
-      </label>
+      <div className="flex items-center justify-between">
+        <label
+          htmlFor={htmlFor}
+          className="block text-[11px] font-semibold uppercase tracking-widest text-ink-400"
+        >
+          {label}
+        </label>
+        {hint ? (
+          <span className="text-[10px] text-ink-500">{hint}</span>
+        ) : null}
+      </div>
       {children}
       {error ? (
-        <p className="text-xs text-red-300">{error}</p>
-      ) : hint ? (
-        <p className="text-[11px] text-ink-500">{hint}</p>
+        <p className="flex items-center gap-1 text-xs text-red-300">
+          <svg className="h-3 w-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 8v4m0 4h.01" />
+          </svg>
+          {error}
+        </p>
       ) : null}
     </div>
   )
@@ -77,7 +89,7 @@ export function TextInput({
   return (
     <input
       className={cn(
-        "w-full rounded-xl border border-white/10 bg-ink-900/60 px-3.5 py-2.5 text-sm text-ink-50 outline-none transition-all duration-200 placeholder:text-ink-600 hover:border-white/20 focus:border-brand-500/60 focus:shadow-[0_0_0_3px_rgba(245,158,11,0.12)] disabled:opacity-50",
+        "w-full rounded-xl border border-white/10 bg-ink-900/60 px-3.5 py-2.5 text-sm text-ink-50 outline-none transition-all duration-200 placeholder:text-ink-600 hover:border-white/20 focus:border-brand-500/60 focus:bg-ink-800/80 focus:shadow-[0_0_0_3px_rgba(245,158,11,0.12)] disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       {...props}
@@ -117,7 +129,7 @@ export function Toggle({
   disabled?: boolean
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-2.5">
+    <div className="flex items-start justify-between gap-4 rounded-xl px-3 py-3 transition hover:bg-white/[0.02]">
       <div className="min-w-0">
         <p className="text-sm font-medium text-ink-100">{label}</p>
         {description ? (
@@ -134,16 +146,16 @@ export function Toggle({
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={cn(
-          "relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors duration-200 disabled:opacity-50",
+          "relative mt-0.5 inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-900 disabled:cursor-not-allowed disabled:opacity-50",
           checked
-            ? "border-brand-400/50 bg-brand-500/80"
-            : "border-white/10 bg-white/[0.06]",
+            ? "bg-brand-500"
+            : "bg-white/10",
         )}
       >
         <span
           className={cn(
-            "inline-block h-4 w-4 transform rounded-full bg-ink-50 shadow transition-transform duration-200",
-            checked ? "translate-x-6" : "translate-x-1",
+            "inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200",
+            checked ? "translate-x-5" : "translate-x-0.5",
           )}
         />
       </button>
@@ -158,20 +170,45 @@ export function StatusNote({
   type: "success" | "error" | "info"
   children: ReactNode
 }) {
-  const styles: Record<typeof type, string> = {
-    success: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
-    error: "border-red-500/30 bg-red-500/10 text-red-200",
-    info: "border-brand-500/25 bg-brand-500/8 text-brand-100",
+  const styles: Record<typeof type, { container: string; icon: ReactNode }> = {
+    success: {
+      container: "border-emerald-500/25 bg-emerald-500/8 text-emerald-200",
+      icon: (
+        <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+    },
+    error: {
+      container: "border-red-500/25 bg-red-500/8 text-red-200",
+      icon: (
+        <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M15 9l-6 6m0-6l6 6" />
+        </svg>
+      ),
+    },
+    info: {
+      container: "border-brand-500/25 bg-brand-500/8 text-brand-100",
+      icon: (
+        <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 16v-4m0-4h.01" />
+        </svg>
+      ),
+    },
   }
+  const s = styles[type]
   return (
     <div
       className={cn(
-        "rounded-lg border px-3 py-2 text-[13px] leading-relaxed",
-        styles[type],
+        "flex items-start gap-2.5 rounded-xl border px-4 py-3 text-[13px] leading-relaxed",
+        s.container,
       )}
       role={type === "error" ? "alert" : "status"}
     >
-      {children}
+      {s.icon}
+      <span>{children}</span>
     </div>
   )
 }

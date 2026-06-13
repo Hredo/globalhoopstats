@@ -109,13 +109,22 @@ export async function GET(req: Request) {
 
   const ranked = q ? rankByQuery(rows, q.toLowerCase()) : rows
 
+  const seen = new Set<string>()
+  const unique: typeof ranked = []
+  for (const r of ranked) {
+    const key = r.slug
+    if (seen.has(key)) continue
+    seen.add(key)
+    unique.push(r)
+  }
+
   return NextResponse.json({
-    results: ranked.map((r) => ({
+    results: unique.map((r) => ({
       id: r.id,
       slug: r.slug,
       fullName: r.fullName,
       source: r.source,
-      photoUrl: r.photoUrl,
+      imageUrl: r.photoUrl,
       position: r.position,
       nationality: r.nationality,
       team:

@@ -674,9 +674,14 @@ export default function AIAdvisorClient() {
                 </svg>
               </div>
               <div className="min-w-0">
-                <h1 className="truncate font-display text-base font-bold text-ink-50 sm:text-lg">
-                  Scouting Advisor
-                </h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="truncate font-display text-base font-bold text-ink-50 sm:text-lg">
+                    Scouting Advisor
+                  </h1>
+                  <span className="shrink-0 rounded-full border border-amber-400/50 bg-amber-400/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-300">
+                    Beta
+                  </span>
+                </div>
                 <p className="hidden truncate text-[11px] text-ink-400 sm:block sm:text-xs">
                   Smart analysis powered by your player database
                 </p>

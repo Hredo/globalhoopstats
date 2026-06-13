@@ -165,9 +165,11 @@ export function ScrollGallery() {
       ) : (
         <div className="py-16">
           {heading}
-          <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 scrollbar-none">
             {PANELS.map((p) => (
-              <PanelCard key={p.index} panel={p} />
+              <div key={p.index} className="w-[78vw] shrink-0 snap-center sm:w-[400px]">
+                <PanelCard panel={p} />
+              </div>
             ))}
           </div>
         </div>
