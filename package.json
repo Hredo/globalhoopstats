@@ -69,6 +69,7 @@
     "eslint-config-next": "^15.2.0",
     "jpeg-js": "^0.4.4",
     "pngjs": "^7.0.0",
+    "postcss": "^8.5.10",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.6.14",
     "tailwindcss": "^4.0.0",
