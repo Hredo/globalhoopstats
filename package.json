@@ -2,6 +2,7 @@
   "name": "basket-estadistics",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.0.8",
   "engines": {
     "node": ">=20 <23"
   },
@@ -32,8 +33,7 @@
     "db:dedupe-players": "tsx scripts/dedupe-players.ts"
   },
   "overrides": {
-    "esbuild": "0.28.1",
-    "postcss": "8.5.15"
+    "esbuild": "0.28.1"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -66,9 +66,9 @@
     "@types/react-dom": "^19.0.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.0.0",
-    "eslint-config-next": "^15.2.0",
     "jpeg-js": "^0.4.4",
     "pngjs": "^7.0.0",
+    "postcss": "^8.5.15",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.6.14",
     "tailwindcss": "^4.0.0",
