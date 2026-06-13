@@ -123,7 +123,7 @@ export async function POST(request: Request) {
     let aiReason: string | null = null
 
     const user = await getCurrentUser(request.headers.get("cookie"))
-    let engine = user
+    const engine = user
       ? await resolveEngine(user.id, "compare")
       : await resolveDefaultEngine()
     if (engine.ok) {
