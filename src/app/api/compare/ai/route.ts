@@ -7,7 +7,7 @@ import {
 import { clientIp, cleanLlmOutput } from "@/lib/security/ai-advisor"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
 import { getCurrentUser } from "@/lib/auth/current-user"
-import { resolveEngine } from "@/lib/ai/user-provider"
+import { resolveEngine, resolveDefaultEngine } from "@/lib/ai/user-provider"
 import { chatComplete } from "@/lib/ai/chat"
 
 export const dynamic = "force-dynamic"
@@ -123,31 +123,31 @@ export async function POST(request: Request) {
     let aiReason: string | null = null
 
     const user = await getCurrentUser(request.headers.get("cookie"))
-    if (user) {
-      const engine = await resolveEngine(user.id, "compare")
-      if (engine.ok) {
-        aiConfigured = true
-        const llm = await chatComplete({
-          provider: engine.provider,
-          model: engine.model,
-          apiKey: engine.apiKey,
-          system:
-            "You are a concise basketball scout. Given a structured head-to-head, write a short, specific verdict. No markdown, no lists, plain prose, English.",
-          messages: [
-            { role: "user", content: buildComparePrompt(aName, bName, result) },
-          ],
-          maxTokens: 220,
-          temperature: 0.5,
-        })
-        if (llm.ok) {
-          aiSummary = cleanLlmOutput(llm.content)
-          aiProvider = engine.provider.id
-        } else {
-          aiReason = "ai_error"
-        }
+    let engine = user
+      ? await resolveEngine(user.id, "compare")
+      : await resolveDefaultEngine()
+    if (engine.ok) {
+      aiConfigured = true
+      const llm = await chatComplete({
+        provider: engine.provider,
+        model: engine.model,
+        apiKey: engine.apiKey,
+        system:
+          "You are a concise basketball scout. Given a structured head-to-head, write a short, specific verdict. No markdown, no lists, plain prose, English.",
+        messages: [
+          { role: "user", content: buildComparePrompt(aName, bName, result) },
+        ],
+        maxTokens: 220,
+        temperature: 0.5,
+      })
+      if (llm.ok) {
+        aiSummary = cleanLlmOutput(llm.content)
+        aiProvider = engine.provider.id
       } else {
-        aiReason = engine.reason
+        aiReason = "ai_error"
       }
+    } else {
+      aiReason = engine.reason
     }
 
     return NextResponse.json({
