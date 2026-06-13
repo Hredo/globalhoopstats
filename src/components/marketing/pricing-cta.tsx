@@ -1,3 +1,4 @@
+/* NOTE: PricingCta commented out until subscriptions are re-enabled.
 import { FadeIn } from "@/components/animations/fade-in"
 import { WaitlistForm } from "@/components/marketing/waitlist-form"
 import { SectionHeading } from "@/components/ui/section-heading"
@@ -140,3 +141,4 @@ export function PricingCta() {
     </section>
   )
 }
+*/

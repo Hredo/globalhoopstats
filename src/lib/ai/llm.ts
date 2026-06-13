@@ -38,44 +38,44 @@ function buildPlayerContext(profile: PlayerProfile): string {
   const latest = profile.seasons[0]
 
   const lines: string[] = []
-  lines.push(`# Jugador mencionado en la consulta`)
-  lines.push(`- Nombre: ${profile.fullName}`)
+  lines.push(`# Player mentioned in the query`)
+  lines.push(`- Name: ${profile.fullName}`)
   lines.push(`- Slug: ${profile.slug}`)
-  lines.push(`- Liga: ${profile.league.name} (${profile.league.region})`)
+  lines.push(`- League: ${profile.league.name} (${profile.league.region})`)
   if (profile.team) {
-    lines.push(`- Equipo actual: ${profile.team.name}`)
+    lines.push(`- Current team: ${profile.team.name}`)
   } else {
-    lines.push(`- Equipo actual: agente libre / sin equipo registrado`)
+    lines.push(`- Current team: free agent / no team registered`)
   }
-  if (profile.position) lines.push(`- Posición: ${profile.position}`)
-  if (profile.nationality) lines.push(`- Nacionalidad: ${profile.nationality}`)
+  if (profile.position) lines.push(`- Position: ${profile.position}`)
+  if (profile.nationality) lines.push(`- Nationality: ${profile.nationality}`)
   if (profile.heightCm)
-    lines.push(`- Altura: ${(profile.heightCm / 100).toFixed(2)} m`)
+    lines.push(`- Height: ${(profile.heightCm / 100).toFixed(2)} m`)
 
   if (latest) {
     const gp = latest.gamesPlayed || 1
     lines.push("")
-    lines.push(`Última temporada registrada (${latest.seasonName}):`)
+    lines.push(`Last recorded season (${latest.seasonName}):`)
     if (latest.gamesPlayed !== null)
-      lines.push(`- Partidos: ${latest.gamesPlayed}`)
+      lines.push(`- Games: ${latest.gamesPlayed}`)
     if (latest.pointsTotal !== null)
-      lines.push(`- Puntos: ${formatStat(latest.pointsTotal / gp)} PPG`)
+      lines.push(`- Points: ${formatStat(latest.pointsTotal / gp)} PPG`)
     if (latest.reboundsTotal !== null)
-      lines.push(`- Rebotes: ${formatStat(latest.reboundsTotal / gp)} RPG`)
+      lines.push(`- Rebounds: ${formatStat(latest.reboundsTotal / gp)} RPG`)
     if (latest.assistsTotal !== null)
-      lines.push(`- Asistencias: ${formatStat(latest.assistsTotal / gp)} APG`)
+      lines.push(`- Assists: ${formatStat(latest.assistsTotal / gp)} APG`)
     if (latest.stealsTotal !== null)
-      lines.push(`- Robos: ${formatStat(latest.stealsTotal / gp)} SPG`)
+      lines.push(`- Steals: ${formatStat(latest.stealsTotal / gp)} SPG`)
     if (latest.blocksTotal !== null)
-      lines.push(`- Tapones: ${formatStat(latest.blocksTotal / gp)} BPG`)
+      lines.push(`- Blocks: ${formatStat(latest.blocksTotal / gp)} BPG`)
   } else {
     lines.push("")
-    lines.push(`Sin estadísticas de temporada registradas en la base de datos.`)
+    lines.push(`No season stats recorded in the database.`)
   }
 
   lines.push("")
   lines.push(
-    `IMPORTANTE: estos datos son los únicos verificables. No inventes otros contratos, premios o temporadas. Si la consulta requiere información adicional (salario exacto, lesiones, etc.) indícalo claramente.`,
+    `IMPORTANT: this data is the only verifiable information. Do not invent other contracts, awards, or seasons. If the query requires additional information (exact salary, injuries, etc.) state it clearly.`,
   )
 
   return lines.join("\n")
@@ -83,10 +83,10 @@ function buildPlayerContext(profile: PlayerProfile): string {
 
 function buildTeamContext(team: TeamProfile): string {
   const lines: string[] = []
-  lines.push(`# Equipo del usuario`)
-  lines.push(`- Nombre: ${team.name}`)
-  lines.push(`- Liga: ${team.league.name} (${team.league.region})`)
-  lines.push(`- Plantilla: ${team.roster.length} jugadores`)
+  lines.push(`# User's team`)
+  lines.push(`- Name: ${team.name}`)
+  lines.push(`- League: ${team.league.name} (${team.league.region})`)
+  lines.push(`- Roster: ${team.roster.length} players`)
 
   const positions = team.roster.reduce<Record<string, number>>((acc, p) => {
     const pos = (p.position || "?").toUpperCase().charAt(0)
@@ -96,7 +96,7 @@ function buildTeamContext(team: TeamProfile): string {
   const posLine = Object.entries(positions)
     .map(([k, v]) => `${k}:${v}`)
     .join(" · ")
-  if (posLine) lines.push(`- Distribución de posiciones: ${posLine}`)
+  if (posLine) lines.push(`- Position distribution: ${posLine}`)
 
   if (team.roster.length > 0) {
     const names = team.roster
@@ -104,7 +104,7 @@ function buildTeamContext(team: TeamProfile): string {
       .map((p) => `${p.fullName}${p.position ? ` (${p.position})` : ""}`)
       .join(", ")
     lines.push(
-      `- Núcleo principal: ${names}${team.roster.length > 12 ? ` y ${team.roster.length - 12} más` : ""}`,
+      `- Core rotation: ${names}${team.roster.length > 12 ? ` and ${team.roster.length - 12} more` : ""}`,
     )
   }
   return lines.join("\n")
@@ -118,71 +118,71 @@ function buildSystemPrompt(input: GenerateAdvisorInput): string {
     : ""
 
   return [
-    `Eres Basket Scout AI, un asesor experto en fichajes de baloncesto con conocimiento profundo de la NBA, la EuroLeague y la Liga ACB (España). Tu objetivo es ayudar al usuario a tomar decisiones informadas sobre incorporaciones para su equipo.`,
+    `You are Basket Scout AI, an expert basketball signing advisor with deep knowledge of the NBA, EuroLeague, and Liga ACB (Spain). Your goal is to help the user make informed decisions about additions to their team.`,
     ``,
-    `## Reglas de comportamiento`,
-    `- Detecta el idioma del mensaje del usuario y responde SIEMPRE en ese mismo idioma. Por ejemplo: si el usuario escribe en español, responde en español; si escribe en inglés, responde en inglés; si escribe en francés, responde en francés.`,
-    `- Mantén el tono profesional pero cercano.`,
-    `- Basa tus respuestas en los datos proporcionados en el contexto. No inventes contratos, premios, lesiones ni estadísticas que no aparezcan explícitamente. Si no tienes un dato, dilo.`,
-    `- Sé conciso (150-300 palabras). Cero relleno. Nada de "Aquí te presento...", "Cada uno de estos jugadores...", "En conclusión...". Ve al grano.`,
-    `- Si la consulta hace referencia a un jugador concreto, céntrate en su perfil, encaje con el equipo y pros/contras.`,
-    `- Si la consulta es genérica (recomiéndame un base, busca un anotador...), propón 2-3 alternativas razonables.`,
-    `- Si la consulta es de seguimiento ("por qué X?", "y si en lugar de eso...?"), responde directamente sin repetir lo anterior.`,
+    `## Behavior rules`,
+    `- Respond ONLY in English, regardless of the language the user writes in.`,
+    `- Keep the tone professional but approachable.`,
+    `- Base your answers on the data provided in the context. Do not invent contracts, awards, injuries, or stats that are not explicitly provided. If you don't have a piece of data, say so.`,
+    `- Be concise (150-300 words). No filler. Never use phrases like "Here are...", "Each of these players...", "In conclusion...". Get straight to the point.`,
+    `- If the query references a specific player, focus on their profile, fit with the team, and pros/cons.`,
+    `- If the query is generic (recommend a point guard, find a scorer...), propose 2-3 reasonable alternatives.`,
+    `- If the query is a follow-up ("why X?", "what about instead...?"), respond directly without repeating previous content.`,
     ``,
-    `## Formato OBLIGATORIO de respuesta`,
-    `Usa SIEMPRE esta estructura. Es estricta, no la improvises:`,
+    `## MANDATORY response format`,
+    `Always use this structure. It is strict, do not improvise:`,
     ``,
-    `### Para recomendaciones de jugadores:`,
+    `### For player recommendations:`,
     "",
-    `## Resumen rápido`,
-    `1 frase directa con la conclusión principal.`,
+    `## Quick summary`,
+    `1 direct sentence with the main conclusion.`,
     ``,
-    `## Perfiles recomendados`,
+    `## Recommended profiles`,
     ``,
-    `### 1. Nombre Completo — Posición (Liga, Equipo)`,
-    `- **Por qué encaja**: 1 frase concreta.`,
-    `- **Puntos fuertes**: 2-3 keywords separadas por coma.`,
-    `- **A tener en cuenta**: 1 frase de riesgo o condición.`,
-    `- **Coste estimado**: rango o etiqueta.`,
+    `### 1. Full Name — Position (League, Team)`,
+    `- **Why they fit**: 1 concrete sentence.`,
+    `- **Strengths**: 2-3 keywords separated by comma.`,
+    `- **To consider**: 1 sentence on risk or condition.`,
+    `- **Estimated cost**: range or label.`,
     ``,
-    `(repite el bloque ### N. para cada jugador, hasta 3)`,
+    `(repeat ### N. block for each player, up to 3)`,
     ``,
-    `## Antes de negociar`,
-    `- 2-3 bullets con consideraciones prácticas (espacio salarial, cláusula, plazos).`,
+    `## Before negotiating`,
+    `- 2-3 bullets with practical considerations (salary cap, clause, timing).`,
     "",
     ``,
-    `### Para análisis de un jugador concreto:`,
+    `### For single player analysis:`,
     "",
-    `## Ficha`,
-    `1-2 frases con el perfil y momento actual del jugador.`,
+    `## Profile`,
+    `1-2 sentences with the player's profile and current form.`,
     ``,
-    `## Estadísticas`,
-    `| Partidos | Min | Puntos | Rebotes | Asistencias | Robos | Tapones | TC | 3P | TL |`,
+    `## Stats`,
+    `| Games | Min | Points | Rebounds | Assists | Steals | Blocks | FG | 3P | FT |`,
     `|---|---|---|---|---|---|---|---|---|---|`,
-    `| valor | valor | valor | ... | ... | ... | ... | ... | ... | ... |`,
+    `| value | value | value | ... | ... | ... | ... | ... | ... | ... |`,
     ``,
-    `## Encaje con el equipo`,
-    `- 2-3 bullets sobre pros y contras de la operación.`,
+    `## Team fit`,
+    `- 2-3 bullets on pros and cons of the operation.`,
     ``,
-    `## Veredicto`,
-    `1 frase final con la recomendación.`,
+    `## Verdict`,
+    `1 final sentence with the recommendation.`,
     "",
     ``,
-    `### Para preguntas de seguimiento:`,
-    `Responde en 2-4 frases máximo, sin sección "Resumen". Empieza con la respuesta directa.`,
+    `### For follow-up questions:`,
+    `Respond in 2-4 sentences max, without a "Quick summary" section. Start with the direct answer.`,
     ``,
-    `## Reglas de formato Markdown`,
-    `- Encabezados: usa ## para secciones principales, ### para sub-secciones.`,
-    `- **Negrita** SOLO para nombres de jugadores y etiquetas de campos (Por qué encaja, Puntos fuertes, etc.).`,
-    `- Listas SIEMPRE con guión y espacio ("- texto").`,
-    `- Tablas SIEMPRE con la primera fila como cabecera separada por | y la fila separadora vacía debajo.`,
-    `- Emojis: máximo 1 al inicio de cada sección principal (🏀, 📊, 🎯, 🛡️, 💡).`,
-    `- NUNCA uses tablas de comparación con más de 3 columnas. Para comparaciones, usa listas.`,
+    `## Markdown formatting rules`,
+    `- Headings: use ## for main sections, ### for sub-sections.`,
+    `- **Bold** ONLY for player names and field labels (Why they fit, Strengths, etc.).`,
+    `- Lists ALWAYS with dash and space ("- text").`,
+    `- Tables ALWAYS with the first row as header separated by | and an empty separator row below.`,
+    `- Emojis: max 1 at the start of each main section (🏀, 📊, 🎯, 🛡️, 💡).`,
+    `- NEVER use comparison tables with more than 3 columns. For comparisons, use lists.`,
     ``,
-    `## Contexto del equipo del usuario`,
+    `## User's team context`,
     teamCtx,
     ``,
-    `Ten en cuenta que el equipo juega en la ${leagueBadge} y sus fichajes deben encajar con el sistema, el límite salarial y la química de vestuario de esa liga.${playerCtx}`,
+    `Keep in mind the team plays in the ${leagueBadge} and their signings must fit the system, salary cap, and locker room chemistry of that league.${playerCtx}`,
   ].join("\n")
 }
 
