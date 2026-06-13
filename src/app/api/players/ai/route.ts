@@ -97,39 +97,39 @@ export async function POST(request: Request) {
     let aiReason: string | null = null
 
     const user = await getCurrentUser(request.headers.get("cookie"))
-    if (user) {
-      const engine = await resolveEngine(user.id, "compare")
-      if (engine.ok) {
-        aiConfigured = true
-        const season = profile.seasons[0] ?? null
-        if (season) {
-          const llm = await chatComplete({
-            provider: engine.provider,
-            model: engine.model,
-            apiKey: engine.apiKey,
-            system:
-              "You are a concise basketball scout. Given a player's stats, write a short scouting report in English. Plain prose, no lists, no markdown.",
-            messages: [
-              {
-                role: "user",
-                content: buildPlayerPrompt(
-                  profile.fullName,
-                  profile.league.name,
-                  profile.team?.name ?? null,
-                  profile.position,
-                  season,
-                ),
-              },
-            ],
-            maxTokens: 300,
-            temperature: 0.5,
-          })
-          if (llm.ok) {
-            analysis = cleanLlmOutput(llm.content)
-            aiProvider = engine.provider.id
-          } else {
-            aiReason = "ai_error"
-          }
+    const engine = user
+      ? await resolveEngine(user.id, "compare")
+      : await resolveDefaultEngine()
+    if (engine.ok) {
+      aiConfigured = true
+      const season = profile.seasons[0] ?? null
+      if (season) {
+        const llm = await chatComplete({
+          provider: engine.provider,
+          model: engine.model,
+          apiKey: engine.apiKey,
+          system:
+            "You are a concise basketball scout. Given a player's stats, write a short scouting report in English. Plain prose, no lists, no markdown.",
+          messages: [
+            {
+              role: "user",
+              content: buildPlayerPrompt(
+                profile.fullName,
+                profile.league.name,
+                profile.team?.name ?? null,
+                profile.position,
+                season,
+              ),
+            },
+          ],
+          maxTokens: 300,
+          temperature: 0.5,
+        })
+        if (llm.ok) {
+          analysis = cleanLlmOutput(llm.content)
+          aiProvider = engine.provider.id
+        } else {
+          aiReason = "ai_error"
         }
       }
     } else {
