@@ -5,7 +5,8 @@ import { getDb } from "@/lib/db/client"
 import { users, twoFactorBackupCodes } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/auth/current-user"
 import { verifyPassword } from "@/lib/auth/password"
-import { clientIp, readRateLimit } from "@/lib/security/ai-advisor"
+import { clientIp } from "@/lib/security/ai-advisor"
+import { consumeRateLimit } from "@/lib/security/rate-limit"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -19,7 +20,11 @@ export async function POST(request: Request) {
   if (!sessionUser) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 })
   }
-  const limited = readRateLimit(clientIp(request), "account:2fa-disable", 3, 0.02)
+  const limited = await consumeRateLimit(
+    `account:2fa-disable:${clientIp(request)}`,
+    3,
+    2 * 60 * 1000,
+  )
   if (!limited.ok) {
     return NextResponse.json(
       { error: "Too many attempts. Try again later." },
