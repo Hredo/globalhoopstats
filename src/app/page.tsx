@@ -14,7 +14,8 @@ import { FeatureShowcase } from "@/components/marketing/feature-showcase"
 import { TrustBar } from "@/components/marketing/trust-bar"
 import { Faq } from "@/components/marketing/faq"
 import { FAQ_DATA } from "@/components/marketing/faq-data"
-import { PricingCta } from "@/components/marketing/pricing-cta"
+// NOTE: PricingCta commented out until subscriptions are re-enabled.
+// import { PricingCta } from "@/components/marketing/pricing-cta"
 import { Eyebrow } from "@/components/ui/eyebrow"
 import { SectionHeading } from "@/components/ui/section-heading"
 import { ButtonLink } from "@/components/ui/button"
@@ -156,9 +157,9 @@ export default async function Home() {
             <FadeIn delay={0.18} y={20}>
               <p className="mt-6 max-w-xl text-pretty text-base leading-relaxed text-ink-300 sm:text-lg">
                 The scouting console for serious analysts. Box scores, advanced
-                splits and side-by-side comparisons from the NBA, EuroLeague,
-                ACB and Spain&apos;s FEB ladder — every player on one scale, in
-                one language.
+                splits, AI analysis and side-by-side comparisons from the NBA,
+                EuroLeague, ACB and Spain&apos;s FEB ladder — every player on one
+                scale, in one language.
               </p>
             </FadeIn>
 
@@ -291,8 +292,7 @@ export default async function Home() {
               kicker="03 · AI advisor"
               title="Ask in plain language."
               body="Type a scouting question, get a sourced read with the numbers behind it."
-              // NOTE: Pro badge disabled until re-enabled later.
-              // pro
+              beta
             />
           </StaggerItem>
 
@@ -328,7 +328,7 @@ export default async function Home() {
             align="center"
             eyebrow="FAQ"
             title="The questions scouts ask first."
-            description="Data sources, freshness, what's free and what isn't. If something's missing, ping us."
+            description="Data sources, freshness, and what's coming next. If something's missing, ping us."
           />
         </Reveal>
         <div id="faq-heading" className="mt-12">
@@ -336,7 +336,8 @@ export default async function Home() {
         </div>
       </section>
 
-      <PricingCta />
+      {/* NOTE: PricingCta commented out until subscriptions are re-enabled. */}
+      {/* <PricingCta /> */}
 
       {/* ── FINAL CTA ──────────────────────────────────────────── */}
       <section className="relative my-16 sm:my-24">
@@ -360,8 +361,8 @@ export default async function Home() {
                     <span className="text-gradient-brand">No invite needed.</span>
                   </h2>
                   <p className="mt-4 max-w-md text-pretty text-base text-ink-300 sm:text-lg">
-                    Every player, every stat, every highlight — free during the
-                    public beta. Open the console, drop two names, run the math.
+                    Every player, every stat, every highlight — open to
+                    everyone. Open the console, drop two names, run the math.
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row md:justify-end">
@@ -389,6 +390,7 @@ function BentoCard({
   href,
   // NOTE: pro prop kept for when Pro badge is re-enabled.
   // pro,
+  beta,
   big,
   children,
 }: {
@@ -398,6 +400,7 @@ function BentoCard({
   href?: string
   // NOTE: pro prop kept for when Pro badge is re-enabled.
   // pro?: boolean
+  beta?: boolean
   big?: boolean
   children?: React.ReactNode
 }) {
@@ -405,12 +408,17 @@ function BentoCard({
     <SpotlightCard className="gh-card gh-card-interactive group relative flex h-full flex-col overflow-hidden p-6 sm:p-7">
       <div className="flex items-center justify-between gap-3">
         <span className="gh-eyebrow">{kicker}</span>
-        {/* NOTE: Pro badge disabled until re-enabled later. */}
+        {/* NOTE: Pro badge kept for when Pro is re-enabled. */}
         {/* {pro ? ( */}
         {/*   <span className="rounded-full border border-brand-500/40 bg-brand-500/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-brand-300"> */}
         {/*     Pro */}
         {/*   </span> */}
         {/* ) : null} */}
+        {beta ? (
+          <span className="rounded-full border border-amber-400/50 bg-amber-400/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-300">
+            Beta
+          </span>
+        ) : null}
       </div>
       <h3
         className={

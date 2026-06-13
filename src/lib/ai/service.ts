@@ -31,7 +31,7 @@ export class AIAdvisorService {
 
       if (!team) {
         return {
-          content: "No se pudo encontrar el equipo especificado.",
+          content: "Could not find the specified team.",
           error: "Team not found",
         }
       }
@@ -47,7 +47,7 @@ export class AIAdvisorService {
       console.error("Error in AI advisor service:", error)
       return {
         content:
-          "Lo siento, hubo un error al procesar tu solicitud. Por favor, intenta de nuevo.",
+          "Sorry, there was an error processing your request. Please try again.",
         error: error instanceof Error ? error.message : "Unknown error",
       }
     }
@@ -68,34 +68,34 @@ export class AIAdvisorService {
 
     const rosterNote =
       roster.length > 5
-        ? `${rosterSummary} y ${roster.length - 5} más`
+        ? `${rosterSummary} and ${roster.length - 5} more`
         : rosterSummary
 
     return `
-Eres un asesor experto en fichajes de baloncesto con conocimiento profundo de las ligas NBA, EuroLeague y ACB. 
-Tu tarea es analizar las necesidades de un equipo y proporcionar recomendaciones específicas de fichajes.
+You are an expert basketball signing advisor with deep knowledge of the NBA, EuroLeague, and ACB leagues. 
+Your task is to analyze a team's needs and provide specific signing recommendations.
 
-INFORMACIÓN DEL EQUIPO:
-- Nombre: ${name}
-- Liga: ${league.name} (${league.region})
-- Plantilla actual: ${rosterNote}
+TEAM INFO:
+- Name: ${name}
+- League: ${league.name} (${league.region})
+- Current roster: ${rosterNote}
 
-CONSULTA DEL USUARIO:
+USER QUERY:
 "${userMessage}"
 
-INSTRUCCIONES:
-1. Analiza la solicitud del usuario en el contexto del equipo y liga específicos
-2. Considera factores como: ajuste táctico, necesidades de posición, química de equipo, valor de mercado, y disponibilidad de jugadores
-3. Proporciona 2-3 recomendaciones específicas de jugadores que actualmente están disponibles (agentes libres, en último año de contrato, etc.)
-4. Para cada recomendación, explica:
-   - Por qué encaja con el equipo
-   - Qué aportaría específicamente
-   - Posibles desafíos o consideraciones
-5. Mantén un tono profesional pero accesible
-6. Responde en español
-7. Si no tienes suficiente información para dar una recomendación fundamentada, indica qué datos adicionales necesitarías
+INSTRUCTIONS:
+1. Analyze the user's request in the context of the specific team and league
+2. Consider factors such as: tactical fit, positional needs, team chemistry, market value, and player availability
+3. Provide 2-3 specific player recommendations who are currently available (free agents, last year of contract, etc.)
+4. For each recommendation, explain:
+   - Why they fit the team
+   - What they would specifically bring
+   - Possible challenges or considerations
+5. Keep a professional but accessible tone
+6. Respond in English
+7. If you don't have enough information to give a well-founded recommendation, state what additional data you would need
 
-RESPUESTA:
+RESPONSE:
 `
   }
 }
