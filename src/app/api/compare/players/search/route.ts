@@ -107,7 +107,15 @@ export async function GET(req: Request) {
     .orderBy(asc(sql`${players.firstName} || ' ' || ${players.lastName}`))
     .limit(limitNum)
 
-  const ranked = q ? rankByQuery(rows, q.toLowerCase()) : rows
+  // Deduplicate by player UUID — a player can have multiple stat rows (seasons)
+  const seen = new Set<string>()
+  const deduped: typeof rows = []
+  for (const r of rows) {
+    if (seen.has(r.id)) continue
+    seen.add(r.id)
+    deduped.push(r)
+  }
+  const ranked = q ? rankByQuery(deduped, q.toLowerCase()) : deduped
 
   const seen = new Set<string>()
   const unique: typeof ranked = []
