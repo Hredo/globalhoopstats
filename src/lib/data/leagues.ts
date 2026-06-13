@@ -105,7 +105,6 @@ async function fetchTopScorers(
   db: ReturnType<typeof getDb>,
   leagueId: string,
   seasonId: string,
-  leagueId: string,
   limit = 3,
 ): Promise<LeagueScorer[]> {
   const rows = await db
@@ -127,7 +126,6 @@ async function fetchTopScorers(
       and(
         eq(playerSeasonStats.leagueId, leagueId),
         eq(playerSeasonStats.seasonId, seasonId),
-        eq(playerSeasonStats.leagueId, leagueId),
         isNotNull(playerSeasonStats.pointsTotal),
         sql`${playerSeasonStats.gamesPlayed} >= 5`,
       ),
