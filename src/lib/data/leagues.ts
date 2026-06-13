@@ -103,8 +103,8 @@ async function fetchCounts(
 
 async function fetchTopScorers(
   db: ReturnType<typeof getDb>,
-  seasonId: string,
   leagueId: string,
+  seasonId: string,
   limit = 3,
 ): Promise<LeagueScorer[]> {
   const rows = await db
@@ -124,8 +124,8 @@ async function fetchTopScorers(
     .leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
     .where(
       and(
-        eq(playerSeasonStats.seasonId, seasonId),
         eq(playerSeasonStats.leagueId, leagueId),
+        eq(playerSeasonStats.seasonId, seasonId),
         isNotNull(playerSeasonStats.pointsTotal),
         sql`${playerSeasonStats.gamesPlayed} >= 5`,
       ),

@@ -6,7 +6,8 @@ import { users } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/auth/current-user"
 import { verifyPassword } from "@/lib/auth/password"
 import { buildClearCookie } from "@/lib/auth/session"
-import { clientIp, readRateLimit } from "@/lib/security/ai-advisor"
+import { clientIp } from "@/lib/security/ai-advisor"
+import { consumeRateLimit } from "@/lib/security/rate-limit"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -20,7 +21,11 @@ export async function DELETE(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 })
   }
-  const limited = readRateLimit(clientIp(request), "account:delete", 5, 0.05)
+  const limited = await consumeRateLimit(
+    `account:delete:${clientIp(request)}`,
+    5,
+    2 * 60 * 1000,
+  )
   if (!limited.ok) {
     return NextResponse.json(
       { error: "Too many attempts. Try again later." },
