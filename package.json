@@ -66,6 +66,7 @@
     "@types/react-dom": "^19.0.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.0.0",
+    "eslint-config-next": "^16.2.9",
     "jpeg-js": "^0.4.4",
     "pngjs": "^7.0.0",
     "postcss": "^8.5.15",
