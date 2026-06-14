@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: {
     default: `${SITE.name} — ${SITE.tagline}`,
-    template: `%s · ${SITE.shortName}`,
+    template: `%s · ${SITE.name}`,
   },
   description: SITE.description,
   keywords: SEO_KEYWORDS,
@@ -68,6 +68,9 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
+  verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+    : undefined,
   formatDetection: {
     telephone: false,
     email: false,
