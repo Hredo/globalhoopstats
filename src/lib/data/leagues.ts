@@ -1,4 +1,5 @@
 import { and, desc, eq, isNotNull, sql } from "drizzle-orm"
+import pLimit from "p-limit"
 import { getDb } from "@/lib/db/client"
 import {
   coaches,
@@ -170,28 +171,34 @@ export const listLeagueOverviews = cached(
     .from(leagues)
     .orderBy(ascLabel(leagues.name))
 
+  // Limit concurrent leagues to avoid exhausting the Neon connection pool in
+  // serverless (free tier allows ~10–15 concurrent queries; 6 leagues × 5
+  // queries each would exceed that).
+  const limit = pLimit(3)
   const overviews = await Promise.all(
-    baseRows.map(async (row): Promise<LeagueOverview> => {
-      const [counts, season] = await Promise.all([
-        fetchCounts(db, row.id),
-        fetchLatestSeason(db, row.id),
-      ])
-      const topScorers = season
-        ? await fetchTopScorers(db, season.id, row.id, 3)
-        : ([] as LeagueScorer[])
-      return {
-        id: row.id,
-        slug: row.slug,
-        name: row.name,
-        region: row.region,
-        logoUrl: row.logoUrl,
-        seasonLabel: formatSeasonLabel(season?.name ?? null),
-        teamCount: counts.teamCount,
-        playerCount: counts.playerCount,
-        coachCount: counts.coachCount,
-        topScorers,
-      }
-    }),
+    baseRows.map((row) =>
+      limit(async (): Promise<LeagueOverview> => {
+        const [counts, season] = await Promise.all([
+          fetchCounts(db, row.id),
+          fetchLatestSeason(db, row.id),
+        ])
+        const topScorers = season
+          ? await fetchTopScorers(db, season.id, row.id, 3)
+          : ([] as LeagueScorer[])
+        return {
+          id: row.id,
+          slug: row.slug,
+          name: row.name,
+          region: row.region,
+          logoUrl: row.logoUrl,
+          seasonLabel: formatSeasonLabel(season?.name ?? null),
+          teamCount: counts.teamCount,
+          playerCount: counts.playerCount,
+          coachCount: counts.coachCount,
+          topScorers,
+        }
+      }),
+    ),
   )
   return overviews
   },
