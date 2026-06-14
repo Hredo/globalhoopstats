@@ -54,7 +54,11 @@ const STATS = [
 export const revalidate = 3600
 
 export const metadata: Metadata = {
-  title: `${SITE.tagline} — NBA, EuroLeague & ACB scouting intelligence`,
+  // Absolute title (skips the "· globalhoopstats" template) so the homepage —
+  // the page that ranks for the brand query — leads with the brand name.
+  title: {
+    absolute: `${SITE.name} — NBA, EuroLeague & ACB basketball stats`,
+  },
   description: SITE.description,
   alternates: { canonical: "/" },
   openGraph: {
