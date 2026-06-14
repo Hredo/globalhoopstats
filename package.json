@@ -2,7 +2,7 @@
   "name": "basket-estadistics",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@11.0.8",
+  "packageManager": "pnpm@11.6.0",
   "engines": {
     "node": ">=20 <23"
   },
