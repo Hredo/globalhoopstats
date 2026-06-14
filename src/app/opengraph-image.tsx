@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og"
 import { SITE } from "@/lib/site"
+import { BallMark } from "@/lib/brand-mark"
 
 export const alt = "globalhoopstats — Hoops, decoded."
 export const size = { width: 1200, height: 630 }
@@ -43,22 +44,7 @@ export default async function OpengraphImage() {
           gap: 18,
         }}
       >
-        <div
-          style={{
-            width: 64,
-            height: 64,
-            borderRadius: 14,
-            background: "linear-gradient(135deg, #f58634 0%, #c83a16 100%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: 800,
-            fontSize: 40,
-            color: "#0a0a0a",
-          }}
-        >
-          G
-        </div>
+        <BallMark size={64} />
         <div
           style={{
             fontSize: 30,
