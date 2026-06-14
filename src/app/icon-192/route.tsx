@@ -1,8 +1,6 @@
 import { ImageResponse } from "next/og"
 import { BallMark } from "@/lib/brand-mark"
 
-export const contentType = "image/png"
-
 export async function GET() {
   return new ImageResponse(
     <div
