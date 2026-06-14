@@ -1,7 +1,6 @@
 import { ImageResponse } from "next/og"
 import { BallMark } from "@/lib/brand-mark"
 
-export const size = { width: 192, height: 192 }
 export const contentType = "image/png"
 
 export async function GET() {
@@ -19,6 +18,6 @@ export async function GET() {
     >
       <BallMark size={140} />
     </div>,
-    { ...size },
+    { width: 192, height: 192 },
   )
 }
