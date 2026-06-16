@@ -3,10 +3,11 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/components/ui/cn"
+import { useT } from "@/lib/i18n/provider"
 
 type Item = {
   href: string
-  label: string
+  labelKey: string
   icon: React.ReactNode
 }
 
@@ -30,29 +31,29 @@ function Icon({ d }: { d: string }) {
 const ITEMS: Item[] = [
   {
     href: "/account",
-    label: "Profile",
+    labelKey: "account.nav.profile",
     icon: <Icon d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />,
   },
   {
     href: "/account/ai-keys",
-    label: "AI & keys",
+    labelKey: "account.nav.aiKeys",
     icon: (
       <Icon d="M14 7a4 4 0 11-3.8 5.2L4 18v3h3v-2h2v-2h2l1.2-1.2A4 4 0 0114 7zm2.5 2.5h.01" />
     ),
   },
   {
     href: "/account/subscription",
-    label: "Subscription",
+    labelKey: "account.nav.subscription",
     icon: <Icon d="M3 7h18M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M3 7l2-3h14l2 3M7 14h4" />,
   },
   {
     href: "/account/security",
-    label: "Security",
+    labelKey: "account.nav.security",
     icon: <Icon d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6l7-3zM9.5 12l1.8 1.8L15 10" />,
   },
   {
     href: "/account/preferences",
-    label: "Preferences",
+    labelKey: "account.nav.preferences",
     icon: (
       <Icon d="M10.3 4.3a1 1 0 011.4 0l.7.7a8 8 0 011.6.7l1-.2a1 1 0 011 .5l.7 1.2a1 1 0 01-.2 1.2l-.7.7c.1.5.1 1 0 1.6l.7.7a1 1 0 01.2 1.2l-.7 1.2a1 1 0 01-1 .5l-1-.2a8 8 0 01-1.6.9l-.2 1a1 1 0 01-1 .8h-1.4a1 1 0 01-1-.8l-.2-1a8 8 0 01-1.6-.9l-1 .2a1 1 0 01-1-.5l-.7-1.2a1 1 0 01.2-1.2l.7-.7a8 8 0 010-1.6l-.7-.7a1 1 0 01-.2-1.2L5 7.9a1 1 0 011-.5l1 .2a8 8 0 011.6-.9zM12 10.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" />
     ),
@@ -66,9 +67,10 @@ function isActive(pathname: string, href: string): boolean {
 
 export function AccountNav() {
   const pathname = usePathname()
+  const t = useT()
   return (
     <nav
-      aria-label="Account sections"
+      aria-label={t("account.nav.aria")}
       className="flex gap-1.5 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0"
     >
       {ITEMS.map((item) => {
@@ -98,7 +100,7 @@ export function AccountNav() {
             >
               {item.icon}
             </span>
-            <span>{item.label}</span>
+            <span>{t(item.labelKey)}</span>
           </Link>
         )
       })}

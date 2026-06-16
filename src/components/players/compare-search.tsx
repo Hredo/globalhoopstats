@@ -15,6 +15,7 @@ import { createPortal } from "react-dom"
 import { AnimatePresence, motion } from "framer-motion"
 import type { ComparePlayer } from "@/lib/data/compare"
 import { SmartImage } from "@/components/ui/smart-image"
+import { useT } from "@/lib/i18n/provider"
 
 type LeagueInfo = { id: string; name: string; slug: string; region: string }
 type TeamInfo = {
@@ -63,6 +64,7 @@ function getInitials(name: string): string {
 
 export function CompareSearch({ side, current, otherSlug }: Props) {
   const router = useRouter()
+  const t = useT()
   const [, startTransition] = useTransition()
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState("")
@@ -215,8 +217,11 @@ export function CompareSearch({ side, current, otherSlug }: Props) {
   }
 
   const placeholder = useMemo(
-    () => (current ? "Search to swap…" : "Search by name, team or position…"),
-    [current],
+    () =>
+      current
+        ? t("compareUi.searchSwap")
+        : t("compareUi.searchByName"),
+    [current, t],
   )
 
   return (
@@ -244,7 +249,10 @@ export function CompareSearch({ side, current, otherSlug }: Props) {
         <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-court-800 ring-1 ring-white/5">
           <SmartImage
             src={current?.imageUrl}
-            alt={current?.fullName ?? `Player ${side === "a" ? "A" : "B"}`}
+            alt={
+              current?.fullName ??
+              t("compareUi.playerSlot", { slot: side === "a" ? "A" : "B" })
+            }
             fit="cover"
             fallbackClassName="text-sm font-bold text-brand-300"
             fallback={
@@ -254,17 +262,17 @@ export function CompareSearch({ side, current, otherSlug }: Props) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-ink-400">
-            Player {side === "a" ? "A" : "B"}
+            {t("compareUi.playerSlot", { slot: side === "a" ? "A" : "B" })}
           </p>
           <p className="truncate font-semibold text-ink-50">
-            {current?.fullName ?? "Select a player"}
+            {current?.fullName ?? t("compareUi.selectPlayer")}
           </p>
           <p className="truncate text-xs text-ink-400">
             {current
-              ? `${current.team?.name ?? "Free agent"}${
+              ? `${current.team?.name ?? t("compareUi.freeAgent")}${
                   current.position ? ` · ${current.position}` : ""
                 } · ${SOURCE_LABEL[current.league?.slug ?? ""] ?? current.league?.name ?? ""}`
-              : "Click to choose from the database"}
+              : t("compareUi.clickToChoose")}
           </p>
         </div>
         <span
@@ -294,8 +302,8 @@ export function CompareSearch({ side, current, otherSlug }: Props) {
           href={`/players/${current.slug}`}
           onClick={(e) => e.stopPropagation()}
           className="pointer-events-none absolute -top-2 -right-2 z-10 rounded-full border border-white/10 bg-ink-900 p-1.5 text-ink-300 opacity-0 transition hover:border-brand-500/40 hover:text-brand-200 group-hover:pointer-events-auto group-hover:opacity-100"
-          aria-label={`Open ${current.fullName} profile`}
-          title="Open profile"
+          aria-label={t("compareUi.openProfile", { name: current.fullName })}
+          title={t("compareUi.openProfileShort")}
         >
           <svg
             className="h-3 w-3"
@@ -367,7 +375,7 @@ export function CompareSearch({ side, current, otherSlug }: Props) {
                           inputRef.current?.focus()
                         }}
                         className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-ink-400 transition hover:text-ink-100"
-                        aria-label="Clear search"
+                        aria-label={t("compareUi.clearSearch")}
                       >
                         <svg
                           className="h-3.5 w-3.5"
@@ -387,9 +395,15 @@ export function CompareSearch({ side, current, otherSlug }: Props) {
                   </div>
                   <p className="mt-2 text-[10px] uppercase tracking-widest text-ink-500">
                     {loading
-                      ? "Searching…"
-                      : `${results.length} result${results.length === 1 ? "" : "s"}`}{" "}
-                    · ↑ ↓ to move · Enter to pick · Esc to close
+                      ? t("compareUi.searching")
+                      : t("compareUi.searchResults", {
+                          n: results.length,
+                          unit:
+                            results.length === 1
+                              ? t("directory.result")
+                              : t("directory.results"),
+                        })}{" "}
+                    · {t("compareUi.navHint")}
                   </p>
                 </div>
 
@@ -417,12 +431,14 @@ export function CompareSearch({ side, current, otherSlug }: Props) {
                   ) : results.length === 0 ? (
                     <div className="px-3 py-8 text-center">
                       <p className="text-sm text-ink-200">
-                        {q ? `No players match “${q}”` : "No players available"}
+                        {q
+                          ? t("compareUi.noMatch", { q })
+                          : t("compareUi.noPlayers")}
                       </p>
                       <p className="mt-1 text-xs text-ink-400">
                         {q
-                          ? "Try a different name, team or position."
-                          : "Type to search across every league."}
+                          ? t("compareUi.noMatchHint")
+                          : t("compareUi.noPlayersHint")}
                       </p>
                     </div>
                   ) : (
@@ -457,7 +473,7 @@ export function CompareSearch({ side, current, otherSlug }: Props) {
                                   {o.fullName}
                                 </span>
                                 <span className="block truncate text-xs text-ink-400">
-                                  {o.team?.name ?? "Free agent"}
+                                  {o.team?.name ?? t("compareUi.freeAgent")}
                                   {o.position ? ` · ${o.position}` : ""}
                                 </span>
                               </span>

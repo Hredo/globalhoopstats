@@ -4,6 +4,7 @@ import { DirectoryControls } from "@/components/ui/directory-controls"
 import { PlayersInfiniteView } from "@/components/players/players-infinite-view"
 import { DirectoryHero } from "@/components/ui/directory-hero"
 import { StickyFilterBar } from "@/components/ui/sticky-filter-bar"
+import { getT } from "@/lib/i18n/server"
 
 type SearchParams = Partial<
   Record<keyof ListPlayersInput | "q" | "page", string>
@@ -11,10 +12,12 @@ type SearchParams = Partial<
 
 export const revalidate = 300
 
-export const metadata: Metadata = {
-  title: "Players",
-  description:
-    "Browse every player across all covered leagues. Filter by league, sort by points, rebounds or assists and dig into advanced profiles.",
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getT()
+  return {
+    title: t("directory.players.metaTitle"),
+    description: t("directory.players.metaDescription"),
+  }
 }
 
 const SORT_VALUES = new Set(["points", "rebounds", "assists", "name"])
@@ -60,19 +63,20 @@ export default async function PlayersPage(props: {
   const sp = await props.searchParams
   const input = parseInput(sp)
   const result = await listPlayers(input)
+  const { t, locale } = await getT()
 
   return (
     <div className="full-bleed relative pb-10 sm:pb-14">
       <DirectoryHero
-        eyebrow="Directory · Players"
-        title="Players"
-        description="Every athlete across six leagues, normalized to one scale. Search, filter and rank by the numbers that matter."
+        eyebrow={t("directory.players.eyebrow")}
+        title={t("directory.players.title")}
+        description={t("directory.players.description")}
         stats={[
           {
-            value: result.total.toLocaleString("en-US"),
-            label: "Players indexed",
+            value: result.total.toLocaleString(locale === "es" ? "es-ES" : "en-US"),
+            label: t("directory.players.statLabel"),
           },
-          { value: "6", label: "Leagues" },
+          { value: "6", label: t("directory.leaguesLabel") },
         ]}
       />
 

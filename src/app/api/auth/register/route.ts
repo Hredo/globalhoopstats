@@ -17,6 +17,7 @@ import { sessions } from "@/lib/db/schema"
 import { getServerEnv } from "@/lib/env"
 import { clientIp } from "@/lib/security/ai-advisor"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
+import { sendWelcomeEmail } from "@/lib/email"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -126,6 +127,9 @@ export async function POST(request: Request) {
     userAgent: ua ? ua.slice(0, 250) : null,
     ip: ip ? ip.slice(0, 60) : null,
   })
+
+  // Welcome email — best-effort, never blocks or fails the signup.
+  await sendWelcomeEmail(email, name).catch(() => {})
 
   const token = signSessionToken(sessionId, id, ttlMs)
   const res = NextResponse.json({

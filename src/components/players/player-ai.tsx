@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
+import { useT } from "@/lib/i18n/provider"
 
 type Props = {
   slug: string
@@ -15,6 +16,7 @@ export function PlayerAi({ slug, name }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasRun, setHasRun] = useState(false)
+  const t = useT()
 
   const fetchAnalysis = useCallback(async () => {
     setLoading(true)
@@ -27,7 +29,9 @@ export function PlayerAi({ slug, name }: Props) {
       })
       const payload = await res.json()
       if (!res.ok) {
-        throw new Error(payload?.error ?? `Error ${res.status}`)
+        throw new Error(
+          payload?.error ?? t("playerAi.errorStatus", { status: res.status }),
+        )
       }
       setAnalysis(
         typeof payload.analysis === "string" ? payload.analysis : null,
@@ -37,11 +41,11 @@ export function PlayerAi({ slug, name }: Props) {
       )
       setHasRun(true)
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Analysis failed.")
+      setError(e instanceof Error ? e.message : t("playerAi.failed"))
     } finally {
       setLoading(false)
     }
-  }, [slug])
+  }, [slug, t])
 
   return (
     <section className="rounded-2xl border border-white/5 bg-gradient-to-br from-brand-500/5 via-white/[0.02] to-accent-cyan/5 p-4 sm:p-6">
@@ -66,14 +70,14 @@ export function PlayerAi({ slug, name }: Props) {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-display text-lg font-bold text-ink-50 sm:text-xl">
-                AI scout
+                {t("playerAi.title")}
               </h2>
               <span className="shrink-0 rounded-full border border-amber-400/50 bg-amber-400/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-300">
                 Beta
               </span>
             </div>
             <p className="text-xs text-ink-300 sm:text-sm">
-              Get a detailed AI-generated scouting report on this player.
+              {t("playerAi.description")}
             </p>
           </div>
         </div>
@@ -94,12 +98,12 @@ export function PlayerAi({ slug, name }: Props) {
                 className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-950"
                 style={{ animationDelay: "240ms" }}
               />
-              <span className="ml-1">Scouting…</span>
+              <span className="ml-1">{t("playerAi.scouting")}</span>
             </span>
           ) : hasRun ? (
-            "Re-run scout"
+            t("playerAi.rerun")
           ) : (
-            "Scout player"
+            t("playerAi.scout")
           )}
         </button>
       </div>
@@ -160,7 +164,7 @@ export function PlayerAi({ slug, name }: Props) {
                       d="M9.8 15.9L9 18.8l-.8-2.9a4.5 4.5 0 00-3.1-3.1L2.3 12l2.8-.8a4.5 4.5 0 003.1-3.1L9 5.3l.8 2.8a4.5 4.5 0 003.1 3.1l2.8.8-2.8.8a4.5 4.5 0 00-3.1 3.1z"
                     />
                   </svg>
-                  {name} · {aiProvider ?? "AI"}
+                  {name} · {aiProvider ?? t("playerAi.aiFallback")}
                 </p>
                 <p className="text-sm leading-relaxed text-ink-100">
                   {analysis}
@@ -179,10 +183,9 @@ export function PlayerAi({ slug, name }: Props) {
             animate={{ opacity: 1 }}
             className="mt-4 text-sm text-ink-400"
           >
-            Hit{" "}
-            <span className="text-brand-300">Scout player</span> and the AI
-            generates a full breakdown of this player&apos;s game — strengths,
-            weaknesses, and team fit.
+            {t("playerAi.hintPre")}{" "}
+            <span className="text-brand-300">{t("playerAi.scout")}</span>{" "}
+            {t("playerAi.hintPost")}
           </motion.p>
         ) : null}
       </AnimatePresence>
@@ -191,6 +194,7 @@ export function PlayerAi({ slug, name }: Props) {
 }
 
 function AiNudge() {
+  const t = useT()
   return (
     <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-4 py-3">
       <svg
@@ -208,21 +212,20 @@ function AiNudge() {
         />
       </svg>
       <p className="text-[13px] leading-relaxed text-amber-100/90">
-        This runs without AI. Connect your own model for an AI take —{" "}
+        {t("playerAi.nudgeText")}{" "}
         <Link
           href="/account/ai-keys"
           className="font-semibold underline underline-offset-2"
         >
-          add a provider
+          {t("playerAi.addProvider")}
         </Link>{" "}
-        or{" "}
+        ·{" "}
         <Link
           href="/ai-setup"
           className="font-semibold underline underline-offset-2"
         >
-          see the guide
+          {t("playerAi.seeGuide")}
         </Link>
-        .
       </p>
     </div>
   )

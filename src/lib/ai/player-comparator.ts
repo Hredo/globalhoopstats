@@ -1,4 +1,5 @@
 import type { ComparePlayer } from "@/lib/data/compare"
+import type { Locale } from "@/lib/i18n/config"
 
 export type CategoryKey =
   | "scoring"
@@ -45,6 +46,11 @@ export type ComparisonOutput = {
 
 type Stats = NonNullable<ComparePlayer["stats"]>
 
+/** Pick the right string for the active locale. */
+function pick(locale: Locale, en: string, es: string): string {
+  return locale === "es" ? es : en
+}
+
 function num(v: number | null | undefined): number | null {
   if (v == null || !Number.isFinite(v)) return null
   return v
@@ -81,8 +87,26 @@ function compareNumbers(
   return { winner: delta > 0 ? "a" : "b", margin }
 }
 
-function detectArchetype(stats: Stats | null, position: string | null): string {
-  if (!stats) return position ?? "No profile"
+// Archetype is kept as a STABLE key for fit-note logic; the human label is
+// resolved separately so localisation never breaks the matching below.
+type ArchetypeKey =
+  | "creating-star"
+  | "perimeter-scorer"
+  | "efficient-finisher"
+  | "floor-general"
+  | "defensive-big"
+  | "dominant-interior"
+  | "versatile-3d"
+  | "rim-protector"
+  | "rotation-bench"
+  | "balanced-role"
+  | "none"
+
+function detectArchetypeKey(
+  stats: Stats | null,
+  position: string | null,
+): ArchetypeKey {
+  if (!stats) return position ? "none" : "none"
   const gp = stats.gamesPlayed || 1
   const pts = num(tot(stats.pointsTotal, gp)) ?? 0
   const ast = num(tot(stats.assistsTotal, gp)) ?? 0
@@ -90,25 +114,51 @@ function detectArchetype(stats: Stats | null, position: string | null): string {
   const blk = num(tot(stats.blocksTotal, gp)) ?? 0
   const stl = num(tot(stats.stealsTotal, gp)) ?? 0
 
-  if (pts >= 24 && ast >= 6) return "Creating star"
-  if (pts >= 22) return "Perimeter scorer"
-  if (pts >= 20) return "Efficient finisher"
-  if (ast >= 7) return "Floor general"
-  if (reb >= 10 && blk >= 1.2) return "Defensive big"
-  if (reb >= 9 && pts >= 14) return "Dominant interior"
-  if (stl >= 1.5) return "Versatile 3&D"
-  if (blk >= 1.5) return "Rim protector"
-  if (pts <= 8 && ast <= 3) return "Rotation / Bench"
-  return "Balanced role"
+  if (pts >= 24 && ast >= 6) return "creating-star"
+  if (pts >= 22) return "perimeter-scorer"
+  if (pts >= 20) return "efficient-finisher"
+  if (ast >= 7) return "floor-general"
+  if (reb >= 10 && blk >= 1.2) return "defensive-big"
+  if (reb >= 9 && pts >= 14) return "dominant-interior"
+  if (stl >= 1.5) return "versatile-3d"
+  if (blk >= 1.5) return "rim-protector"
+  if (pts <= 8 && ast <= 3) return "rotation-bench"
+  return "balanced-role"
 }
 
-function categoryScoring(a: ComparePlayer, b: ComparePlayer): CategoryResult {
+function archetypeLabel(
+  key: ArchetypeKey,
+  position: string | null,
+  locale: Locale,
+): string {
+  if (key === "none") return position ?? pick(locale, "No profile", "Sin perfil")
+  const labels: Record<Exclude<ArchetypeKey, "none">, [string, string]> = {
+    "creating-star": ["Creating star", "Estrella creadora"],
+    "perimeter-scorer": ["Perimeter scorer", "Anotador perimetral"],
+    "efficient-finisher": ["Efficient finisher", "Finalizador eficiente"],
+    "floor-general": ["Floor general", "Base organizador"],
+    "defensive-big": ["Defensive big", "Pívot defensivo"],
+    "dominant-interior": ["Dominant interior", "Interior dominante"],
+    "versatile-3d": ["Versatile 3&D", "3&D versátil"],
+    "rim-protector": ["Rim protector", "Protector del aro"],
+    "rotation-bench": ["Rotation / Bench", "Rotación / Banquillo"],
+    "balanced-role": ["Balanced role", "Rol equilibrado"],
+  }
+  const [en, es] = labels[key]
+  return pick(locale, en, es)
+}
+
+function categoryScoring(
+  a: ComparePlayer,
+  b: ComparePlayer,
+  locale: Locale,
+): CategoryResult {
   const av = num(tot(a.stats?.pointsTotal, a.stats?.gamesPlayed))
   const bv = num(tot(b.stats?.pointsTotal, b.stats?.gamesPlayed))
   const cmp = compareNumbers(av, bv)
   return {
     key: "scoring",
-    label: "Scoring",
+    label: pick(locale, "Scoring", "Anotación"),
     emoji: "🎯",
     winner: cmp.winner,
     margin: cmp.margin,
@@ -117,23 +167,36 @@ function categoryScoring(a: ComparePlayer, b: ComparePlayer): CategoryResult {
     formatted: { a: `${fmt1(av)} pts`, b: `${fmt1(bv)} pts` },
     summary:
       cmp.winner === "tie" || cmp.winner === "n/a"
-        ? "Very similar scoring output."
+        ? pick(
+            locale,
+            "Very similar scoring output.",
+            "Producción anotadora muy similar.",
+          )
         : cmp.winner === "a"
-          ? `${a.fullName} averages ${fmt1(av)} pts to ${b.fullName}'s ${fmt1(bv)}.`
-          : `${b.fullName} averages ${fmt1(bv)} pts to ${a.fullName}'s ${fmt1(av)}.`,
+          ? pick(
+              locale,
+              `${a.fullName} averages ${fmt1(av)} pts to ${b.fullName}'s ${fmt1(bv)}.`,
+              `${a.fullName} promedia ${fmt1(av)} pts frente a los ${fmt1(bv)} de ${b.fullName}.`,
+            )
+          : pick(
+              locale,
+              `${b.fullName} averages ${fmt1(bv)} pts to ${a.fullName}'s ${fmt1(av)}.`,
+              `${b.fullName} promedia ${fmt1(bv)} pts frente a los ${fmt1(av)} de ${a.fullName}.`,
+            ),
   }
 }
 
 function categoryPlaymaking(
   a: ComparePlayer,
   b: ComparePlayer,
+  locale: Locale,
 ): CategoryResult {
   const av = num(tot(a.stats?.assistsTotal, a.stats?.gamesPlayed))
   const bv = num(tot(b.stats?.assistsTotal, b.stats?.gamesPlayed))
   const cmp = compareNumbers(av, bv)
   return {
     key: "playmaking",
-    label: "Playmaking",
+    label: pick(locale, "Playmaking", "Generación de juego"),
     emoji: "🎮",
     winner: cmp.winner,
     margin: cmp.margin,
@@ -142,23 +205,32 @@ function categoryPlaymaking(
     formatted: { a: `${fmt1(av)} ast`, b: `${fmt1(bv)} ast` },
     summary:
       cmp.winner === "tie" || cmp.winner === "n/a"
-        ? "Even assist volume."
+        ? pick(locale, "Even assist volume.", "Volumen de asistencias parejo.")
         : cmp.winner === "a"
-          ? `${a.fullName} dishes ${fmt1(av)} ast per game.`
-          : `${b.fullName} dishes ${fmt1(bv)} ast per game.`,
+          ? pick(
+              locale,
+              `${a.fullName} dishes ${fmt1(av)} ast per game.`,
+              `${a.fullName} reparte ${fmt1(av)} ast por partido.`,
+            )
+          : pick(
+              locale,
+              `${b.fullName} dishes ${fmt1(bv)} ast per game.`,
+              `${b.fullName} reparte ${fmt1(bv)} ast por partido.`,
+            ),
   }
 }
 
 function categoryRebounding(
   a: ComparePlayer,
   b: ComparePlayer,
+  locale: Locale,
 ): CategoryResult {
   const av = num(tot(a.stats?.reboundsTotal, a.stats?.gamesPlayed))
   const bv = num(tot(b.stats?.reboundsTotal, b.stats?.gamesPlayed))
   const cmp = compareNumbers(av, bv)
   return {
     key: "rebounding",
-    label: "Rebounding",
+    label: pick(locale, "Rebounding", "Rebote"),
     emoji: "🪣",
     winner: cmp.winner,
     margin: cmp.margin,
@@ -167,14 +239,26 @@ function categoryRebounding(
     formatted: { a: `${fmt1(av)} reb`, b: `${fmt1(bv)} reb` },
     summary:
       cmp.winner === "tie" || cmp.winner === "n/a"
-        ? "Balanced rebounding."
+        ? pick(locale, "Balanced rebounding.", "Rebote equilibrado.")
         : cmp.winner === "a"
-          ? `${a.fullName} controls the glass with ${fmt1(av)} per game.`
-          : `${b.fullName} controls the glass with ${fmt1(bv)} per game.`,
+          ? pick(
+              locale,
+              `${a.fullName} controls the glass with ${fmt1(av)} per game.`,
+              `${a.fullName} domina el rebote con ${fmt1(av)} por partido.`,
+            )
+          : pick(
+              locale,
+              `${b.fullName} controls the glass with ${fmt1(bv)} per game.`,
+              `${b.fullName} domina el rebote con ${fmt1(bv)} por partido.`,
+            ),
   }
 }
 
-function categoryDefense(a: ComparePlayer, b: ComparePlayer): CategoryResult {
+function categoryDefense(
+  a: ComparePlayer,
+  b: ComparePlayer,
+  locale: Locale,
+): CategoryResult {
   const aStl = num(tot(a.stats?.stealsTotal, a.stats?.gamesPlayed)) ?? 0
   const aBlk = num(tot(a.stats?.blocksTotal, a.stats?.gamesPlayed)) ?? 0
   const bStl = num(tot(b.stats?.stealsTotal, b.stats?.gamesPlayed)) ?? 0
@@ -186,7 +270,7 @@ function categoryDefense(a: ComparePlayer, b: ComparePlayer): CategoryResult {
   const cmp = compareNumbers(av2, bv2)
   return {
     key: "defense",
-    label: "Defensive impact",
+    label: pick(locale, "Defensive impact", "Impacto defensivo"),
     emoji: "🛡️",
     winner: cmp.winner,
     margin: cmp.margin,
@@ -198,16 +282,29 @@ function categoryDefense(a: ComparePlayer, b: ComparePlayer): CategoryResult {
     },
     summary:
       cmp.winner === "tie" || cmp.winner === "n/a"
-        ? "Similar defensive output in steals and blocks."
+        ? pick(
+            locale,
+            "Similar defensive output in steals and blocks.",
+            "Producción defensiva similar en robos y tapones.",
+          )
         : cmp.winner === "a"
-          ? `${a.fullName} adds ${(av2 ?? 0).toFixed(1)} defensive plays per game.`
-          : `${b.fullName} adds ${(bv2 ?? 0).toFixed(1)} defensive plays per game.`,
+          ? pick(
+              locale,
+              `${a.fullName} adds ${(av2 ?? 0).toFixed(1)} defensive plays per game.`,
+              `${a.fullName} suma ${(av2 ?? 0).toFixed(1)} acciones defensivas por partido.`,
+            )
+          : pick(
+              locale,
+              `${b.fullName} adds ${(bv2 ?? 0).toFixed(1)} defensive plays per game.`,
+              `${b.fullName} suma ${(bv2 ?? 0).toFixed(1)} acciones defensivas por partido.`,
+            ),
   }
 }
 
 function categoryEfficiency(
   a: ComparePlayer,
   b: ComparePlayer,
+  locale: Locale,
 ): CategoryResult {
   const aFg = a.stats?.fgPct ?? null
   const aTp = a.stats?.threePct ?? null
@@ -220,7 +317,7 @@ function categoryEfficiency(
   const cmp = compareNumbers(aAvg, bAvg)
   return {
     key: "efficiency",
-    label: "Shooting efficiency",
+    label: pick(locale, "Shooting efficiency", "Eficiencia de tiro"),
     emoji: "📈",
     winner: cmp.winner,
     margin: cmp.margin,
@@ -232,38 +329,60 @@ function categoryEfficiency(
     },
     summary:
       cmp.winner === "tie" || cmp.winner === "n/a"
-        ? "Shooting splits at a similar level."
+        ? pick(
+            locale,
+            "Shooting splits at a similar level.",
+            "Porcentajes de tiro a un nivel similar.",
+          )
         : cmp.winner === "a"
-          ? `${a.fullName} is more efficient across FG%/3P%/FT%.`
-          : `${b.fullName} is more efficient across FG%/3P%/FT%.`,
+          ? pick(
+              locale,
+              `${a.fullName} is more efficient across FG%/3P%/FT%.`,
+              `${a.fullName} es más eficiente en TC%/T3%/TL%.`,
+            )
+          : pick(
+              locale,
+              `${b.fullName} is more efficient across FG%/3P%/FT%.`,
+              `${b.fullName} es más eficiente en TC%/T3%/TL%.`,
+            ),
   }
 }
 
 function categoryAvailability(
   a: ComparePlayer,
   b: ComparePlayer,
+  locale: Locale,
 ): CategoryResult {
   const aGp = num(a.stats?.gamesPlayed ?? null)
   const bGp = num(b.stats?.gamesPlayed ?? null)
   const cmp = compareNumbers(aGp, bGp)
+  const gpUnit = pick(locale, "GP", "PJ")
   return {
     key: "availability",
-    label: "Games played",
+    label: pick(locale, "Games played", "Partidos jugados"),
     emoji: "⏱️",
     winner: cmp.winner,
     margin: cmp.margin,
     aValue: aGp,
     bValue: bGp,
     formatted: {
-      a: `${aGp ?? "—"} GP`,
-      b: `${bGp ?? "—"} GP`,
+      a: `${aGp ?? "—"} ${gpUnit}`,
+      b: `${bGp ?? "—"} ${gpUnit}`,
     },
     summary:
       cmp.winner === "tie" || cmp.winner === "n/a"
-        ? "Comparable games played."
+        ? pick(locale, "Comparable games played.", "Partidos jugados comparables.")
         : cmp.winner === "a"
-          ? `${a.fullName} has played ${aGp} games this season.`
-          : `${b.fullName} has played ${bGp} games this season.`,
+          ? pick(
+              locale,
+              `${a.fullName} has played ${aGp} games this season.`,
+              `${a.fullName} ha jugado ${aGp} partidos esta temporada.`,
+            )
+          : pick(
+              locale,
+              `${b.fullName} has played ${bGp} games this season.`,
+              `${b.fullName} ha jugado ${bGp} partidos esta temporada.`,
+            ),
   }
 }
 
@@ -277,6 +396,7 @@ function buildInsights(
   a: ComparePlayer,
   b: ComparePlayer,
   cats: CategoryResult[],
+  locale: Locale,
 ): Insight[] {
   const insights: Insight[] = []
   const aWins = cats.filter((c) => c.winner === "a")
@@ -286,17 +406,27 @@ function buildInsights(
   const biggestBEdge = [...bWins].sort((x, y) => y.margin - x.margin)[0]
 
   if (biggestAEdge) {
+    const pct = Math.round(biggestAEdge.margin * 100)
     insights.push({
       kind: "edge",
       player: "a",
-      text: `Clear edge in ${biggestAEdge.label.toLowerCase()} (+${Math.round(biggestAEdge.margin * 100)}% over ${b.fullName}).`,
+      text: pick(
+        locale,
+        `Clear edge in ${biggestAEdge.label.toLowerCase()} (+${pct}% over ${b.fullName}).`,
+        `Ventaja clara en ${biggestAEdge.label.toLowerCase()} (+${pct}% sobre ${b.fullName}).`,
+      ),
     })
   }
   if (biggestBEdge) {
+    const pct = Math.round(biggestBEdge.margin * 100)
     insights.push({
       kind: "edge",
       player: "b",
-      text: `Clear edge in ${biggestBEdge.label.toLowerCase()} (+${Math.round(biggestBEdge.margin * 100)}% over ${a.fullName}).`,
+      text: pick(
+        locale,
+        `Clear edge in ${biggestBEdge.label.toLowerCase()} (+${pct}% over ${a.fullName}).`,
+        `Ventaja clara en ${biggestBEdge.label.toLowerCase()} (+${pct}% sobre ${a.fullName}).`,
+      ),
     })
   }
 
@@ -304,7 +434,11 @@ function buildInsights(
     insights.push({
       kind: "context",
       player: "both",
-      text: `They play in different leagues (${a.league.name} vs ${b.league.name}). Pace and competition level vary — read the numbers through that lens.`,
+      text: pick(
+        locale,
+        `They play in different leagues (${a.league.name} vs ${b.league.name}). Pace and competition level vary — read the numbers through that lens.`,
+        `Juegan en ligas distintas (${a.league.name} vs ${b.league.name}). El ritmo y el nivel de competición varían — interpreta los números con esa perspectiva.`,
+      ),
     })
   }
 
@@ -317,10 +451,15 @@ function buildVerdict(
   cats: CategoryResult[],
   aScore: number,
   bScore: number,
+  locale: Locale,
 ): string {
   const diff = Math.abs(aScore - bScore)
   if (diff < 0.5) {
-    return `${a.fullName} and ${b.fullName} are essentially level: ${aScore.toFixed(1)} vs ${bScore.toFixed(1)} out of 6. The pick comes down to role and tactical fit.`
+    return pick(
+      locale,
+      `${a.fullName} and ${b.fullName} are essentially level: ${aScore.toFixed(1)} vs ${bScore.toFixed(1)} out of 6. The pick comes down to role and tactical fit.`,
+      `${a.fullName} y ${b.fullName} están prácticamente igualados: ${aScore.toFixed(1)} vs ${bScore.toFixed(1)} sobre 6. La elección depende del rol y el encaje táctico.`,
+    )
   }
   const leader = aScore > bScore ? a : b
   const trailing = aScore > bScore ? b : a
@@ -328,86 +467,139 @@ function buildVerdict(
     .filter((c) => (aScore > bScore ? c.winner === "a" : c.winner === "b"))
     .slice(0, 2)
     .map((c) => c.label.toLowerCase())
-    .join(" and ")
-  return `${leader.fullName} comes out ahead overall (${Math.max(aScore, bScore).toFixed(1)} vs ${Math.min(aScore, bScore).toFixed(1)}), driven mainly by ${dominant || "several areas"}. ${trailing.fullName} keeps value in complementary roles.`
+    .join(pick(locale, " and ", " y "))
+  const fallbackArea = pick(locale, "several areas", "varias áreas")
+  return pick(
+    locale,
+    `${leader.fullName} comes out ahead overall (${Math.max(aScore, bScore).toFixed(1)} vs ${Math.min(aScore, bScore).toFixed(1)}), driven mainly by ${dominant || fallbackArea}. ${trailing.fullName} keeps value in complementary roles.`,
+    `${leader.fullName} sale por delante en conjunto (${Math.max(aScore, bScore).toFixed(1)} vs ${Math.min(aScore, bScore).toFixed(1)}), sobre todo por ${dominant || fallbackArea}. ${trailing.fullName} mantiene su valor en roles complementarios.`,
+  )
 }
 
-function buildFitNotes(a: ComparePlayer, b: ComparePlayer): string[] {
+function buildFitNotes(
+  a: ComparePlayer,
+  b: ComparePlayer,
+  locale: Locale,
+): string[] {
   const notes: string[] = []
-  const aArch = detectArchetype(a.stats, a.position)
-  const bArch = detectArchetype(b.stats, b.position)
+  const aKey = detectArchetypeKey(a.stats, a.position)
+  const bKey = detectArchetypeKey(b.stats, b.position)
 
-  if (aArch.includes("scorer") && bArch.includes("general")) {
+  if (aKey === "perimeter-scorer" && bKey === "floor-general") {
     notes.push(
-      `Natural offensive pairing: ${a.fullName} creates their own shot while ${b.fullName} runs the offense.`,
+      pick(
+        locale,
+        `Natural offensive pairing: ${a.fullName} creates their own shot while ${b.fullName} runs the offense.`,
+        `Emparejamiento ofensivo natural: ${a.fullName} genera su propio tiro mientras ${b.fullName} dirige el ataque.`,
+      ),
     )
-  } else if (bArch.includes("scorer") && aArch.includes("general")) {
+  } else if (bKey === "perimeter-scorer" && aKey === "floor-general") {
     notes.push(
-      `Natural offensive pairing: ${b.fullName} creates their own shot while ${a.fullName} runs the offense.`,
+      pick(
+        locale,
+        `Natural offensive pairing: ${b.fullName} creates their own shot while ${a.fullName} runs the offense.`,
+        `Emparejamiento ofensivo natural: ${b.fullName} genera su propio tiro mientras ${a.fullName} dirige el ataque.`,
+      ),
     )
   }
 
-  if (aArch.includes("Defensive") || bArch.includes("Defensive")) {
+  if (aKey === "defensive-big" || bKey === "defensive-big") {
     notes.push(
-      "At least one brings a clear defensive profile — useful for closing games on that end.",
-    )
-  }
-
-  if (aArch.includes("Shooting") && bArch.includes("Shooting")) {
-    notes.push(
-      "Both stretch the floor: very spaced lineups but less interior creation.",
+      pick(
+        locale,
+        "At least one brings a clear defensive profile — useful for closing games on that end.",
+        "Al menos uno aporta un perfil defensivo claro — útil para cerrar partidos en ese lado.",
+      ),
     )
   }
 
   if (a.position && b.position && a.position[0] === b.position[0]) {
     notes.push(
-      `They share a primary position (${a.position}/${b.position}). Playing them together needs a two-guard or versatile-forward system.`,
+      pick(
+        locale,
+        `They share a primary position (${a.position}/${b.position}). Playing them together needs a two-guard or versatile-forward system.`,
+        `Comparten posición principal (${a.position}/${b.position}). Jugar juntos exige un sistema de dos bases o de aleros versátiles.`,
+      ),
     )
   }
 
   if (notes.length === 0) {
     notes.push(
-      "Complementary profiles across many areas — easy to pair in a rotation.",
+      pick(
+        locale,
+        "Complementary profiles across many areas — easy to pair in a rotation.",
+        "Perfiles complementarios en muchas áreas — fáciles de combinar en una rotación.",
+      ),
     )
   }
   return notes
 }
 
-function buildWarnings(a: ComparePlayer, b: ComparePlayer): string[] {
+function buildWarnings(
+  a: ComparePlayer,
+  b: ComparePlayer,
+  locale: Locale,
+): string[] {
   const warnings: string[] = []
   if (!a.stats)
     warnings.push(
-      `No season stats for ${a.fullName}; the analysis leans on partial data.`,
+      pick(
+        locale,
+        `No season stats for ${a.fullName}; the analysis leans on partial data.`,
+        `Sin estadísticas de temporada para ${a.fullName}; el análisis se apoya en datos parciales.`,
+      ),
     )
   if (!b.stats)
     warnings.push(
-      `No season stats for ${b.fullName}; the analysis leans on partial data.`,
+      pick(
+        locale,
+        `No season stats for ${b.fullName}; the analysis leans on partial data.`,
+        `Sin estadísticas de temporada para ${b.fullName}; el análisis se apoya en datos parciales.`,
+      ),
     )
   if (a.league.slug !== b.league.slug) {
     warnings.push(
-      "Comparing across leagues doesn't normalize pace or defensive level. Treat the rankings as indicative.",
+      pick(
+        locale,
+        "Comparing across leagues doesn't normalize pace or defensive level. Treat the rankings as indicative.",
+        "Comparar entre ligas no normaliza el ritmo ni el nivel defensivo. Toma las clasificaciones como orientativas.",
+      ),
     )
   }
   const aGp = num(a.stats?.gamesPlayed ?? null) ?? 0
   const bGp = num(b.stats?.gamesPlayed ?? null) ?? 0
+  const gpUnit = pick(locale, "GP", "PJ")
   if (aGp > 0 && aGp < 15)
-    warnings.push(`Small sample for ${a.fullName} (${aGp} GP).`)
+    warnings.push(
+      pick(
+        locale,
+        `Small sample for ${a.fullName} (${aGp} ${gpUnit}).`,
+        `Muestra pequeña para ${a.fullName} (${aGp} ${gpUnit}).`,
+      ),
+    )
   if (bGp > 0 && bGp < 15)
-    warnings.push(`Small sample for ${b.fullName} (${bGp} GP).`)
+    warnings.push(
+      pick(
+        locale,
+        `Small sample for ${b.fullName} (${bGp} ${gpUnit}).`,
+        `Muestra pequeña para ${b.fullName} (${bGp} ${gpUnit}).`,
+      ),
+    )
   return warnings
 }
 
 export function comparePlayers(
   a: ComparePlayer,
   b: ComparePlayer,
+  locale: Locale = "en",
 ): ComparisonOutput {
   const categories: CategoryResult[] = [
-    categoryScoring(a, b),
-    categoryPlaymaking(a, b),
-    categoryRebounding(a, b),
-    categoryDefense(a, b),
-    categoryEfficiency(a, b),
-    categoryAvailability(a, b),
+    categoryScoring(a, b, locale),
+    categoryPlaymaking(a, b, locale),
+    categoryRebounding(a, b, locale),
+    categoryDefense(a, b, locale),
+    categoryEfficiency(a, b, locale),
+    categoryAvailability(a, b, locale),
   ]
 
   let aScore = 0
@@ -430,8 +622,8 @@ export function comparePlayers(
   const confidence: "high" | "medium" | "low" =
     valid >= 5 ? "high" : valid >= 3 ? "medium" : "low"
 
-  const insights = buildInsights(a, b, categories)
-  const verdict = buildVerdict(a, b, categories, aScore, bScore)
+  const insights = buildInsights(a, b, categories, locale)
+  const verdict = buildVerdict(a, b, categories, aScore, bScore, locale)
 
   return {
     a: { slug: a.slug, fullName: a.fullName, league: a.league.name },
@@ -446,10 +638,10 @@ export function comparePlayers(
     insights,
     verdict,
     archetype: {
-      a: detectArchetype(a.stats, a.position),
-      b: detectArchetype(b.stats, b.position),
+      a: archetypeLabel(detectArchetypeKey(a.stats, a.position), a.position, locale),
+      b: archetypeLabel(detectArchetypeKey(b.stats, b.position), b.position, locale),
     },
-    fitNotes: buildFitNotes(a, b),
-    warnings: buildWarnings(a, b),
+    fitNotes: buildFitNotes(a, b, locale),
+    warnings: buildWarnings(a, b, locale),
   }
 }

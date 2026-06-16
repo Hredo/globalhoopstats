@@ -1,6 +1,7 @@
 "use client"
 
 import type { ComparePlayer, CompareStats } from "@/lib/data/compare"
+import { useT } from "@/lib/i18n/provider"
 
 type Props = {
   a: ComparePlayer
@@ -8,7 +9,7 @@ type Props = {
 }
 
 type StatRow = {
-  label: string
+  labelKey: string
   getValue: (s: CompareStats) => number | null
   fmt: (n: number) => string
   higherBetter?: boolean
@@ -16,7 +17,7 @@ type StatRow = {
 }
 
 type StatGroup = {
-  label: string
+  labelKey: string
   rows: StatRow[]
 }
 
@@ -32,27 +33,27 @@ function pct(made: number | null, att: number | null): number | null {
 
 const GROUPS: StatGroup[] = [
   {
-    label: "Scoring",
+    labelKey: "compareUi.groupScoring",
     rows: [
       {
-        label: "Points / G",
+        labelKey: "compareUi.rowPoints",
         getValue: (s) => perGame(s.pointsTotal, s.gamesPlayed),
         fmt: (n) => n.toFixed(1),
       },
       {
-        label: "FG%",
+        labelKey: "compareUi.rowFg",
         getValue: (s) => pct(s.fgMade, s.fgAttempted),
         fmt: (n) => `${(n * 100).toFixed(1)}%`,
         isPct: true,
       },
       {
-        label: "3P%",
+        labelKey: "compareUi.row3p",
         getValue: (s) => pct(s.threeMade, s.threeAttempted),
         fmt: (n) => `${(n * 100).toFixed(1)}%`,
         isPct: true,
       },
       {
-        label: "FT%",
+        labelKey: "compareUi.rowFt",
         getValue: (s) => pct(s.ftMade, s.ftAttempted),
         fmt: (n) => `${(n * 100).toFixed(1)}%`,
         isPct: true,
@@ -60,60 +61,60 @@ const GROUPS: StatGroup[] = [
     ],
   },
   {
-    label: "Rebounding",
+    labelKey: "compareUi.groupRebounding",
     rows: [
       {
-        label: "Rebounds / G",
+        labelKey: "compareUi.rowRebounds",
         getValue: (s) => perGame(s.reboundsTotal, s.gamesPlayed),
         fmt: (n) => n.toFixed(1),
       },
       {
-        label: "Off. Reb / G",
+        labelKey: "compareUi.rowOffReb",
         getValue: (s) => perGame(s.offensiveRebounds, s.gamesPlayed),
         fmt: (n) => n.toFixed(1),
       },
       {
-        label: "Def. Reb / G",
+        labelKey: "compareUi.rowDefReb",
         getValue: (s) => perGame(s.defensiveRebounds, s.gamesPlayed),
         fmt: (n) => n.toFixed(1),
       },
     ],
   },
   {
-    label: "Playmaking",
+    labelKey: "compareUi.groupPlaymaking",
     rows: [
       {
-        label: "Assists / G",
+        labelKey: "compareUi.rowAssists",
         getValue: (s) => perGame(s.assistsTotal, s.gamesPlayed),
         fmt: (n) => n.toFixed(1),
       },
       {
-        label: "Fouls / G",
+        labelKey: "compareUi.rowFouls",
         getValue: (s) => perGame(s.foulsTotal, s.gamesPlayed),
         fmt: (n) => n.toFixed(1),
       },
     ],
   },
   {
-    label: "Defense",
+    labelKey: "compareUi.groupDefense",
     rows: [
       {
-        label: "Steals / G",
+        labelKey: "compareUi.rowSteals",
         getValue: (s) => perGame(s.stealsTotal, s.gamesPlayed),
         fmt: (n) => n.toFixed(1),
       },
       {
-        label: "Blocks / G",
+        labelKey: "compareUi.rowBlocks",
         getValue: (s) => perGame(s.blocksTotal, s.gamesPlayed),
         fmt: (n) => n.toFixed(1),
       },
     ],
   },
   {
-    label: "Hustle",
+    labelKey: "compareUi.groupHustle",
     rows: [
       {
-        label: "Fouls / G",
+        labelKey: "compareUi.rowFouls",
         getValue: (s) => perGame(s.foulsTotal, s.gamesPlayed),
         fmt: (n) => n.toFixed(1),
         higherBetter: false,
@@ -121,20 +122,20 @@ const GROUPS: StatGroup[] = [
     ],
   },
   {
-    label: "Efficiency",
+    labelKey: "compareUi.groupEfficiency",
     rows: [
       {
-        label: "PER",
+        labelKey: "compareUi.rowPer",
         getValue: (s) => s.per,
         fmt: (n) => n.toFixed(1),
       },
       {
-        label: "Minutes / G",
+        labelKey: "compareUi.rowMinutes",
         getValue: (s) => perGame(s.minutesTotal, s.gamesPlayed),
         fmt: (n) => n.toFixed(1),
       },
       {
-        label: "+/-",
+        labelKey: "compareUi.rowPlusMinus",
         getValue: (s) => perGame(s.plusMinus, s.gamesPlayed),
         fmt: (n) => {
           const sign = n >= 0 ? "+" : ""
@@ -168,7 +169,7 @@ export function CompareStatsTable({ a, b }: Props) {
       </div>
       {GROUPS.map((group) => (
         <GroupSection
-          key={group.label}
+          key={group.labelKey}
           group={group}
           aStats={a.stats}
           bStats={b.stats}
@@ -193,12 +194,13 @@ function GroupSection({
   aStats: CompareStats | null
   bStats: CompareStats | null
 }) {
+  const t = useT()
   return (
     <div className="mb-2">
       <div className="mb-1 flex items-center gap-2 px-1">
         <span className="h-px flex-1 bg-white/5" />
         <span className="text-[10px] font-mono uppercase tracking-widest text-ink-400">
-          {group.label}
+          {t(group.labelKey)}
         </span>
         <span className="h-px flex-1 bg-white/5" />
       </div>
@@ -209,10 +211,10 @@ function GroupSection({
           const winner = compareValues(av, bv, row.higherBetter ?? true)
           return (
             <div
-              key={row.label}
+              key={row.labelKey}
               className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center rounded-md px-2 py-1.5 text-[13px] transition-colors hover:bg-white/[0.02]"
             >
-              <span className="text-ink-300">{row.label}</span>
+              <span className="text-ink-300">{t(row.labelKey)}</span>
               <div className="flex flex-col items-end gap-0.5">
                 <span
                   className={`font-mono tabular-nums ${

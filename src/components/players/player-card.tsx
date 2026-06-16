@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { SmartImage } from "@/components/ui/smart-image"
 import { PctBar } from "@/components/ui/pct-bar"
@@ -7,6 +9,7 @@ import {
   formatWeight,
   getInitials,
 } from "@/lib/format"
+import { useT } from "@/lib/i18n/provider"
 
 function pg(total: number | null | undefined, gp: number | undefined): number | null {
   if (total == null || !gp) return null
@@ -51,6 +54,7 @@ type Props = {
 }
 
 export function PlayerCard({ player, index = 0 }: Props) {
+  const t = useT()
   const initials = getInitials(player.fullName)
   const s = player.stats
 
@@ -112,7 +116,7 @@ export function PlayerCard({ player, index = 0 }: Props) {
           </p>
 
           <p className="mt-0.5 truncate text-[11px] text-ink-400 sm:text-xs">
-            {player.team?.name ?? "Free agent"}
+            {player.team?.name ?? t("directory.freeAgent")}
           </p>
         </div>
       </div>
@@ -138,11 +142,11 @@ export function PlayerCard({ player, index = 0 }: Props) {
               {s.seasonName} · {s.gamesPlayed} GP
             </>
           ) : (
-            "No stats"
+            t("directory.noStats")
           )}
         </span>
         <span className="text-ink-400 transition group-hover:text-brand-300">
-          Open →
+          {t("directory.openArrow")}
         </span>
       </div>
     </Link>

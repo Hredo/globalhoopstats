@@ -9,6 +9,9 @@ import { consumeRateLimit } from "@/lib/security/rate-limit"
 import { getCurrentUser } from "@/lib/auth/current-user"
 import { resolveEngine, resolveDefaultEngine } from "@/lib/ai/user-provider"
 import { chatComplete } from "@/lib/ai/chat"
+import { getLocale } from "@/lib/i18n/server"
+import { aiLanguageName } from "@/lib/ai/language"
+import type { Locale } from "@/lib/i18n/config"
 
 export const dynamic = "force-dynamic"
 
@@ -26,6 +29,7 @@ function buildComparePrompt(
   aName: string,
   bName: string,
   r: ComparisonOutput,
+  locale: Locale,
 ): string {
   const cats = r.categories
     .map((c) => {
@@ -41,7 +45,7 @@ function buildComparePrompt(
     `Category winners:`,
     cats,
     "",
-    `Write a 2-3 sentence scouting take on who fits which team better and why. Be specific about role and fit. Plain prose, no lists, no markdown.`,
+    `Write a 2-3 sentence scouting take on who fits which team better and why. Be specific about role and fit. Plain prose, no lists, no markdown. Write in ${aiLanguageName(locale)}.`,
   ].join("\n")
 }
 
@@ -112,8 +116,10 @@ export async function POST(request: Request) {
   const aName = (body.aName?.trim() || aSlug).slice(0, MAX_NAME_LEN)
   const bName = (body.bName?.trim() || bSlug).slice(0, MAX_NAME_LEN)
 
+  const locale = await getLocale()
+
   try {
-    const result = comparePlayers(a, b)
+    const result = comparePlayers(a, b, locale)
 
     // Optional AI take, powered by whatever engine the user picked for Compare.
     // The deterministic breakdown above always renders; this just adds prose.
@@ -132,10 +138,12 @@ export async function POST(request: Request) {
         provider: engine.provider,
         model: engine.model,
         apiKey: engine.apiKey,
-        system:
-          "You are a concise basketball scout. Given a structured head-to-head, write a short, specific verdict. No markdown, no lists, plain prose, English.",
+        system: `You are a concise basketball scout. Given a structured head-to-head, write a short, specific verdict. No markdown, no lists, plain prose, in ${aiLanguageName(locale)}.`,
         messages: [
-          { role: "user", content: buildComparePrompt(aName, bName, result) },
+          {
+            role: "user",
+            content: buildComparePrompt(aName, bName, result, locale),
+          },
         ],
         maxTokens: 220,
         temperature: 0.5,

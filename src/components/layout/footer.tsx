@@ -2,39 +2,45 @@ import Link from "next/link"
 import { Logo } from "@/components/svg/logo"
 import { SITE } from "@/lib/site"
 import { getLatestSyncTime } from "@/lib/data/sync"
+import { getT, type ServerTranslator } from "@/lib/i18n/server"
 
-function formatRelative(d: Date): string {
+function formatRelative(d: Date, t: ServerTranslator["t"]): string {
   const diff = Date.now() - d.getTime()
-  if (diff < 0) return "just now"
+  if (diff < 0) return t("footer.time.justNow")
   const sec = Math.floor(diff / 1000)
-  if (sec < 60) return `${sec}s ago`
+  if (sec < 60) return t("footer.time.seconds", { n: sec })
   const min = Math.floor(sec / 60)
-  if (min < 60) return `${min} min ago`
+  if (min < 60) return t("footer.time.minutes", { n: min })
   const hr = Math.floor(min / 60)
-  if (hr < 48) return `${hr}h ago`
+  if (hr < 48) return t("footer.time.hours", { n: hr })
   const day = Math.floor(hr / 24)
-  return `${day}d ago`
+  return t("footer.time.days", { n: day })
 }
 
 const EXPLORE = [
-  { href: "/players", label: "Players" },
-  { href: "/teams", label: "Teams" },
-  { href: "/coaches", label: "Coaches" },
+  { href: "/players", labelKey: "nav.players" },
+  { href: "/teams", labelKey: "nav.teams" },
+  { href: "/coaches", labelKey: "nav.coaches" },
 ]
 
 const TOOLS = [
-  { href: "/compare", label: "Compare" },
-  { href: "/leagues", label: "Leagues" },
-  { href: "/ai-advisor", label: "AI Advisor" },
+  { href: "/compare", labelKey: "nav.compare" },
+  { href: "/leagues", labelKey: "nav.leagues" },
+  { href: "/ai-advisor", labelKey: "nav.aiAdvisor" },
 ]
 
 const LEGAL = [
-  { href: "/terms", label: "Terms" },
-  { href: "/privacy", label: "Privacy" },
+  { href: "/contact", labelKey: "footer.contact" },
+  { href: "/terms", labelKey: "footer.terms" },
+  { href: "/privacy", labelKey: "footer.privacy" },
 ]
 
 export async function Footer() {
   const lastSync = await getLatestSyncTime()
+  const { t } = await getT()
+  const localize = (arr: { href: string; labelKey: string }[]) =>
+    arr.map((l) => ({ href: l.href, label: t(l.labelKey) }))
+
   return (
     <footer className="relative mt-20 hairline-t sm:mt-28">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16">
@@ -43,7 +49,7 @@ export async function Footer() {
             <Link
               href="/"
               className="flex items-center gap-2.5 text-ink-50"
-              aria-label={`${SITE.name} — Home`}
+              aria-label={`${SITE.name} — ${t("common.home")}`}
             >
               <Logo className="h-8 w-8" />
               <span className="font-display text-lg font-bold tracking-[-0.02em]">
@@ -51,9 +57,7 @@ export async function Footer() {
               </span>
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-ink-400">
-              Cross-league basketball intelligence. Players, rosters and staff
-              from the NBA, EuroLeague, ACB and Spain&apos;s FEB ladder — one
-              language, one console.
+              {t("footer.tagline")}
             </p>
             <p className="mt-1 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-500">
               <span
@@ -66,19 +70,19 @@ export async function Footer() {
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-positive opacity-60" />
                 ) : null}
               </span>
-              {lastSync ? `Synced ${formatRelative(lastSync)}` : "Sync pending"}
+              {lastSync
+                ? t("footer.synced", { ago: formatRelative(lastSync, t) })
+                : t("footer.syncPending")}
             </p>
           </div>
 
-          <FooterColumn title="Explore" links={EXPLORE} />
-          <FooterColumn title="Tools" links={TOOLS} />
-          <FooterColumn title="Company" links={LEGAL} contact={SITE.contact} />
+          <FooterColumn title={t("footer.explore")} links={localize(EXPLORE)} />
+          <FooterColumn title={t("footer.tools")} links={localize(TOOLS)} />
+          <FooterColumn title={t("footer.company")} links={localize(LEGAL)} />
         </div>
 
         <div className="mt-12 flex flex-col gap-3 hairline-t pt-6 text-xs text-ink-500 sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            © {new Date().getFullYear()} {SITE.name}. All rights reserved.
-          </p>
+          <p>{t("footer.rights", { year: new Date().getFullYear(), name: SITE.name })}</p>
           <p className="font-mono uppercase tracking-[0.16em]">
             NBA · EuroLeague · ACB · LEB Oro · LEB Plata · EBA
           </p>
@@ -91,11 +95,9 @@ export async function Footer() {
 function FooterColumn({
   title,
   links,
-  contact,
 }: {
   title: string
   links: { href: string; label: string }[]
-  contact?: string
 }) {
   return (
     <div className="flex flex-col gap-3">
@@ -112,14 +114,6 @@ function FooterColumn({
             {l.label}
           </Link>
         ))}
-        {contact ? (
-          <a
-            href={`mailto:${contact}`}
-            className="w-fit transition-colors duration-200 hover:text-brand-300"
-          >
-            Contact
-          </a>
-        ) : null}
       </nav>
     </div>
   )

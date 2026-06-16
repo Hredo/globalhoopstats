@@ -5,11 +5,12 @@ import { SmartImage } from "@/components/ui/smart-image"
 import { leagueAccent } from "@/components/ui/league-badge"
 import { useSpotlight } from "@/components/animations/spotlight-card"
 import { getInitials } from "@/lib/format"
+import { useT } from "@/lib/i18n/provider"
 
-const ROLE_LABEL: Record<string, string> = {
-  head_coach: "Head coach",
-  assistant_coach: "Assistant",
-  staff: "Staff",
+const ROLE_LABEL_KEY: Record<string, string> = {
+  head_coach: "directory.roles.headCoach",
+  assistant_coach: "directory.roles.assistant",
+  staff: "directory.roles.staff",
 }
 
 const ROLE_DOT: Record<string, string> = {
@@ -31,8 +32,11 @@ type Props = {
 }
 
 export function CoachCardElegant({ coach }: Props) {
+  const t = useT()
   const initials = getInitials(coach.fullName)
-  const label = ROLE_LABEL[coach.role] ?? coach.role
+  const label = ROLE_LABEL_KEY[coach.role]
+    ? t(ROLE_LABEL_KEY[coach.role])
+    : coach.role
   const dot = ROLE_DOT[coach.role] ?? ROLE_DOT.staff
   const accent = leagueAccent(coach.league.slug)
   const { ref, onPointerMove } = useSpotlight<HTMLAnchorElement>()

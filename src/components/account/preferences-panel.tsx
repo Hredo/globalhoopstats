@@ -3,27 +3,26 @@
 import { useCallback, useEffect, useState } from "react"
 import {
   AccountSection,
-  Field,
-  Select,
   StatusNote,
   Toggle,
 } from "@/components/account/primitives"
+import { LanguageSwitcher } from "@/components/layout/language-switcher"
+import { useT } from "@/lib/i18n/provider"
 
 type Settings = {
-  locale: string
   emailProduct: boolean
   emailUsage: boolean
   reduceMotion: boolean
 }
 
 const DEFAULTS: Settings = {
-  locale: "en",
   emailProduct: true,
   emailUsage: false,
   reduceMotion: false,
 }
 
 export function PreferencesPanel() {
+  const t = useT()
   const [settings, setSettings] = useState<Settings>(DEFAULTS)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -37,7 +36,6 @@ export function PreferencesPanel() {
       if (!res.ok) return
       const data = (await res.json()) as { settings: Settings }
       setSettings({
-        locale: data.settings.locale ?? "en",
         emailProduct: data.settings.emailProduct,
         emailUsage: data.settings.emailUsage,
         reduceMotion: data.settings.reduceMotion,
@@ -59,7 +57,6 @@ export function PreferencesPanel() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          locale: settings.locale === "es" ? "es" : "en",
           emailProduct: settings.emailProduct,
           emailUsage: settings.emailUsage,
           reduceMotion: settings.reduceMotion,
@@ -67,12 +64,15 @@ export function PreferencesPanel() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setNote({ type: "error", msg: data.error ?? "Could not save." })
+        setNote({
+          type: "error",
+          msg: data.error ?? t("account.preferences.saveError"),
+        })
         return
       }
-      setNote({ type: "success", msg: "Preferences saved." })
+      setNote({ type: "success", msg: t("account.preferences.saved") })
     } catch {
-      setNote({ type: "error", msg: "Network error." })
+      setNote({ type: "error", msg: t("account.preferences.networkError") })
     } finally {
       setSaving(false)
     }
@@ -81,42 +81,27 @@ export function PreferencesPanel() {
   return (
     <>
       <AccountSection
-        title="Language"
-        description="Preferred language for the interface. The AI Advisor always replies in the language you write in."
+        title={t("account.preferences.languageTitle")}
+        description={t("account.preferences.languageDescription")}
       >
-        {loading ? (
-          <div className="h-16 animate-pulse rounded-xl bg-white/[0.04]" />
-        ) : (
-          <Field label="Interface language" htmlFor="locale">
-            <Select
-              id="locale"
-              value={settings.locale}
-              onChange={(e) =>
-                setSettings((s) => ({ ...s, locale: e.target.value }))
-              }
-              className="max-w-xs"
-            >
-              <option value="en">English</option>
-            </Select>
-          </Field>
-        )}
+        <LanguageSwitcher variant="inline" />
       </AccountSection>
 
       <AccountSection
-        title="Notifications"
-        description="Choose what we email you about."
+        title={t("account.preferences.notificationsTitle")}
+        description={t("account.preferences.notificationsDescription")}
       >
         <div className="divide-y divide-white/5">
           <Toggle
-            label="Product updates"
-            description="New leagues, features and AI improvements. Occasional."
+            label={t("account.preferences.productUpdates")}
+            description={t("account.preferences.productUpdatesHint")}
             checked={settings.emailProduct}
             onChange={(v) => setSettings((s) => ({ ...s, emailProduct: v }))}
             disabled={loading}
           />
           <Toggle
-            label="Usage & quota alerts"
-            description="A heads-up when you're close to a free-plan limit."
+            label={t("account.preferences.usageAlerts")}
+            description={t("account.preferences.usageAlertsHint")}
             checked={settings.emailUsage}
             onChange={(v) => setSettings((s) => ({ ...s, emailUsage: v }))}
             disabled={loading}
@@ -125,13 +110,13 @@ export function PreferencesPanel() {
       </AccountSection>
 
       <AccountSection
-        title="Accessibility"
-        description="Tone down the heavier motion across the site."
+        title={t("account.preferences.accessibilityTitle")}
+        description={t("account.preferences.accessibilityDescription")}
       >
         <div className="divide-y divide-white/5">
           <Toggle
-            label="Reduce motion"
-            description="Minimise large scroll and reveal animations."
+            label={t("account.preferences.reduceMotion")}
+            description={t("account.preferences.reduceMotionHint")}
             checked={settings.reduceMotion}
             onChange={(v) => setSettings((s) => ({ ...s, reduceMotion: v }))}
             disabled={loading}
@@ -147,7 +132,7 @@ export function PreferencesPanel() {
         disabled={saving || loading}
         className="inline-flex h-10 items-center rounded-full bg-brand-500 px-5 text-sm font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition hover:bg-brand-400 disabled:opacity-50"
       >
-        {saving ? "Saving…" : "Save preferences"}
+        {saving ? t("account.preferences.saving") : t("account.preferences.save")}
       </button>
     </>
   )

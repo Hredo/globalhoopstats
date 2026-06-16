@@ -2,6 +2,7 @@
 
 import { useId } from "react"
 import type { ComparePlayer } from "@/lib/data/compare"
+import { useT } from "@/lib/i18n/provider"
 
 type Props = {
   a: ComparePlayer
@@ -10,7 +11,7 @@ type Props = {
 
 type Axis = {
   key: string
-  label: string
+  labelKey: string
   max: number
   pick: (p: ComparePlayer) => number | null
 }
@@ -18,7 +19,7 @@ type Axis = {
 const AXES: Axis[] = [
   {
     key: "scoring",
-    label: "Anotación",
+    labelKey: "compareUi.radar.scoring",
     max: 32,
     pick: (p) =>
       num(
@@ -29,7 +30,7 @@ const AXES: Axis[] = [
   },
   {
     key: "playmaking",
-    label: "Asistencias",
+    labelKey: "compareUi.radar.assists",
     max: 11,
     pick: (p) =>
       num(
@@ -40,7 +41,7 @@ const AXES: Axis[] = [
   },
   {
     key: "rebounding",
-    label: "Rebote",
+    labelKey: "compareUi.radar.rebounding",
     max: 13,
     pick: (p) =>
       num(
@@ -51,7 +52,7 @@ const AXES: Axis[] = [
   },
   {
     key: "defense",
-    label: "Defensa",
+    labelKey: "compareUi.radar.defense",
     max: 4.5,
     pick: (p) => {
       if (!p.stats) return null
@@ -64,13 +65,13 @@ const AXES: Axis[] = [
   },
   {
     key: "efficiency",
-    label: "PER",
+    labelKey: "compareUi.radar.per",
     max: 35,
     pick: (p) => num(p.stats?.per),
   },
   {
     key: "shooting",
-    label: "Tiro",
+    labelKey: "compareUi.radar.shooting",
     max: 0.65,
     pick: (p) => {
       if (!p.stats) return null
@@ -122,6 +123,7 @@ function clamp01(v: number): number {
 }
 
 export function CompareRadar({ a, b }: Props) {
+  const t = useT()
   const aId = useId()
   const bId = useId()
   const aValues = AXES.map((ax) => {
@@ -138,7 +140,7 @@ export function CompareRadar({ a, b }: Props) {
       <svg
         viewBox="0 0 400 400"
         role="img"
-        aria-label={`Comparativa multi-stat entre ${a.fullName} y ${b.fullName}`}
+        aria-label={t("compareUi.radarAria", { a: a.fullName, b: b.fullName })}
         xmlns="http://www.w3.org/2000/svg"
         className="h-full w-full"
       >
@@ -225,7 +227,7 @@ export function CompareRadar({ a, b }: Props) {
           const ly = CY + Math.sin(angle) * (R + 26)
           return (
             <text
-              key={axis.label}
+              key={axis.key}
               x={lx}
               y={ly}
               fontSize="11"
@@ -234,7 +236,7 @@ export function CompareRadar({ a, b }: Props) {
               fill="var(--color-ink-200)"
               fontFamily="var(--font-mono)"
             >
-              {axis.label}
+              {t(axis.labelKey)}
             </text>
           )
         })}
@@ -243,7 +245,7 @@ export function CompareRadar({ a, b }: Props) {
           const [px, py] = pointFor(i, aValues[i])
           return (
             <circle
-              key={`a-${axis.label}`}
+              key={`a-${axis.key}`}
               cx={px}
               cy={py}
               r="3"
@@ -256,7 +258,7 @@ export function CompareRadar({ a, b }: Props) {
           const [px, py] = pointFor(i, bValues[i])
           return (
             <circle
-              key={`b-${axis.label}`}
+              key={`b-${axis.key}`}
               cx={px}
               cy={py}
               r="3"

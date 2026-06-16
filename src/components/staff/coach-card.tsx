@@ -1,11 +1,14 @@
+"use client"
+
 import Link from "next/link"
 import { SmartImage } from "@/components/ui/smart-image"
 import { getInitials } from "@/lib/format"
+import { useT } from "@/lib/i18n/provider"
 
-const ROLE_LABEL: Record<string, string> = {
-  head_coach: "Head coach",
-  assistant_coach: "Assistant coach",
-  staff: "Staff",
+const ROLE_LABEL_KEY: Record<string, string> = {
+  head_coach: "directory.cardRoles.headCoach",
+  assistant_coach: "directory.cardRoles.assistantCoach",
+  staff: "directory.cardRoles.staff",
 }
 
 const ROLE_BADGE: Record<string, string> = {
@@ -36,6 +39,7 @@ type Props = {
 }
 
 export function CoachCard({ coach, index = 0 }: Props) {
+  const t = useT()
   return (
     <div
       className="group relative block overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-3 ring-1 ring-transparent transition duration-150 hover:ring-brand-500/50 sm:p-4"
@@ -63,13 +67,17 @@ export function CoachCard({ coach, index = 0 }: Props) {
                 ROLE_BADGE[coach.role] ?? ROLE_BADGE.staff
               }`}
             >
-              {ROLE_LABEL[coach.role] ?? coach.role}
+              {ROLE_LABEL_KEY[coach.role]
+                ? t(ROLE_LABEL_KEY[coach.role])
+                : coach.role}
             </span>
           </div>
 
           <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-ink-300 sm:text-xs">
             {coach.nationality ? <span>{coach.nationality}</span> : null}
-            {coach.age != null ? <span>· {coach.age} y.o.</span> : null}
+            {coach.age != null ? (
+              <span>· {t("directory.yearsOld", { age: coach.age })}</span>
+            ) : null}
           </p>
 
           <p className="mt-0.5 truncate text-[11px] text-ink-400 sm:text-xs">
@@ -80,7 +88,7 @@ export function CoachCard({ coach, index = 0 }: Props) {
         <Link
           href={`/teams/${coach.league.slug}/${coach.team.slug}`}
           className="hidden h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-court-800 ring-1 ring-white/5 transition hover:ring-brand-500/40 sm:flex"
-          title={`Open ${coach.team.name}`}
+          title={t("directory.openTeam", { team: coach.team.name })}
         >
           <SmartImage
             src={coach.team.logoUrl}
@@ -96,7 +104,7 @@ export function CoachCard({ coach, index = 0 }: Props) {
       <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/5 pt-2 font-mono">
         <div className="min-w-0">
           <p className="truncate text-[9px] uppercase tracking-wider text-ink-500 sm:text-[10px]">
-            League
+            {t("directory.leagueColumn")}
           </p>
           <p className="truncate text-[11px] font-semibold text-ink-100 sm:text-xs">
             <span
@@ -111,7 +119,7 @@ export function CoachCard({ coach, index = 0 }: Props) {
         </div>
         <div className="min-w-0">
           <p className="truncate text-[9px] uppercase tracking-wider text-ink-500 sm:text-[10px]">
-            Team
+            {t("directory.teamColumn")}
           </p>
           <p className="truncate text-[11px] font-semibold text-ink-100 sm:text-xs">
             {coach.team.name}

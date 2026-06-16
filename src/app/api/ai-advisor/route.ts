@@ -12,6 +12,7 @@ import { generateAdvisorResponse, lastLlmError } from "@/lib/ai/llm"
 import { resolveDefaultEngine, resolveEngine } from "@/lib/ai/user-provider"
 import { getProvider, resolveModel } from "@/lib/ai/providers"
 import { getCurrentUser } from "@/lib/auth/current-user"
+import { getLocale } from "@/lib/i18n/server"
 // NOTE: Import kept for when usage limits are re-enabled.
 // import { getAdvisorFreeUsage } from "@/lib/auth/free-usage"
 // import { userPlan } from "@/lib/db/schema"
@@ -48,6 +49,8 @@ export async function POST(request: Request) {
 
   // 0. Auth — optional for anonymous users with default engine.
   const user = await getCurrentUser(request.headers.get("cookie"))
+  // Active language (cookie-backed; kept in sync with the account on login).
+  const locale = await getLocale()
   // NOTE: plan check disabled until re-enabled later.
   // const plan = userPlan(user)
 
@@ -314,7 +317,7 @@ export async function POST(request: Request) {
   if (engine.ok) {
     try {
       const llm = await generateAdvisorResponse(
-        { team, userMessage, history, playerProfile },
+        { team, userMessage, history, playerProfile, locale },
         {
           provider: engine.provider,
           model: engine.model,
@@ -345,7 +348,11 @@ export async function POST(request: Request) {
 
   // 13. Fallback (rule-based). Always available, even with no AI configured.
   try {
-    const fallback: AdvisorOutput = await buildLocalAdvice(team, userMessage)
+    const fallback: AdvisorOutput = await buildLocalAdvice(
+      team,
+      userMessage,
+      locale,
+    )
     const safe = cleanLlmOutput(fallback.analysis)
     await persistAssistant(db, conversationId!, safe, null, "local")
     return NextResponse.json(

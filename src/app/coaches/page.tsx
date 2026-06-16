@@ -4,6 +4,7 @@ import { CoachesInfiniteView } from "@/components/staff/coaches-infinite-view"
 import { DirectoryHero } from "@/components/ui/directory-hero"
 import { StickyFilterBar } from "@/components/ui/sticky-filter-bar"
 import { listCoaches, type ListCoachesInput } from "@/lib/data/staff"
+import { getT } from "@/lib/i18n/server"
 
 type SearchParams = Partial<
   Record<keyof ListCoachesInput | "q" | "page", string>
@@ -11,10 +12,12 @@ type SearchParams = Partial<
 
 export const revalidate = 300
 
-export const metadata: Metadata = {
-  title: "Coaches & Staff",
-  description:
-    "Browse every head coach, assistant and staff member across the NBA, EuroLeague and Liga ACB.",
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getT()
+  return {
+    title: t("directory.coaches.metaTitle"),
+    description: t("directory.coaches.metaDescription"),
+  }
 }
 
 const LEAGUE_VALUES = new Set([
@@ -54,19 +57,20 @@ export default async function CoachesPage(props: {
   const sp = await props.searchParams
   const input = parseInput(sp)
   const result = await listCoaches(input)
+  const { t, locale } = await getT()
 
   return (
     <div className="full-bleed relative pb-10 sm:pb-14">
       <DirectoryHero
-        eyebrow="Directory · Staff"
-        title="Coaches"
-        description="Head coaches, assistants and staff across the NBA, EuroLeague and Liga ACB — filtered by role and league."
+        eyebrow={t("directory.coaches.eyebrow")}
+        title={t("directory.coaches.title")}
+        description={t("directory.coaches.description")}
         stats={[
           {
-            value: result.total.toLocaleString("en-US"),
-            label: "Staff indexed",
+            value: result.total.toLocaleString(locale === "es" ? "es-ES" : "en-US"),
+            label: t("directory.coaches.statLabel"),
           },
-          { value: "3", label: "Leagues" },
+          { value: "3", label: t("directory.leaguesLabel") },
         ]}
       />
 
