@@ -5,6 +5,9 @@ import { consumeRateLimit } from "@/lib/security/rate-limit"
 import { getCurrentUser } from "@/lib/auth/current-user"
 import { resolveEngine, resolveDefaultEngine } from "@/lib/ai/user-provider"
 import { chatComplete } from "@/lib/ai/chat"
+import { getLocale } from "@/lib/i18n/server"
+import { aiLanguageName } from "@/lib/ai/language"
+import type { Locale } from "@/lib/i18n/config"
 
 export const dynamic = "force-dynamic"
 
@@ -20,6 +23,7 @@ function buildPlayerPrompt(
   team: string | null,
   position: string | null,
   season: { seasonName: string; gamesPlayed: number; pointsTotal: number | null; reboundsTotal: number | null; assistsTotal: number | null; stealsTotal: number | null; blocksTotal: number | null; fgPct: number | null; threePct: number | null; ftPct: number | null; per: number | null },
+  locale: Locale,
 ): string {
   const ppg = season.pointsTotal != null && season.gamesPlayed > 0 ? (season.pointsTotal / season.gamesPlayed).toFixed(1) : "N/A"
   const rpg = season.reboundsTotal != null && season.gamesPlayed > 0 ? (season.reboundsTotal / season.gamesPlayed).toFixed(1) : "N/A"
@@ -42,7 +46,7 @@ function buildPlayerPrompt(
     `Shooting: ${fgp} FG / ${threep} 3P / ${ftp} FT`,
     `PER: ${per}`,
     "",
-    "Write a 2-3 sentence scouting report about this player. Mention their role, strengths, weaknesses, and what kind of team they fit best. Plain prose, no lists, no markdown. Write in English.",
+    `Write a 2-3 sentence scouting report about this player. Mention their role, strengths, weaknesses, and what kind of team they fit best. Plain prose, no lists, no markdown. Write in ${aiLanguageName(locale)}.`,
   ].join("\n")
 }
 
@@ -90,6 +94,8 @@ export async function POST(request: Request) {
     )
   }
 
+  const locale = await getLocale()
+
   try {
     let analysis: string | null = null
     let aiProvider: string | null = null
@@ -108,8 +114,7 @@ export async function POST(request: Request) {
           provider: engine.provider,
           model: engine.model,
           apiKey: engine.apiKey,
-          system:
-            "You are a concise basketball scout. Given a player's stats, write a short scouting report in English. Plain prose, no lists, no markdown.",
+          system: `You are a concise basketball scout. Given a player's stats, write a short scouting report in ${aiLanguageName(locale)}. Plain prose, no lists, no markdown.`,
           messages: [
             {
               role: "user",
@@ -119,6 +124,7 @@ export async function POST(request: Request) {
                 profile.team?.name ?? null,
                 profile.position,
                 season,
+                locale,
               ),
             },
           ],

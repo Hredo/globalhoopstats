@@ -7,7 +7,9 @@ import {
   twoFactorBackupCodes,
   sessions,
   users,
+  userSettings,
 } from "@/lib/db/schema"
+import { isLocale, localeCookie } from "@/lib/i18n/config"
 import { verifyPassword } from "@/lib/auth/password"
 import {
   buildSessionCookie,
@@ -198,5 +200,16 @@ export async function POST(request: Request) {
     },
   })
   res.headers.append("Set-Cookie", buildSessionCookie(token, ttlMs))
+
+  const settingsRows = await db
+    .select({ locale: userSettings.locale })
+    .from(userSettings)
+    .where(eq(userSettings.userId, tfa.userId))
+    .limit(1)
+  const savedLocale = settingsRows[0]?.locale
+  if (isLocale(savedLocale)) {
+    res.headers.append("Set-Cookie", localeCookie(savedLocale))
+  }
+
   return res
 }

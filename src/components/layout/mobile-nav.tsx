@@ -4,21 +4,24 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import { LEAGUE_FILTER_TREE } from "@/lib/league-groups"
+import { useT } from "@/lib/i18n/provider"
+import { LanguageSwitcher } from "@/components/layout/language-switcher"
 
 const FEB_CHILDREN = LEAGUE_FILTER_TREE.find((n) => n.children)?.children ?? []
 
 const PRIMARY_LINKS = [
-  { href: "/players", label: "Players" },
-  { href: "/teams", label: "Teams" },
-  { href: "/coaches", label: "Coaches" },
-  { href: "/compare", label: "Compare" },
-  { href: "/leagues", label: "Leagues" },
-  { href: "/ai-advisor", label: "AI Advisor" },
+  { href: "/players", labelKey: "nav.players" },
+  { href: "/teams", labelKey: "nav.teams" },
+  { href: "/coaches", labelKey: "nav.coaches" },
+  { href: "/compare", labelKey: "nav.compare" },
+  { href: "/leagues", labelKey: "nav.leagues" },
+  { href: "/ai-advisor", labelKey: "nav.aiAdvisor" },
 ] as const
 
 export function MobileNav() {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+  const t = useT()
 
   useEffect(() => {
     setOpen(false)
@@ -43,7 +46,7 @@ export function MobileNav() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        aria-label={open ? "Close menu" : "Open menu"}
+        aria-label={open ? t("nav.closeMenu") : t("nav.openMenu")}
         aria-expanded={open}
         aria-controls="mobile-nav-panel"
         className="relative z-[110] inline-flex h-10 w-10 items-center justify-center rounded-full border border-hairline bg-white/[0.05] text-ink-100 transition-colors duration-300 hover:border-brand-400/40 md:hidden"
@@ -67,7 +70,7 @@ export function MobileNav() {
           id="mobile-nav-panel"
           role="dialog"
           aria-modal="true"
-          aria-label="Site navigation"
+          aria-label={t("nav.siteNavigation")}
           className="fixed inset-0 z-[100] flex animate-overlay-in flex-col bg-ink-950/95 md:hidden"
         >
           <div
@@ -105,7 +108,7 @@ export function MobileNav() {
                             : "text-ink-100 group-hover:text-ink-50"
                         }`}
                       >
-                        {l.label}
+                        {t(l.labelKey)}
                       </span>
                     </Link>
                   </li>
@@ -118,7 +121,7 @@ export function MobileNav() {
               style={{ animationDelay: "0.5s" }}
             >
               <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-500">
-                By league
+                {t("common.byLeague")}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {LEAGUE_FILTER_TREE.map((node) => (
@@ -146,14 +149,20 @@ export function MobileNav() {
           </nav>
 
           <div
-            className="relative hairline-t animate-nav-rise px-7 py-6"
+            className="relative hairline-t animate-nav-rise space-y-4 px-7 py-6"
             style={{ animationDelay: "0.58s" }}
           >
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-500">
+                {t("language.label")}
+              </span>
+              <LanguageSwitcher variant="inline" />
+            </div>
             <Link
               href="/compare"
               className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-500 px-4 py-3.5 text-center text-sm font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition-colors duration-300 hover:bg-brand-400"
             >
-              Open the console
+              {t("common.openConsole")}
             </Link>
           </div>
         </div>

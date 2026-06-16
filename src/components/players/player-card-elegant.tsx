@@ -6,6 +6,7 @@ import { PctBar } from "@/components/ui/pct-bar"
 import { leagueAccent } from "@/components/ui/league-badge"
 import { useSpotlight } from "@/components/animations/spotlight-card"
 import { getInitials } from "@/lib/format"
+import { useT } from "@/lib/i18n/provider"
 
 type Props = {
   player: {
@@ -39,6 +40,7 @@ function perGame(total: number | null, gp: number): number | null {
 }
 
 export function PlayerCardElegant({ player, rank }: Props) {
+  const t = useT()
   const initials = getInitials(player.fullName)
   const s = player.stats
   const ppg = s?.pointsTotal != null ? perGame(s.pointsTotal, s.gamesPlayed)?.toFixed(1) ?? "—" : "—"
@@ -109,7 +111,7 @@ export function PlayerCardElegant({ player, rank }: Props) {
               {player.fullName}
             </h3>
             <p className="mt-0.5 truncate text-[11px] text-ink-300 sm:text-xs">
-              {player.team?.name ?? "Free agent"}
+              {player.team?.name ?? t("directory.freeAgent")}
             </p>
           </div>
           {player.team?.logoUrl ? (

@@ -6,8 +6,10 @@ import {
   sessions,
   users,
   twoFactorSessions,
+  userSettings,
 } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
+import { isLocale, localeCookie } from "@/lib/i18n/config"
 import { hashPassword, verifyPassword } from "@/lib/auth/password"
 import {
   buildSessionCookie,
@@ -160,5 +162,18 @@ export async function POST(request: Request) {
     },
   })
   res.headers.append("Set-Cookie", buildSessionCookie(token, ttlMs))
+
+  // Apply the account's saved language immediately so the UI is in the right
+  // language right after login (the cookie is the source of truth per request).
+  const settingsRows = await db
+    .select({ locale: userSettings.locale })
+    .from(userSettings)
+    .where(eq(userSettings.userId, user.id))
+    .limit(1)
+  const savedLocale = settingsRows[0]?.locale
+  if (isLocale(savedLocale)) {
+    res.headers.append("Set-Cookie", localeCookie(savedLocale))
+  }
+
   return res
 }

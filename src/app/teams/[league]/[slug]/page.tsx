@@ -7,6 +7,7 @@ import { getTeamBySlug, listTeamOptions } from "@/lib/data/teams"
 import { JsonLd } from "@/components/marketing/json-ld"
 import { breadcrumbJsonLd, teamJsonLd } from "@/lib/seo/structured-data"
 import { SITE } from "@/lib/site"
+import { getT } from "@/lib/i18n/server"
 
 type Params = { league: string; slug: string }
 
@@ -25,9 +26,15 @@ export async function generateMetadata({
   params: Promise<Params>
 }): Promise<Metadata> {
   const { league, slug } = await params
+  const { t } = await getT()
   const team = await getTeamBySlug(league, slug)
-  if (!team) return { title: "Team not found" }
-  const description = `${team.name} — ${team.league.name} roster with ${team.roster.length} players and ${team.staff.length} staff members.`
+  if (!team) return { title: t("teamProfile.notFound") }
+  const description = t("teamProfile.metaDescription", {
+    name: team.name,
+    league: team.league.name,
+    players: team.roster.length,
+    staff: team.staff.length,
+  })
   return {
     title: team.name,
     description,
@@ -41,6 +48,7 @@ export default async function TeamDetailPage({
   params: Promise<Params>
 }) {
   const { league, slug } = await params
+  const { t } = await getT()
   const team = await getTeamBySlug(league, slug)
   if (!team) notFound()
 
@@ -68,7 +76,7 @@ export default async function TeamDetailPage({
           href="/teams"
           className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-300 transition hover:text-brand-300"
         >
-          <span aria-hidden>←</span> Back to teams
+          <span aria-hidden>←</span> {t("teamProfile.backToTeams")}
         </Link>
       </FadeIn>
       <TeamDetailView team={team} />

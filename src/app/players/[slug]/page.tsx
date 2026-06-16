@@ -16,23 +16,29 @@ import { breadcrumbJsonLd, playerJsonLd } from "@/lib/seo/structured-data"
 import { SITE } from "@/lib/site"
 import { HighlightsSection } from "./highlights"
 import { PlayerAi } from "@/components/players/player-ai"
+import { getT } from "@/lib/i18n/server"
 
 type Props = { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
+  const { t } = await getT()
   const profile = await getPlayerBySlug(slug)
-  if (!profile) return { title: "Player not found" }
+  if (!profile) return { title: t("playerProfile.notFound") }
   const season0 = profile.seasons[0]
   const ppg =
     season0 && season0.pointsTotal != null && season0.gamesPlayed > 0
       ? season0.pointsTotal / season0.gamesPlayed
       : null
-  const description = `${profile.fullName} — ${
-    profile.position ?? "Player"
-  } at ${profile.team?.name ?? "free agent"} in ${profile.league.name}. ${
-    ppg ? `Averaging ${ppg.toFixed(1)} PPG.` : ""
-  }`
+  const base = t("playerProfile.metaDescription", {
+    name: profile.fullName,
+    position: profile.position ?? t("playerProfile.playerFallback"),
+    team: profile.team?.name ?? t("playerProfile.metaFreeAgent"),
+    league: profile.league.name,
+  })
+  const description = ppg
+    ? `${base} ${t("playerProfile.averaging", { ppg: ppg.toFixed(1) })}`
+    : base
   return {
     title: profile.fullName,
     description,
@@ -118,6 +124,7 @@ async function findComparisonCandidates(
 
 export default async function PlayerPage({ params }: Props) {
   const { slug } = await params
+  const { t } = await getT()
   const profile = await getPlayerBySlug(slug)
   if (!profile) notFound()
 
@@ -170,7 +177,7 @@ export default async function PlayerPage({ params }: Props) {
           href="/players"
           className="mb-5 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-300 transition hover:text-brand-300 sm:mb-6"
         >
-          <span aria-hidden>←</span> Back to players
+          <span aria-hidden>←</span> {t("playerProfile.backToPlayers")}
         </Link>
       </FadeIn>
 
@@ -193,14 +200,17 @@ export default async function PlayerPage({ params }: Props) {
               />
             </div>
             <div className="gh-card p-4 text-sm">
-              <h3 className="gh-eyebrow">Bio</h3>
+              <h3 className="gh-eyebrow">{t("playerProfile.bio")}</h3>
               <dl className="mt-3 space-y-2">
-                <Row k="Position" v={profile.position ?? "—"} />
-                <Row k="Nationality" v={profile.nationality ?? "—"} />
-                <Row k="Height" v={formatHeight(profile.heightCm)} />
-                <Row k="Weight" v={formatWeight(profile.weightKg)} />
+                <Row k={t("playerProfile.position")} v={profile.position ?? "—"} />
                 <Row
-                  k="League"
+                  k={t("playerProfile.nationality")}
+                  v={profile.nationality ?? "—"}
+                />
+                <Row k={t("playerProfile.height")} v={formatHeight(profile.heightCm)} />
+                <Row k={t("playerProfile.weight")} v={formatWeight(profile.weightKg)} />
+                <Row
+                  k={t("playerProfile.league")}
                   v={
                     <span className="font-semibold text-ink-100">
                       {profile.league.name}
@@ -208,14 +218,14 @@ export default async function PlayerPage({ params }: Props) {
                   }
                 />
                 <Row
-                  k="Team"
+                  k={t("playerProfile.team")}
                   v={
                     profile.team ? (
                       <span className="font-semibold text-ink-100">
                         {profile.team.name}
                       </span>
                     ) : (
-                      "Free agent"
+                      t("playerProfile.freeAgent")
                     )
                   }
                 />
@@ -233,7 +243,8 @@ export default async function PlayerPage({ params }: Props) {
                   className="h-1.5 w-1.5 rounded-full"
                   style={{ background: "var(--lg)" }}
                 />
-                {profile.league.name} · {profile.team?.name ?? "Free agent"}
+                {profile.league.name} ·{" "}
+                {profile.team?.name ?? t("playerProfile.freeAgent")}
               </Eyebrow>
               <h1 className="mt-3 font-display text-4xl font-bold leading-[0.9] tracking-[-0.04em] text-ink-50 sm:text-5xl md:text-6xl">
                 {profile.fullName}
@@ -241,7 +252,10 @@ export default async function PlayerPage({ params }: Props) {
               {season ? (
                 <p className="mt-3 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-400">
                   <span className="h-1.5 w-1.5 animate-ticker rounded-full bg-positive" />
-                  Season {season.seasonName} · {season.gamesPlayed} games
+                  {t("playerProfile.seasonGames", {
+                    season: season.seasonName,
+                    games: season.gamesPlayed,
+                  })}
                 </p>
               ) : null}
             </header>
@@ -251,43 +265,43 @@ export default async function PlayerPage({ params }: Props) {
             <FadeIn>
               <section>
                 <h2 className="gh-eyebrow mb-4">
-                  Production
+                  {t("playerProfile.production")}
                 </h2>
                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
                   <StatTile
-                    label="Points"
+                    label={t("playerProfile.points")}
                     value={perGame(season.pointsTotal, season.gamesPlayed)}
                     unit="PPG"
                     highlight
                   />
                   <StatTile
-                    label="Rebounds"
+                    label={t("playerProfile.rebounds")}
                     value={perGame(season.reboundsTotal, season.gamesPlayed)}
                     unit="RPG"
                   />
-                  <StatTile label="Assists" value={perGame(season.assistsTotal, season.gamesPlayed)} unit="APG" />
-                  <StatTile label="Steals" value={perGame(season.stealsTotal, season.gamesPlayed)} unit="SPG" />
-                  <StatTile label="Blocks" value={perGame(season.blocksTotal, season.gamesPlayed)} unit="BPG" />
+                  <StatTile label={t("playerProfile.assists")} value={perGame(season.assistsTotal, season.gamesPlayed)} unit="APG" />
+                  <StatTile label={t("playerProfile.steals")} value={perGame(season.stealsTotal, season.gamesPlayed)} unit="SPG" />
+                  <StatTile label={t("playerProfile.blocks")} value={perGame(season.blocksTotal, season.gamesPlayed)} unit="BPG" />
                   <StatTile
-                    label="PER"
+                    label={t("playerProfile.per")}
                     value={season.per}
                     unit="PER"
                   />
                 </div>
 
                 <h3 className="gh-eyebrow mb-3 mt-5 sm:mt-6">
-                  Shooting
+                  {t("playerProfile.shooting")}
                 </h3>
                 <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3">
-                  <ShootingTile label="Field goal" value={season.fgPct} />
-                  <ShootingTile label="3-point" value={season.threePct} />
-                  <ShootingTile label="Free throw" value={season.ftPct} />
+                  <ShootingTile label={t("playerProfile.fieldGoal")} value={season.fgPct} />
+                  <ShootingTile label={t("playerProfile.threePoint")} value={season.threePct} />
+                  <ShootingTile label={t("playerProfile.freeThrow")} value={season.ftPct} />
                 </div>
               </section>
             </FadeIn>
           ) : (
             <div className="rounded-xl border border-dashed border-white/10 p-6 text-center text-sm text-ink-300">
-              No season stats on record for this player yet.
+              {t("playerProfile.noSeasonStats")}
             </div>
           )}
 
@@ -295,7 +309,7 @@ export default async function PlayerPage({ params }: Props) {
             <FadeIn>
               <section>
                 <h2 className="gh-eyebrow mb-4">
-                  Compare with
+                  {t("playerProfile.compareWith")}
                 </h2>
                 <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
                   {candidates.map((c) => (
@@ -320,7 +334,7 @@ export default async function PlayerPage({ params }: Props) {
           <FadeIn>
             <section>
               <h2 className="gh-eyebrow mb-4">
-                Highlights
+                {t("playerProfile.highlights")}
               </h2>
               <Suspense fallback={<HighlightsSkeleton />}>
                 <HighlightsSection

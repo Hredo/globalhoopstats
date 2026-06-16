@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { PlayerCard } from "@/components/players/player-card"
 import type { RosterPlayer } from "@/lib/data/teams"
+import { useT } from "@/lib/i18n/provider"
 
 const INITIAL_VISIBLE = 16
 // Below this many hidden players, collapsing isn't worth the extra click.
@@ -11,13 +12,14 @@ const MIN_HIDDEN = 4
 type Props = { players: RosterPlayer[] }
 
 export function TeamRosterGrid({ players }: Props) {
+  const t = useT()
   const collapsible = players.length >= INITIAL_VISIBLE + MIN_HIDDEN
   const [expanded, setExpanded] = useState(!collapsible)
 
   if (players.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-8 text-center text-sm text-ink-300">
-        No players found for this team in the current season.
+        {t("teamProfile.noPlayers")}
       </div>
     )
   }
@@ -51,7 +53,7 @@ export function TeamRosterGrid({ players }: Props) {
             onClick={() => setExpanded(true)}
             className="group inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-6 py-2.5 text-sm font-medium text-ink-100 transition hover:border-brand-400/40 hover:text-ink-50"
           >
-            Show all {players.length} players
+            {t("teamProfile.showAll", { n: players.length })}
             <svg
               aria-hidden
               className="h-3.5 w-3.5 transition group-hover:translate-y-0.5"

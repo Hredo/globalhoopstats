@@ -1,55 +1,20 @@
 import { FadeIn } from "@/components/animations/fade-in"
 import { SectionHeading } from "@/components/ui/section-heading"
 import { ButtonLink } from "@/components/ui/button"
+import { getT } from "@/lib/i18n/server"
 
 type Feature = {
   n: string
-  title: string
-  body: string
-  cta: { href: string; label: string }
-  bullets: string[]
+  key: "compare" | "leagues" | "ai"
+  ctaHref: string
   visual: "compare" | "radar" | "shot"
   badge?: string
 }
 
 const FEATURES: Feature[] = [
-  {
-    n: "01",
-    title: "Cross-league compare",
-    body: "Drop two names from any combination of NBA, EuroLeague or ACB and get radar, splits and per-game lines on the same scale.",
-    cta: { href: "/compare", label: "Open the console" },
-    bullets: [
-      "Pace and possession normalized",
-      "Radar overlays with color-coded deltas",
-      "Shooting splits, advanced metrics and per-game",
-    ],
-    visual: "compare",
-  },
-  {
-    n: "02",
-    title: "League hubs with leaders",
-    body: "Six leagues, one shelf. Current-season scoring leaders, roster and staff counts, and direct jumps into every directory.",
-    cta: { href: "/leagues", label: "Browse leagues" },
-    bullets: [
-      "Top scorers per league, current season",
-      "Roster and coaching-staff counts at a glance",
-      "Quick links to the player and team directories",
-    ],
-    visual: "radar",
-  },
-  {
-    n: "03",
-    title: "AI advisor, trained on basketball",
-    body: "Tell the advisor the role and the budget and it surfaces a shortlist with reasoning, not just a name dump.",
-    cta: { href: "/ai-advisor", label: "Try the advisor" },
-    bullets: [
-      "Role-based filters (defender, shooter, organizer)",
-      "Transparent reasoning on every recommendation",
-      "Export to PDF, Excel and Word",
-    ],
-    visual: "shot",
-    badge: "Beta",
-  },
+  { n: "01", key: "compare", ctaHref: "/compare", visual: "compare" },
+  { n: "02", key: "leagues", ctaHref: "/leagues", visual: "radar" },
+  { n: "03", key: "ai", ctaHref: "/ai-advisor", visual: "shot", badge: "Beta" },
 ]
 
 function CompareVisual() {
@@ -284,29 +249,34 @@ function Visual({ kind }: { kind: Feature["visual"] }) {
   return <ShotVisual />
 }
 
-export function FeatureShowcase() {
+export async function FeatureShowcase() {
+  const { t } = await getT()
   return (
     <section
-      aria-label="Product features"
+      aria-label={t("home.features.eyebrow")}
       className="relative hairline-t py-20 sm:py-28"
     >
       <FadeIn>
         <SectionHeading
           align="center"
-          eyebrow="What's inside"
+          eyebrow={t("home.features.eyebrow")}
           title={
             <>
-              One console.{" "}
-              <span className="text-gradient-brand">Three workflows.</span>
+              {t("home.features.titleA")}{" "}
+              <span className="text-gradient-brand">
+                {t("home.features.titleB")}
+              </span>
             </>
           }
-          description="Whether you're scouting a target, comparing cross-league prospects or just looking up a box score — same data, same math."
+          description={t("home.features.description")}
         />
       </FadeIn>
 
       <div className="mt-12 space-y-5 sm:space-y-6">
         {FEATURES.map((f, i) => {
           const reversed = i % 2 === 1
+          const base = `home.features.${f.key}`
+          const bullets = [t(`${base}.b1`), t(`${base}.b2`), t(`${base}.b3`)]
           return (
             <FadeIn key={f.n} delay={0.05 * (i + 1)} y={24}>
               <article className="gh-card relative grid items-stretch overflow-hidden md:grid-cols-2">
@@ -329,13 +299,13 @@ export function FeatureShowcase() {
                     ) : null}
                   </div>
                   <h3 className="mt-4 font-display text-2xl font-bold leading-tight tracking-[-0.02em] text-ink-50 sm:text-3xl">
-                    {f.title}
+                    {t(`${base}.title`)}
                   </h3>
                   <p className="mt-3 text-pretty text-sm leading-relaxed text-ink-300 sm:text-base">
-                    {f.body}
+                    {t(`${base}.body`)}
                   </p>
                   <ul className="mt-5 space-y-2.5">
-                    {f.bullets.map((b) => (
+                    {bullets.map((b) => (
                       <li
                         key={b}
                         className="flex items-start gap-2.5 text-sm text-ink-200"
@@ -357,13 +327,13 @@ export function FeatureShowcase() {
                     ))}
                   </ul>
                   <ButtonLink
-                    href={f.cta.href}
+                    href={f.ctaHref}
                     variant="secondary"
                     size="sm"
                     arrow
                     className="mt-7"
                   >
-                    {f.cta.label}
+                    {t(`${base}.cta`)}
                   </ButtonLink>
                 </div>
                 <div
