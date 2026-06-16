@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
+import { useT } from "@/lib/i18n/provider"
 
 type MeResponse = {
   user: {
@@ -22,26 +23,27 @@ function planBadge(
   plan: string,
   role: string,
 ): {
-  label: string
+  labelKey: string
   color: string
 } {
   if (role === "admin")
     return {
-      label: "Admin",
+      labelKey: "userMenu.planAdmin",
       color: "border-brand-400/50 bg-brand-500/15 text-brand-200",
     }
   if (plan === "pro")
     return {
-      label: "Pro",
+      labelKey: "userMenu.planPro",
       color: "border-positive/50 bg-positive/10 text-positive",
     }
   return {
-    label: "Free",
+    labelKey: "userMenu.planFree",
     color: "border-hairline bg-white/[0.04] text-ink-300",
   }
 }
 
 export function UserMenu() {
+  const t = useT()
   const [me, setMe] = useState<MeResponse["user"] | null>(null)
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
@@ -109,13 +111,13 @@ export function UserMenu() {
           href="/login"
           className="hidden h-9 items-center rounded-full px-3.5 text-sm font-medium text-ink-200 transition-colors duration-200 hover:bg-white/[0.06] hover:text-ink-50 sm:inline-flex"
         >
-          Sign in
+          {t("userMenu.signIn")}
         </Link>
         <Link
           href="/register"
           className="gh-sheen group/cta inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-brand-400 to-ember-500 pl-4 pr-3 text-sm font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition-all duration-300 ease-swift hover:shadow-[var(--shadow-brand-glow-lg)] active:scale-[0.98]"
         >
-          Get started
+          {t("userMenu.getStarted")}
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ink-950/15 transition-transform duration-300 ease-swift group-hover/cta:translate-x-0.5">
             <svg
               viewBox="0 0 24 24"
@@ -169,7 +171,7 @@ export function UserMenu() {
         <span
           className={`hidden rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest sm:inline-flex ${badge.color}`}
         >
-          {badge.label}
+          {t(badge.labelKey)}
         </span>
         <svg
           className={`h-3 w-3 text-ink-400 transition-transform ${
@@ -207,7 +209,7 @@ export function UserMenu() {
               <span
                 className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest ${badge.color}`}
               >
-                {badge.label}
+                {t(badge.labelKey)}
               </span>
               {me.plan === "free" && me.role !== "admin" ? (
                 <Link
@@ -215,7 +217,7 @@ export function UserMenu() {
                   className="text-[11px] font-medium text-brand-300 transition hover:text-brand-200"
                   onClick={() => setOpen(false)}
                 >
-                  Upgrade →
+                  {t("userMenu.upgrade")}
                 </Link>
               ) : null}
             </div>
@@ -227,21 +229,21 @@ export function UserMenu() {
               icon={<IconPath d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />}
               onSelect={() => setOpen(false)}
             >
-              Account settings
+              {t("userMenu.accountSettings")}
             </MenuLink>
             <MenuLink
               href="/account/ai-keys"
               icon={<IconPath d="M14 7a4 4 0 11-3.8 5.2L4 18v3h3v-2h2v-2h2l1.2-1.2A4 4 0 0114 7zm2.5 2.5h.01" />}
               onSelect={() => setOpen(false)}
             >
-              AI &amp; keys
+              {t("userMenu.aiKeys")}
             </MenuLink>
             <MenuLink
               href="/account/subscription"
               icon={<IconPath d="M3 7h18M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M3 7l2-3h14l2 3M7 14h4" />}
               onSelect={() => setOpen(false)}
             >
-              Subscription
+              {t("userMenu.subscription")}
             </MenuLink>
           </div>
           {me.role === "admin" ? (
@@ -253,7 +255,7 @@ export function UserMenu() {
                   icon={<IconPath d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6l7-3z" />}
                   onSelect={() => setOpen(false)}
                 >
-                  Admin
+                  {t("userMenu.admin")}
                 </MenuLink>
               </div>
             </>
@@ -265,21 +267,21 @@ export function UserMenu() {
               icon={<IconPath d="M9.5 2A2.5 2.5 0 0112 4.5v11a2.5 2.5 0 01-5 0v-11A2.5 2.5 0 019.5 2zm0 0v5m5 8a4 4 0 01-8 0m5-12a2 2 0 00-2 2" />}
               onSelect={() => setOpen(false)}
             >
-              AI Advisor
+              {t("userMenu.aiAdvisor")}
             </MenuLink>
             <MenuLink
               href="/compare"
               icon={<IconPath d="M4 20V4m4 16v-8a2 2 0 012-2h4a2 2 0 012 2v8m4 0V8a2 2 0 00-2-2h-4a2 2 0 00-2 2v12" />}
               onSelect={() => setOpen(false)}
             >
-              Compare
+              {t("userMenu.compare")}
             </MenuLink>
             <MenuLink
               href="/ai-setup"
               icon={<IconPath d="M11.4 3.4a1 1 0 011.2 0l1.3 1a4 4 0 002.7.4l1.6-.3a1 1 0 011 .6l.6 1.5a4 4 0 001.4 2.2l1.1 1.1a1 1 0 010 1.4l-1.1 1.1a4 4 0 00-1.4 2.2l-.6 1.5a1 1 0 01-1 .6l-1.6-.3a4 4 0 00-2.7.4l-1.3 1a1 1 0 01-1.2 0l-1.3-1a4 4 0 00-2.7-.4l-1.6.3a1 1 0 01-1-.6l-.6-1.5a4 4 0 00-1.4-2.2L2 12a1 1 0 010-1.4l1.1-1.1a4 4 0 001.4-2.2l.6-1.5a1 1 0 011-.6l1.6.3a4 4 0 002.7-.4l1.3-1zM9 12a3 3 0 106 0 3 3 0 00-6 0z" />}
               onSelect={() => setOpen(false)}
             >
-              Connect your AI
+              {t("userMenu.connectAi")}
             </MenuLink>
           </div>
           <div className="h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
@@ -303,7 +305,7 @@ export function UserMenu() {
                   <path d="M15 12H3m0 0l4-4m-4 4l4 4m11-9V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2h9a2 2 0 002-2v-2" />
                 </svg>
               </span>
-              Sign out
+              {t("userMenu.signOut")}
             </button>
           </div>
         </div>

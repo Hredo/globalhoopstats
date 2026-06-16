@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { AuthCourt, type AuthCourtStats } from "@/components/auth/auth-court"
 import { safeNextPath } from "@/lib/auth/safe-redirect"
+import { useT } from "@/lib/i18n/provider"
 
 type FieldProps = {
   id: string
@@ -108,9 +109,15 @@ function FloatingField({
 
 type Strength = 0 | 1 | 2 | 3
 
+const STRENGTH_KEYS: Record<Strength, string> = {
+  0: "auth.strengthTooShort",
+  1: "auth.strengthWeak",
+  2: "auth.strengthOk",
+  3: "auth.strengthStrong",
+}
+
 function passwordStrength(pw: string): {
   score: Strength
-  label: string
   color: string
 } {
   let score = 0
@@ -119,13 +126,13 @@ function passwordStrength(pw: string): {
   if (/\d/.test(pw)) score++
   if (pw.length >= 12) score++
   const clamped = Math.min(3, score) as Strength
-  const meta: Record<Strength, { label: string; color: string }> = {
-    0: { label: "Too short", color: "bg-red-500" },
-    1: { label: "Weak", color: "bg-red-500" },
-    2: { label: "OK", color: "bg-amber-500" },
-    3: { label: "Strong", color: "bg-emerald-500" },
+  const colors: Record<Strength, string> = {
+    0: "bg-red-500",
+    1: "bg-red-500",
+    2: "bg-amber-500",
+    3: "bg-emerald-500",
   }
-  return { score: clamped, ...meta[clamped] }
+  return { score: clamped, color: colors[clamped] }
 }
 
 export type AuthFormVariant = "login" | "register"
@@ -138,6 +145,7 @@ type AuthFormProps = {
 export function AuthForm({ variant, stats }: AuthFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const t = useT()
   const next = safeNextPath(searchParams.get("next"))
 
   const [name, setName] = useState("")
@@ -162,9 +170,9 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
 
     const localErrors: Record<string, string> = {}
     if (isRegister) {
-      if (name.trim().length < 2) localErrors.name = "Name must be at least 2 characters."
+      if (name.trim().length < 2) localErrors.name = t("auth.nameMin")
       if (password !== confirm && confirm.length > 0) {
-        localErrors.confirm = "Passwords do not match."
+        localErrors.confirm = t("auth.passwordsMismatch")
       }
     }
     if (Object.keys(localErrors).length > 0) {
@@ -191,7 +199,7 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
         const msg =
           typeof payload?.error === "string"
             ? payload.error
-            : "We couldn't sign you in. Please try again."
+            : t("auth.genericError")
         if (msg.toLowerCase().includes("password")) {
           setFieldErrors({ password: msg })
         } else if (msg.toLowerCase().includes("email")) {
@@ -213,7 +221,7 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
       router.refresh()
       router.push(next)
     } catch {
-      setFormError("We couldn't reach the server. Check your connection and retry.")
+      setFormError(t("auth.networkError"))
     } finally {
       setSubmitting(false)
     }
@@ -237,13 +245,13 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
             >
               <path strokeLinecap="round" d="M15 19l-7-7 7-7" />
             </svg>
-            Back
+            {t("auth.back")}
           </Link>
           <Link
             href={isRegister ? "/login" : "/register"}
             className="text-sm text-ink-300 transition hover:text-ink-50"
           >
-            {isRegister ? "I already have an account" : "Create an account"}
+            {isRegister ? t("auth.haveAccount") : t("auth.createAccountLink")}
           </Link>
         </div>
 
@@ -255,12 +263,12 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
             className="w-full max-w-md"
           >
             <h1 className="font-display text-3xl font-bold text-ink-50 sm:text-4xl">
-              {isRegister ? "Create your account" : "Welcome back"}
+              {isRegister ? t("auth.registerTitle") : t("auth.loginTitle")}
             </h1>
             <p className="mt-2 text-sm leading-relaxed text-ink-300 sm:text-base">
               {isRegister
-                ? "20 seconds, no credit card. Free accounts get one preview chat to try the advisor and the AI compare."
-                : "Sign in to keep chatting with the advisor and unlock unlimited AI comparisons."}
+                ? t("auth.registerSubtitle")
+                : t("auth.loginSubtitle")}
             </p>
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-4" noValidate>
@@ -278,11 +286,11 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
               {isRegister ? (
                 <FloatingField
                   id="name"
-                  label="Your name"
+                  label={t("auth.nameLabel")}
                   type="text"
                   value={name}
                   onChange={setName}
-                  placeholder="Hugo Redondo"
+                  placeholder={t("auth.namePlaceholder")}
                   autoComplete="name"
                   required
                   minLength={2}
@@ -293,11 +301,11 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
 
               <FloatingField
                 id="email"
-                label="Email"
+                label={t("auth.emailLabel")}
                 type="email"
                 value={email}
                 onChange={setEmail}
-                placeholder="you@team.com"
+                placeholder={t("auth.emailPlaceholder")}
                 autoComplete="email"
                 required
                 maxLength={254}
@@ -307,7 +315,7 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
               <div>
                 <FloatingField
                   id="password"
-                  label="Password"
+                  label={t("auth.passwordLabel")}
                   type="password"
                   value={password}
                   onChange={setPassword}
@@ -331,7 +339,7 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
                         ))}
                       </div>
                       <span className="text-[10px] font-mono uppercase tracking-widest text-ink-500">
-                        {strength.label}
+                        {t(STRENGTH_KEYS[strength.score])}
                       </span>
                     </div>
                   ) : null}
@@ -341,7 +349,7 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
               {isRegister ? (
                 <FloatingField
                   id="confirm"
-                  label="Repeat password"
+                  label={t("auth.repeatPasswordLabel")}
                   type="password"
                   value={confirm}
                   onChange={setConfirm}
@@ -360,7 +368,7 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
                     href="/forgot-password"
                     className="text-xs text-ink-500 underline decoration-ink-700 underline-offset-2 transition hover:text-ink-300"
                   >
-                    Forgot password?
+                    {t("auth.forgotPassword")}
                   </Link>
                 </div>
               ) : null}
@@ -403,7 +411,9 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
                         style={{ animationDelay: "240ms" }}
                       />
                       <span className="ml-1.5">
-                        {isRegister ? "Creating account…" : "Signing in…"}
+                        {isRegister
+                          ? t("auth.creatingAccount")
+                          : t("auth.signingIn")}
                       </span>
                     </motion.span>
                   ) : (
@@ -414,7 +424,7 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
                       exit={{ opacity: 0, y: -6 }}
                       className="inline-flex items-center gap-2"
                     >
-                      {isRegister ? "Create account" : "Sign in"}
+                      {isRegister ? t("auth.createAccount") : t("auth.signIn")}
                       <svg
                         className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
                         viewBox="0 0 24 24"
@@ -439,21 +449,21 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
               </button>
 
               <p className="text-center text-xs text-ink-500">
-                By continuing you agree to our{" "}
+                {t("auth.termsPre")}{" "}
                 <Link
                   href="/terms"
                   className="underline decoration-ink-700 underline-offset-2 transition hover:text-ink-300"
                 >
-                  Terms
+                  {t("auth.termsWord")}
                 </Link>{" "}
-                and{" "}
+                {t("auth.and")}{" "}
                 <Link
                   href="/privacy"
                   className="underline decoration-ink-700 underline-offset-2 transition hover:text-ink-300"
                 >
-                  Privacy Policy
+                  {t("auth.privacyWord")}
                 </Link>
-                . Your data is encrypted in transit (HTTPS) and at rest.
+                {t("auth.termsPost")}
               </p>
             </form>
           </motion.div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
+import { useT, useLocale } from "@/lib/i18n/provider"
 
 // The 1v1 scene is decorative and desktop-only, so its chunk is split out and
 // fetched lazily — it only ever downloads on /login and /register, and only on
@@ -26,6 +27,9 @@ type Props = {
 const LEAGUES = ["NBA", "EuroLeague", "ACB", "LEB Oro", "LEB Plata", "EBA"]
 
 export function AuthCourt({ className, stats }: Props) {
+  const t = useT()
+  const locale = useLocale()
+  const numberLocale = locale === "es" ? "es-ES" : "en-US"
   const [sceneOn, setSceneOn] = useState(false)
 
   useEffect(() => {
@@ -37,10 +41,19 @@ export function AuthCourt({ className, stats }: Props) {
   }, [])
 
   const cards = [
-    { label: "Leagues live", value: String(stats.leagues) },
-    { label: "Players indexed", value: stats.players.toLocaleString("en-US") },
-    { label: "Teams tracked", value: stats.teams.toLocaleString("en-US") },
-    { label: "Coaches on file", value: stats.coaches.toLocaleString("en-US") },
+    { labelKey: "auth.courtLeaguesLive", value: String(stats.leagues) },
+    {
+      labelKey: "auth.courtPlayersIndexed",
+      value: stats.players.toLocaleString(numberLocale),
+    },
+    {
+      labelKey: "auth.courtTeamsTracked",
+      value: stats.teams.toLocaleString(numberLocale),
+    },
+    {
+      labelKey: "auth.courtCoaches",
+      value: stats.coaches.toLocaleString(numberLocale),
+    },
   ]
 
   return (
@@ -67,11 +80,10 @@ export function AuthCourt({ className, stats }: Props) {
               globalhoopstats
             </p>
             <h2 className="mt-3 max-w-md font-display text-2xl font-bold text-ink-50 sm:text-3xl lg:text-4xl">
-              Hoops, decoded.
+              {t("auth.courtTitle")}
             </h2>
             <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-300 sm:text-base">
-              Sign in to keep your advisor conversations, run unlimited AI
-              comparisons and unlock the full scouting toolkit.
+              {t("auth.courtSubtitle")}
             </p>
           </div>
 
@@ -79,11 +91,11 @@ export function AuthCourt({ className, stats }: Props) {
             <div className="grid max-w-md grid-cols-2 gap-3">
               {cards.map((s) => (
                 <div
-                  key={s.label}
+                  key={s.labelKey}
                   className="rounded-lg border border-white/5 bg-ink-950/40 px-3 py-2 backdrop-blur-sm"
                 >
                   <p className="font-mono text-[9px] uppercase tracking-widest text-ink-500">
-                    {s.label}
+                    {t(s.labelKey)}
                   </p>
                   <p className="mt-0.5 text-sm font-semibold tabular-nums text-ink-100 sm:text-base">
                     {s.value}

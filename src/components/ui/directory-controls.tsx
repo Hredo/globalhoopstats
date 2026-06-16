@@ -11,24 +11,25 @@ import {
   useTransition,
 } from "react"
 import { LEAGUE_FILTER_TREE } from "@/lib/league-groups"
+import { useT, useLocale, type ClientTranslator } from "@/lib/i18n/provider"
 
 const SORTS_PLAYERS = [
-  { value: "points", label: "Points" },
-  { value: "rebounds", label: "Rebounds" },
-  { value: "assists", label: "Assists" },
-  { value: "name", label: "Name" },
+  { value: "points", labelKey: "directory.sorts.points" },
+  { value: "rebounds", labelKey: "directory.sorts.rebounds" },
+  { value: "assists", labelKey: "directory.sorts.assists" },
+  { value: "name", labelKey: "directory.sorts.name" },
 ] as const
 
 const SORTS_TEAMS = [
-  { value: "name", label: "Name" },
-  { value: "players", label: "Roster size" },
+  { value: "name", labelKey: "directory.sorts.name" },
+  { value: "players", labelKey: "directory.sorts.rosterSize" },
 ] as const
 
 const ROLES = [
-  { value: "", label: "All" },
-  { value: "head_coach", label: "Head coach" },
-  { value: "assistant_coach", label: "Assistant" },
-  { value: "staff", label: "Staff" },
+  { value: "", labelKey: "directory.roles.all" },
+  { value: "head_coach", labelKey: "directory.roles.headCoach" },
+  { value: "assistant_coach", labelKey: "directory.roles.assistant" },
+  { value: "staff", labelKey: "directory.roles.staff" },
 ] as const
 
 type Props = {
@@ -58,6 +59,9 @@ export function DirectoryControls({ basePath, kind, total, showing }: Props) {
 function DirectoryControlsInner({ basePath, kind, total, showing }: Props) {
   const router = useRouter()
   const search = useSearchParams()
+  const t = useT()
+  const locale = useLocale()
+  const numberLocale = locale === "es" ? "es-ES" : "en-US"
   const [isPending, startTransition] = useTransition()
 
   const urlLeague = search.get("league") ?? ""
@@ -144,12 +148,12 @@ function DirectoryControlsInner({ basePath, kind, total, showing }: Props) {
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder={
             kind === "players"
-              ? "Search players…"
+              ? t("directory.searchPlayers")
               : kind === "teams"
-                ? "Search teams…"
-                : "Search coaches…"
+                ? t("directory.searchTeams")
+                : t("directory.searchCoaches")
           }
-          aria-label="Search"
+          aria-label={t("directory.searchAria")}
           autoComplete="off"
           spellCheck={false}
           className="h-9 w-full rounded-full border border-hairline bg-surface-1/60 pl-10 pr-9 text-sm text-ink-50 outline-none transition duration-200 placeholder:text-ink-400 focus:border-brand-400/50 focus:bg-surface-2/60 focus:ring-2 focus:ring-brand-500/20"
@@ -158,7 +162,7 @@ function DirectoryControlsInner({ basePath, kind, total, showing }: Props) {
           <button
             type="button"
             onClick={clearSearch}
-            aria-label="Clear search"
+            aria-label={t("directory.clearSearch")}
             className="absolute right-2.5 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-ink-400 transition hover:bg-white/10 hover:text-ink-50"
           >
             <svg
@@ -181,30 +185,31 @@ function DirectoryControlsInner({ basePath, kind, total, showing }: Props) {
         <LeagueSelect
           value={urlLeague}
           onChange={(v) => apply({ league: v || null })}
+          t={t}
         />
 
         {kind === "coaches" ? (
           <SelectControl
-            ariaLabel="Filter by role"
+            ariaLabel={t("directory.filterByRole")}
             value={urlRole}
             onChange={(v) => apply({ role: v || null })}
           >
             {ROLES.map((r) => (
               <option key={r.value || "all"} value={r.value}>
-                {r.label}
+                {t(r.labelKey)}
               </option>
             ))}
           </SelectControl>
         ) : null}
 
         <SelectControl
-          ariaLabel="Sort by"
+          ariaLabel={t("directory.sortByAria")}
           value={urlSort}
           onChange={(v) => apply({ sort: v })}
         >
           {sorts.map((s) => (
             <option key={s.value} value={s.value}>
-              Sort: {s.label}
+              {t("directory.sortPrefix", { label: t(s.labelKey) })}
             </option>
           ))}
         </SelectControl>
@@ -215,7 +220,11 @@ function DirectoryControlsInner({ basePath, kind, total, showing }: Props) {
             onClick={() =>
               apply({ order: urlOrder === "asc" ? "desc" : "asc" })
             }
-            aria-label={`Sort ${urlOrder === "asc" ? "descending" : "ascending"}`}
+            aria-label={
+              urlOrder === "asc"
+                ? t("directory.sortDescending")
+                : t("directory.sortAscending")
+            }
             className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-hairline bg-surface-1/60 text-ink-200 transition-colors duration-200 hover:border-hairline-strong hover:bg-surface-2/60 hover:text-ink-50"
           >
             <svg
@@ -237,20 +246,25 @@ function DirectoryControlsInner({ basePath, kind, total, showing }: Props) {
             isPending ? "text-brand-300" : ""
           }`}
         >
-          {showing.toLocaleString("en-US")} / {total.toLocaleString("en-US")}
+          {showing.toLocaleString(numberLocale)} /{" "}
+          {total.toLocaleString(numberLocale)}
         </p>
       </div>
     </div>
   )
 }
 
-function flattenLeagueOptions() {
+function flattenLeagueOptions(t: ClientTranslator) {
   const items: { value: string; label: string; depth: number }[] = [
-    { value: "", label: "All leagues", depth: 0 },
+    { value: "", label: t("directory.allLeagues"), depth: 0 },
   ]
   for (const node of LEAGUE_FILTER_TREE) {
     if (node.children) {
-      items.push({ value: node.slug, label: `All ${node.label}`, depth: 0 })
+      items.push({
+        value: node.slug,
+        label: t("directory.allGroup", { label: node.label }),
+        depth: 0,
+      })
       for (const child of node.children) {
         items.push({ value: child.slug, label: child.label, depth: 1 })
       }
@@ -264,18 +278,20 @@ function flattenLeagueOptions() {
 function LeagueSelect({
   value,
   onChange,
+  t,
 }: {
   value: string
   onChange: (value: string) => void
+  t: ClientTranslator
 }) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const options = useMemo(() => flattenLeagueOptions(), [])
+  const options = useMemo(() => flattenLeagueOptions(t), [t])
   const selectedLabel =
-    options.find((o) => o.value === value)?.label ?? "All leagues"
+    options.find((o) => o.value === value)?.label ?? t("directory.allLeagues")
 
   const filtered = useMemo(() => {
     if (!search) return options
@@ -312,7 +328,7 @@ function LeagueSelect({
         onClick={() => setOpen(!open)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-label="Filter by league"
+        aria-label={t("directory.filterByLeague")}
         className="flex h-9 min-w-[130px] items-center gap-1.5 rounded-full border border-hairline bg-surface-1/80 px-3.5 text-xs font-semibold text-ink-50 outline-none transition duration-200 hover:border-hairline-strong hover:bg-surface-2/80"
       >
         <svg
@@ -347,7 +363,7 @@ function LeagueSelect({
       {open && (
         <div
           role="listbox"
-          aria-label="Leagues"
+          aria-label={t("directory.leaguesListAria")}
           className="absolute right-0 top-full z-50 mt-1.5 w-56 rounded-2xl border border-hairline bg-surface-2/95 p-1.5 shadow-[var(--shadow-court)] backdrop-blur-xl"
         >
           <div className="relative mb-1">
@@ -368,8 +384,8 @@ function LeagueSelect({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search leagues…"
-              aria-label="Search leagues"
+              placeholder={t("directory.searchLeagues")}
+              aria-label={t("directory.searchLeaguesAria")}
               className="h-8 w-full rounded-xl border border-hairline bg-surface-0/80 pl-8 pr-2.5 text-xs text-ink-50 outline-none placeholder:text-ink-400"
             />
           </div>
@@ -401,7 +417,7 @@ function LeagueSelect({
             ))}
             {filtered.length === 0 && (
               <p className="px-2.5 py-3 text-center text-xs text-ink-400">
-                No leagues found
+                {t("directory.noLeagues")}
               </p>
             )}
           </div>

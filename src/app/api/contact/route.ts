@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
-import { SITE } from "@/lib/site"
+import { sendContactEmails } from "@/lib/email"
 import { clientIp } from "@/lib/security/ai-advisor"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
 
@@ -56,63 +56,20 @@ export async function POST(req: Request) {
     )
   }
 
+  // Honeypot: pretend success without doing anything.
   if (parsed.data.hp) {
     return NextResponse.json({ ok: true, dedup: true }, { status: 200 })
   }
 
   const { name, email, subject, message } = parsed.data
-  const apiKey = process.env.RESEND_API_KEY
 
-  if (!apiKey) {
-    console.info(
-      `[contact] (no RESEND_API_KEY) message from ${name} <${email}>: ${subject}`,
-    )
-    return NextResponse.json(
-      { ok: true, sent: false },
-      { status: 200 },
-    )
-  }
-
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "Contact Form <onboarding@resend.dev>",
-        to: [SITE.contact],
-        replyTo: email,
-        subject: `[${SITE.name}] ${subject}`,
-        text: [
-          `New contact message via ${SITE.url}.`,
-          ``,
-          `From: ${name} <${email}>`,
-          `Subject: ${subject}`,
-          ``,
-          message,
-        ].join("\n"),
-      }),
-    })
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => "")
-      console.warn(
-        `[contact] resend failed: ${res.status} ${text.slice(0, 200)}`,
-      )
-      return NextResponse.json(
-        { ok: false, error: "Could not send your message. Please try again." },
-        { status: 500 },
-      )
-    }
-
-    return NextResponse.json({ ok: true, sent: true }, { status: 200 })
-  } catch (err) {
-    console.warn("[contact] resend fetch failed", err)
+  const ownerOk = await sendContactEmails({ name, email, subject, message })
+  if (!ownerOk) {
     return NextResponse.json(
       { ok: false, error: "Could not send your message. Please try again." },
       { status: 500 },
     )
   }
+
+  return NextResponse.json({ ok: true, sent: true }, { status: 200 })
 }

@@ -3,6 +3,7 @@ import { TeamHero } from "@/components/teams/team-hero"
 import { TeamRosterGrid } from "@/components/teams/team-roster-grid"
 import { TeamStaffList } from "@/components/teams/team-staff-list"
 import { TeamThemeScope } from "@/components/teams/team-theme-scope"
+import { getT } from "@/lib/i18n/server"
 
 type Props = {
   team: {
@@ -17,8 +18,9 @@ type Props = {
   }
 }
 
-export function TeamDetailView({ team }: Props) {
+export async function TeamDetailView({ team }: Props) {
   const palette = null
+  const { t } = await getT()
   return (
     <TeamThemeScope palette={palette}>
       <div className="team-detail-page py-8">
@@ -43,12 +45,12 @@ export function TeamDetailView({ team }: Props) {
                         "linear-gradient(120deg, var(--team-300), var(--team-500))",
                     }}
                   >
-                    Roster
+                    {t("teamProfile.roster")}
                   </span>{" "}
                   <span className="text-ink-300">· {team.roster.length}</span>
                 </h2>
                 <span className="text-xs uppercase tracking-widest text-ink-400">
-                  Current season
+                  {t("teamProfile.currentSeason")}
                 </span>
               </header>
               <TeamRosterGrid players={team.roster} />

@@ -2,11 +2,15 @@ import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { ForgotPasswordForm } from "./form"
 import { readSessionUser } from "@/lib/auth/server-user"
+import { getT } from "@/lib/i18n/server"
 
-export const metadata: Metadata = {
-  title: "Forgot password",
-  description: "Reset your globalhoopstats password.",
-  robots: { index: false, follow: false },
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getT()
+  return {
+    title: t("auth.forgotMetaTitle"),
+    description: t("auth.forgotMetaDescription"),
+    robots: { index: false, follow: false },
+  }
 }
 
 export default async function ForgotPasswordPage() {

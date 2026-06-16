@@ -1,6 +1,7 @@
 "use client"
 
 import { motion, useReducedMotion } from "framer-motion"
+import { useT } from "@/lib/i18n/provider"
 
 const AXES = ["PTS", "AST", "REB", "STL", "TS%", "USG"]
 const PLAYER_A = [0.94, 0.68, 0.52, 0.46, 0.84, 0.9]
@@ -32,6 +33,7 @@ const EASE = [0.19, 1, 0.22, 1] as const
 
 export function LiveScoutCard() {
   const reduce = useReducedMotion()
+  const t = useT()
 
   return (
     <div className="gh-bezel gh-sheen">
@@ -49,10 +51,10 @@ export function LiveScoutCard() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-positive opacity-70" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-positive" />
             </span>
-            Live scout
+            {t("home.liveScout.live")}
           </span>
           <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-            radar · 6 axes
+            {t("home.liveScout.axes")}
           </span>
         </div>
 
@@ -185,9 +187,9 @@ export function LiveScoutCard() {
         <div className="relative flex items-center justify-between gap-2 hairline-t px-4 py-2.5 sm:px-5">
           <span className="inline-flex items-center gap-2 text-[11px] text-ink-300">
             <span className="h-2 w-2 rounded-full bg-brand-500" />
-            Player A
+            {t("home.liveScout.playerA")}
             <span className="ml-2 h-2 w-2 rounded-full bg-accent-cyan" />
-            Player B
+            {t("home.liveScout.playerB")}
           </span>
           <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
             NBA · EUR · ACB

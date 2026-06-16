@@ -1,4 +1,5 @@
 import { CoachCard } from "@/components/staff/coach-card"
+import { getT } from "@/lib/i18n/server"
 
 type StaffItem = {
   id: string
@@ -14,10 +15,10 @@ type StaffItem = {
 
 type Props = { staff: StaffItem[] }
 
-const ROLE_LABEL: Record<StaffItem["role"], string> = {
-  head_coach: "Head coach",
-  assistant_coach: "Assistant coaches",
-  staff: "Technical staff",
+const ROLE_LABEL_KEY: Record<StaffItem["role"], string> = {
+  head_coach: "teamProfile.headCoach",
+  assistant_coach: "teamProfile.assistantCoaches",
+  staff: "teamProfile.technicalStaff",
 }
 
 const ROLE_ORDER: StaffItem["role"][] = [
@@ -26,11 +27,12 @@ const ROLE_ORDER: StaffItem["role"][] = [
   "staff",
 ]
 
-export function TeamStaffList({ staff }: Props) {
+export async function TeamStaffList({ staff }: Props) {
+  const { t } = await getT()
   if (staff.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-6 text-center text-sm text-ink-300">
-        Staff data not available for this team.
+        {t("teamProfile.staffUnavailable")}
       </div>
     )
   }
@@ -52,7 +54,7 @@ export function TeamStaffList({ staff }: Props) {
     >
       <div className="flex items-center justify-between">
         <h2 className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-[var(--team-200)]">
-          Coaching staff
+          {t("teamProfile.coachingStaff")}
         </h2>
         <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-ink-300">
           {staff.length}
@@ -64,7 +66,7 @@ export function TeamStaffList({ staff }: Props) {
         return (
           <div key={role}>
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-400">
-              {ROLE_LABEL[role]}
+              {t(ROLE_LABEL_KEY[role])}
             </p>
             <ul className="space-y-2">
               {list.map((c) => (

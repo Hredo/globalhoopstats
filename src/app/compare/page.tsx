@@ -10,11 +10,14 @@ import { Reveal } from "@/components/animations/reveal"
 import { Eyebrow } from "@/components/ui/eyebrow"
 import { SmartImage } from "@/components/ui/smart-image"
 import { leagueAccent } from "@/components/ui/league-badge"
+import { getT } from "@/lib/i18n/server"
 
-export const metadata: Metadata = {
-  title: "Compare",
-  description:
-    "Put any two players side by side — points, rebounds, assists, shooting splits and more.",
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getT()
+  return {
+    title: t("compare.metaTitle"),
+    description: t("compare.metaDescription"),
+  }
 }
 
 type Search = { a?: string; b?: string }
@@ -29,6 +32,7 @@ export default async function ComparePage(props: {
     getPlayerForCompare(aSlug),
     getPlayerForCompare(bSlug),
   ])
+  const { t } = await getT()
 
   return (
     <div className="full-bleed relative pb-12 pt-10 sm:pt-14">
@@ -41,13 +45,13 @@ export default async function ComparePage(props: {
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
       <Reveal>
         <header className="mb-8">
-          <Eyebrow>Matchup</Eyebrow>
+          <Eyebrow>{t("compare.eyebrow")}</Eyebrow>
           <h1 className="mt-4 font-display text-5xl font-bold leading-[0.86] tracking-[-0.045em] text-ink-50 sm:text-6xl md:text-7xl">
-            Side-by-side <span className="text-gradient-brand">scouting.</span>
+            {t("compare.titleA")}{" "}
+            <span className="text-gradient-brand">{t("compare.titleB")}</span>
           </h1>
           <p className="mt-5 max-w-2xl text-pretty text-sm leading-relaxed text-ink-300 sm:text-base">
-            Pick any two players and compare every stat per game. The coloured
-            values flag the leader on each line.
+            {t("compare.description")}
           </p>
         </header>
       </Reveal>
@@ -67,7 +71,7 @@ export default async function ComparePage(props: {
           <span className="hidden h-full w-px bg-gradient-to-b from-transparent via-hairline-strong to-transparent md:block" />
           <span className="gh-bezel flex h-14 w-14 items-center justify-center">
             <span className="gh-bezel-inner flex h-full w-full items-center justify-center font-display text-base font-bold text-ink-200">
-              VS
+              {t("compare.vs")}
             </span>
           </span>
           <span className="hidden h-full w-px bg-gradient-to-b from-transparent via-hairline-strong to-transparent md:block" />
@@ -80,13 +84,13 @@ export default async function ComparePage(props: {
           <section className="mt-6 sm:mt-8">
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_380px]">
               <div className="gh-card p-4 sm:p-5">
-                <h2 className="gh-eyebrow">Full stats</h2>
+                <h2 className="gh-eyebrow">{t("compare.fullStats")}</h2>
                 <div className="mt-4">
                   <CompareStatsTable a={playerA} b={playerB} />
                 </div>
               </div>
               <div className="gh-card p-4 sm:p-5">
-                <h2 className="gh-eyebrow">Radar</h2>
+                <h2 className="gh-eyebrow">{t("compare.radar")}</h2>
                 <div className="mt-4 aspect-square w-full">
                   <CompareRadar a={playerA} b={playerB} />
                 </div>
@@ -113,7 +117,7 @@ export default async function ComparePage(props: {
   )
 }
 
-function ComparePlayerCard({
+async function ComparePlayerCard({
   side,
   player,
   requested,
@@ -122,14 +126,15 @@ function ComparePlayerCard({
   player: Awaited<ReturnType<typeof getPlayerForCompare>>
   requested: string
 }) {
+  const { t } = await getT()
   if (!player) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-hairline-strong p-8 text-center">
         <p className="text-sm text-ink-200">
-          No player found for &quot;{requested}&quot;.
+          {t("compare.noPlayerFound", { name: requested })}
         </p>
         <p className="mt-1 text-xs text-ink-400">
-          Search above to pick someone else.
+          {t("compare.searchAbove")}
         </p>
       </div>
     )
@@ -176,7 +181,7 @@ function ComparePlayerCard({
             </Link>
           </p>
           <p className="mt-0.5 truncate text-xs text-ink-300">
-            {player.team?.name ?? "Free agent"} · {player.league.name}
+            {player.team?.name ?? t("compare.freeAgent")} · {player.league.name}
           </p>
           <p className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
             {player.position ?? "—"} · {player.nationality ?? "—"}
@@ -189,10 +194,13 @@ function ComparePlayerCard({
             side === "b" ? "md:text-right" : ""
           }`}
         >
-          Season {player.stats.seasonName} · {player.stats.gamesPlayed} GP
+          {t("compare.seasonGp", {
+            season: player.stats.seasonName,
+            gp: player.stats.gamesPlayed,
+          })}
         </p>
       ) : (
-        <p className="mt-4 text-xs text-ink-400">No stats available.</p>
+        <p className="mt-4 text-xs text-ink-400">{t("compare.noStats")}</p>
       )}
     </article>
   )
