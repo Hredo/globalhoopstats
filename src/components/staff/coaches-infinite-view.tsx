@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { motion } from "framer-motion"
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll"
 import { CoachCardElegant } from "@/components/staff/coach-card-elegant"
+import { useT, useLocale } from "@/lib/i18n/provider"
 
 type Coach = Parameters<typeof CoachCardElegant>[0]["coach"]
 
@@ -26,6 +27,9 @@ export function CoachesInfiniteView({ initial, query, league, role }: Props) {
   const [pages, setPages] = useState<PageResult[]>([initial])
   const [loading, setLoading] = useState(false)
   const isFirstRender = useRef(true)
+  const t = useT()
+  const locale = useLocale()
+  const numberLocale = locale === "es" ? "es-ES" : "en-US"
 
   const current = pages[pages.length - 1]
   const items = pages.flatMap((p) => p.items)
@@ -71,9 +75,9 @@ export function CoachesInfiniteView({ initial, query, league, role }: Props) {
   if (items.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] py-16 text-center">
-        <p className="text-ink-100">No staff match your filters.</p>
+        <p className="text-ink-100">{t("directory.emptyCoachesTitle")}</p>
         <p className="mt-1 text-sm text-ink-400">
-          Try a different league, role or partial name.
+          {t("directory.emptyCoachesHint")}
         </p>
       </div>
     )
@@ -117,11 +121,11 @@ export function CoachesInfiniteView({ initial, query, league, role }: Props) {
             {loading ? (
               <>
                 <span className="h-3 w-3 animate-spin rounded-full border-2 border-brand-400 border-t-transparent" />
-                Loading…
+                {t("directory.loading")}
               </>
             ) : (
               <>
-                Load more
+                {t("directory.loadMore")}
                 <svg
                   aria-hidden
                   className="h-3.5 w-3.5 transition group-hover:translate-y-0.5"
@@ -139,8 +143,13 @@ export function CoachesInfiniteView({ initial, query, league, role }: Props) {
           </button>
         ) : (
           <p className="font-mono text-[10px] uppercase tracking-widest text-ink-500">
-            End · {current.total.toLocaleString("en-US")}{" "}
-            {current.total === 1 ? "result" : "results"}
+            {t("directory.endResults", {
+              n: current.total.toLocaleString(numberLocale),
+              unit:
+                current.total === 1
+                  ? t("directory.result")
+                  : t("directory.results"),
+            })}
           </p>
         )}
       </div>

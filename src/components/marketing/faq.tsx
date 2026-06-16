@@ -1,14 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { FAQ_DATA, type FaqItem } from "@/components/marketing/faq-data"
+import { getFaqData, type FaqItem } from "@/components/marketing/faq-data"
+import { useLocale } from "@/lib/i18n/provider"
 
 export function Faq() {
+  const locale = useLocale()
+  const items = getFaqData(locale)
   const [open, setOpen] = useState<number | null>(0)
   return (
     <div className="mx-auto max-w-3xl">
       <ul className="space-y-2 sm:space-y-3">
-        {FAQ_DATA.map((item, i) => {
+        {items.map((item, i) => {
           const isOpen = open === i
           return (
             <li key={item.question}>

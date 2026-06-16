@@ -75,9 +75,12 @@ public/         - Static assets
 
 Copy `.env.example` to `.env.local` for local development. Never commit `.env` files.
 
-### env vars added for auth features
-- `RESEND_API_KEY` — required for sending auth emails (password reset, 2FA codes). Falls back to console.log in dev.
-- `AUTH_EMAIL_FROM` — sender address for auth emails (default: `auth@globalhoopstats.com`). Must be verified in Resend.
+### Transactional email (`src/lib/email`)
+- All app email goes through one module: `src/lib/email/send.ts` (`sendEmail`), with HTML templates in `src/lib/email/templates.ts` and the branded layout in `src/lib/email/layout.ts`. High-level senders (welcome, contact, waitlist) live in `src/lib/email/index.ts`; auth senders stay in `src/lib/auth/email.ts` (same signatures, now delegating to the shared sender).
+- Transport priority: **Resend (`RESEND_API_KEY`) → Gmail SMTP (`GMAIL_APP_PASSWORD`) → console.log** (dev fallback).
+- `AUTH_EMAIL_FROM` — sender address for all email (default: `no-reply@globalhoopstats.es`). With Resend it MUST be on a domain verified in Resend (`globalhoopstats.es`); Gmail SMTP ignores it and sends as the authenticated mailbox.
+- Replies go to `SITE.contact` (`globalhoopstats@gmail.com`) via `reply_to`; the contact-form owner notification overrides `reply_to` to the sender's address.
+- Wired automations: welcome on register, password reset, 2FA login/setup codes, contact (owner notification + sender auto-reply, form at `/contact`), waitlist (owner notification + subscriber welcome).
 
 ## OneDrive / Windows sync
 
@@ -108,8 +111,8 @@ Copy `.env.example` to `.env.local` for local development. Never commit `.env` f
 - All auth endpoints are rate-limited per IP with the `readRateLimit` token-bucket helper.
 - Honeypot fields on all forms prevent bot submissions.
 - Session cookie: `HttpOnly`, `SameSite=Lax`, `Secure` in production.
-- Sender: configured via `AUTH_EMAIL_FROM` env var (default: `globalhoopstats@gmail.com`).
-- Transport priority: Gmail SMTP (`GMAIL_APP_PASSWORD`) > Resend (`RESEND_API_KEY`) > console.log.
+- Sender: configured via `AUTH_EMAIL_FROM` env var (default: `no-reply@globalhoopstats.es`).
+- Transport priority: Resend (`RESEND_API_KEY`) > Gmail SMTP (`GMAIL_APP_PASSWORD`) > console.log.
 
 ## OneDrive / Windows sync
 

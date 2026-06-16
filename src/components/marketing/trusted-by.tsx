@@ -1,5 +1,6 @@
 import { FadeIn } from "@/components/animations/fade-in"
 import { leagueAccent } from "@/components/ui/league-badge"
+import { getT } from "@/lib/i18n/server"
 
 const LEAGUES = [
   { name: "NBA", slug: "nba" },
@@ -10,19 +11,20 @@ const LEAGUES = [
   { name: "EBA", slug: "eba" },
 ]
 
-const PILOT_USERS = [
-  "Pro scouting dept.",
-  "NCAA programs",
-  "Player agencies",
-  "Journalism desks",
-  "High-school academies",
-  "Fantasy leagues",
+const PILOT_USER_KEYS = [
+  "home.trustedBy.pilots.scouting",
+  "home.trustedBy.pilots.ncaa",
+  "home.trustedBy.pilots.agencies",
+  "home.trustedBy.pilots.journalism",
+  "home.trustedBy.pilots.academies",
+  "home.trustedBy.pilots.fantasy",
 ]
 
-export function TrustedBy() {
+export async function TrustedBy() {
+  const { t } = await getT()
   return (
     <section
-      aria-label="Coverage and early access"
+      aria-label={t("home.trustedBy.aria")}
       className="relative hairline-t hairline-b bg-surface-0/40 py-12 sm:py-16"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
@@ -30,15 +32,16 @@ export function TrustedBy() {
           <div className="grid items-center gap-8 md:grid-cols-[1fr_2fr]">
             <div>
               <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-ink-400">
-                Coverage today
+                {t("home.trustedBy.eyebrow")}
               </p>
               <h2 className="mt-3 font-display text-2xl font-bold leading-tight tracking-[-0.02em] text-ink-50 sm:text-3xl">
-                Six leagues live.{" "}
-                <span className="text-gradient-brand">More on the way.</span>
+                {t("home.trustedBy.titleA")}{" "}
+                <span className="text-gradient-brand">
+                  {t("home.trustedBy.titleB")}
+                </span>
               </h2>
               <p className="mt-3 text-pretty text-sm text-ink-300 sm:text-[15px]">
-                The NBA, EuroLeague, ACB and Spain&apos;s full FEB ladder are in
-                today. The WNBA, FIBA windows and the Australian NBL are next.
+                {t("home.trustedBy.description")}
               </p>
             </div>
             <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
@@ -58,7 +61,7 @@ export function TrustedBy() {
                       {l.name}
                     </span>
                     <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-                      live
+                      {t("home.trustedBy.live")}
                     </span>
                   </li>
                 )
@@ -68,15 +71,15 @@ export function TrustedBy() {
         </FadeIn>
         <FadeIn delay={0.1}>
           <p className="mt-8 font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-ink-500">
-            Early access users
+            {t("home.trustedBy.earlyAccess")}
           </p>
           <ul className="mt-3 flex flex-wrap gap-2 sm:gap-3">
-            {PILOT_USERS.map((u) => (
+            {PILOT_USER_KEYS.map((key) => (
               <li
-                key={u}
+                key={key}
                 className="rounded-full border border-hairline bg-white/[0.03] px-3.5 py-1.5 text-xs text-ink-200"
               >
-                {u}
+                {t(key)}
               </li>
             ))}
           </ul>

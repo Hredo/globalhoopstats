@@ -5,6 +5,27 @@ import { getDb } from "@/lib/db/client"
 import { leagues, playerSeasonStats, players, teams } from "@/lib/db/schema"
 import { and, asc, eq, like, or, sql, type SQL } from "drizzle-orm"
 import { formatStat } from "@/lib/format"
+import type { Locale } from "@/lib/i18n/config"
+
+/** Pick the right string for the active locale. */
+function pick(locale: Locale, en: string, es: string): string {
+  return locale === "es" ? es : en
+}
+
+const INTENT_LABELS_ES: Record<Intent, string> = {
+  defender: "Refuerzo defensivo",
+  scorer: "Anotador / tirador",
+  playmaker: "Base organizador",
+  wing: "Alero versátil",
+  big: "Refuerzo interior",
+  cheap: "Opción económica",
+  star: "Movimiento de estrella",
+  general: "Análisis general",
+}
+
+function intentLabel(intent: Intent, locale: Locale): string {
+  return locale === "es" ? INTENT_LABELS_ES[intent] : INTENT_META[intent].label
+}
 
 export type Intent =
   | "defender"
@@ -479,10 +500,18 @@ function pickRecommendations(
   return shuffle(pool).slice(0, count)
 }
 
-function analyzeTeamGaps(roster: TeamProfile["roster"]): string {
+function analyzeTeamGaps(
+  roster: TeamProfile["roster"],
+  locale: Locale,
+): string {
   const counts = getPositionBreakdown(roster)
   const total = roster.length
-  if (total === 0) return "Not enough roster information available."
+  if (total === 0)
+    return pick(
+      locale,
+      "Not enough roster information available.",
+      "No hay suficiente información de la plantilla.",
+    )
 
   const guards = (counts["G"] || 0) + (counts["1"] || 0) + (counts["2"] || 0)
   const wings = (counts["F"] || 0) + (counts["3"] || 0) + (counts["4"] || 0)
@@ -490,11 +519,29 @@ function analyzeTeamGaps(roster: TeamProfile["roster"]): string {
 
   const gaps: string[] = []
   if (guards / total < 0.3)
-    gaps.push("Backcourt reinforcements (point guards and shooting guards)")
-  if (wings / total < 0.25) gaps.push("Help at the forward spots")
-  if (bigs / total < 0.2) gaps.push("Limited interior depth")
+    gaps.push(
+      pick(
+        locale,
+        "Backcourt reinforcements (point guards and shooting guards)",
+        "Refuerzos en el backcourt (bases y escoltas)",
+      ),
+    )
+  if (wings / total < 0.25)
+    gaps.push(
+      pick(locale, "Help at the forward spots", "Ayuda en las posiciones de alero"),
+    )
+  if (bigs / total < 0.2)
+    gaps.push(
+      pick(locale, "Limited interior depth", "Fondo de armario interior limitado"),
+    )
   if (gaps.length === 0)
-    gaps.push("Well-balanced roster — any position is viable")
+    gaps.push(
+      pick(
+        locale,
+        "Well-balanced roster — any position is viable",
+        "Plantilla bien equilibrada — cualquier posición es viable",
+      ),
+    )
 
   return gaps[0]
 }
@@ -509,35 +556,37 @@ function getLeagueBadge(league: string): string {
 export async function buildLocalAdvice(
   team: TeamProfile,
   userMessage: string,
+  locale: Locale = "en",
 ): Promise<AdvisorOutput> {
   const specific = await findPlayerInQuery(userMessage)
   if (specific) {
-    return buildPlayerSpecificAdvice(team, specific)
+    return buildPlayerSpecificAdvice(team, specific, locale)
   }
 
   const intent = detectIntent(userMessage)
   const meta = INTENT_META[intent]
+  const label = intentLabel(intent, locale)
   const recs = pickRecommendations(intent, 3, team.league.name)
-  const gap = analyzeTeamGaps(team.roster)
+  const gap = analyzeTeamGaps(team.roster, locale)
 
   const priorities = [
     {
-      label: "High priority",
+      label: pick(locale, "High priority", "Prioridad alta"),
       color: "bg-brand-500/20 text-brand-300 border-brand-500/30",
     },
     {
-      label: "Solid option",
+      label: pick(locale, "Solid option", "Opción sólida"),
       color: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
     },
     {
-      label: "Value bet",
+      label: pick(locale, "Value bet", "Apuesta de valor"),
       color: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",
     },
   ]
 
   return {
     intent,
-    intentLabel: meta.label,
+    intentLabel: label,
     intentEmoji: meta.emoji,
     team: {
       name: team.name,
@@ -546,7 +595,11 @@ export async function buildLocalAdvice(
       rosterSize: team.roster.length,
       topPlayers: team.roster.slice(0, 4).map((p) => p.fullName),
     },
-    analysis: `Your query targets a **${meta.label.toLowerCase()}**. Based on the current roster analysis, this signing could bring a differential profile to the rotation.`,
+    analysis: pick(
+      locale,
+      `Your query targets a **${label.toLowerCase()}**. Based on the current roster analysis, this signing could bring a differential profile to the rotation.`,
+      `Tu consulta apunta a un **${label.toLowerCase()}**. Según el análisis de la plantilla actual, este fichaje podría aportar un perfil diferencial a la rotación.`,
+    ),
     gap,
     recommendations: recs.map((r, i) => ({
       ...r,
@@ -554,10 +607,26 @@ export async function buildLocalAdvice(
       priorityColor: priorities[i].color,
     })),
     considerations: [
-      "Check the salary cap space before opening negotiations",
-      "Prioritise profiles that complement (not duplicate) your key players",
-      "The market moves fast — values are current estimates",
-      "Factor in the buy-out clause if the player is under contract",
+      pick(
+        locale,
+        "Check the salary cap space before opening negotiations",
+        "Revisa el espacio salarial antes de abrir negociaciones",
+      ),
+      pick(
+        locale,
+        "Prioritise profiles that complement (not duplicate) your key players",
+        "Prioriza perfiles que complementen (no dupliquen) a tus jugadores clave",
+      ),
+      pick(
+        locale,
+        "The market moves fast — values are current estimates",
+        "El mercado se mueve rápido — los valores son estimaciones actuales",
+      ),
+      pick(
+        locale,
+        "Factor in the buy-out clause if the player is under contract",
+        "Ten en cuenta la cláusula de salida si el jugador está bajo contrato",
+      ),
     ],
   }
 }
@@ -736,21 +805,25 @@ async function pickPlayer(
 
 export { findPlayerInQuery, formatStat, estimateContractValue, getLeagueBadge }
 
-function estimateContractValue(profile: PlayerProfile): string {
+function estimateContractValue(
+  profile: PlayerProfile,
+  locale: Locale = "en",
+): string {
   const latest = profile.seasons[0]
   if (!latest || latest.pointsTotal === null || latest.gamesPlayed === 0) return "N/A"
   const ppg = latest.pointsTotal / latest.gamesPlayed
   if (ppg >= 25) return "Max / $50M+"
   if (ppg >= 20) return "All-Star / $30-50M"
-  if (ppg >= 15) return "Starter / $15-25M"
-  if (ppg >= 10) return "Rotation / $5-12M"
-  if (ppg >= 5) return "Role / $1-4M"
-  return "Minimum / <€1M"
+  if (ppg >= 15) return pick(locale, "Starter / $15-25M", "Titular / $15-25M")
+  if (ppg >= 10) return pick(locale, "Rotation / $5-12M", "Rotación / $5-12M")
+  if (ppg >= 5) return pick(locale, "Role / $1-4M", "Rol / $1-4M")
+  return pick(locale, "Minimum / <€1M", "Mínimo / <€1M")
 }
 
 function buildPlayerSpecificAdvice(
   team: TeamProfile,
   profile: PlayerProfile,
+  locale: Locale = "en",
 ): AdvisorOutput {
   const latest = profile.seasons[0]
   const age = null as number | null
@@ -773,67 +846,89 @@ function buildPlayerSpecificAdvice(
     : []
 
   const statsLine =
-    stats.length > 0 ? stats.join(" · ") : "No season stats available"
-  const currentTeam = profile.team?.name ?? "Free agent / no team"
+    stats.length > 0
+      ? stats.join(" · ")
+      : pick(
+          locale,
+          "No season stats available",
+          "Sin estadísticas de temporada disponibles",
+        )
+  const currentTeam =
+    profile.team?.name ??
+    pick(locale, "Free agent / no team", "Agente libre / sin equipo")
   const leagueLine = `${profile.league.name}${profile.nationality ? ` · ${profile.nationality}` : ""}`
 
   const intent: Intent = "scorer"
 
   const strengths: string[] = []
   if (ppg !== null && ppg >= 15) {
-    strengths.push("Proven scorer")
+    strengths.push(pick(locale, "Proven scorer", "Anotador contrastado"))
   }
   if (apg !== null && apg >= 5) {
-    strengths.push("Playmaking")
+    strengths.push(pick(locale, "Playmaking", "Generación de juego"))
   }
   if (rpg !== null && rpg >= 7) {
-    strengths.push("Solid rebounder")
+    strengths.push(pick(locale, "Solid rebounder", "Reboteador sólido"))
   }
   if (spg !== null && spg >= 1.5) {
-    strengths.push("Creates steals")
+    strengths.push(pick(locale, "Creates steals", "Genera robos"))
   }
   if (bpg !== null && bpg >= 1) {
-    strengths.push("Rim protection")
+    strengths.push(pick(locale, "Rim protection", "Protección del aro"))
   }
   if (strengths.length === 0)
-    strengths.push("Complementary profile", "Available via trade")
+    strengths.push(
+      pick(locale, "Complementary profile", "Perfil complementario"),
+      pick(locale, "Available via trade", "Disponible vía traspaso"),
+    )
 
   const sameLeague = profile.league.slug === team.league.slug
 
   const fitParts: string[] = []
   if (sameLeague) {
     fitParts.push(
-      `Already plays in ${profile.league.name}, so the adaptation would be immediate.`,
+      pick(
+        locale,
+        `Already plays in ${profile.league.name}, so the adaptation would be immediate.`,
+        `Ya juega en ${profile.league.name}, así que la adaptación sería inmediata.`,
+      ),
     )
   } else {
     fitParts.push(
-      `Comes from ${profile.league.name} — needs an adaptation period to the ${team.league.name} game.`,
+      pick(
+        locale,
+        `Comes from ${profile.league.name} — needs an adaptation period to the ${team.league.name} game.`,
+        `Viene de ${profile.league.name} — necesita un periodo de adaptación al juego de ${team.league.name}.`,
+      ),
     )
   }
-  if (age !== null) {
-    if (age <= 25)
-      fitParts.push(`At ${age}, he is entering his highest-upside window.`)
-    else if (age <= 30) fitParts.push(`At ${age}, he is in his prime.`)
-    else
-      fitParts.push(
-        `At ${age}, he brings veteran presence and competitive experience.`,
-      )
-  }
   if (ppg !== null && ppg >= 18) {
-    fitParts.push("Differential scorer — will take the key clutch possessions.")
+    fitParts.push(
+      pick(
+        locale,
+        "Differential scorer — will take the key clutch possessions.",
+        "Anotador diferencial — asumirá las posesiones clutch clave.",
+      ),
+    )
   }
 
   const alternativeRecs = pickRecommendations(intent, 2, team.league.name)
 
   const alternative = (r: Recruit) => ({
     ...r,
-    priority: "Alternative option",
+    priority: pick(locale, "Alternative option", "Opción alternativa"),
     priorityColor: "bg-cyan-500/15 text-cyan-300 border-cyan-500/30",
   })
 
+  const positionLabel = profile.position ?? pick(locale, "Position N/A", "Posición N/D")
+
   return {
     intent,
-    intentLabel: `Analysis of ${profile.fullName}`,
+    intentLabel: pick(
+      locale,
+      `Analysis of ${profile.fullName}`,
+      `Análisis de ${profile.fullName}`,
+    ),
     intentEmoji: "🔍",
     team: {
       name: team.name,
@@ -842,10 +937,22 @@ function buildPlayerSpecificAdvice(
       rosterSize: team.roster.length,
       topPlayers: team.roster.slice(0, 4).map((p) => p.fullName),
     },
-    analysis: `**${profile.fullName}** (${profile.position ?? "Position N/A"}${age ? `, ${age} y/o` : ""}) currently at **${currentTeam}** (${leagueLine}). ${statsLine}. ${fitParts.join(" ")}`,
+    analysis: pick(
+      locale,
+      `**${profile.fullName}** (${positionLabel}) currently at **${currentTeam}** (${leagueLine}). ${statsLine}. ${fitParts.join(" ")}`,
+      `**${profile.fullName}** (${positionLabel}) actualmente en **${currentTeam}** (${leagueLine}). ${statsLine}. ${fitParts.join(" ")}`,
+    ),
     gap: sameLeague
-      ? `Direct fit with the ${team.league.name} roster`
-      : `Cross-league fit: requires a salary review and adaptation to the ${team.league.name} system`,
+      ? pick(
+          locale,
+          `Direct fit with the ${team.league.name} roster`,
+          `Encaje directo con la plantilla de ${team.league.name}`,
+        )
+      : pick(
+          locale,
+          `Cross-league fit: requires a salary review and adaptation to the ${team.league.name} system`,
+          `Encaje entre ligas: requiere revisión salarial y adaptación al sistema de ${team.league.name}`,
+        ),
     recommendations: [
       {
         name: profile.fullName,
@@ -855,22 +962,42 @@ function buildPlayerSpecificAdvice(
           | "EuroLeague"
           | "ACB",
         age: age ?? 0,
-        contractValue: estimateContractValue(profile),
+        contractValue: estimateContractValue(profile, locale),
         strengths,
         fit: fitParts.join(" "),
-        market: "Custom evaluation",
-        priority: "Requested candidate",
+        market: pick(locale, "Custom evaluation", "Evaluación personalizada"),
+        priority: pick(locale, "Requested candidate", "Candidato solicitado"),
         priorityColor: "bg-brand-500/20 text-brand-300 border-brand-500/30",
       },
       ...alternativeRecs.map(alternative),
     ],
     considerations: [
-      `Check ${profile.fullName}'s current contract situation with ${currentTeam}`,
+      pick(
+        locale,
+        `Check ${profile.fullName}'s current contract situation with ${currentTeam}`,
+        `Revisa la situación contractual actual de ${profile.fullName} con ${currentTeam}`,
+      ),
       sameLeague
-        ? "Being in the same league, the salary fit and buy-out are more predictable"
-        : "A cross-league move involves buy-out clauses and adaptation periods",
-      "Compare his statistical profile against your current core before negotiating",
-      "Consider the impact on the salary cap and locker-room chemistry",
+        ? pick(
+            locale,
+            "Being in the same league, the salary fit and buy-out are more predictable",
+            "Al estar en la misma liga, el encaje salarial y la cláusula son más predecibles",
+          )
+        : pick(
+            locale,
+            "A cross-league move involves buy-out clauses and adaptation periods",
+            "Un movimiento entre ligas implica cláusulas de salida y periodos de adaptación",
+          ),
+      pick(
+        locale,
+        "Compare his statistical profile against your current core before negotiating",
+        "Compara su perfil estadístico con tu núcleo actual antes de negociar",
+      ),
+      pick(
+        locale,
+        "Consider the impact on the salary cap and locker-room chemistry",
+        "Considera el impacto en el tope salarial y la química del vestuario",
+      ),
     ],
   }
 }

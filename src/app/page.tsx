@@ -13,7 +13,7 @@ import { TrustedBy } from "@/components/marketing/trusted-by"
 import { FeatureShowcase } from "@/components/marketing/feature-showcase"
 import { TrustBar } from "@/components/marketing/trust-bar"
 import { Faq } from "@/components/marketing/faq"
-import { FAQ_DATA } from "@/components/marketing/faq-data"
+import { getFaqData } from "@/components/marketing/faq-data"
 // NOTE: PricingCta commented out until subscriptions are re-enabled.
 // import { PricingCta } from "@/components/marketing/pricing-cta"
 import { Eyebrow } from "@/components/ui/eyebrow"
@@ -21,6 +21,8 @@ import { SectionHeading } from "@/components/ui/section-heading"
 import { ButtonLink } from "@/components/ui/button"
 import { SITE } from "@/lib/site"
 import { getGlobalLeagueCounts } from "@/lib/data/leagues"
+import { getLocale, getT } from "@/lib/i18n/server"
+import { getDictionary } from "@/lib/i18n/dictionaries"
 
 const TICKER_LEFT = [
   { name: "Luka Dončić", team: "DAL · NBA", stat: "32.4 PPG" },
@@ -45,37 +47,42 @@ const TICKER_RIGHT = [
 ]
 
 const STATS = [
-  { v: 0, suffix: "", label: "Leagues live", dynamic: "leagues" as const },
-  { v: 0, suffix: "+", label: "Players indexed", dynamic: "players" as const },
-  { v: 24, suffix: "", label: "Advanced metrics" },
-  { v: 2, suffix: "s", label: "To compare any two", decimals: 0 },
+  { v: 0, suffix: "", labelKey: "home.stats.leaguesLive", dynamic: "leagues" as const },
+  { v: 0, suffix: "+", labelKey: "home.stats.playersIndexed", dynamic: "players" as const },
+  { v: 24, suffix: "", labelKey: "home.stats.advancedMetrics" },
+  { v: 2, suffix: "s", labelKey: "home.stats.toCompare", decimals: 0 },
 ]
 
 export const revalidate = 3600
 
-export const metadata: Metadata = {
-  // Absolute title (skips the "· globalhoopstats" template) so the homepage —
-  // the page that ranks for the brand query — leads with the brand name.
-  title: {
-    absolute: `${SITE.name} — NBA, EuroLeague & ACB basketball stats`,
-  },
-  description: SITE.description,
-  alternates: { canonical: "/" },
-  openGraph: {
-    title: `${SITE.name} — ${SITE.tagline}`,
-    description: SITE.description,
-    url: SITE.url,
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `${SITE.name} — ${SITE.tagline}`,
-    description: SITE.description,
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale()
+  const dict = getDictionary(locale)
+  return {
+    // Absolute title (skips the "· globalhoopstats" template) so the homepage —
+    // the page that ranks for the brand query — leads with the brand name.
+    title: {
+      absolute: dict.home.metaTitle,
+    },
+    description: dict.metadata.description,
+    alternates: { canonical: "/" },
+    openGraph: {
+      title: `${SITE.name} — ${dict.metadata.tagline}`,
+      description: dict.metadata.description,
+      url: SITE.url,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${SITE.name} — ${dict.metadata.tagline}`,
+      description: dict.metadata.description,
+    },
+  }
 }
 
 export default async function Home() {
   const counts = await getGlobalLeagueCounts()
+  const { t, locale } = await getT()
   const stats = STATS.map((s) => {
     if ("dynamic" in s && s.dynamic === "players")
       return { ...s, v: counts.players }
@@ -86,7 +93,7 @@ export default async function Home() {
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: FAQ_DATA.map((q) => ({
+    mainEntity: getFaqData(locale).map((q) => ({
       "@type": "Question",
       name: q.question,
       acceptedAnswer: { "@type": "Answer", text: q.answer },
@@ -146,34 +153,33 @@ export default async function Home() {
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand-400" />
                 </span>
-                v0.4 — six leagues, one engine
+                {t("home.hero.eyebrow")}
               </Eyebrow>
             </FadeIn>
 
             <FadeIn delay={0.08} y={28}>
               <h1 className="mt-6 font-display text-[3.4rem] font-bold leading-[0.86] tracking-[-0.045em] text-ink-50 sm:text-[5rem] md:text-[6rem] xl:text-[6.75rem]">
-                Hoops,
+                {t("home.hero.titleLine1")}
                 <br />
-                <span className="text-gradient-shimmer">decoded.</span>
+                <span className="text-gradient-shimmer">
+                  {t("home.hero.titleLine2")}
+                </span>
               </h1>
             </FadeIn>
 
             <FadeIn delay={0.18} y={20}>
               <p className="mt-6 max-w-xl text-pretty text-base leading-relaxed text-ink-300 sm:text-lg">
-                The scouting console for serious analysts. Box scores, advanced
-                splits, AI analysis and side-by-side comparisons from the NBA,
-                EuroLeague, ACB and Spain&apos;s FEB ladder — every player on one
-                scale, in one language.
+                {t("home.hero.description")}
               </p>
             </FadeIn>
 
             <FadeIn delay={0.28} y={16}>
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <ButtonLink href="/compare" size="lg" arrow>
-                  Open the console
+                  {t("common.openConsole")}
                 </ButtonLink>
                 <ButtonLink href="/players" size="lg" variant="secondary">
-                  Browse the database
+                  {t("home.hero.browseDatabase")}
                 </ButtonLink>
               </div>
             </FadeIn>
@@ -182,7 +188,7 @@ export default async function Home() {
               <dl className="mt-12 grid max-w-lg grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
                 {stats.map((s) => (
                   <div
-                    key={s.label}
+                    key={s.labelKey}
                     className="border-l-2 border-brand-500/40 pl-4"
                   >
                     <dt className="font-display text-2xl font-bold tabular-nums text-ink-50 sm:text-3xl">
@@ -193,7 +199,7 @@ export default async function Home() {
                       />
                     </dt>
                     <dd className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-400 sm:text-[11px]">
-                      {s.label}
+                      {t(s.labelKey)}
                     </dd>
                   </div>
                 ))}
@@ -216,7 +222,7 @@ export default async function Home() {
 
       {/* ── TICKER ─────────────────────────────────────────────── */}
       <section
-        aria-label="Top performers"
+        aria-label={t("home.ticker.topPerformers")}
         className="full-bleed relative hairline-t hairline-b bg-surface-0/40 py-3.5"
       >
         <Marquee duration={55} className="text-sm">
@@ -248,7 +254,7 @@ export default async function Home() {
       </section>
 
       {/* ── PINNED HORIZONTAL SCROLL GALLERY ──────────────────── */}
-      <section aria-label="From box score to verdict" className="relative">
+      <section aria-label={t("home.gallery.aria")} className="relative">
         <ScrollGallery />
       </section>
 
@@ -258,14 +264,16 @@ export default async function Home() {
       <section id="product" className="relative hairline-t py-20 sm:py-28">
         <Reveal>
           <SectionHeading
-            eyebrow="Inside the console"
+            eyebrow={t("home.bento.eyebrow")}
             title={
               <>
-                Everything a scout opens{" "}
-                <span className="text-gradient-brand">before tip-off.</span>
+                {t("home.bento.titleA")}{" "}
+                <span className="text-gradient-brand">
+                  {t("home.bento.titleB")}
+                </span>
               </>
             }
-            description="One workspace for six leagues — compare, measure, ask and export without ever leaving the page."
+            description={t("home.bento.description")}
           />
         </Reveal>
 
@@ -273,9 +281,9 @@ export default async function Home() {
           <StaggerItem className="md:col-span-4 md:row-span-2">
             <BentoCard
               href="/compare"
-              kicker="01 · Compare"
-              title="Two players, one scale."
-              body="Drop Dončić next to Campazzo. Same per-game scale, same possessions, the leader flagged in green. The argument ends in two seconds."
+              kicker={t("home.bento.compareKicker")}
+              title={t("home.bento.compareTitle")}
+              body={t("home.bento.compareBody")}
               big
             >
               <CompareGlyph />
@@ -284,18 +292,18 @@ export default async function Home() {
 
           <StaggerItem className="md:col-span-2">
             <BentoCard
-              kicker="02 · Metrics"
-              title="24 advanced metrics."
-              body="PER, TS%, ORtg, DRtg, NetRtg, usage — computed from box scores, not copy-pasted."
+              kicker={t("home.bento.metricsKicker")}
+              title={t("home.bento.metricsTitle")}
+              body={t("home.bento.metricsBody")}
             />
           </StaggerItem>
 
           <StaggerItem className="md:col-span-2">
             <BentoCard
               href="/ai-advisor"
-              kicker="03 · AI advisor"
-              title="Ask in plain language."
-              body="Type a scouting question, get a sourced read with the numbers behind it."
+              kicker={t("home.bento.aiKicker")}
+              title={t("home.bento.aiTitle")}
+              body={t("home.bento.aiBody")}
               beta
             />
           </StaggerItem>
@@ -303,17 +311,17 @@ export default async function Home() {
           <StaggerItem className="md:col-span-3">
             <BentoCard
               href="/leagues"
-              kicker="04 · Coverage"
-              title="Six leagues, one feed."
-              body="NBA · EuroLeague · ACB · LEB Oro · LEB Plata · EBA — refreshed after every tip-off."
+              kicker={t("home.bento.coverageKicker")}
+              title={t("home.bento.coverageTitle")}
+              body={t("home.bento.coverageBody")}
             />
           </StaggerItem>
 
           <StaggerItem className="md:col-span-3">
             <BentoCard
-              kicker="05 · Export"
-              title="Boardroom-ready in a click."
-              body="Send any comparison or profile to PDF, Excel or Word with the formatting intact."
+              kicker={t("home.bento.exportKicker")}
+              title={t("home.bento.exportTitle")}
+              body={t("home.bento.exportBody")}
             />
           </StaggerItem>
         </Stagger>
@@ -330,9 +338,9 @@ export default async function Home() {
         <Reveal>
           <SectionHeading
             align="center"
-            eyebrow="FAQ"
-            title="The questions scouts ask first."
-            description="Data sources, freshness, and what's coming next. If something's missing, ping us."
+            eyebrow={t("home.faq.eyebrow")}
+            title={t("home.faq.title")}
+            description={t("home.faq.description")}
           />
         </Reveal>
         <div id="faq-heading" className="mt-12">
@@ -359,22 +367,23 @@ export default async function Home() {
               <div aria-hidden className="absolute inset-0 bg-hatch opacity-50" />
               <div className="relative grid items-center gap-8 md:grid-cols-[1.1fr_1fr]">
                 <div>
-                  <Eyebrow>Open to everyone</Eyebrow>
+                  <Eyebrow>{t("home.cta.eyebrow")}</Eyebrow>
                   <h2 className="mt-5 font-display text-3xl font-bold leading-[0.96] tracking-[-0.03em] text-balance sm:text-4xl md:text-[3.25rem]">
-                    The data is live.{" "}
-                    <span className="text-gradient-brand">No invite needed.</span>
+                    {t("home.cta.titleA")}{" "}
+                    <span className="text-gradient-brand">
+                      {t("home.cta.titleB")}
+                    </span>
                   </h2>
                   <p className="mt-4 max-w-md text-pretty text-base text-ink-300 sm:text-lg">
-                    Every player, every stat, every highlight — open to
-                    everyone. Open the console, drop two names, run the math.
+                    {t("home.cta.description")}
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row md:justify-end">
                   <ButtonLink href="/ai-advisor" size="lg" arrow>
-                    Try the AI Advisor
+                    {t("home.cta.tryAi")}
                   </ButtonLink>
                   <ButtonLink href="/players" size="lg" variant="secondary">
-                    Browse players
+                    {t("home.cta.browsePlayers")}
                   </ButtonLink>
                 </div>
               </div>
@@ -387,7 +396,7 @@ export default async function Home() {
 }
 
 /* ── Bento card ───────────────────────────────────────────────── */
-function BentoCard({
+async function BentoCard({
   kicker,
   title,
   body,
@@ -408,6 +417,7 @@ function BentoCard({
   big?: boolean
   children?: React.ReactNode
 }) {
+  const { t } = await getT()
   return (
     <SpotlightCard className="gh-card gh-card-interactive group relative flex h-full flex-col overflow-hidden p-6 sm:p-7">
       <div className="flex items-center justify-between gap-3">
@@ -445,7 +455,7 @@ function BentoCard({
       {children ? <div className="mt-auto pt-6">{children}</div> : null}
       {href ? (
         <span className="mt-auto inline-flex items-center gap-1.5 pt-6 font-mono text-[11px] uppercase tracking-[0.16em] text-brand-300">
-          Explore
+          {t("common.explore")}
           <svg
             className="h-3.5 w-3.5 transition-transform duration-300 ease-fluid group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
             viewBox="0 0 24 24"

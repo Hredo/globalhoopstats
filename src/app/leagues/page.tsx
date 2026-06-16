@@ -4,11 +4,14 @@ import { getGlobalLeagueCounts, listLeagueOverviews } from "@/lib/data/leagues"
 import { GlobalStatsBand } from "@/components/leagues/global-stats-band"
 import { LeagueOverview } from "@/components/leagues/league-overview"
 import { DirectoryHero } from "@/components/ui/directory-hero"
+import { getT } from "@/lib/i18n/server"
 
-export const metadata: Metadata = {
-  title: "Leagues",
-  description:
-    "NBA, EuroLeague and Liga ACB — coverage, season leaders and top scorers for every league in our database.",
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getT()
+  return {
+    title: t("directory.leagues.metaTitle"),
+    description: t("directory.leagues.metaDescription"),
+  }
 }
 
 export const revalidate = 600
@@ -18,17 +21,21 @@ export default async function LeaguesPage() {
     listLeagueOverviews(),
     getGlobalLeagueCounts(),
   ])
+  const { t } = await getT()
 
   return (
     <div className="full-bleed relative pb-8 sm:pb-12">
       <DirectoryHero
-        eyebrow="Coverage"
+        eyebrow={t("directory.leagues.eyebrow")}
         title={
           <>
-            League <span className="text-gradient-brand">hubs.</span>
+            {t("directory.leagues.titleA")}{" "}
+            <span className="text-gradient-brand">
+              {t("directory.leagues.titleB")}
+            </span>
           </>
         }
-        description="Six professional leagues, one scouting engine. Each hub shows the current season, the top three scorers and direct jumps into the player and team directories."
+        description={t("directory.leagues.description")}
       />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6">

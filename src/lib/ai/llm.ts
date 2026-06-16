@@ -3,6 +3,8 @@ import type { PlayerProfile } from "@/lib/data/players"
 import { formatStat, getLeagueBadge } from "@/lib/ai/local-advisor"
 import { chatComplete, type ChatMessage } from "@/lib/ai/chat"
 import type { AiProvider } from "@/lib/ai/providers"
+import type { Locale } from "@/lib/i18n/config"
+import { aiLanguageDirective } from "@/lib/ai/language"
 
 export type AdvisorHistoryMessage = {
   role: "user" | "assistant"
@@ -21,6 +23,7 @@ export type GenerateAdvisorInput = {
   userMessage: string
   history: AdvisorHistoryMessage[]
   playerProfile?: PlayerProfile | null
+  locale: Locale
 }
 
 let lastError: string | null = null
@@ -121,7 +124,7 @@ function buildSystemPrompt(input: GenerateAdvisorInput): string {
     `You are Basket Scout AI, an expert basketball signing advisor with deep knowledge of the NBA, EuroLeague, and Liga ACB (Spain). Your goal is to help the user make informed decisions about additions to their team.`,
     ``,
     `## Behavior rules`,
-    `- Respond ONLY in English, regardless of the language the user writes in.`,
+    `- ${aiLanguageDirective(input.locale)}`,
     `- Keep the tone professional but approachable.`,
     `- Base your answers on the data provided in the context. Do not invent contracts, awards, injuries, or stats that are not explicitly provided. If you don't have a piece of data, say so.`,
     `- Be concise (150-300 words). No filler. Never use phrases like "Here are...", "Each of these players...", "In conclusion...". Get straight to the point.`,

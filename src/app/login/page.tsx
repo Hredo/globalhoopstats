@@ -5,18 +5,24 @@ import { AuthForm } from "@/components/auth/auth-form"
 import { readSessionUser } from "@/lib/auth/server-user"
 import { getGlobalLeagueCounts } from "@/lib/data/leagues"
 import { SITE } from "@/lib/site"
+import { getT } from "@/lib/i18n/server"
 
-export const metadata: Metadata = {
-  title: "Sign in",
-  description: "Sign in to your globalhoopstats account.",
-  robots: { index: false, follow: false },
-  alternates: { canonical: "/login" },
-  openGraph: {
-    title: `Sign in · ${SITE.name}`,
-    description: "Sign in to your globalhoopstats account.",
-    url: `${SITE.url}/login`,
-    type: "website",
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getT()
+  const title = t("auth.loginMetaTitle")
+  const description = t("auth.loginMetaDescription")
+  return {
+    title,
+    description,
+    robots: { index: false, follow: false },
+    alternates: { canonical: "/login" },
+    openGraph: {
+      title: `${title} · ${SITE.name}`,
+      description,
+      url: `${SITE.url}/login`,
+      type: "website",
+    },
+  }
 }
 
 export default async function LoginPage() {

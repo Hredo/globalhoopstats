@@ -3,11 +3,15 @@ import { redirect } from "next/navigation"
 import { Suspense } from "react"
 import { TwoFactorVerifyForm } from "./form"
 import { readSessionUser } from "@/lib/auth/server-user"
+import { getT } from "@/lib/i18n/server"
 
-export const metadata: Metadata = {
-  title: "Verify your identity",
-  description: "Enter the verification code sent to your email.",
-  robots: { index: false, follow: false },
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getT()
+  return {
+    title: t("auth.twoFactorMetaTitle"),
+    description: t("auth.twoFactorMetaDescription"),
+    robots: { index: false, follow: false },
+  }
 }
 
 export default async function TwoFactorVerifyPage() {
