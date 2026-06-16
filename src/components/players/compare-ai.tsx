@@ -8,6 +8,7 @@ import type {
   ComparisonOutput,
   Insight,
 } from "@/lib/ai/player-comparator"
+import { useT } from "@/lib/i18n/provider"
 
 type Props = {
   aSlug: string
@@ -18,27 +19,27 @@ type Props = {
 
 const INSIGHT_META: Record<
   Insight["kind"],
-  { color: string; icon: string; label: string }
+  { color: string; icon: string; labelKey: string }
 > = {
   edge: {
     color: "border-brand-500/40 bg-brand-500/5 text-brand-200",
     icon: "↑",
-    label: "Edge",
+    labelKey: "compareUi.insightEdge",
   },
   strength: {
     color: "border-emerald-500/40 bg-emerald-500/5 text-emerald-200",
     icon: "★",
-    label: "Strength",
+    labelKey: "compareUi.insightStrength",
   },
   weakness: {
     color: "border-amber-500/40 bg-amber-500/5 text-amber-200",
     icon: "!",
-    label: "Watch",
+    labelKey: "compareUi.insightWatch",
   },
   context: {
     color: "border-ink-700 bg-ink-800/40 text-ink-300",
     icon: "i",
-    label: "Context",
+    labelKey: "compareUi.insightContext",
   },
 }
 
@@ -49,6 +50,7 @@ export function CompareAi({ aSlug, bSlug, aName, bName }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const lastKeyRef = useRef<string | null>(null)
+  const t = useT()
 
   const requestKey = `${aSlug}::${bSlug}`
 
@@ -64,7 +66,9 @@ export function CompareAi({ aSlug, bSlug, aName, bName }: Props) {
       })
       const payload = await res.json()
       if (!res.ok) {
-        throw new Error(payload?.error ?? `Error ${res.status}`)
+        throw new Error(
+          payload?.error ?? t("compareUi.errorStatus", { status: res.status }),
+        )
       }
       setData(payload.data as ComparisonOutput)
       setAiSummary(typeof payload.aiSummary === "string" ? payload.aiSummary : null)
@@ -73,11 +77,11 @@ export function CompareAi({ aSlug, bSlug, aName, bName }: Props) {
       )
       lastKeyRef.current = requestKey
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Analysis failed.")
+      setError(e instanceof Error ? e.message : t("compareUi.analysisFailed"))
     } finally {
       setLoading(false)
     }
-  }, [aSlug, bSlug, aName, bName, requestKey])
+  }, [aSlug, bSlug, aName, bName, requestKey, t])
 
   useEffect(() => {
     if (lastKeyRef.current && lastKeyRef.current !== requestKey) {
@@ -111,15 +115,14 @@ export function CompareAi({ aSlug, bSlug, aName, bName }: Props) {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-display text-lg font-bold text-ink-50 sm:text-xl">
-                AI analysis
+                {t("compareUi.aiAnalysis")}
               </h2>
               <span className="shrink-0 rounded-full border border-amber-400/50 bg-amber-400/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-300">
                 Beta
               </span>
             </div>
             <p className="text-xs text-ink-300 sm:text-sm">
-              The scout AI weighs every category, flags edges and drops a
-              verdict in seconds.
+              {t("compareUi.aiDescription")}
             </p>
           </div>
         </div>
@@ -140,12 +143,12 @@ export function CompareAi({ aSlug, bSlug, aName, bName }: Props) {
                 className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-950"
                 style={{ animationDelay: "240ms" }}
               />
-              <span className="ml-1">Analyzing…</span>
+              <span className="ml-1">{t("compareUi.analyzing")}</span>
             </span>
           ) : data ? (
-            "Re-run analysis"
+            t("compareUi.rerun")
           ) : (
-            "Generate analysis"
+            t("compareUi.generate")
           )}
         </button>
       </div>
@@ -213,9 +216,9 @@ export function CompareAi({ aSlug, bSlug, aName, bName }: Props) {
             animate={{ opacity: 1 }}
             className="mt-4 text-sm text-ink-400"
           >
-            Hit <span className="text-brand-300">Generate analysis</span> and the
-            local AI breaks the matchup down by category, flags edges and
-            weaknesses, and lands a reasoned verdict.
+            {t("compareUi.hintPre")}{" "}
+            <span className="text-brand-300">{t("compareUi.generate")}</span>{" "}
+            {t("compareUi.hintPost")}
           </motion.p>
         ) : null}
       </AnimatePresence>
@@ -232,16 +235,17 @@ function ScoreCard({
   aName: string
   bName: string
 }) {
+  const t = useT()
   const { aScore, bScore, leader, confidence } = data.overall
   const total = aScore + bScore || 1
   const aPct = (aScore / total) * 100
   const leaderName =
-    leader === "tie" ? "Tie" : leader === "a" ? aName : bName
+    leader === "tie" ? t("compareUi.tie") : leader === "a" ? aName : bName
   return (
     <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
       <div className="mb-3 flex items-center justify-between text-[11px] font-mono uppercase tracking-widest">
         <span className="text-brand-300">{aName}</span>
-        <span className="text-ink-500">AI score</span>
+        <span className="text-ink-500">{t("compareUi.aiScore")}</span>
         <span className="text-accent-cyan">{bName}</span>
       </div>
       <div className="relative h-3 overflow-hidden rounded-full bg-white/5">
@@ -265,10 +269,14 @@ function ScoreCard({
           <span className="text-ink-500">/ 6</span>
         </span>
         <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-widest text-ink-300">
-          Confidence: {confidence}
+          {t("compareUi.confidenceLabel", {
+            level: t(`compareUi.confidence.${confidence}`),
+          })}
         </span>
         <span className="font-semibold text-ink-100">
-          {leader === "tie" ? "Dead heat" : `Leader: ${leaderName}`}
+          {leader === "tie"
+            ? t("compareUi.deadHeat")
+            : t("compareUi.leader", { name: leaderName })}
         </span>
       </div>
     </div>
@@ -276,10 +284,11 @@ function ScoreCard({
 }
 
 function Verdict({ data }: { data: ComparisonOutput }) {
+  const t = useT()
   return (
     <div className="rounded-xl border-l-2 border-brand-500/60 bg-brand-500/5 px-4 py-3 text-sm leading-relaxed text-ink-100">
       <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-brand-300">
-        Verdict
+        {t("compareUi.verdict")}
       </p>
       {data.verdict}
     </div>
@@ -287,13 +296,14 @@ function Verdict({ data }: { data: ComparisonOutput }) {
 }
 
 function AiTake({ summary }: { summary: string }) {
+  const t = useT()
   return (
     <div className="rounded-xl border border-brand-500/30 bg-gradient-to-br from-brand-500/10 to-transparent px-4 py-3.5">
       <p className="mb-1.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-brand-300">
         <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9.8 15.9L9 18.8l-.8-2.9a4.5 4.5 0 00-3.1-3.1L2.3 12l2.8-.8a4.5 4.5 0 003.1-3.1L9 5.3l.8 2.8a4.5 4.5 0 003.1 3.1l2.8.8-2.8.8a4.5 4.5 0 00-3.1 3.1z" />
         </svg>
-        AI take · your model
+        {t("compareUi.aiTake")}
       </p>
       <p className="text-sm leading-relaxed text-ink-100">{summary}</p>
     </div>
@@ -301,21 +311,21 @@ function AiTake({ summary }: { summary: string }) {
 }
 
 function AiNudge() {
+  const t = useT()
   return (
     <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-4 py-3">
       <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} aria-hidden>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.3 3.9l-8 14A2 2 0 004 21h16a2 2 0 001.7-3l-8-14a2 2 0 00-3.4 0z" />
       </svg>
       <p className="text-[13px] leading-relaxed text-amber-100/90">
-        This breakdown runs without AI. Connect your own model for an AI take —{" "}
+        {t("compareUi.nudgeText")}{" "}
         <Link href="/account/ai-keys" className="font-semibold underline underline-offset-2">
-          add a provider
+          {t("compareUi.addProvider")}
         </Link>{" "}
-        or{" "}
+        ·{" "}
         <Link href="/ai-setup" className="font-semibold underline underline-offset-2">
-          see the guide
+          {t("compareUi.seeGuide")}
         </Link>
-        .
       </p>
     </div>
   )
@@ -330,10 +340,11 @@ function Categories({
   aName: string
   bName: string
 }) {
+  const t = useT()
   return (
     <div>
       <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-ink-400">
-        Category breakdown
+        {t("compareUi.categoryBreakdown")}
       </p>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {cats.map((c) => {
@@ -343,7 +354,7 @@ function Categories({
               : c.winner === "b"
                 ? bName
                 : c.winner === "tie"
-                  ? "Tie"
+                  ? t("compareUi.tie")
                   : "—"
           const winnerColor =
             c.winner === "a"
@@ -398,17 +409,18 @@ function Insights({
   aName: string
   bName: string
 }) {
+  const t = useT()
   if (insights.length === 0) return null
   return (
     <div>
       <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-ink-400">
-        Key takeaways
+        {t("compareUi.keyTakeaways")}
       </p>
       <ul className="space-y-2">
         {insights.map((i, idx) => {
           const meta = INSIGHT_META[i.kind]
           const subject =
-            i.player === "a" ? aName : i.player === "b" ? bName : "Both"
+            i.player === "a" ? aName : i.player === "b" ? bName : t("compareUi.both")
           return (
             <li
               key={idx}
@@ -419,7 +431,7 @@ function Insights({
               </span>
               <div className="min-w-0">
                 <p className="text-[10px] font-mono uppercase tracking-widest opacity-70">
-                  {meta.label} · {subject}
+                  {t(meta.labelKey)} · {subject}
                 </p>
                 <p className="text-sm leading-relaxed">{i.text}</p>
               </div>
@@ -442,10 +454,11 @@ function FitNotes({
   aName: string
   bName: string
 }) {
+  const t = useT()
   return (
     <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
       <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-ink-400">
-        Archetype &amp; fit
+        {t("compareUi.archetypeFit")}
       </p>
       <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
         <div className="rounded-lg border border-brand-500/30 bg-brand-500/5 px-3 py-2">
@@ -478,10 +491,11 @@ function FitNotes({
 }
 
 function Warnings({ warnings }: { warnings: string[] }) {
+  const t = useT()
   return (
     <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-200">
       <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-amber-300">
-        Before you trust it
+        {t("compareUi.beforeTrust")}
       </p>
       <ul className="space-y-1">
         {warnings.map((w, i) => (

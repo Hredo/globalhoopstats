@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { sql } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
-import { SITE } from "@/lib/site"
+import { sendWaitlistEmails } from "@/lib/email"
 import { clientIp } from "@/lib/security/ai-advisor"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
 
@@ -20,9 +20,6 @@ const Body = z.object({
   source: z.string().trim().max(64).optional(),
   hp: z.string().max(0).optional(),
 })
-
-const NOTIFY_TO = SITE.contact
-const NOTIFY_FROM = "waitlist@globalhoopstats.com"
 
 export async function POST(req: Request) {
   const limited = await consumeRateLimit(
@@ -87,50 +84,10 @@ export async function POST(req: Request) {
     )
   }
 
+  // Only email on genuinely new signups (avoid re-welcoming duplicates).
   if (inserted) {
-    void notify(email, source)
+    await sendWaitlistEmails({ email, source }).catch(() => {})
   }
 
   return NextResponse.json({ ok: true, dedup: duplicate })
-}
-
-async function notify(email: string, source: string | undefined) {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    console.info(
-      `[waitlist] (no RESEND_API_KEY) new signup: ${email}${source ? ` (${source})` : ""}`,
-    )
-    return
-  }
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: NOTIFY_FROM,
-        to: [NOTIFY_TO],
-        subject: `New waitlist signup — ${SITE.name}`,
-        text: [
-          `New waitlist entry on ${SITE.url}.`,
-          ``,
-          `Email: ${email}`,
-          source ? `Source: ${source}` : null,
-          `Time: ${new Date().toISOString()}`,
-        ]
-          .filter(Boolean)
-          .join("\n"),
-      }),
-    })
-    if (!res.ok) {
-      const text = await res.text().catch(() => "")
-      console.warn(
-        `[waitlist] resend notification failed: ${res.status} ${text.slice(0, 200)}`,
-      )
-    }
-  } catch (err) {
-    console.warn("[waitlist] resend fetch failed", err)
-  }
 }

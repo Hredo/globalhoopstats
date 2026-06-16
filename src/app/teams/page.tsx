@@ -4,15 +4,18 @@ import { DirectoryControls } from "@/components/ui/directory-controls"
 import { TeamsInfiniteView } from "@/components/teams/teams-infinite-view"
 import { DirectoryHero } from "@/components/ui/directory-hero"
 import { StickyFilterBar } from "@/components/ui/sticky-filter-bar"
+import { getT } from "@/lib/i18n/server"
 
 type SearchParams = Partial<Record<keyof ListTeamsInput | "q" | "page", string>>
 
 export const revalidate = 300
 
-export const metadata: Metadata = {
-  title: "Teams",
-  description:
-    "Browse every team across all covered leagues. Filter by league, sort by name or roster size and open the full roster and staff with a click.",
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getT()
+  return {
+    title: t("directory.teams.metaTitle"),
+    description: t("directory.teams.metaDescription"),
+  }
 }
 
 const SORT_VALUES = new Set(["name", "players"])
@@ -54,19 +57,20 @@ export default async function TeamsPage(props: {
   const sp = await props.searchParams
   const input = parseInput(sp)
   const result = await listTeams(input)
+  const { t, locale } = await getT()
 
   return (
     <div className="full-bleed relative pb-10 sm:pb-14">
       <DirectoryHero
-        eyebrow="Directory · Teams"
-        title="Teams"
-        description="Every club across the NBA, EuroLeague, ACB and Spain's FEB ladder — open any crest for its full roster and staff."
+        eyebrow={t("directory.teams.eyebrow")}
+        title={t("directory.teams.title")}
+        description={t("directory.teams.description")}
         stats={[
           {
-            value: result.total.toLocaleString("en-US"),
-            label: "Teams covered",
+            value: result.total.toLocaleString(locale === "es" ? "es-ES" : "en-US"),
+            label: t("directory.teams.statLabel"),
           },
-          { value: "6", label: "Leagues" },
+          { value: "6", label: t("directory.leaguesLabel") },
         ]}
       />
 

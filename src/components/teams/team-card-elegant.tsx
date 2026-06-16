@@ -5,6 +5,7 @@ import { SmartImage } from "@/components/ui/smart-image"
 import { leagueAccent } from "@/components/ui/league-badge"
 import { useSpotlight } from "@/components/animations/spotlight-card"
 import { getInitials } from "@/lib/format"
+import { useT } from "@/lib/i18n/provider"
 
 type Props = {
   team: {
@@ -19,6 +20,7 @@ type Props = {
 }
 
 export function TeamCardElegant({ team }: Props) {
+  const t = useT()
   const initials = getInitials(team.name, 3)
   const league = leagueAccent(team.league.slug)
   const accent = league.color
@@ -86,12 +88,14 @@ export function TeamCardElegant({ team }: Props) {
         <div className="mt-auto flex items-end justify-between">
           <div>
             <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
-              Roster
+              {t("directory.rosterLabel")}
             </p>
             <p className="font-display text-lg font-bold tabular-nums text-ink-50">
               {team.playerCount}{" "}
               <span className="text-sm font-medium text-ink-400">
-                {team.playerCount === 1 ? "player" : "players"}
+                {team.playerCount === 1
+                  ? t("directory.playerOne")
+                  : t("directory.playerOther")}
               </span>
             </p>
           </div>

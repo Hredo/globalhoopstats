@@ -39,9 +39,12 @@ const serverSchema = z.object({
   CRON_SECRET: z.preprocess(emptyToUndefined, z.string().min(16).optional()),
   RESEND_API_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   GMAIL_APP_PASSWORD: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  // Sender for all transactional email. With Resend this MUST be an address on
+  // a domain verified in Resend (globalhoopstats.es). Gmail SMTP ignores this
+  // and sends as the authenticated mailbox instead.
   AUTH_EMAIL_FROM: z
     .preprocess(emptyToUndefined, z.string().email())
-    .default("globalhoopstats@gmail.com"),
+    .default("no-reply@globalhoopstats.es"),
   SMTP_HOST: z.preprocess(emptyToUndefined, z.string().default("smtp.gmail.com")),
   SMTP_PORT: z.preprocess(emptyToUndefined, z.coerce.number().int().default(587)),
 })

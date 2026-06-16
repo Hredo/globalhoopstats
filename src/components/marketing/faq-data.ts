@@ -1,9 +1,11 @@
+import type { Locale } from "@/lib/i18n/config"
+
 export type FaqItem = {
   question: string
   answer: string
 }
 
-export const FAQ_DATA: FaqItem[] = [
+const FAQ_DATA_EN: FaqItem[] = [
   {
     question: "Where does the data come from?",
     answer:
@@ -49,3 +51,57 @@ export const FAQ_DATA: FaqItem[] = [
       "It means they're available to everyone right now, and we're still refining them based on usage. During Beta there are no limits or paywalls.",
   },
 ]
+
+const FAQ_DATA_ES: FaqItem[] = [
+  {
+    question: "¿De dónde vienen los datos?",
+    answer:
+      "Ingerimos box scores públicos y feeds de equipos de la NBA, EuroLeague y Liga ACB. Cada liga tiene su propia tubería que se ejecuta tras el salto inicial y se normaliza a la misma escala por partido.",
+  },
+  {
+    question: "¿Los datos son en vivo o con retraso?",
+    answer:
+      "Las estadísticas suelen estar disponibles a los pocos minutos de la bocina final en los partidos de NBA y EuroLeague. Los datos de la ACB llegan unas horas después del final. Las marcas de tiempo se ven en el perfil del jugador y en el panel de la temporada.",
+  },
+  {
+    question: "¿Necesito una cuenta para navegar?",
+    answer:
+      "No. Todo el directorio — jugadores, equipos, entrenadores, comparaciones y hubs de ligas — está abierto para todos.",
+  },
+  {
+    question: "¿Qué ligas están disponibles?",
+    answer: "Hoy: la NBA, la EuroLeague y la Liga ACB.",
+  },
+  {
+    question: "¿Puedo comparar a un jugador de la NBA con uno de la EuroLeague?",
+    answer:
+      "Sí. Normalizamos el ritmo y las posesiones entre ligas para que la comparación sea justa. Abre la página de Comparar, pon dos nombres, y el radar, los splits de tiro y las líneas por partido serán equiparables.",
+  },
+  {
+    question: "¿Qué son las métricas avanzadas y cuáles mostráis?",
+    answer:
+      "Calculamos PER, Rating Ofensivo / Defensivo, Net Rating, true shooting y ritmo a nivel de equipo y jugador cuando el box score subyacente tiene los datos (p. ej., la ACB no tiene tiros de campo intentados, así que el rating ofensivo no se calcula para jugadores de la ACB).",
+  },
+  {
+    question: "¿Cuánto cuesta?",
+    answer:
+      "Todo es gratis durante la beta pública — la base de datos, las comparaciones, las exportaciones y las funciones de IA están abiertas para todos.",
+  },
+  {
+    question: "¿Puedo exportar o compartir una comparación?",
+    answer:
+      "Sí. El asesor de IA y la página de comparar permiten exportar a PDF, Excel y Word.",
+  },
+  {
+    question: "Las funciones de IA dicen Beta — ¿qué significa?",
+    answer:
+      "Significa que están disponibles para todos ahora mismo, y las seguimos mejorando según el uso. Durante la Beta no hay límites ni muros de pago.",
+  },
+]
+
+export function getFaqData(locale: Locale): FaqItem[] {
+  return locale === "es" ? FAQ_DATA_ES : FAQ_DATA_EN
+}
+
+/** Default English data kept for back-compat (e.g. structured-data fallbacks). */
+export const FAQ_DATA = FAQ_DATA_EN

@@ -1,10 +1,11 @@
 "use client"
 
 import { CountUp } from "@/components/marketing/count-up"
+import { useT } from "@/lib/i18n/provider"
 
 type Stat = {
   value: number
-  label: string
+  labelKey: string
   accent: "brand" | "cyan" | "magenta" | "lime"
 }
 
@@ -25,17 +26,34 @@ const ACCENT_TEXT: Record<Stat["accent"], string> = {
 }
 
 export function GlobalStatsBand({ counts }: Props) {
+  const t = useT()
   const stats: Stat[] = [
-    { value: counts.leagues, label: "leagues live", accent: "brand" },
-    { value: counts.players, label: "players indexed", accent: "cyan" },
-    { value: counts.teams, label: "teams tracked", accent: "magenta" },
-    { value: counts.coaches, label: "coaches on file", accent: "lime" },
+    {
+      value: counts.leagues,
+      labelKey: "directory.leagues.statLeaguesLive",
+      accent: "brand",
+    },
+    {
+      value: counts.players,
+      labelKey: "directory.leagues.statPlayersIndexed",
+      accent: "cyan",
+    },
+    {
+      value: counts.teams,
+      labelKey: "directory.leagues.statTeamsTracked",
+      accent: "magenta",
+    },
+    {
+      value: counts.coaches,
+      labelKey: "directory.leagues.statCoaches",
+      accent: "lime",
+    },
   ]
   return (
     <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
       {stats.map((s) => (
         <div
-          key={s.label}
+          key={s.labelKey}
           className="relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 sm:px-5 sm:py-4"
         >
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
@@ -45,7 +63,7 @@ export function GlobalStatsBand({ counts }: Props) {
             <CountUp to={s.value} duration={1100} />
           </p>
           <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-300 sm:text-[11px]">
-            {s.label}
+            {t(s.labelKey)}
           </p>
         </div>
       ))}

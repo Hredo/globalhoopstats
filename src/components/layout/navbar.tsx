@@ -10,19 +10,21 @@ import { MobileNav } from "@/components/layout/mobile-nav"
 import { SITE } from "@/lib/site"
 import { cn } from "@/components/ui/cn"
 import { LEAGUE_FILTER_TREE } from "@/lib/league-groups"
+import { useT } from "@/lib/i18n/provider"
+import { LanguageSwitcher } from "@/components/layout/language-switcher"
 
 const LINKS: {
   href: string
-  label: string
+  labelKey: string
   leagues?: boolean
   pro?: boolean
 }[] = [
-  { href: "/players", label: "Players", leagues: true },
-  { href: "/teams", label: "Teams", leagues: true },
-  { href: "/coaches", label: "Coaches" },
-  { href: "/compare", label: "Compare" },
-  { href: "/leagues", label: "Leagues" },
-  { href: "/ai-advisor", label: "AI Advisor", pro: true },
+  { href: "/players", labelKey: "nav.players", leagues: true },
+  { href: "/teams", labelKey: "nav.teams", leagues: true },
+  { href: "/coaches", labelKey: "nav.coaches" },
+  { href: "/compare", labelKey: "nav.compare" },
+  { href: "/leagues", labelKey: "nav.leagues" },
+  { href: "/ai-advisor", labelKey: "nav.aiAdvisor", pro: true },
 ]
 
 function isActive(pathname: string, href: string) {
@@ -31,6 +33,7 @@ function isActive(pathname: string, href: string) {
 
 export function Navbar() {
   const pathname = usePathname()
+  const t = useT()
   const [scrolled, setScrolled] = useState(false)
   const progressRef = useRef<HTMLDivElement | null>(null)
 
@@ -88,7 +91,7 @@ export function Navbar() {
           <Link
             href="/"
             className="group flex shrink-0 items-center gap-2.5 text-ink-50"
-            aria-label={`${SITE.name} — Home`}
+            aria-label={`${SITE.name} — ${t("common.home")}`}
           >
             <Logo className="h-7 w-7 transition-transform duration-700 ease-spring group-hover:rotate-[18deg] sm:h-8 sm:w-8" />
             <span className="font-display text-[15px] font-bold tracking-[-0.02em] sm:text-base">
@@ -96,13 +99,16 @@ export function Navbar() {
             </span>
           </Link>
 
-          <nav className="hidden items-center md:flex" aria-label="Primary">
+          <nav
+            className="hidden items-center md:flex"
+            aria-label={t("nav.primary")}
+          >
             <ul className="flex items-center gap-0.5 text-sm font-medium text-ink-300">
               {LINKS.map((l) => (
                 <NavItem
                   key={l.href}
                   href={l.href}
-                  label={l.label}
+                  label={t(l.labelKey)}
                   pro={l.pro}
                   active={isActive(pathname, l.href)}
                   withLeagues={l.leagues}
@@ -114,6 +120,9 @@ export function Navbar() {
           <div className="flex items-center gap-2 sm:gap-2.5">
             <SearchTrigger />
             <UserMenu />
+            <div className="hidden sm:block">
+              <LanguageSwitcher />
+            </div>
             <MobileNav />
           </div>
         </div>
@@ -135,6 +144,7 @@ function NavItem({
   pro?: boolean
   withLeagues?: boolean
 }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   // Hover-opening is desktop-only: on touch screens the first tap must
   // navigate, never just reveal the dropdown (that forced double taps).
@@ -206,14 +216,14 @@ function NavItem({
           {label}
           {pro && (
             <span className="rounded-full border border-brand-500/40 bg-brand-500/10 px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-brand-300">
-              Pro
+              {t("common.pro")}
             </span>
           )}
         </Link>
         {withLeagues && (
           <button
             type="button"
-            aria-label={`Browse ${label.toLowerCase()} by league`}
+            aria-label={t("nav.browseByLeague", { label: label.toLowerCase() })}
             aria-haspopup="menu"
             aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
@@ -254,7 +264,7 @@ function NavItem({
           )}
         >
           <p className="px-2.5 pb-1.5 pt-1 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-500">
-            By league
+            {t("common.byLeague")}
           </p>
           <Link
             href={href}
@@ -263,7 +273,7 @@ function NavItem({
             onClick={() => setOpen(false)}
             className="block rounded-xl px-2.5 py-2 text-[13px] font-medium text-ink-200 transition-colors duration-200 hover:bg-white/[0.05] hover:text-ink-50"
           >
-            All leagues
+            {t("common.allLeagues")}
           </Link>
           {LEAGUE_FILTER_TREE.map((node) => (
             <div key={node.slug}>

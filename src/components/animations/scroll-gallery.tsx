@@ -1,11 +1,12 @@
 "use client"
 
 import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useT } from "@/lib/i18n/provider"
 
 type Panel = {
   index: string
-  title: ReactNode
-  body: string
+  titleKey: string
+  bodyKey: string
   visual: ReactNode
   accent?: string
 }
@@ -13,42 +14,43 @@ type Panel = {
 const PANELS: Panel[] = [
   {
     index: "01",
-    title: "Six leagues, one feed.",
-    body: "NBA, EuroLeague, ACB and Spain's full FEB ladder land in the same pipeline, refreshed the moment each buzzer sounds.",
+    titleKey: "home.gallery.p1Title",
+    bodyKey: "home.gallery.p1Body",
     accent: "var(--color-brand-500)",
     visual: <LeaguesVisual />,
   },
   {
     index: "02",
-    title: "Every number, normalized.",
-    body: "Spanish minutes, American possessions, EuroLeague pace — reduced to one model so a 20 here means a 20 there.",
+    titleKey: "home.gallery.p2Title",
+    bodyKey: "home.gallery.p2Body",
     accent: "var(--color-league-euro-500)",
     visual: <NormalizeVisual />,
   },
   {
     index: "03",
-    title: "Compare in two seconds.",
-    body: "Drop two names and the bars, radar and shooting splits draw themselves — the leader flagged on every line.",
+    titleKey: "home.gallery.p3Title",
+    bodyKey: "home.gallery.p3Body",
     accent: "var(--color-accent-cyan)",
     visual: <CompareVisual />,
   },
   {
     index: "04",
-    title: "Ask in plain language.",
-    body: "The AI advisor reads the same numbers you do and hands back a sourced verdict, not a vibe.",
+    titleKey: "home.gallery.p4Title",
+    bodyKey: "home.gallery.p4Body",
     accent: "var(--color-accent-violet)",
     visual: <AskVisual />,
   },
   {
     index: "05",
-    title: "Export, boardroom-ready.",
-    body: "Send any profile or matchup to PDF, Excel or Word with the formatting already done.",
+    titleKey: "home.gallery.p5Title",
+    bodyKey: "home.gallery.p5Body",
     accent: "var(--color-ember-500)",
     visual: <ExportVisual />,
   },
 ]
 
 export function ScrollGallery() {
+  const t = useT()
   const [enabled, setEnabled] = useState(false)
   const sectionRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
@@ -120,9 +122,10 @@ export function ScrollGallery() {
 
   const heading = (
     <div>
-      <span className="gh-eyebrow">The pipeline</span>
+      <span className="gh-eyebrow">{t("home.gallery.eyebrow")}</span>
       <h2 className="mt-3 font-display text-4xl font-bold leading-[0.9] tracking-[-0.04em] text-ink-50 sm:text-5xl md:text-6xl">
-        From box score to <span className="text-gradient-brand">verdict.</span>
+        {t("home.gallery.titleA")}{" "}
+        <span className="text-gradient-brand">{t("home.gallery.titleB")}</span>
       </h2>
     </div>
   )
@@ -179,6 +182,7 @@ export function ScrollGallery() {
 }
 
 function PanelCard({ panel }: { panel: Panel }) {
+  const t = useT()
   return (
     <article
       className="gh-card group relative flex h-full min-h-[300px] flex-col overflow-hidden p-6 sm:p-7"
@@ -201,10 +205,10 @@ function PanelCard({ panel }: { panel: Panel }) {
         {panel.index}
       </span>
       <h3 className="mt-6 font-display text-2xl font-bold tracking-[-0.02em] text-ink-50 sm:text-[1.7rem]">
-        {panel.title}
+        {t(panel.titleKey)}
       </h3>
       <p className="mt-2 text-pretty text-sm leading-relaxed text-ink-300">
-        {panel.body}
+        {t(panel.bodyKey)}
       </p>
       <div className="mt-auto pt-6">{panel.visual}</div>
     </article>
@@ -229,18 +233,19 @@ function LeaguesVisual() {
 }
 
 function NormalizeVisual() {
+  const t = useT()
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
       <div className="rounded-xl border border-hairline bg-white/[0.02] p-3 font-mono text-[11px] text-ink-400">
         <p>34 MIN</p>
         <p>72 POSS</p>
-        <p className="text-ink-500">raw</p>
+        <p className="text-ink-500">{t("home.gallery.raw")}</p>
       </div>
       <span className="font-display text-lg text-brand-400">→</span>
       <div className="rounded-xl border border-brand-500/30 bg-brand-500/[0.06] p-3 font-mono text-[11px] text-brand-200">
         <p>per-40</p>
         <p>per-100</p>
-        <p className="text-brand-300/70">one scale</p>
+        <p className="text-brand-300/70">{t("home.gallery.oneScale")}</p>
       </div>
     </div>
   )
@@ -270,13 +275,14 @@ function CompareVisual() {
 }
 
 function AskVisual() {
+  const t = useT()
   return (
     <div className="space-y-2">
       <div className="ml-auto w-fit max-w-[80%] rounded-2xl rounded-br-sm border border-hairline bg-white/[0.04] px-3 py-2 text-[11px] text-ink-200">
-        Who&apos;s the better playmaker?
+        {t("home.gallery.askQuestion")}
       </div>
       <div className="w-fit max-w-[85%] rounded-2xl rounded-bl-sm border border-accent-violet/30 bg-accent-violet/[0.08] px-3 py-2 text-[11px] text-ink-200">
-        Higher AST% and lower TOV — the read is clear.
+        {t("home.gallery.askAnswer")}
       </div>
     </div>
   )

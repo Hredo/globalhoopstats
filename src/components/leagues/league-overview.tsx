@@ -3,6 +3,7 @@ import Link from "next/link"
 import { getLeagueTheme } from "@/lib/league-styles"
 import type { LeagueOverview as LeagueOverviewData } from "@/lib/data/leagues"
 import { CountUp } from "@/components/marketing/count-up"
+import { getT } from "@/lib/i18n/server"
 
 type Props = {
   data: LeagueOverviewData
@@ -15,9 +16,10 @@ function initials(name: string): string {
   return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase()
 }
 
-export function LeagueOverview({ data, index }: Props) {
+export async function LeagueOverview({ data, index }: Props) {
   const theme = getLeagueTheme(data.slug)
   const accentBarStyle = { background: theme.glowVar }
+  const { t, locale } = await getT()
 
   return (
     <article
@@ -58,10 +60,17 @@ export function LeagueOverview({ data, index }: Props) {
             {data.seasonLabel ? (
               <>
                 <span className="mx-1.5 text-ink-500">·</span>
-                <span className={theme.accentText}>
-                  {data.seasonLabel}
-                </span>{" "}
-                season
+                {locale === "es" ? (
+                  <>
+                    {t("directory.leagues.seasonWord")}{" "}
+                    <span className={theme.accentText}>{data.seasonLabel}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className={theme.accentText}>{data.seasonLabel}</span>{" "}
+                    {t("directory.leagues.seasonWord")}
+                  </>
+                )}
               </>
             ) : null}
           </p>
@@ -73,25 +82,25 @@ export function LeagueOverview({ data, index }: Props) {
           className={`hidden shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest sm:inline-flex ${theme.chip}`}
         >
           <span className="h-1.5 w-1.5 rounded-full bg-current" />
-          Live
+          {t("directory.leagues.live")}
         </span>
       </header>
 
       <dl className="relative mt-5 grid grid-cols-3 gap-3 sm:gap-4">
         {[
-          { value: data.teamCount, label: "Teams" },
-          { value: data.playerCount, label: "Players" },
-          { value: data.coachCount, label: "Coaches" },
+          { value: data.teamCount, labelKey: "directory.leagues.teams" },
+          { value: data.playerCount, labelKey: "directory.leagues.players" },
+          { value: data.coachCount, labelKey: "directory.leagues.coaches" },
         ].map((s) => (
           <div
-            key={s.label}
+            key={s.labelKey}
             className="rounded-lg border border-white/5 bg-white/[0.02] px-2.5 py-2 sm:px-3 sm:py-2.5"
           >
             <dt className="font-display text-xl font-bold tabular-nums text-ink-50 sm:text-2xl">
               <CountUp to={s.value} duration={900 + index * 120} />
             </dt>
             <dd className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-ink-400 sm:text-[10px]">
-              {s.label}
+              {t(s.labelKey)}
             </dd>
           </div>
         ))}
@@ -105,10 +114,10 @@ export function LeagueOverview({ data, index }: Props) {
       <section className="relative">
         <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-300 sm:text-[11px]">
           <span className={`h-1.5 w-1.5 rounded-full ${theme.accentBg}`} />
-          Top 3 scorers
+          {t("directory.leagues.top3")}
           {data.seasonLabel ? (
             <span className="ml-auto font-mono text-[9px] font-medium normal-case tracking-wider text-ink-500 sm:text-[10px]">
-              {data.seasonLabel} · PPG
+              {t("directory.leagues.ppgSuffix", { label: data.seasonLabel })}
             </span>
           ) : null}
         </p>
@@ -151,7 +160,7 @@ export function LeagueOverview({ data, index }: Props) {
                       </p>
                     ) : (
                       <p className="font-mono text-[10px] uppercase tracking-wider text-ink-500">
-                        Free agent
+                        {t("directory.leagues.freeAgent")}
                       </p>
                     )}
                   </div>
@@ -166,7 +175,7 @@ export function LeagueOverview({ data, index }: Props) {
           </ol>
         ) : (
           <p className="mt-3 rounded-lg border border-dashed border-white/10 bg-white/[0.02] px-3 py-4 text-center text-xs text-ink-400">
-            No scorer data yet for this league.
+            {t("directory.leagues.noScorers")}
           </p>
         )}
       </section>
@@ -178,7 +187,7 @@ export function LeagueOverview({ data, index }: Props) {
           href={`/players?league=${data.slug}`}
           className={`group/btn inline-flex items-center justify-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-ink-50 transition hover:border-white/30 hover:bg-white/[0.08] sm:text-sm`}
         >
-          Browse players
+          {t("directory.leagues.browsePlayers")}
           <svg
             className="h-3.5 w-3.5 transition group-hover/btn:translate-x-0.5"
             viewBox="0 0 24 24"
@@ -199,7 +208,7 @@ export function LeagueOverview({ data, index }: Props) {
             background: `color-mix(in oklab, var(--shadow-league-${theme.key}) 12%, transparent)`,
           }}
         >
-          Browse teams
+          {t("directory.leagues.browseTeams")}
           <svg
             className="h-3.5 w-3.5 transition group-hover/btn:translate-x-0.5"
             viewBox="0 0 24 24"
