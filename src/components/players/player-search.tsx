@@ -38,7 +38,7 @@ type Result = {
   birthdate: string | null
   heightCm: number | null
   weightKg: number | null
-  photoUrl: string | null
+  imageUrl: string | null
   team: {
     id: string
     name: string
@@ -565,7 +565,7 @@ function ResultCard({
           }`}
         >
           <SmartImage
-            src={player.photoUrl}
+            src={player.imageUrl}
             alt={player.fullName}
             fit="cover"
             className="transition duration-300 group-hover:scale-105"

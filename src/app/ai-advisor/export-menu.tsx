@@ -174,8 +174,21 @@ export function ExportMenu({ team, messages, disabled = false }: Props) {
       icon: <WordIcon />,
       accent: "text-sky-300 bg-sky-500/10 ring-sky-400/30",
       run: async ({ team, messages }) => {
-        const { exportToWord } = await import("@/lib/ai/export")
-        return exportToWord({ team, messages })
+        const resp = await fetch("/api/ai-advisor/export-word", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ team, messages }),
+        })
+        if (!resp.ok) throw new Error("Word export failed")
+        const blob = await resp.blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `signing-advisor-${team.slug}.docx`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
       },
     },
   ]

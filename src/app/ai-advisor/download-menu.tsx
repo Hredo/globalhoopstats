@@ -211,8 +211,21 @@ export function DownloadMenu({ team, messages, disabled = false }: Props) {
       label: "Word (.docx)",
       hint: "Editable document with every section",
       run: async ({ team, messages }) => {
-        const { exportToWord } = await import("@/lib/ai/export")
-        return exportToWord({ team, messages })
+        const resp = await fetch("/api/ai-advisor/export-word", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ team, messages }),
+        })
+        if (!resp.ok) throw new Error("Word export failed")
+        const blob = await resp.blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `signing-advisor-${team.slug}.docx`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
       },
     },
   ]
@@ -258,7 +271,7 @@ export function DownloadMenu({ team, messages, disabled = false }: Props) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.97 }}
             transition={{ duration: 0.14, ease: "easeOut" }}
-            className="absolute bottom-full right-0 z-30 mb-2 w-72 origin-bottom-right overflow-hidden rounded-xl border border-white/10 bg-ink-900/95 p-1.5 shadow-2xl shadow-black/50 backdrop-blur-xl"
+            className="absolute bottom-full right-0 z-30 mb-2 w-[min(18rem,calc(100vw-5.5rem))] origin-bottom-right overflow-hidden rounded-xl border border-white/10 bg-ink-900/95 p-1.5 shadow-2xl shadow-black/50 backdrop-blur-xl"
           >
             <div className="px-2.5 pb-1.5 pt-1.5">
               <p className="text-[10px] font-bold uppercase tracking-widest text-ink-400">

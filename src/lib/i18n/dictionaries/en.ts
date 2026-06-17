@@ -11,7 +11,7 @@ export const en = {
     byLeague: "By league",
     allLeagues: "All leagues",
     explore: "Explore",
-    pro: "Pro",
+    pro: "Beta",
     skipToContent: "Skip to content",
     loading: "Loading…",
   },
