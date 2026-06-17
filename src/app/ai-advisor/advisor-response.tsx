@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import type { AdvisorOutput, Recruit } from "@/lib/ai/local-advisor"
+import { renderInline } from "./inline-markdown"
 
 const LEAGUE_COLORS: Record<string, string> = {
   NBA: "from-orange-500 to-red-500",
@@ -79,12 +80,14 @@ export function AdvisorResponse({ data }: { data: AdvisorOutput }) {
             Team diagnosis
           </h3>
         </div>
-        <p className="text-sm leading-relaxed text-ink-300">{data.analysis}</p>
+        <p className="text-sm leading-relaxed text-ink-300">
+          {renderInline(data.analysis)}
+        </p>
         <div className="mt-3 rounded-lg border-l-2 border-brand-500/60 bg-brand-500/5 px-3 py-2 text-xs text-ink-200">
           <span className="font-semibold text-brand-300">
             Detected gap:{" "}
           </span>
-          {data.gap}
+          {renderInline(data.gap)}
         </div>
         {data.team.topPlayers.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px]">
@@ -227,7 +230,7 @@ function RecruitCard({
       <div className="mt-3 pl-2">
         <p className="text-sm leading-relaxed text-ink-200">
           <span className="text-brand-300 font-semibold">Fit: </span>
-          {rec.fit}
+          {renderInline(rec.fit)}
         </p>
       </div>
 

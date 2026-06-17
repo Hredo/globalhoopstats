@@ -115,10 +115,10 @@ export function UserMenu() {
         </Link>
         <Link
           href="/register"
-          className="gh-sheen group/cta inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-brand-400 to-ember-500 pl-4 pr-3 text-sm font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition-all duration-300 ease-swift hover:shadow-[var(--shadow-brand-glow-lg)] active:scale-[0.98]"
+          className="gh-sheen group/cta inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-brand-400 to-ember-500 px-3.5 text-sm font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition-all duration-300 ease-swift hover:shadow-[var(--shadow-brand-glow-lg)] active:scale-[0.98] max-[359px]:hidden sm:pl-4 sm:pr-3"
         >
           {t("userMenu.getStarted")}
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ink-950/15 transition-transform duration-300 ease-swift group-hover/cta:translate-x-0.5">
+          <span className="hidden h-5 w-5 items-center justify-center rounded-full bg-ink-950/15 transition-transform duration-300 ease-swift group-hover/cta:translate-x-0.5 sm:flex">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -190,7 +190,7 @@ export function UserMenu() {
       {open ? (
         <div
           ref={menuRef}
-          className="absolute right-0 z-50 mt-2 w-64 origin-top-right animate-menu-in overflow-hidden rounded-xl border border-white/10 bg-ink-900/95 shadow-2xl backdrop-blur-md"
+          className="absolute right-0 z-50 mt-2 w-[min(16rem,calc(100vw-1rem))] origin-top-right animate-menu-in overflow-hidden rounded-xl border border-white/10 bg-ink-900/95 shadow-2xl backdrop-blur-md sm:w-64"
           role="menu"
         >
           <div className="bg-gradient-to-b from-brand-500/[0.06] to-transparent px-4 pb-3 pt-4">

@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import { MessageActions } from "./message-actions"
 import type { Reaction } from "./message-actions"
+import { renderInline } from "./inline-markdown"
 
 type Props = {
   type: "user" | "ai"
@@ -13,32 +14,6 @@ type Props = {
   onDislike: () => void
   onRedo: () => void
   canRedo: boolean
-}
-
-const INLINE_PATTERN = /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`)/g
-
-function renderInline(text: string): React.ReactNode[] {
-  const parts = text.split(INLINE_PATTERN)
-  return parts.map((part, i) => {
-    if (!part) return null
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={i}>{part.slice(2, -2)}</strong>
-    }
-    if (part.startsWith("*") && part.endsWith("*") && part.length > 1) {
-      return <em key={i}>{part.slice(1, -1)}</em>
-    }
-    if (part.startsWith("`") && part.endsWith("`")) {
-      return (
-        <code
-          key={i}
-          className="rounded bg-ink-900/80 px-1 py-0.5 font-mono text-[0.85em] text-brand-200"
-        >
-          {part.slice(1, -1)}
-        </code>
-      )
-    }
-    return <span key={i}>{part}</span>
-  })
 }
 
 type Block =
@@ -325,14 +300,14 @@ function StatsTable({
   rows: string[][]
 }) {
   return (
-    <div className="my-2 overflow-hidden rounded-lg border border-ink-700/60">
+    <div className="my-2 overflow-x-auto rounded-lg border border-ink-700/60">
       <table className="w-full text-xs">
         <thead>
           <tr className="bg-ink-900/60">
             {headers.map((h, i) => (
               <th
                 key={i}
-                className="border-b border-ink-700/60 px-2.5 py-1.5 text-left font-semibold text-ink-200"
+                className="whitespace-nowrap border-b border-ink-700/60 px-2.5 py-1.5 text-left font-semibold text-ink-200 sm:whitespace-normal"
               >
                 {h}
               </th>
@@ -348,7 +323,7 @@ function StatsTable({
               {row.map((cell, ci) => (
                 <td
                   key={ci}
-                  className="px-2.5 py-1.5 text-ink-100 tabular-nums"
+                  className="whitespace-nowrap px-2.5 py-1.5 text-ink-100 tabular-nums sm:whitespace-normal"
                 >
                   {cell}
                 </td>
@@ -369,8 +344,8 @@ function GenericTable({
   rows: string[][]
 }) {
   return (
-    <div className="my-2 overflow-hidden rounded-lg border border-ink-700/60">
-      <table className="w-full text-xs">
+    <div className="my-2 overflow-x-auto rounded-lg border border-ink-700/60">
+      <table className="w-full min-w-[30rem] text-xs sm:min-w-0">
         <thead>
           <tr className="bg-ink-900/60">
             {headers.map((h, i) => (

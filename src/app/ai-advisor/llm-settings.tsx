@@ -223,7 +223,7 @@ export function LlmSettings({ mode, onModeChange }: Props) {
 
   return (
     <div className="w-full border-b border-white/10 bg-ink-950/30 px-4 py-2 sm:px-5">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
         <span className="hidden font-mono text-[10px] uppercase tracking-widest text-ink-500 sm:inline">
           2 · AI engine
         </span>

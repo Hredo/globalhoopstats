@@ -162,9 +162,9 @@ export function TeamSelector({
           1 · Select a team
         </label>
         {selected ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+          <span className="inline-flex min-w-0 max-w-[60%] items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 sm:max-w-none">
             <svg
-              className="h-3 w-3"
+              className="h-3 w-3 shrink-0"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -173,7 +173,7 @@ export function TeamSelector({
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
-            {selected.name}
+            <span className="truncate">{selected.name}</span>
           </span>
         ) : (
           <span className="text-[10px] uppercase tracking-widest text-ink-500">
@@ -219,7 +219,7 @@ export function TeamSelector({
           disabled={loading}
           autoComplete="off"
           spellCheck={false}
-          className="w-full cursor-text rounded-xl border border-white/10 bg-white/[0.04] py-2.5 pl-10 pr-16 text-sm text-ink-50 outline-none transition placeholder:text-ink-400 hover:border-white/20 focus:border-brand-400/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-brand-500/25 disabled:cursor-wait disabled:opacity-40"
+          className="w-full cursor-text rounded-xl border border-white/10 bg-white/[0.04] py-2.5 pl-10 pr-16 text-base text-ink-50 outline-none transition placeholder:text-ink-400 hover:border-white/20 focus:border-brand-400/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-brand-500/25 disabled:cursor-wait disabled:opacity-40 sm:text-sm"
         />
         <div className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1">
           {query ? (

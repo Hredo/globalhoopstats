@@ -13,59 +13,135 @@ function formatTeam(team: TeamContext): string {
 }
 
 function formatAiMessage(content: string): string {
-  const trimmed = content.trim()
-  return trimmed
+  return content.trim()
 }
 
 function formatUserMessage(content: string): string {
-  const trimmed = content.trim()
-  return trimmed
+  return content.trim()
 }
 
 function buildMarkdown(team: TeamContext, messages: ChatMessage[]): string {
   const lines: string[] = []
-  lines.push(`# Signing Advisor`)
+
+  // ============== HEADER ==============
+  lines.push(`# 🏀 Signing Advisor`)
   lines.push(``)
-  lines.push(`**Team:** ${formatTeam(team)}`)
-  lines.push(`**Generated:** ${new Date().toLocaleString("en-US")}`)
-  lines.push(`**Messages:** ${messages.length}`)
+  lines.push(`*Reporte generado por Global Hoop Stats*`)
   lines.push(``)
   lines.push(`---`)
   lines.push(``)
-  lines.push(`## Conversation`)
+
+  // ============== TEAM INFO ==============
+  lines.push(`## 📋 Información del equipo`)
+  lines.push(``)
+  lines.push(`| Campo | Valor |`)
+  lines.push(`|-------|-------|`)
+  lines.push(`| **Equipo** | ${formatTeam(team)} |`)
+  lines.push(`| **Generado** | ${new Date().toLocaleString("es-ES", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })} |`)
+  lines.push(`| **Mensajes** | ${messages.length} |`)
+  lines.push(``)
+  lines.push(`---`)
   lines.push(``)
 
-  messages.forEach((m, i) => {
-    const label = m.type === "user" ? `🙋 **You**` : `🤖 **Advisor**`
-    lines.push(`### ${label} · message ${i + 1}`)
+  // ============== SUMMARY SECTION ==============
+  // Collect all recommendations and data from AI messages
+  const aiMessages = messages.filter(m => m.type === "ai" && m.data)
+  const lastAi = aiMessages.length > 0 ? aiMessages[aiMessages.length - 1].data : null
+  const allRecs = messages
+    .filter(m => m.type === "ai" && m.data?.recommendations)
+    .flatMap(m => m.data!.recommendations)
+
+  if (lastAi) {
+    lines.push(`## 🎯 Diagnóstico del equipo`)
     lines.push(``)
-    const content = m.type === "user"
-      ? formatUserMessage(m.content)
-      : formatAiMessage(m.content)
-    if (content) {
-      lines.push(content)
+    lines.push(`### ${lastAi.intentEmoji ?? ""} ${lastAi.intentLabel}`)
+    lines.push(``)
+    lines.push(lastAi.analysis.trim())
+    lines.push(``)
+    lines.push(`> **Carencia detectada:** ${lastAi.gap}`)
+    lines.push(``)
+
+    if (lastAi.team.topPlayers.length > 0) {
+      lines.push(`**Jugadores actuales:** ${lastAi.team.topPlayers.join(" · ")}`)
       lines.push(``)
     }
-    if (m.data?.recommendations?.length) {
-      lines.push(`**Candidates:**`)
+
+    if (lastAi.considerations.length > 0) {
+      lines.push(`### ⚠️ Antes de negociar`)
       lines.push(``)
-      lines.push(`| # | Player | Pos. | League | Age | Contract | Priority |`)
-      lines.push(`|---|---------|------|------|------|----------|-----------|`)
-      m.data.recommendations.forEach((r, j) => {
-        lines.push(
-          `| ${j + 1} | ${escapeMd(r.name)} | ${escapeMd(r.position)} | ${r.league} | ${r.age} | ${escapeMd(r.contractValue)} | ${escapeMd(r.priority)} |`,
-        )
-      })
-      lines.push(``)
-    }
-    if (m.data?.considerations?.length) {
-      lines.push(`**Considerations:**`)
-      m.data.considerations.forEach((c) => {
+      for (const c of lastAi.considerations) {
         lines.push(`- ${c}`)
-      })
+      }
       lines.push(``)
     }
-  })
+
+    lines.push(`---`)
+    lines.push(``)
+  }
+
+  // ============== RECOMMENDED CANDIDATES ==============
+  if (allRecs.length > 0) {
+    lines.push(`## 👥 Candidatos recomendados`)
+    lines.push(``)
+    lines.push(`| # | Jugador | Pos. | Liga | Edad | Contrato | Prioridad | Mercado |`)
+    lines.push(`|---|---------|------|------|------|----------|-----------|---------|`)
+    allRecs.forEach((r, i) => {
+      lines.push(
+        `| ${i + 1} | **${escapeMd(r.name)}** | ${escapeMd(r.position)} | ${r.league} | ${r.age} | ${escapeMd(r.contractValue)} | ${escapeMd(r.priority)} | ${escapeMd(r.market)} |`,
+      )
+    })
+    lines.push(``)
+
+    // Player detail cards
+    for (const [i, r] of allRecs.entries()) {
+      lines.push(`### Jugador ${i + 1}: ${r.name}`)
+      lines.push(``)
+      lines.push(`- **Posición:** ${r.position}`)
+      lines.push(`- **Liga:** ${r.league}`)
+      lines.push(`- **Edad:** ${r.age} años`)
+      lines.push(`- **Contrato estimado:** ${r.contractValue}`)
+      lines.push(`- **Prioridad:** ${r.priority}`)
+      lines.push(`- **Mercado:** ${r.market}`)
+      lines.push(`- **Ajuste:** ${r.fit}`)
+      if (r.strengths.length > 0) {
+        lines.push(`- **Fortalezas:**`)
+        for (const s of r.strengths) {
+          lines.push(`  - ${s}`)
+        }
+      }
+      lines.push(``)
+    }
+
+    lines.push(`---`)
+    lines.push(``)
+  }
+
+  // ============== FULL CONVERSATION ==============
+  lines.push(`## 💬 Conversación completa`)
+  lines.push(``)
+
+  if (messages.length === 0) {
+    lines.push(`*No hay mensajes en esta conversación.*`)
+    lines.push(``)
+  } else {
+    messages.forEach((m, i) => {
+      const isUser = m.type === "user"
+      const emoji = isUser ? "🙋" : "🤖"
+      const label = isUser ? "Tú" : "Advisor"
+
+      lines.push(`### ${emoji} ${label} · Mensaje ${i + 1}`)
+      lines.push(``)
+
+      const content = m.type === "user"
+        ? formatUserMessage(m.content)
+        : formatAiMessage(m.content)
+
+      if (content) {
+        lines.push(content)
+        lines.push(``)
+      }
+    })
+  }
 
   return lines.join("\n")
 }

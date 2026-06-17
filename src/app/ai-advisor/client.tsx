@@ -479,7 +479,7 @@ export default function AIAdvisorClient() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 z-30 bg-ink-950/60 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-[55] bg-ink-950/60 backdrop-blur-sm lg:hidden"
           />
         ) : null}
       </AnimatePresence>
@@ -488,7 +488,7 @@ export default function AIAdvisorClient() {
         {/* ── Conversations sidebar ───────────────────────────────── */}
         <aside
           aria-label="Conversations"
-          className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-white/10 bg-ink-950/95 backdrop-blur-md transition-transform duration-300 lg:sticky lg:inset-y-auto lg:top-[76px] lg:z-10 lg:h-[calc(100dvh-92px)] lg:w-64 lg:translate-x-0 lg:self-start lg:rounded-2xl lg:border lg:border-white/10 lg:bg-ink-950/40 lg:backdrop-blur-none xl:w-72 ${
+          className={`fixed inset-y-0 left-0 z-[60] flex w-[min(20rem,85vw)] flex-col border-r border-white/10 bg-ink-950/95 backdrop-blur-md transition-transform duration-300 lg:sticky lg:inset-y-auto lg:top-[76px] lg:z-10 lg:h-[calc(100dvh-92px)] lg:w-64 lg:translate-x-0 lg:self-start lg:rounded-2xl lg:border lg:border-white/10 lg:bg-ink-950/40 lg:backdrop-blur-none xl:w-72 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
@@ -632,8 +632,8 @@ export default function AIAdvisorClient() {
           aria-label="Scouting Advisor console"
           className="flex min-h-[calc(100dvh-150px)] w-full min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-ink-950/40 lg:h-[calc(100dvh-92px)] lg:min-h-0"
         >
-          <header className="flex items-center justify-between gap-3 border-b border-white/10 bg-ink-950/50 px-4 py-3 backdrop-blur-sm sm:px-5">
-            <div className="flex min-w-0 items-center gap-3">
+          <header className="flex items-center justify-between gap-2 border-b border-white/10 bg-ink-950/50 px-3 py-3 backdrop-blur-sm sm:gap-3 sm:px-5">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={() => setSidebarOpen(true)}
@@ -657,7 +657,7 @@ export default function AIAdvisorClient() {
               </button>
               <div
                 aria-hidden
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 ring-1 ring-brand-500/25"
+                className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 ring-1 ring-brand-500/25 sm:flex"
               >
                 <svg
                   className="h-4.5 w-4.5 text-brand-400"
@@ -834,7 +834,7 @@ export default function AIAdvisorClient() {
                       type="button"
                       onClick={() => sendMessage(tip)}
                       disabled={loading}
-                      className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-ink-300 transition hover:border-brand-500/50 hover:bg-brand-500/10 hover:text-brand-200 disabled:opacity-30"
+                      className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-ink-300 transition hover:border-brand-500/50 hover:bg-brand-500/10 hover:text-brand-200 disabled:opacity-30 sm:py-1.5"
                     >
                       {tip}
                     </button>
