@@ -11,7 +11,7 @@ export const es: Messages = {
     byLeague: "Por liga",
     allLeagues: "Todas las ligas",
     explore: "Explorar",
-    pro: "Pro",
+    pro: "Beta",
     skipToContent: "Saltar al contenido",
     loading: "Cargando…",
   },
