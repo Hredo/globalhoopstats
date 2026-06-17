@@ -69,7 +69,7 @@ export function InputArea({
           maxLength={2000}
           aria-label="Ask the advisor"
           aria-describedby={helpId}
-          className="flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-ink-50 outline-none transition placeholder:text-ink-400 hover:border-white/20 focus:border-brand-400/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-brand-500/25 disabled:opacity-40"
+          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-base text-ink-50 outline-none transition placeholder:text-ink-400 hover:border-white/20 focus:border-brand-400/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-brand-500/25 disabled:opacity-40 sm:text-sm"
         />
         <DownloadMenu team={team} messages={messages} disabled={disabled} />
         <button
@@ -120,15 +120,18 @@ export function InputArea({
         </button>
       </div>
       <p id={helpId} className="mt-1.5 px-1 text-[10px] text-ink-500">
-        Press{" "}
-        <kbd className="rounded border border-white/10 bg-white/[0.04] px-1 font-mono text-[9px] text-ink-300">
-          Ctrl
-        </kbd>
-        {" + "}
-        <kbd className="rounded border border-white/10 bg-white/[0.04] px-1 font-mono text-[9px] text-ink-300">
-          Enter
-        </kbd>{" "}
-        to send · Answers can take a few seconds
+        <span className="hidden sm:inline">
+          Press{" "}
+          <kbd className="rounded border border-white/10 bg-white/[0.04] px-1 font-mono text-[9px] text-ink-300">
+            Ctrl
+          </kbd>
+          {" + "}
+          <kbd className="rounded border border-white/10 bg-white/[0.04] px-1 font-mono text-[9px] text-ink-300">
+            Enter
+          </kbd>{" "}
+          to send ·{" "}
+        </span>
+        Answers can take a few seconds
       </p>
     </form>
   )
