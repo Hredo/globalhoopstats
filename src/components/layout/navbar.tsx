@@ -79,10 +79,10 @@ export function Navbar() {
         style={{ transform: "scaleX(0)" }}
         className="absolute inset-x-0 top-0 z-10 h-px origin-left bg-gradient-to-r from-brand-500 via-ember-400 to-brand-600"
       />
-      <div className="mx-auto max-w-7xl px-3 sm:px-6">
+      <div className="mx-auto max-w-7xl px-2 sm:px-6">
         <div
           className={cn(
-            "mt-2 flex items-center justify-between gap-3 rounded-full px-3 transition-all duration-500 ease-fluid sm:mt-3 sm:px-4",
+            "mt-2 flex items-center justify-between gap-2 rounded-full px-2.5 transition-all duration-500 ease-fluid sm:mt-3 sm:gap-3 sm:px-4",
             scrolled
               ? "gh-glass py-1.5 shadow-[var(--shadow-court)]"
               : "border border-transparent py-2.5",
