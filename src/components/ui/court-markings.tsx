@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react"
 
-type Variant = "hero" | "band"
+type Variant = "hero" | "band" | "floor"
 
 type Props = {
   /**
@@ -55,6 +55,49 @@ export function CourtMarkings({
           <line x1="0" y1="0" x2="78" y2="0" strokeOpacity={0.45} />
           <line x1="0" y1="0" x2="55" y2="55" strokeOpacity={0.6} />
           <line x1="0" y1="0" x2="0" y2="78" strokeOpacity={0.45} />
+        </g>
+      </svg>
+    )
+  }
+
+  if (variant === "floor") {
+    return (
+      <svg
+        aria-hidden
+        focusable="false"
+        viewBox="0 0 940 500"
+        fill="none"
+        preserveAspectRatio="xMidYMid meet"
+        className={className}
+        style={{ ...vars, ...style }}
+      >
+        <g
+          stroke="var(--chalk)"
+          strokeWidth={1.4}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          {/* boundary + half-court line */}
+          <rect x="12" y="12" width="916" height="476" rx="3" />
+          <line x1="470" y1="12" x2="470" y2="488" />
+          <circle cx="470" cy="250" r="58" />
+          <circle cx="470" cy="250" r="18" strokeOpacity={0.65} />
+          {/* left half: key, free-throw circle, backboard, rim, three-point */}
+          <rect x="12" y="178" width="182" height="144" />
+          <circle cx="194" cy="250" r="58" />
+          <line x1="44" y1="222" x2="44" y2="278" />
+          <circle cx="58" cy="250" r="9" strokeOpacity={0.8} />
+          <path d="M12 40 L92 40" />
+          <path d="M12 460 L92 460" />
+          <path d="M92 40 A 214 214 0 0 1 92 460" />
+          {/* right half (mirror) */}
+          <rect x="746" y="178" width="182" height="144" />
+          <circle cx="746" cy="250" r="58" />
+          <line x1="896" y1="222" x2="896" y2="278" />
+          <circle cx="882" cy="250" r="9" strokeOpacity={0.8} />
+          <path d="M928 40 L848 40" />
+          <path d="M928 460 L848 460" />
+          <path d="M848 40 A 214 214 0 0 0 848 460" />
         </g>
       </svg>
     )

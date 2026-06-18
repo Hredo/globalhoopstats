@@ -19,7 +19,6 @@ import { getFaqData } from "@/components/marketing/faq-data"
 import { Eyebrow } from "@/components/ui/eyebrow"
 import { SectionHeading } from "@/components/ui/section-heading"
 import { ButtonLink } from "@/components/ui/button"
-import { CourtMarkings } from "@/components/ui/court-markings"
 import { SITE } from "@/lib/site"
 import { getGlobalLeagueCounts } from "@/lib/data/leagues"
 import { getLocale, getT } from "@/lib/i18n/server"
@@ -135,14 +134,7 @@ export default async function Home() {
 
       {/* ── HERO ───────────────────────────────────────────────── */}
       <section className="full-bleed relative isolate overflow-hidden pb-14 pt-12 sm:pb-24 sm:pt-20 md:pt-28">
-        <CourtMarkings
-          variant="hero"
-          className="pointer-events-none absolute -right-24 -top-48 -z-10 h-[560px] w-[560px] -scale-x-100 sm:h-[720px] sm:w-[720px]"
-        />
-        <div
-          aria-hidden
-          className="absolute inset-x-0 bottom-0 -z-10 h-40 bg-court-floor"
-        />
+        {/* background handled globally by the fixed court backdrop */}
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="grid items-center gap-12 md:grid-cols-[1.05fr_0.95fr]">

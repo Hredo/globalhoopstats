@@ -88,15 +88,16 @@
   /* ─────────────────────────────────────────────────────────────
      SEMANTIC SURFACES — warm dark, single family, five elevations
      ───────────────────────────────────────────────────────────── */
-  /* Elevations widened: surface-1 (cards) now sits a clear step above the
-     near-black floor so panels read as "lifted", not floating in soup. */
-  --color-surface-0: oklch(0.085 0.008 56);
-  --color-surface-1: oklch(0.148 0.011 57);
-  --color-surface-2: oklch(0.188 0.013 58);
-  --color-surface-3: oklch(0.232 0.015 58);
-  --color-surface-4: oklch(0.275 0.016 58);
-  --color-hairline: oklch(1 0 0 / 0.08);
-  --color-hairline-strong: oklch(1 0 0 / 0.15);
+  /* Warm graphite elevations — calibrated against real sRGB: the floor reads
+     as warm charcoal (~#21190f) and cards sit a clear step up (~#312820),
+     deliberately well above pure black. */
+  --color-surface-0: oklch(0.215 0.014 56);
+  --color-surface-1: oklch(0.288 0.016 58);
+  --color-surface-2: oklch(0.33 0.018 58);
+  --color-surface-3: oklch(0.375 0.018 58);
+  --color-surface-4: oklch(0.42 0.018 58);
+  --color-hairline: oklch(1 0 0 / 0.11);
+  --color-hairline-strong: oklch(1 0 0 / 0.22);
 
   /* ─────────────────────────────────────────────────────────────
      TYPOGRAPHY — wired to next/font variables (set in layout.tsx)
@@ -354,28 +355,36 @@
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    background-color: var(--color-ink-950);
+    background-color: oklch(0.225 0.016 58);
     background-image:
-      /* courtside key light — pushed off-centre so it never reads
-         as the symmetric, dead-centre "AI hero glow" */
+      /* warm key light pooled over the centre column where content sits */
       radial-gradient(
-        110% 72% at 72% -8%,
-        oklch(0.3 0.062 54 / 0.32),
-        transparent 56%
-      ),
-      /* cool counter-bounce off the far baseline, lower-left, so the
-         floor isn't one flat note of warm */
-      radial-gradient(
-        82% 60% at 4% 108%,
-        oklch(0.24 0.05 262 / 0.16),
+        125% 80% at 50% -4%,
+        oklch(0.31 0.032 64 / 0.5),
         transparent 60%
       ),
-      /* the floor itself: warm court at the top rim, settling to ink */
-      linear-gradient(
-        180deg,
-        var(--color-court-950),
-        var(--color-ink-950) 64%
-      );
+      /* soft vignette → depth and contrast; edges fall to a darker graphite,
+         never to black */
+      radial-gradient(
+        125% 120% at 50% 40%,
+        transparent 55%,
+        oklch(0.155 0.012 50 / 0.5)
+      ),
+      /* hardwood planks — a visible-but-quiet floor texture across the whole
+         viewport, so the background reads everywhere, not just up top */
+      repeating-linear-gradient(
+        0deg,
+        oklch(1 0 0 / 0.026) 0 1px,
+        transparent 1px 46px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        oklch(1 0 0 / 0.014) 0 1px,
+        transparent 1px 210px
+      ),
+      /* the floor: warm graphite, a touch lit up top, settling lower —
+         deliberately NOT near-black */
+      linear-gradient(180deg, oklch(0.25 0.018 60), oklch(0.198 0.016 54));
     background-attachment: fixed;
     color: var(--color-ink-100);
     font-family: var(--font-sans);
@@ -567,6 +576,24 @@
     background-size: 54px 54px;
     -webkit-mask-image: linear-gradient(to top, black, transparent 80%);
     mask-image: linear-gradient(to top, black, transparent 80%);
+  }
+
+  /* the fixed, full-viewport court that sits behind the entire app */
+  .court-backdrop {
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      #000 11%,
+      #000 89%,
+      transparent
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      #000 11%,
+      #000 89%,
+      transparent
+    );
   }
 
   /* full-bleed — break out of parent max-width to span viewport */

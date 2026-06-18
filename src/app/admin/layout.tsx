@@ -3,7 +3,6 @@ import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { readSessionUser } from "@/lib/auth/server-user"
 import { isAdmin } from "@/lib/auth/current-user"
-import { CourtMarkings } from "@/components/ui/court-markings"
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -23,14 +22,7 @@ export default async function AdminLayout({
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
       <header className="relative mb-8 overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-ink-800/70 via-ink-900/80 to-ink-900/80 p-5 sm:p-6">
-        <CourtMarkings
-          variant="band"
-          className="pointer-events-none absolute inset-0 h-full w-full opacity-40"
-          style={{
-            WebkitMaskImage: "linear-gradient(to left, black, transparent 62%)",
-            maskImage: "linear-gradient(to left, black, transparent 62%)",
-          }}
-        />
+        {/* background handled globally by the fixed court backdrop */}
         <div className="relative">
           <h1 className="font-display text-2xl font-bold text-ink-50 sm:text-3xl">
             Admin

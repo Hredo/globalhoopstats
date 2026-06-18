@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { Archivo, Geist, JetBrains_Mono } from "next/font/google"
 import { Navbar } from "@/components/layout/navbar"
+import { CourtMarkings } from "@/components/ui/court-markings"
 import { Footer } from "@/components/layout/footer"
 import { LazyCommandPalette } from "@/components/players/lazy-command-palette"
 import { CookieConsent } from "@/components/layout/cookie-consent"
@@ -107,8 +108,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
-    { media: "(prefers-color-scheme: light)", color: "#0a0a0a" },
+    { media: "(prefers-color-scheme: dark)", color: "#1a1612" },
+    { media: "(prefers-color-scheme: light)", color: "#1a1612" },
   ],
 }
 
@@ -126,6 +127,16 @@ export default async function RootLayout({
       className={`${geist.variable} ${archivo.variable} ${jetbrainsMono.variable}`}
     >
       <body className="font-sans" suppressHydrationWarning>
+        <div
+          aria-hidden
+          className="court-backdrop pointer-events-none fixed inset-0 -z-10 flex items-center justify-center overflow-hidden"
+        >
+          <CourtMarkings
+            variant="floor"
+            tone="oklch(0.92 0.03 74 / 0.1)"
+            className="h-auto w-[min(1180px,150vw)] max-w-none"
+          />
+        </div>
         <LocaleProvider locale={locale} dict={dict}>
         <JsonLd
           data={[
