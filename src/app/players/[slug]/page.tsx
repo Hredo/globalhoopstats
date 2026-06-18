@@ -11,7 +11,6 @@ import { FadeIn } from "@/components/animations/fade-in"
 import { SmartImage } from "@/components/ui/smart-image"
 import { Eyebrow } from "@/components/ui/eyebrow"
 import { leagueAccent } from "@/components/ui/league-badge"
-import { CourtMarkings } from "@/components/ui/court-markings"
 import { JsonLd } from "@/components/marketing/json-ld"
 import { breadcrumbJsonLd, playerJsonLd } from "@/lib/seo/structured-data"
 import { SITE } from "@/lib/site"
@@ -166,29 +165,12 @@ export default async function PlayerPage({ params }: Props) {
       style={{ ["--lg" as string]: accent.color }}
     >
       <JsonLd data={structuredData} />
+      {/* soft wash in the player's league colour, over the global court */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 overflow-hidden"
-      >
-        {/* soft wash in the player's league colour */}
-        <div
-          className="absolute -top-16 left-0 h-72 w-[560px] rounded-full opacity-20 blur-3xl"
-          style={{ background: "var(--lg)" }}
-        />
-        {/* court geometry, chalked in that same league hue */}
-        <CourtMarkings
-          variant="band"
-          tone="var(--lg)"
-          className="absolute inset-x-0 -top-8 h-72 w-full opacity-[0.22]"
-          style={{
-            WebkitMaskImage:
-              "radial-gradient(115% 120% at 30% -10%, black, transparent 72%)",
-            maskImage:
-              "radial-gradient(115% 120% at 30% -10%, black, transparent 72%)",
-          }}
-        />
-        <div className="absolute inset-x-0 bottom-0 h-20 bg-court-floor" />
-      </div>
+        className="pointer-events-none absolute -top-24 left-1/2 -z-10 h-80 w-[820px] -translate-x-1/2 rounded-[50%] opacity-25 blur-3xl"
+        style={{ background: "var(--lg)" }}
+      />
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
       <FadeIn>
         <Link
