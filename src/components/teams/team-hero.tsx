@@ -1,4 +1,5 @@
 import { TeamLogoHero } from "@/components/teams/team-logo-hero"
+import { CourtMarkings } from "@/components/ui/court-markings"
 
 type Props = {
   name: string
@@ -30,7 +31,17 @@ export function TeamHero({
             "linear-gradient(90deg, transparent, var(--team-400), transparent)",
         }}
       />
-      <div aria-hidden className="pointer-events-none absolute inset-0 bg-dot-field opacity-40" />
+      <CourtMarkings
+        variant="band"
+        tone="var(--team-400)"
+        className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.18]"
+        style={{
+          WebkitMaskImage:
+            "radial-gradient(120% 130% at 75% 0%, black, transparent 72%)",
+          maskImage:
+            "radial-gradient(120% 130% at 75% 0%, black, transparent 72%)",
+        }}
+      />
       <div
         aria-hidden
         className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 animate-breathe rounded-full opacity-30 blur-3xl"
