@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { Reveal } from "@/components/animations/reveal"
 import { Eyebrow } from "@/components/ui/eyebrow"
 import { StatFigure } from "@/components/ui/stat-figure"
+import { CourtMarkings } from "@/components/ui/court-markings"
 
 type Stat = { value: ReactNode; label: ReactNode }
 
@@ -18,13 +19,19 @@ export function DirectoryHero({
 }) {
   return (
     <header className="full-bleed relative isolate overflow-hidden pb-2 pt-10 sm:pt-14">
-      <div
-        aria-hidden
-        className="absolute -top-28 left-[-6%] -z-10 h-72 w-[640px] animate-aurora rounded-full bg-brand-500/12 blur-3xl"
+      <CourtMarkings
+        variant="band"
+        className="pointer-events-none absolute inset-x-0 -top-8 -z-10 h-72 w-full opacity-70"
+        style={{
+          WebkitMaskImage:
+            "radial-gradient(115% 120% at 50% -10%, black, transparent 70%)",
+          maskImage:
+            "radial-gradient(115% 120% at 50% -10%, black, transparent 70%)",
+        }}
       />
       <div
         aria-hidden
-        className="absolute inset-x-0 -top-10 -z-10 h-72 bg-dot-field opacity-50"
+        className="absolute inset-x-0 bottom-0 -z-10 h-24 bg-court-floor"
       />
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
       <div className="flex flex-col gap-7 md:flex-row md:items-end md:justify-between">

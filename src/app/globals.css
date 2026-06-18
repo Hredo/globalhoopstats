@@ -88,11 +88,13 @@
   /* ─────────────────────────────────────────────────────────────
      SEMANTIC SURFACES — warm dark, single family, five elevations
      ───────────────────────────────────────────────────────────── */
+  /* Elevations widened: surface-1 (cards) now sits a clear step above the
+     near-black floor so panels read as "lifted", not floating in soup. */
   --color-surface-0: oklch(0.085 0.008 56);
-  --color-surface-1: oklch(0.125 0.01 57);
-  --color-surface-2: oklch(0.17 0.012 58);
-  --color-surface-3: oklch(0.22 0.014 58);
-  --color-surface-4: oklch(0.27 0.016 58);
+  --color-surface-1: oklch(0.148 0.011 57);
+  --color-surface-2: oklch(0.188 0.013 58);
+  --color-surface-3: oklch(0.232 0.015 58);
+  --color-surface-4: oklch(0.275 0.016 58);
   --color-hairline: oklch(1 0 0 / 0.08);
   --color-hairline-strong: oklch(1 0 0 / 0.15);
 
@@ -352,21 +354,27 @@
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    background:
+    background-color: var(--color-ink-950);
+    background-image:
+      /* courtside key light — pushed off-centre so it never reads
+         as the symmetric, dead-centre "AI hero glow" */
       radial-gradient(
-        ellipse 90% 50% at 50% -6%,
-        oklch(0.26 0.07 52 / 0.42),
+        110% 72% at 72% -8%,
+        oklch(0.3 0.062 54 / 0.32),
+        transparent 56%
+      ),
+      /* cool counter-bounce off the far baseline, lower-left, so the
+         floor isn't one flat note of warm */
+      radial-gradient(
+        82% 60% at 4% 108%,
+        oklch(0.24 0.05 262 / 0.16),
         transparent 60%
       ),
-      radial-gradient(
-        ellipse 70% 50% at 50% 108%,
-        oklch(0.2 0.06 40 / 0.28),
-        transparent 60%
-      ),
-      radial-gradient(
-        ellipse at top,
+      /* the floor itself: warm court at the top rim, settling to ink */
+      linear-gradient(
+        180deg,
         var(--color-court-950),
-        var(--color-ink-950) 74%
+        var(--color-ink-950) 64%
       );
     background-attachment: fixed;
     color: var(--color-ink-100);
@@ -550,6 +558,17 @@
       );
   }
 
+  /* courtside floor — a faint hardwood grid that fades upward, used as the
+     footer of the hero and directory bands so sections sit "on a court" */
+  .bg-court-floor {
+    background-image:
+      linear-gradient(to right, oklch(1 0 0 / 0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, oklch(1 0 0 / 0.045) 1px, transparent 1px);
+    background-size: 54px 54px;
+    -webkit-mask-image: linear-gradient(to top, black, transparent 80%);
+    mask-image: linear-gradient(to top, black, transparent 80%);
+  }
+
   /* full-bleed — break out of parent max-width to span viewport */
   .full-bleed {
     width: 100dvw;
@@ -562,7 +581,9 @@
     background-color: var(--color-surface-1);
     border: 1px solid var(--color-hairline);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-elev-1);
+    box-shadow:
+      inset 0 1px 0 0 oklch(1 0 0 / 0.07),
+      0 12px 34px -18px oklch(0.02 0.02 50 / 0.8);
     transition:
       transform 0.45s var(--ease-fluid),
       box-shadow 0.45s var(--ease-fluid),

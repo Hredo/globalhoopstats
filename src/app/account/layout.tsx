@@ -5,6 +5,7 @@ import { readSessionUser } from "@/lib/auth/server-user"
 import { userPlan } from "@/lib/db/schema"
 import { planLabel } from "@/lib/auth/current-user"
 import { AccountNav } from "@/components/account/account-nav"
+import { CourtMarkings } from "@/components/ui/court-markings"
 
 export const metadata: Metadata = {
   title: "Account",
@@ -37,8 +38,14 @@ export default async function AccountLayout({
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
       <header className="relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-ink-800/80 via-ink-900/80 to-ink-900/80 p-5 sm:p-6">
-        <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-brand-500/10 blur-3xl" />
-        <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-ember-500/8 blur-2xl" />
+        <CourtMarkings
+          variant="band"
+          className="pointer-events-none absolute inset-0 h-full w-full opacity-50"
+          style={{
+            WebkitMaskImage: "linear-gradient(to left, black, transparent 62%)",
+            maskImage: "linear-gradient(to left, black, transparent 62%)",
+          }}
+        />
         <div className="relative flex items-center gap-4">
           <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-ember-600 text-lg font-bold text-ink-950 shadow-[var(--shadow-brand-glow)] ring-1 ring-white/10">
             {initials(user.name)}

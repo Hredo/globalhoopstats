@@ -1,6 +1,7 @@
 import Link from "next/link"
 import type { Metadata } from "next"
 import { SITE } from "@/lib/site"
+import { CourtMarkings } from "@/components/ui/court-markings"
 
 export const metadata: Metadata = {
   title: "Page not found",
@@ -13,11 +14,16 @@ export default function NotFound() {
     <div className="relative flex min-h-[70vh] items-center justify-center px-4 py-16 sm:py-24">
       <div
         aria-hidden
-        className="absolute inset-0 -z-20 bg-grid-fade opacity-50"
+        className="absolute inset-0 -z-20 bg-grid-fade opacity-40"
       />
-      <div
-        aria-hidden
-        className="absolute left-1/2 top-1/3 -z-10 h-72 w-[640px] -translate-x-1/2 rounded-full bg-brand-500/20 blur-3xl sm:h-96 sm:w-[900px]"
+      <CourtMarkings
+        variant="band"
+        className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[420px] w-[1100px] max-w-none -translate-x-1/2 -translate-y-1/2"
+        style={{
+          WebkitMaskImage:
+            "radial-gradient(60% 60% at 50% 50%, black, transparent 75%)",
+          maskImage: "radial-gradient(60% 60% at 50% 50%, black, transparent 75%)",
+        }}
       />
       <div className="relative mx-auto max-w-xl text-center">
         <p className="font-mono text-xs uppercase tracking-[0.3em] text-brand-300 sm:text-sm">
