@@ -3,7 +3,6 @@
 import { useEffect } from "react"
 import Link from "next/link"
 import { SITE } from "@/lib/site"
-import { CourtMarkings } from "@/components/ui/court-markings"
 
 export default function GlobalError({
   error,
@@ -22,16 +21,7 @@ export default function GlobalError({
         aria-hidden
         className="absolute inset-0 -z-20 bg-grid-fade opacity-40"
       />
-      <CourtMarkings
-        variant="band"
-        tone="oklch(0.66 0.18 350 / 0.12)"
-        className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[420px] w-[1100px] max-w-none -translate-x-1/2 -translate-y-1/2"
-        style={{
-          WebkitMaskImage:
-            "radial-gradient(60% 60% at 50% 50%, black, transparent 75%)",
-          maskImage: "radial-gradient(60% 60% at 50% 50%, black, transparent 75%)",
-        }}
-      />
+      {/* background handled globally by the fixed court backdrop */}
       <div className="relative mx-auto max-w-xl text-center">
         <p className="font-mono text-xs uppercase tracking-[0.3em] text-accent-magenta sm:text-sm">
           500 · Something broke

@@ -1,5 +1,3 @@
-import { CourtMarkings } from "@/components/ui/court-markings"
-
 export default function LeaguesLoading() {
   return (
     <div
@@ -7,21 +5,7 @@ export default function LeaguesLoading() {
       aria-busy="true"
       aria-live="polite"
     >
-      <header className="relative isolate overflow-hidden pb-2 pt-10 sm:pt-14">
-        <CourtMarkings
-          variant="band"
-          className="pointer-events-none absolute inset-x-0 -top-8 -z-10 h-72 w-full opacity-60"
-          style={{
-            WebkitMaskImage:
-              "radial-gradient(115% 120% at 50% -10%, black, transparent 70%)",
-            maskImage:
-              "radial-gradient(115% 120% at 50% -10%, black, transparent 70%)",
-          }}
-        />
-        <div
-          aria-hidden
-          className="absolute inset-x-0 bottom-0 -z-10 h-24 bg-court-floor"
-        />
+      <header className="pb-2 pt-10 sm:pt-14">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="h-3 w-28 animate-pulse rounded bg-white/10" />
           <div className="mt-4 h-14 w-72 animate-pulse rounded-lg bg-white/10 sm:h-16 md:h-20" />
