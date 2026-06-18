@@ -10,6 +10,7 @@ import { Reveal } from "@/components/animations/reveal"
 import { Eyebrow } from "@/components/ui/eyebrow"
 import { SmartImage } from "@/components/ui/smart-image"
 import { leagueAccent } from "@/components/ui/league-badge"
+import { CourtMarkings } from "@/components/ui/court-markings"
 import { getT } from "@/lib/i18n/server"
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -38,9 +39,20 @@ export default async function ComparePage(props: {
     <div className="full-bleed relative pb-12 pt-10 sm:pt-14">
       <div
         aria-hidden
-        className="absolute -top-24 left-1/2 -z-10 h-72 w-[680px] -translate-x-1/2 animate-aurora rounded-full bg-brand-500/12 blur-3xl"
-      />
-      <div aria-hidden className="absolute inset-x-0 -top-10 -z-10 h-64 bg-dot-field opacity-50" />
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 overflow-hidden"
+      >
+        <CourtMarkings
+          variant="band"
+          className="absolute inset-x-0 -top-8 h-72 w-full opacity-60"
+          style={{
+            WebkitMaskImage:
+              "radial-gradient(115% 120% at 50% -10%, black, transparent 70%)",
+            maskImage:
+              "radial-gradient(115% 120% at 50% -10%, black, transparent 70%)",
+          }}
+        />
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-court-floor" />
+      </div>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
       <Reveal>

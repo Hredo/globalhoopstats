@@ -19,6 +19,7 @@ import { getFaqData } from "@/components/marketing/faq-data"
 import { Eyebrow } from "@/components/ui/eyebrow"
 import { SectionHeading } from "@/components/ui/section-heading"
 import { ButtonLink } from "@/components/ui/button"
+import { CourtMarkings } from "@/components/ui/court-markings"
 import { SITE } from "@/lib/site"
 import { getGlobalLeagueCounts } from "@/lib/data/leagues"
 import { getLocale, getT } from "@/lib/i18n/server"
@@ -134,14 +135,13 @@ export default async function Home() {
 
       {/* ── HERO ───────────────────────────────────────────────── */}
       <section className="full-bleed relative isolate overflow-hidden pb-14 pt-12 sm:pb-24 sm:pt-20 md:pt-28">
-        <div aria-hidden className="absolute inset-0 -z-20 bg-dot-field opacity-70" />
-        <div
-          aria-hidden
-          className="absolute -top-44 left-1/2 -z-10 h-[440px] w-[780px] -translate-x-1/2 animate-aurora rounded-full bg-brand-500/20 blur-3xl sm:h-[600px] sm:w-[1150px]"
+        <CourtMarkings
+          variant="hero"
+          className="pointer-events-none absolute -right-24 -top-48 -z-10 h-[560px] w-[560px] -scale-x-100 sm:h-[720px] sm:w-[720px]"
         />
         <div
           aria-hidden
-          className="absolute -top-24 right-[-10%] -z-10 h-72 w-72 animate-breathe rounded-full bg-league-euro-500/15 blur-3xl"
+          className="absolute inset-x-0 bottom-0 -z-10 h-40 bg-court-floor"
         />
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
