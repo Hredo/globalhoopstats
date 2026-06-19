@@ -118,10 +118,10 @@ export function LanguageSwitcher({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t("language.change")}
-        className="inline-flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white/[0.05] px-2.5 text-ink-200 transition-colors duration-300 hover:border-brand-400/40 hover:text-ink-50"
+        className="inline-flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white/[0.05] px-2 text-ink-200 transition-colors duration-300 hover:border-brand-400/40 hover:text-ink-50 sm:px-2.5"
       >
         <GlobeIcon className="h-4 w-4" />
-        <span className="font-mono text-[11px] font-semibold tracking-[0.08em]">
+        <span className="font-mono text-[11px] font-semibold tracking-[0.08em] max-sm:hidden">
           {NAMES[locale].short}
         </span>
       </button>

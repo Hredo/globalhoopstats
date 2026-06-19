@@ -57,7 +57,7 @@ export function TeamHero({
             ) : null}
           </div>
           <h1
-            className="mt-3 font-display text-4xl font-bold leading-[0.9] tracking-[-0.04em] sm:text-5xl md:text-6xl"
+            className="mt-3 break-words font-display text-4xl font-bold leading-[0.9] tracking-[-0.04em] sm:text-5xl md:text-6xl"
             style={{
               background:
                 "linear-gradient(120deg, var(--team-200), var(--team-400) 45%, var(--team-600))",

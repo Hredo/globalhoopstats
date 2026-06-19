@@ -6,6 +6,7 @@ import { Footer } from "@/components/layout/footer"
 import { LazyCommandPalette } from "@/components/players/lazy-command-palette"
 import { CookieConsent } from "@/components/layout/cookie-consent"
 import { JsonLd } from "@/components/marketing/json-ld"
+
 import { SITE, SEO_KEYWORDS } from "@/lib/site"
 import { getLocale } from "@/lib/i18n/server"
 import { getDictionary } from "@/lib/i18n/dictionaries"

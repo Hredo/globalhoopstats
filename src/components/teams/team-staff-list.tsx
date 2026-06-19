@@ -43,7 +43,7 @@ export async function TeamStaffList({ staff }: Props) {
   }
   return (
     <div
-      className="team-staff-list sticky top-24 space-y-5 rounded-2xl border p-5"
+      className="team-staff-list space-y-5 rounded-2xl border p-5 lg:sticky lg:top-24"
       style={{
         borderColor:
           "color-mix(in oklch, var(--team-500) 30%, rgba(255,255,255,0.06))",

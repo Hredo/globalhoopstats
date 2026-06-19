@@ -13,9 +13,12 @@ import { isLocale, localeCookie } from "@/lib/i18n/config"
 import { hashPassword, verifyPassword } from "@/lib/auth/password"
 import {
   buildSessionCookie,
+  buildTrustCookie,
   getSessionTtlMs,
   newSessionId,
+  parseCookie,
   signSessionToken,
+  verifyTrustToken,
 } from "@/lib/auth/session"
 import { sendTwoFactorCodeEmail } from "@/lib/auth/email"
 import { clientIp } from "@/lib/security/ai-advisor"
@@ -101,6 +104,46 @@ export async function POST(request: Request) {
   }
 
   if (user.twoFactorEnabled) {
+    // Skip 2FA if this device was previously trusted.
+    const cookieHeader = request.headers.get("cookie")
+    const trustToken = parseCookie(cookieHeader, "ghs_trust")
+    const trusted = trustToken ? verifyTrustToken(trustToken) : null
+    if (trusted && trusted.userId === user.id) {
+      const sessionId = newSessionId()
+      const ttlMs = getSessionTtlMs()
+      const expiresAt = new Date(Date.now() + ttlMs)
+      const ua = request.headers.get("user-agent") ?? null
+      await db.insert(sessions).values({
+        id: sessionId,
+        userId: user.id,
+        expiresAt,
+        userAgent: ua ? ua.slice(0, 250) : null,
+        ip: ip !== "unknown" ? ip.slice(0, 60) : null,
+      })
+      const token = signSessionToken(sessionId, user.id, ttlMs)
+      const res = NextResponse.json({
+        ok: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          plan: user.plan,
+          role: user.role,
+        },
+      })
+      res.headers.append("Set-Cookie", buildSessionCookie(token, ttlMs))
+      const settingsRows = await db
+        .select({ locale: userSettings.locale })
+        .from(userSettings)
+        .where(eq(userSettings.userId, user.id))
+        .limit(1)
+      const savedLocale = settingsRows[0]?.locale
+      if (isLocale(savedLocale)) {
+        res.headers.append("Set-Cookie", localeCookie(savedLocale))
+      }
+      return res
+    }
+
     const code = String(randomInt(100000, 999999))
     const codeHash = await hashPassword(code)
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000)

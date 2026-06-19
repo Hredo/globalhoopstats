@@ -17,7 +17,7 @@ export function AccountSection({
   return (
     <section
       className={cn(
-        "rounded-2xl border border-white/5 bg-gradient-to-b from-ink-800/40 to-ink-900/40 p-5 shadow-sm backdrop-blur-sm sm:p-6",
+        "rounded-2xl border border-white/5 bg-gradient-to-b from-ink-800/65 to-ink-900/65 p-5 shadow-sm backdrop-blur-sm sm:p-6",
         className,
       )}
     >
