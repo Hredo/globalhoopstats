@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, sql } from "drizzle-orm"
+import { and, desc, eq, isNotNull, sql, type SQL } from "drizzle-orm"
 import pLimit from "p-limit"
 import { getDb } from "@/lib/db/client"
 import {
@@ -11,6 +11,12 @@ import {
 } from "@/lib/db/schema"
 import { cached } from "@/lib/data/cache"
 
+export type LeagueTeamLogo = {
+  name: string
+  slug: string
+  logoUrl: string | null
+}
+
 export type LeagueScorer = {
   playerId: string
   fullName: string
@@ -18,6 +24,16 @@ export type LeagueScorer = {
   imageUrl: string | null
   team: { id: string; name: string; slug: string; logoUrl: string | null } | null
   ppg: number
+}
+
+export type LeagueStatHighlight = {
+  playerId: string
+  fullName: string
+  slug: string
+  imageUrl: string | null
+  value: number
+  teamName: string | null
+  teamLogo: string | null
 }
 
 export type LeagueOverview = {
@@ -31,6 +47,10 @@ export type LeagueOverview = {
   playerCount: number
   coachCount: number
   topScorers: LeagueScorer[]
+  teams: LeagueTeamLogo[]
+  topAssists: LeagueStatHighlight | null
+  topRebounds: LeagueStatHighlight | null
+  topThreePtPct: LeagueStatHighlight | null
 }
 
 export type GlobalLeagueCounts = {
@@ -157,6 +177,80 @@ async function fetchTopScorers(
   }))
 }
 
+async function fetchTeamLogos(
+  db: ReturnType<typeof getDb>,
+  leagueId: string,
+): Promise<LeagueTeamLogo[]> {
+  const rows = await db
+    .select({
+      name: teams.name,
+      slug: teams.slug,
+      logoUrl: teams.logoUrl,
+    })
+    .from(teams)
+    .innerJoin(playerSeasonStats, eq(playerSeasonStats.teamId, teams.id))
+    .where(eq(playerSeasonStats.leagueId, leagueId))
+    .groupBy(teams.id, teams.name, teams.slug, teams.logoUrl)
+    .orderBy(teams.name)
+  return rows
+}
+
+async function fetchTopPlayer(
+  db: ReturnType<typeof getDb>,
+  leagueId: string,
+  seasonId: string,
+  column: SQL,
+  isTotal: boolean,
+): Promise<LeagueStatHighlight | null> {
+  const valueExpr = isTotal
+    ? sql<number>`round(${column} / nullif(${playerSeasonStats.gamesPlayed}, 0), 1)`
+    : sql<number>`round(${column}::numeric, 1)`
+
+  const orderExpr = isTotal
+    ? sql`${column} / nullif(${playerSeasonStats.gamesPlayed}, 0) desc nulls last`
+    : sql`${column} desc nulls last`
+
+  const rows = await db
+    .select({
+      playerId: players.id,
+      fullName: sql<string>`${players.firstName} || ' ' || ${players.lastName}`,
+      slug: players.slug,
+      imageUrl: players.imageUrl,
+      value: valueExpr,
+      teamName: teams.name,
+      teamLogo: teams.logoUrl,
+    })
+    .from(playerSeasonStats)
+    .innerJoin(players, eq(playerSeasonStats.playerId, players.id))
+    .leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
+    .where(
+      and(
+        eq(playerSeasonStats.leagueId, leagueId),
+        eq(playerSeasonStats.seasonId, seasonId),
+        sql`${column} is not null`,
+        sql`${playerSeasonStats.gamesPlayed} >= 5`,
+      ),
+    )
+    .orderBy(orderExpr)
+    .limit(4)
+
+  const seen = new Set<string>()
+  for (const r of rows) {
+    if (seen.has(r.playerId)) continue
+    seen.add(r.playerId)
+    return {
+      playerId: r.playerId,
+      fullName: r.fullName,
+      slug: r.slug,
+      imageUrl: r.imageUrl,
+      value: Number(r.value ?? 0),
+      teamName: r.teamName,
+      teamLogo: r.teamLogo,
+    }
+  }
+  return null
+}
+
 export const listLeagueOverviews = cached(
   async (): Promise<LeagueOverview[]> => {
   const db = getDb()
@@ -171,20 +265,23 @@ export const listLeagueOverviews = cached(
     .from(leagues)
     .orderBy(ascLabel(leagues.name))
 
-  // Limit concurrent leagues to avoid exhausting the Neon connection pool in
-  // serverless (free tier allows ~10–15 concurrent queries; 6 leagues × 5
-  // queries each would exceed that).
   const limit = pLimit(3)
   const overviews = await Promise.all(
     baseRows.map((row) =>
       limit(async (): Promise<LeagueOverview> => {
-        const [counts, season] = await Promise.all([
+        const [counts, season, teamLogos] = await Promise.all([
           fetchCounts(db, row.id),
           fetchLatestSeason(db, row.id),
+          fetchTeamLogos(db, row.id),
         ])
-        const topScorers = season
-          ? await fetchTopScorers(db, season.id, row.id, 3)
-          : ([] as LeagueScorer[])
+        const [topScorers, topAssists, topRebounds, topThreePtPct] = season
+          ? await Promise.all([
+              fetchTopScorers(db, row.id, season.id, 3),
+              fetchTopPlayer(db, row.id, season.id, sql`${playerSeasonStats.assistsTotal}`, true),
+              fetchTopPlayer(db, row.id, season.id, sql`${playerSeasonStats.reboundsTotal}`, true),
+              fetchTopPlayer(db, row.id, season.id, sql`coalesce(${playerSeasonStats.threeMade}, 0)::numeric / nullif(${playerSeasonStats.threeAttempted}, 0) * 100`, false),
+            ])
+          : [[], null, null, null] as [LeagueScorer[], LeagueStatHighlight | null, LeagueStatHighlight | null, LeagueStatHighlight | null]
         return {
           id: row.id,
           slug: row.slug,
@@ -196,6 +293,10 @@ export const listLeagueOverviews = cached(
           playerCount: counts.playerCount,
           coachCount: counts.coachCount,
           topScorers,
+          teams: teamLogos,
+          topAssists,
+          topRebounds,
+          topThreePtPct,
         }
       }),
     ),
@@ -203,7 +304,7 @@ export const listLeagueOverviews = cached(
   return overviews
   },
   "listLeagueOverviews",
-  ["leagues", "seasons", "player-season-stats"],
+  ["leagues", "seasons", "player-season-stats", "teams"],
   600,
 )
 
