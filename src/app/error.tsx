@@ -19,12 +19,9 @@ export default function GlobalError({
     <div className="relative flex min-h-[70vh] items-center justify-center px-4 py-16 sm:py-24">
       <div
         aria-hidden
-        className="absolute inset-0 -z-20 bg-grid-fade opacity-50"
+        className="absolute inset-0 -z-20 bg-grid-fade opacity-40"
       />
-      <div
-        aria-hidden
-        className="absolute left-1/2 top-1/3 -z-10 h-72 w-[640px] -translate-x-1/2 rounded-full bg-accent-magenta/20 blur-3xl sm:h-96 sm:w-[900px]"
-      />
+      {/* background handled globally by the fixed court backdrop */}
       <div className="relative mx-auto max-w-xl text-center">
         <p className="font-mono text-xs uppercase tracking-[0.3em] text-accent-magenta sm:text-sm">
           500 · Something broke
