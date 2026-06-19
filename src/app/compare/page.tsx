@@ -35,14 +35,7 @@ export default async function ComparePage(props: {
   const { t } = await getT()
 
   return (
-    <div className="full-bleed relative pb-12 pt-10 sm:pt-14">
-      <div
-        aria-hidden
-        className="absolute -top-24 left-1/2 -z-10 h-72 w-[680px] -translate-x-1/2 animate-aurora rounded-full bg-brand-500/12 blur-3xl"
-      />
-      <div aria-hidden className="absolute inset-x-0 -top-10 -z-10 h-64 bg-dot-field opacity-50" />
-
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+    <div className="relative pb-12 pt-10 sm:pt-14">
       <Reveal>
         <header className="mb-8">
           <Eyebrow>{t("compare.eyebrow")}</Eyebrow>
@@ -112,7 +105,6 @@ export default async function ComparePage(props: {
           </div>
         </FadeIn>
       ) : null}
-      </div>
     </div>
   )
 }
