@@ -85,7 +85,7 @@ export function PricingCta() {
                 </p>
                 <p className="mt-1.5 text-sm text-ink-400">{t.cadence}</p>
               </header>
-              <p className="mt-5 text-sm text-ink-300">{t.description}</p>
+              <p className="mt-5 text-sm text-ink-200">{t.description}</p>
               <ul className="mt-5 space-y-3">
                 {t.features.map((f) => (
                   <li

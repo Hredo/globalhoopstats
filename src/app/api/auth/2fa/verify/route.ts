@@ -13,9 +13,11 @@ import { isLocale, localeCookie } from "@/lib/i18n/config"
 import { verifyPassword } from "@/lib/auth/password"
 import {
   buildSessionCookie,
+  buildTrustCookie,
   getSessionTtlMs,
   newSessionId,
   signSessionToken,
+  signTrustToken,
 } from "@/lib/auth/session"
 import { clientIp } from "@/lib/security/ai-advisor"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
@@ -200,6 +202,7 @@ export async function POST(request: Request) {
     },
   })
   res.headers.append("Set-Cookie", buildSessionCookie(token, ttlMs))
+  res.headers.append("Set-Cookie", buildTrustCookie(signTrustToken(tfa.userId)))
 
   const settingsRows = await db
     .select({ locale: userSettings.locale })

@@ -82,7 +82,7 @@ export function Navbar() {
       <div className="mx-auto max-w-7xl px-2 sm:px-6">
         <div
           className={cn(
-            "mt-2 flex items-center justify-between gap-2 rounded-full px-2.5 transition-all duration-500 ease-fluid sm:mt-3 sm:gap-3 sm:px-4",
+            "mt-2 flex items-center justify-between gap-1 rounded-full px-1.5 transition-all duration-500 ease-fluid sm:mt-3 sm:gap-3 sm:px-4",
             scrolled
               ? "gh-glass py-1.5 shadow-[var(--shadow-court)]"
               : "border border-transparent py-2.5",
@@ -90,11 +90,11 @@ export function Navbar() {
         >
           <Link
             href="/"
-            className="group flex shrink-0 items-center gap-2.5 text-ink-50"
+            className="group flex shrink-0 items-center gap-1.5 text-ink-50 sm:gap-2.5"
             aria-label={`${SITE.name} — ${t("common.home")}`}
           >
             <Logo className="h-7 w-7 transition-transform duration-700 ease-spring group-hover:rotate-[18deg] sm:h-8 sm:w-8" />
-            <span className="font-display text-[15px] font-bold tracking-[-0.02em] sm:text-base">
+            <span className="font-display text-[13px] font-bold tracking-[-0.02em] sm:text-base">
               globalhoopstats<span className="text-brand-500">.</span>
             </span>
           </Link>
@@ -117,7 +117,7 @@ export function Navbar() {
             </ul>
           </nav>
 
-          <div className="flex items-center gap-2 sm:gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             <SearchTrigger />
             <UserMenu />
             <div className="hidden sm:block">

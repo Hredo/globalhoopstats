@@ -6,6 +6,7 @@ import { useEffect, useState } from "react"
 import { LEAGUE_FILTER_TREE } from "@/lib/league-groups"
 import { useT } from "@/lib/i18n/provider"
 import { LanguageSwitcher } from "@/components/layout/language-switcher"
+import { CourtMarkings } from "@/components/ui/court-markings"
 
 const FEB_CHILDREN = LEAGUE_FILTER_TREE.find((n) => n.children)?.children ?? []
 
@@ -77,9 +78,13 @@ export function MobileNav() {
             aria-hidden
             className="pointer-events-none absolute -left-1/4 top-0 h-[60vh] w-[150%] animate-aurora rounded-full bg-brand-500/15 blur-3xl"
           />
+          <CourtMarkings
+            variant="hero"
+            className="pointer-events-none absolute -right-20 top-8 h-[420px] w-[420px] -scale-x-100 opacity-80"
+          />
           <div
             aria-hidden
-            className="absolute inset-0 bg-dot-field opacity-50"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-court-floor"
           />
 
           <nav className="relative flex flex-1 flex-col justify-center px-7">

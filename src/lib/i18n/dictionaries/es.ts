@@ -49,6 +49,7 @@ export const es: Messages = {
     synced: "Sincronizado {ago}",
     syncPending: "Sincronización pendiente",
     rights: "© {year} {name}. Todos los derechos reservados.",
+    version: "v{version}",
     time: {
       justNow: "ahora mismo",
       seconds: "hace {n}s",
@@ -66,12 +67,14 @@ export const es: Messages = {
     metaTitle:
       "globalhoopstats — Estadísticas de baloncesto NBA, EuroLeague y ACB",
     hero: {
-      eyebrow: "v0.4 — seis ligas, un motor",
-      titleLine1: "Baloncesto,",
-      titleLine2: "descifrado.",
+      eyebrow: "Seis ligas, un motor",
+      titleLine1: "Comparativa de",
+      titleLine2: "jugadores con IA.",
       description:
-        "La consola de scouting para analistas serios. Estadísticas, splits avanzados, análisis con IA y comparaciones lado a lado de la NBA, EuroLeague, ACB y el escalafón FEB de España — cada jugador en una misma escala, en un solo idioma.",
-      browseDatabase: "Explora la base de datos",
+        "Pregunta al asesor IA, compara entre seis ligas y exporta informes listos para la sala de juntas. Todo en un mismo espacio.",
+      browseDatabase: "Explora jugadores",
+      comparePlayers: "Compara jugadores",
+      aiAdvisor: "Asesor IA",
     },
     stats: {
       leaguesLive: "Ligas en vivo",
@@ -80,9 +83,14 @@ export const es: Messages = {
       toCompare: "Para comparar a dos",
     },
     ticker: { topPerformers: "Mejores actuaciones" },
+    mockup: {
+      compare: "Comparador",
+      verdict: "Veredicto IA",
+      verdictText: "Luka Dončić gana la comparación estadística con un PER más alto y más rebotes, mientras Shai Gilgeous-Alexandra se mantiene cerca en creación de juego. Ambos de élite — Dončić se impone en volumen.",
+    },
     gallery: {
       aria: "Del box score al veredicto",
-      eyebrow: "El proceso",
+      eyebrow: "Cómo funciona",
       titleA: "Del box score al",
       titleB: "veredicto.",
       p1Title: "Seis ligas, un solo feed.",
@@ -106,7 +114,7 @@ export const es: Messages = {
       oneScale: "una escala",
     },
     bento: {
-      eyebrow: "Dentro de la consola",
+      eyebrow: "Qué puedes hacer",
       titleA: "Todo lo que un ojeador abre",
       titleB: "antes del salto inicial.",
       description:
@@ -176,7 +184,7 @@ export const es: Messages = {
       },
     },
     features: {
-      eyebrow: "Qué incluye",
+      eyebrow: "Tres formas de scoutear",
       titleA: "Una consola.",
       titleB: "Tres flujos.",
       description:
@@ -212,6 +220,39 @@ export const es: Messages = {
       axes: "radar · 6 ejes",
       playerA: "Jugador A",
       playerB: "Jugador B",
+    },
+    mobileInstall: {
+      eyebrow: "Llévalo contigo",
+      titleA: "Tu consola,",
+      titleB: "en el bolsillo.",
+      description:
+        "GlobalHoopStats es una aplicación web progresiva — instálala en tu pantalla de inicio y se comporta como una app nativa. Sin tienda, sin descarga, sin perder datos.",
+      step1Title: "Abre en tu navegador",
+      step1Desc: "Ve a globalhoopstats.es desde Safari (iOS) o Chrome (Android).",
+      step2Title: "Toca el icono de compartir",
+      step2Desc: "En iOS toca el botón Compartir (cuadrado con flecha). En Android toca el menú de tres puntos.",
+      step3Title: "Busca Añadir a Pantalla de Inicio",
+      step3Desc: "Desplaza la hoja de compartir y selecciona \"Añadir a Pantalla de Inicio\" — suele estar al final.",
+      step4Title: "Nombra y confirma",
+      step4Desc: "El nombre por defecto es \"globalhoopstats\" — pulsa Añadir en la esquina superior y aparecerá en tu pantalla de inicio.",
+      cta: "Pruébalo ahora",
+      ios: "iOS",
+      android: "Android",
+    },
+    testimonials: {
+      eyebrow: "Desde la pista",
+      titleA: "Creado para",
+      titleB: "scouts que necesitan respuestas.",
+    },
+    emailSubscribe: {
+      eyebrow: "Mantente al día",
+      title: "Una dosis semanal de stats.",
+      description:
+        "Nuevas ligas, actualizaciones y algún análisis en profundidad. Sin spam — lo odiamos tanto como tú.",
+      placeholder: "tu@equipo.com",
+      button: "Suscribirse",
+      success: "Estás dentro. Revisa tu bandeja.",
+      error: "Algo salió mal.",
     },
   },
   account: {
