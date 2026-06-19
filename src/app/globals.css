@@ -355,42 +355,41 @@
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    background-color: oklch(0.225 0.016 58);
+    background-color: oklch(0.175 0.015 54);
     background-image:
       /* warm key light pooled over the centre column where content sits */
       radial-gradient(
-        125% 80% at 50% -4%,
-        oklch(0.31 0.032 64 / 0.5),
-        transparent 60%
+        125% 80% at 50% -6%,
+        oklch(0.27 0.03 62 / 0.45),
+        transparent 62%
       ),
-      /* soft vignette → depth and contrast; edges fall to a darker graphite,
-         never to black */
+      /* very soft vignette — adds depth without ever crushing edges to black */
       radial-gradient(
-        125% 120% at 50% 40%,
-        transparent 55%,
-        oklch(0.155 0.012 50 / 0.5)
+        130% 125% at 50% 42%,
+        transparent 60%,
+        oklch(0.12 0.012 48 / 0.4)
       ),
-      /* hardwood planks — a visible-but-quiet floor texture across the whole
-         viewport, so the background reads everywhere, not just up top */
+      /* hardwood planks — visible-but-quiet floor texture across the viewport,
+         so the background reads everywhere; cards still sit well above it */
       repeating-linear-gradient(
         0deg,
-        oklch(1 0 0 / 0.026) 0 1px,
+        oklch(1 0 0 / 0.03) 0 1px,
         transparent 1px 46px
       ),
       repeating-linear-gradient(
         90deg,
-        oklch(1 0 0 / 0.014) 0 1px,
+        oklch(1 0 0 / 0.016) 0 1px,
         transparent 1px 210px
       ),
-      /* the floor: warm graphite, a touch lit up top, settling lower —
-         deliberately NOT near-black */
-      linear-gradient(180deg, oklch(0.25 0.018 60), oklch(0.198 0.016 54));
+      /* the floor: warm dark graphite — dark enough that panels pop, warm and
+         textured enough that it never reads as a flat black void */
+      linear-gradient(180deg, oklch(0.2 0.016 56), oklch(0.16 0.014 50));
     background-attachment: fixed;
     color: var(--color-ink-100);
     font-family: var(--font-sans);
     font-feature-settings: "cv11", "ss01";
     min-height: 100dvh;
-    overflow-x: hidden;
+    overflow-x: clip;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -580,20 +579,14 @@
 
   /* the fixed, full-viewport court that sits behind the entire app */
   .court-backdrop {
-    -webkit-mask-image: linear-gradient(
-      to bottom,
-      transparent,
-      #000 11%,
-      #000 89%,
-      transparent
-    );
-    mask-image: linear-gradient(
-      to bottom,
-      transparent,
-      #000 11%,
-      #000 89%,
-      transparent
-    );
+    -webkit-mask-image:
+      linear-gradient(to bottom, transparent, #000 11%, #000 89%, transparent),
+      linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      linear-gradient(to bottom, transparent, #000 11%, #000 89%, transparent),
+      linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+    mask-composite: intersect;
   }
 
   /* full-bleed — break out of parent max-width to span viewport */
@@ -623,7 +616,7 @@
   }
   /* true glass: backdrop blur + inner edge highlight to fake refraction */
   .gh-glass {
-    background-color: oklch(0.125 0.01 57 / 0.62);
+    background-color: oklch(0.125 0.01 57 / 0.78);
     backdrop-filter: blur(16px) saturate(1.4);
     -webkit-backdrop-filter: blur(16px) saturate(1.4);
     border: 1px solid oklch(1 0 0 / 0.1);

@@ -35,10 +35,7 @@ export default async function ComparePage(props: {
   const { t } = await getT()
 
   return (
-    <div className="full-bleed relative pb-12 pt-10 sm:pt-14">
-      {/* background handled globally by the fixed court backdrop */}
-
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+    <div className="relative pb-12 pt-10 sm:pt-14">
       <Reveal>
         <header className="mb-8">
           <Eyebrow>{t("compare.eyebrow")}</Eyebrow>
@@ -108,7 +105,6 @@ export default async function ComparePage(props: {
           </div>
         </FadeIn>
       ) : null}
-      </div>
     </div>
   )
 }

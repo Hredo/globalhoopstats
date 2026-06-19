@@ -5,14 +5,16 @@ import { Reveal, Stagger, StaggerItem } from "@/components/animations/reveal"
 import { Parallax } from "@/components/animations/parallax"
 import { SpotlightCard } from "@/components/animations/spotlight-card"
 import { ScrollGallery } from "@/components/animations/scroll-gallery"
-import { LiveScoutCard } from "@/components/marketing/live-scout-card"
+import { AppMockup } from "@/components/marketing/app-mockup"
 import { CountUp } from "@/components/marketing/count-up"
 import { Marquee } from "@/components/marketing/marquee"
 import { JsonLd } from "@/components/marketing/json-ld"
 import { TrustedBy } from "@/components/marketing/trusted-by"
 import { FeatureShowcase } from "@/components/marketing/feature-showcase"
-import { TrustBar } from "@/components/marketing/trust-bar"
+import { Testimonials } from "@/components/marketing/testimonials"
+import { EmailSubscribe } from "@/components/marketing/email-subscribe"
 import { Faq } from "@/components/marketing/faq"
+import { MobileInstall } from "@/components/marketing/mobile-install"
 import { getFaqData } from "@/components/marketing/faq-data"
 // NOTE: PricingCta commented out until subscriptions are re-enabled.
 // import { PricingCta } from "@/components/marketing/pricing-cta"
@@ -25,25 +27,25 @@ import { getLocale, getT } from "@/lib/i18n/server"
 import { getDictionary } from "@/lib/i18n/dictionaries"
 
 const TICKER_LEFT = [
-  { name: "Luka Dončić", team: "DAL · NBA", stat: "32.4 PPG" },
-  { name: "Facundo Campazzo", team: "RMB · EuroLeague", stat: "6.8 APG" },
-  { name: "Santi Aldama", team: "MEM · NBA", stat: "51% FG" },
-  { name: "Nikola Mirotić", team: "FCB · EuroLeague", stat: "18.1 PPG" },
-  { name: "Willy Hernangómez", team: "RMB · EuroLeague", stat: "8.4 RPG" },
-  { name: "Carlos Alocén", team: "ZAR · ACB", stat: "5.2 APG" },
-  { name: "Juan Núñez", team: "RMB · EuroLeague", stat: "4.9 APG" },
-  { name: "Dario Brizuela", team: "FCB · ACB", stat: "14.2 PPG" },
+  { name: "Luka Dončić", team: "LAL · NBA", stat: "33.2 PPG" },
+  { name: "Facundo Campazzo", team: "RMB · EuroLeague", stat: "7.9 APG" },
+  { name: "Santi Aldama", team: "MEM · NBA", stat: "14.8 PPG" },
+  { name: "Nikola Mirotić", team: "MIL · EuroLeague", stat: "17.5 PPG" },
+  { name: "Willy Hernangómez", team: "RMB · EuroLeague", stat: "9.1 RPG" },
+  { name: "Ante Tomić", team: "JOV · ACB", stat: "12.3 PPG" },
+  { name: "Juan Núñez", team: "RMB · EuroLeague", stat: "7.1 APG" },
+  { name: "Dario Brizuela", team: "FCB · ACB", stat: "15.4 PPG" },
 ]
 
 const TICKER_RIGHT = [
-  { name: "Jokić", stat: "27.1 / 12.4 / 9.0" },
-  { name: "Doncic", stat: "32.4 / 8.6 / 9.1" },
-  { name: "Antetokounmpo", stat: "30.4 / 11.5 / 6.5" },
-  { name: "Campazzo", stat: "11.2 / 3.0 / 6.8" },
-  { name: "Mirotic", stat: "18.1 / 5.3 / 1.4" },
-  { name: "Aldama", stat: "10.7 / 5.0 / 1.4" },
-  { name: "Brizuela", stat: "14.2 / 2.4 / 2.1" },
-  { name: "Núñez", stat: "8.1 / 2.6 / 4.9" },
+  { name: "Dončić", stat: "33.2 / 9.1 / 8.4" },
+  { name: "Aldama", stat: "14.8 / 7.2 / 2.6" },
+  { name: "Mirotic", stat: "17.5 / 5.8 / 1.6" },
+  { name: "Campazzo", stat: "11.8 / 3.2 / 7.9" },
+  { name: "Núñez", stat: "9.4 / 2.8 / 7.1" },
+  { name: "Brizuela", stat: "15.4 / 2.6 / 2.8" },
+  { name: "Hernangómez", stat: "10.2 / 9.1 / 1.8" },
+  { name: "Tomić", stat: "12.3 / 6.4 / 3.1" },
 ]
 
 const STATS = [
@@ -160,17 +162,20 @@ export default async function Home() {
             </FadeIn>
 
             <FadeIn delay={0.18} y={20}>
-              <p className="mt-6 max-w-xl text-pretty text-base leading-relaxed text-ink-300 sm:text-lg">
+              <p className="mt-6 max-w-xl text-pretty text-base leading-relaxed text-ink-200 sm:text-lg">
                 {t("home.hero.description")}
               </p>
             </FadeIn>
 
             <FadeIn delay={0.28} y={16}>
               <div className="mt-8 flex flex-wrap items-center gap-3">
-                <ButtonLink href="/compare" size="lg" arrow>
-                  {t("common.openConsole")}
+                <ButtonLink href="/ai-advisor" size="lg" arrow>
+                  {t("home.hero.aiAdvisor")}
                 </ButtonLink>
-                <ButtonLink href="/players" size="lg" variant="secondary">
+                <ButtonLink href="/compare" size="lg" variant="secondary">
+                  {t("home.hero.comparePlayers")}
+                </ButtonLink>
+                <ButtonLink href="/players" size="lg" variant="ghost">
                   {t("home.hero.browseDatabase")}
                 </ButtonLink>
               </div>
@@ -200,12 +205,12 @@ export default async function Home() {
           </div>
 
           <FadeIn delay={0.2} className="relative">
-            <Parallax speed={36}>
+            <Parallax speed={24}>
               <div
                 aria-hidden
                 className="absolute inset-0 -z-10 rounded-[2rem] bg-gradient-to-br from-brand-500/25 via-transparent to-league-euro-600/20 blur-2xl"
               />
-              <LiveScoutCard />
+              <AppMockup />
             </Parallax>
           </FadeIn>
         </div>
@@ -245,10 +250,7 @@ export default async function Home() {
         </Marquee>
       </section>
 
-      {/* ── PINNED HORIZONTAL SCROLL GALLERY ──────────────────── */}
-      <section aria-label={t("home.gallery.aria")} className="relative">
-        <ScrollGallery />
-      </section>
+      <MobileInstall />
 
       <TrustedBy />
 
@@ -319,9 +321,16 @@ export default async function Home() {
         </Stagger>
       </section>
 
+      {/* ── PINNED HORIZONTAL SCROLL GALLERY ──────────────────── */}
+      <section aria-label={t("home.gallery.aria")} className="relative">
+        <ScrollGallery />
+      </section>
+
       <FeatureShowcase />
 
-      <TrustBar />
+      <Testimonials />
+
+      <EmailSubscribe />
 
       <section
         aria-labelledby="faq-heading"
@@ -366,16 +375,16 @@ export default async function Home() {
                       {t("home.cta.titleB")}
                     </span>
                   </h2>
-                  <p className="mt-4 max-w-md text-pretty text-base text-ink-300 sm:text-lg">
+                  <p className="mt-4 max-w-md text-pretty text-base text-ink-200 sm:text-lg">
                     {t("home.cta.description")}
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row md:justify-end">
-                  <ButtonLink href="/ai-advisor" size="lg" arrow>
-                    {t("home.cta.tryAi")}
+                  <ButtonLink href="/compare" size="lg" arrow>
+                    {t("home.hero.comparePlayers")}
                   </ButtonLink>
                   <ButtonLink href="/players" size="lg" variant="secondary">
-                    {t("home.cta.browsePlayers")}
+                    {t("home.hero.browseDatabase")}
                   </ButtonLink>
                 </div>
               </div>
@@ -438,8 +447,8 @@ async function BentoCard({
       <p
         className={
           big
-            ? "mt-3 max-w-md text-pretty text-sm leading-relaxed text-ink-300 sm:text-base"
-            : "mt-2 text-pretty text-sm leading-relaxed text-ink-300"
+            ? "mt-3 max-w-md text-pretty text-sm leading-relaxed text-ink-200 sm:text-base"
+            : "mt-2 text-pretty text-sm leading-relaxed text-ink-200"
         }
       >
         {body}

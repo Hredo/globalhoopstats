@@ -106,32 +106,12 @@ export function UserMenu() {
 
   if (!me) {
     return (
-      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-        <Link
-          href="/login"
-          className="hidden h-9 items-center rounded-full px-3.5 text-sm font-medium text-ink-200 transition-colors duration-200 hover:bg-white/[0.06] hover:text-ink-50 sm:inline-flex"
-        >
-          {t("userMenu.signIn")}
-        </Link>
+      <div className="flex shrink-0 items-center">
         <Link
           href="/register"
-          className="gh-sheen group/cta inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-brand-400 to-ember-500 px-3.5 text-sm font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition-all duration-300 ease-swift hover:shadow-[var(--shadow-brand-glow-lg)] active:scale-[0.98] max-[359px]:hidden sm:pl-4 sm:pr-3"
+          className="gh-sheen group/cta inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-full bg-gradient-to-r from-brand-400 to-ember-500 px-3 text-xs font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition-all duration-300 ease-swift hover:shadow-[var(--shadow-brand-glow-lg)] active:scale-[0.98] sm:h-9 sm:px-4 sm:text-sm"
         >
           {t("userMenu.getStarted")}
-          <span className="hidden h-5 w-5 items-center justify-center rounded-full bg-ink-950/15 transition-transform duration-300 ease-swift group-hover/cta:translate-x-0.5 sm:flex">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-3 w-3"
-              aria-hidden
-            >
-              <path d="M5 12h14M13 5l7 7-7 7" />
-            </svg>
-          </span>
         </Link>
       </div>
     )
@@ -190,7 +170,7 @@ export function UserMenu() {
       {open ? (
         <div
           ref={menuRef}
-          className="absolute right-0 z-50 mt-2 w-[min(16rem,calc(100vw-1rem))] origin-top-right animate-menu-in overflow-hidden rounded-xl border border-white/10 bg-ink-900/95 shadow-2xl backdrop-blur-md sm:w-64"
+          className="absolute right-0 z-50 mt-2 w-[min(16rem,calc(100vw-1rem))] origin-top-right animate-menu-in overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-ink-900/95 shadow-2xl backdrop-blur-md sm:w-64 max-sm:max-h-[calc(100dvh-4.5rem)]"
           role="menu"
         >
           <div className="bg-gradient-to-b from-brand-500/[0.06] to-transparent px-4 pb-3 pt-4">

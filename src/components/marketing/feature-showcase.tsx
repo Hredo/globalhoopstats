@@ -301,7 +301,7 @@ export async function FeatureShowcase() {
                   <h3 className="mt-4 font-display text-2xl font-bold leading-tight tracking-[-0.02em] text-ink-50 sm:text-3xl">
                     {t(`${base}.title`)}
                   </h3>
-                  <p className="mt-3 text-pretty text-sm leading-relaxed text-ink-300 sm:text-base">
+                  <p className="mt-3 text-pretty text-sm leading-relaxed text-ink-200 sm:text-base">
                     {t(`${base}.body`)}
                   </p>
                   <ul className="mt-5 space-y-2.5">
