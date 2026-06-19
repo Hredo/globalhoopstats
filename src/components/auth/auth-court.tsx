@@ -58,16 +58,15 @@ export function AuthCourt({ className, stats }: Props) {
 
   return (
     <div className={className}>
-      <div className="relative h-full w-full overflow-hidden">
-        {/* Soft ambient glow that fades to transparent — the global body
-            background stays visible underneath, so there is no seam. */}
+      <div className="relative h-full w-full overflow-hidden bg-gradient-to-br from-court-900 via-surface-2 to-court-950">
+        {/* Court floor pattern overlay */}
         <div
           aria-hidden
-          className="absolute inset-0 bg-[radial-gradient(62%_52%_at_56%_42%,oklch(0.32_0.08_50_/_0.3),transparent_72%)]"
-        />
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-[radial-gradient(40%_30%_at_56%_78%,oklch(0.25_0.06_40_/_0.25),transparent_70%)]"
+          className="absolute inset-0 opacity-[0.06]"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(255,255,255,0.03) 3px, rgba(255,255,255,0.03) 4px), repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.02) 3px, rgba(255,255,255,0.02) 4px)",
+          }}
         />
 
         {sceneOn ? (
@@ -92,7 +91,7 @@ export function AuthCourt({ className, stats }: Props) {
               {cards.map((s) => (
                 <div
                   key={s.labelKey}
-                  className="rounded-lg border border-white/5 bg-ink-950/40 px-3 py-2 backdrop-blur-sm"
+                  className="rounded-lg border border-white/5 bg-ink-950/65 px-3 py-2 backdrop-blur-sm"
                 >
                   <p className="font-mono text-[9px] uppercase tracking-widest text-ink-500">
                     {t(s.labelKey)}
