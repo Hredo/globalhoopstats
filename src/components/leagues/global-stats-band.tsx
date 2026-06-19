@@ -54,7 +54,7 @@ export function GlobalStatsBand({ counts }: Props) {
       {stats.map((s) => (
         <div
           key={s.labelKey}
-          className="relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 sm:px-5 sm:py-4"
+          className="relative overflow-hidden rounded-xl border border-white/15 bg-surface-1 px-4 py-3 sm:px-5 sm:py-4"
         >
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
           <p

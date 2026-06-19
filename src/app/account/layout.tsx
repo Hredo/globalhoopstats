@@ -35,10 +35,9 @@ export default async function AccountLayout({
   const label = planLabel(plan)
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
+    <div className="py-8 sm:py-10">
       <header className="relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-ink-800/80 via-ink-900/80 to-ink-900/80 p-5 sm:p-6">
-        <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-brand-500/10 blur-3xl" />
-        <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-ember-500/8 blur-2xl" />
+        {/* background handled globally by the fixed court backdrop */}
         <div className="relative flex items-center gap-4">
           <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-ember-600 text-lg font-bold text-ink-950 shadow-[var(--shadow-brand-glow)] ring-1 ring-white/10">
             {initials(user.name)}
@@ -62,7 +61,7 @@ export default async function AccountLayout({
       </header>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[230px_minmax(0,1fr)]">
-        <aside className="lg:sticky lg:top-24 lg:self-start">
+        <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-xl border border-white/5 bg-ink-900/40 p-2">
             <AccountNav />
           </div>

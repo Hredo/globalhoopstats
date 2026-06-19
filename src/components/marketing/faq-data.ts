@@ -7,95 +7,97 @@ export type FaqItem = {
 
 const FAQ_DATA_EN: FaqItem[] = [
   {
-    question: "Where does the data come from?",
+    question: "Where does the data come from and how fresh is it?",
     answer:
-      "We ingest public box scores and team feeds from the NBA, EuroLeague and Liga ACB. Each league has its own pipeline that runs after tip-off and is normalized into the same per-game scale.",
+      "We ingest public box scores and team feeds directly from the NBA, EuroLeague, Liga ACB and Spain's FEB ladder (LEB Oro, LEB Plata, EBA). NBA and EuroLeague stats land within minutes of the final buzzer; ACB and FEB data follows within a few hours. Every player profile shows a timestamp so you know exactly how fresh the numbers are.",
   },
   {
-    question: "Is the data live or delayed?",
+    question: "Do I need an account to use the platform?",
     answer:
-      "Stats are typically available within minutes of the final buzzer for NBA and EuroLeague games. ACB data lands a few hours after the game ends. The timestamps are visible in the player profile and the season dashboard.",
+      "No. The entire database — players, teams, coaches, league hubs, comparisons and AI queries — is open to everyone. No sign-up, no paywall, no limits.",
   },
   {
-    question: "Do I need an account to browse?",
+    question: "Which leagues are currently covered?",
     answer:
-      "No. The full directory — players, teams, coaches, comparisons and league hubs — is open to everyone.",
+      "The NBA, EuroLeague, Liga ACB, LEB Oro, LEB Plata and EBA (Spain's full FEB ladder). That's six leagues under one roof with normalized stats across all of them.",
   },
   {
-    question: "Which leagues are supported?",
-    answer: "Today: the NBA, the EuroLeague and the Liga ACB.",
+    question: "How do you make cross-league comparisons fair?",
+    answer:
+      "We normalize pace and possessions so a player in the EuroLeague and a player in the NBA are measured on the same scale. The Compare tool uses per-possession rates, not raw totals, and flags the leader on every stat line.",
   },
   {
-    question: "Can I compare a player from the NBA with one from EuroLeague?",
+    question: "What advanced metrics do you compute?",
     answer:
-      "Yes. We normalize pace and possessions across leagues so the comparison is fair. Open the Compare page, drop two names, and the radar, the shooting splits and the per-game lines will be apples-to-apples.",
+      "PER, Offensive / Defensive Rating, Net Rating, True Shooting %, usage rate and pace — at both the player and team level. Metrics that require granular box-score inputs (e.g. FGA for ORtg) are only shown when the source league provides that data.",
   },
   {
-    question: "What are advanced metrics and which ones do you expose?",
+    question: "Can I install GlobalHoopStats on my phone?",
     answer:
-      "We compute PER, Offensive / Defensive Rating, Net Rating, true shooting and pace at the team and player level when the underlying box score has the inputs (e.g. ACB has no FGA so offensive rating is not computed for ACB players).",
+      "Yes. The platform is a progressive web app — open globalhoopstats.es in Safari (iOS) or Chrome (Android), tap the share/install icon, and it will live on your home screen with its own window, just like a native app. No app store required.",
   },
   {
-    question: "How much does it cost?",
+    question: "Can I export or share what I find?",
     answer:
-      "Everything is free during the public beta — the database, comparisons, exports and AI features are all open to everyone.",
+      "Yes. The AI Advisor and the Compare page both support export to PDF, Excel and Word with the formatting ready to present. Player profiles can also be exported individually.",
   },
   {
-    question: "Can I export or share a comparison?",
+    question: "How does the AI Advisor work?",
     answer:
-      "Yes. The AI advisor and the compare page support export to PDF, Excel and Word.",
+      "The AI Advisor reads the same normalized database you see and answers scouting questions in plain language. Ask 'Who's the better pick-and-roll guard?' or 'Compare their defensive ratings' and it returns a sourced read with the numbers behind the answer.",
   },
   {
-    question: "The AI features say Beta — what does that mean?",
+    question: "Is everything really free?",
     answer:
-      "It means they're available to everyone right now, and we're still refining them based on usage. During Beta there are no limits or paywalls.",
+      "Yes. All features — database, comparisons, AI queries, exports — are completely free during the public beta. There are no usage caps, no hidden limits, and no credit card required. A forever-free tier will remain available after Beta — paid plans will only add advanced features, never remove existing ones.",
   },
 ]
 
 const FAQ_DATA_ES: FaqItem[] = [
   {
-    question: "¿De dónde vienen los datos?",
+    question: "¿De dónde vienen los datos y qué tan actualizados están?",
     answer:
-      "Ingerimos box scores públicos y feeds de equipos de la NBA, EuroLeague y Liga ACB. Cada liga tiene su propia tubería que se ejecuta tras el salto inicial y se normaliza a la misma escala por partido.",
+      "Ingerimos box scores públicos y feeds de la NBA, EuroLeague, Liga ACB y el escalafón FEB de España (LEB Oro, LEB Plata, EBA). Las estadísticas de NBA y EuroLeague llegan a los pocos minutos de la bocina final; los datos de ACB y FEB, en cuestión de horas. Cada perfil de jugador muestra una marca de tiempo para que sepas exactamente qué tan frescos están los números.",
   },
   {
-    question: "¿Los datos son en vivo o con retraso?",
+    question: "¿Necesito una cuenta para usar la plataforma?",
     answer:
-      "Las estadísticas suelen estar disponibles a los pocos minutos de la bocina final en los partidos de NBA y EuroLeague. Los datos de la ACB llegan unas horas después del final. Las marcas de tiempo se ven en el perfil del jugador y en el panel de la temporada.",
+      "No. Toda la base de datos — jugadores, equipos, entrenadores, hubs de ligas, comparaciones y consultas de IA — está abierta para todos. Sin registro, sin muros de pago, sin límites.",
   },
   {
-    question: "¿Necesito una cuenta para navegar?",
+    question: "¿Qué ligas están disponibles actualmente?",
     answer:
-      "No. Todo el directorio — jugadores, equipos, entrenadores, comparaciones y hubs de ligas — está abierto para todos.",
+      "La NBA, la EuroLeague, la Liga ACB, LEB Oro, LEB Plata y EBA (los seis escalones del baloncesto profesional español). Seis ligas bajo un mismo techo con estadísticas normalizadas entre todas ellas.",
   },
   {
-    question: "¿Qué ligas están disponibles?",
-    answer: "Hoy: la NBA, la EuroLeague y la Liga ACB.",
+    question: "¿Cómo hacéis justas las comparaciones entre ligas?",
+    answer:
+      "Normalizamos el ritmo y las posesiones para que un jugador de la EuroLeague y uno de la NBA se midan en la misma escala. La herramienta de Comparar usa ratios por posesión, no totales brutos, y marca al líder en cada línea estadística.",
   },
   {
-    question: "¿Puedo comparar a un jugador de la NBA con uno de la EuroLeague?",
+    question: "¿Qué métricas avanzadas calculáis?",
     answer:
-      "Sí. Normalizamos el ritmo y las posesiones entre ligas para que la comparación sea justa. Abre la página de Comparar, pon dos nombres, y el radar, los splits de tiro y las líneas por partido serán equiparables.",
+      "PER, Rating Ofensivo / Defensivo, Net Rating, True Shooting %, tasa de uso y ritmo — tanto a nivel de jugador como de equipo. Las métricas que requieren datos granulados del box score (p. ej., FGA para ORtg) solo se muestran cuando la liga de origen proporciona esos datos.",
   },
   {
-    question: "¿Qué son las métricas avanzadas y cuáles mostráis?",
+    question: "¿Puedo instalar GlobalHoopStats en mi móvil?",
     answer:
-      "Calculamos PER, Rating Ofensivo / Defensivo, Net Rating, true shooting y ritmo a nivel de equipo y jugador cuando el box score subyacente tiene los datos (p. ej., la ACB no tiene tiros de campo intentados, así que el rating ofensivo no se calcula para jugadores de la ACB).",
+      "Sí. La plataforma es una aplicación web progresiva — abre globalhoopstats.es en Safari (iOS) o Chrome (Android), pulsa el icono de compartir/instalar y se quedará en tu pantalla de inicio con su propia ventana, como una app nativa. Sin pasar por la tienda de aplicaciones.",
   },
   {
-    question: "¿Cuánto cuesta?",
+    question: "¿Puedo exportar o compartir lo que encuentro?",
     answer:
-      "Todo es gratis durante la beta pública — la base de datos, las comparaciones, las exportaciones y las funciones de IA están abiertas para todos.",
+      "Sí. El Asesor de IA y la página de Comparar permiten exportar a PDF, Excel y Word con el formato listo para presentar. Los perfiles de jugador también se pueden exportar individualmente.",
   },
   {
-    question: "¿Puedo exportar o compartir una comparación?",
+    question: "¿Cómo funciona el Asesor de IA?",
     answer:
-      "Sí. El asesor de IA y la página de comparar permiten exportar a PDF, Excel y Word.",
+      "El Asesor de IA lee la misma base de datos normalizada que tú ves y responde preguntas de scouting en lenguaje natural. Pregunta '¿Quién es mejor en el pick-and-roll?' o 'Compara sus rating defensivos' y recibirás una respuesta fundamentada con los números detrás.",
   },
   {
-    question: "Las funciones de IA dicen Beta — ¿qué significa?",
+    question: "¿Todo es realmente gratis?",
     answer:
-      "Significa que están disponibles para todos ahora mismo, y las seguimos mejorando según el uso. Durante la Beta no hay límites ni muros de pago.",
+      "Sí. Todas las funciones — base de datos, comparaciones, consultas de IA, exportaciones — son completamente gratuitas durante la beta pública. Sin límites de uso, sin restricciones ocultas, sin necesidad de tarjeta de crédito. Tras la beta seguirá existiendo un nivel gratuito permanente — los planes de pago solo añadirán funciones avanzadas, nunca eliminarán las existentes.",
   },
 ]
 

@@ -11,15 +11,6 @@ const LEAGUES = [
   { name: "EBA", slug: "eba" },
 ]
 
-const PILOT_USER_KEYS = [
-  "home.trustedBy.pilots.scouting",
-  "home.trustedBy.pilots.ncaa",
-  "home.trustedBy.pilots.agencies",
-  "home.trustedBy.pilots.journalism",
-  "home.trustedBy.pilots.academies",
-  "home.trustedBy.pilots.fantasy",
-]
-
 export async function TrustedBy() {
   const { t } = await getT()
   return (
@@ -40,7 +31,7 @@ export async function TrustedBy() {
                   {t("home.trustedBy.titleB")}
                 </span>
               </h2>
-              <p className="mt-3 text-pretty text-sm text-ink-300 sm:text-[15px]">
+              <p className="mt-3 text-pretty text-sm text-ink-200 sm:text-[15px]">
                 {t("home.trustedBy.description")}
               </p>
             </div>
@@ -68,21 +59,6 @@ export async function TrustedBy() {
               })}
             </ul>
           </div>
-        </FadeIn>
-        <FadeIn delay={0.1}>
-          <p className="mt-8 font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-ink-500">
-            {t("home.trustedBy.earlyAccess")}
-          </p>
-          <ul className="mt-3 flex flex-wrap gap-2 sm:gap-3">
-            {PILOT_USER_KEYS.map((key) => (
-              <li
-                key={key}
-                className="rounded-full border border-hairline bg-white/[0.03] px-3.5 py-1.5 text-xs text-ink-200"
-              >
-                {t(key)}
-              </li>
-            ))}
-          </ul>
         </FadeIn>
       </div>
     </section>

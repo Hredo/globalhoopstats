@@ -33,92 +33,49 @@ const PANELS: Panel[] = [
     accent: "var(--color-accent-cyan)",
     visual: <CompareVisual />,
   },
-  {
-    index: "04",
-    titleKey: "home.gallery.p4Title",
-    bodyKey: "home.gallery.p4Body",
-    accent: "var(--color-accent-violet)",
-    visual: <AskVisual />,
-  },
-  {
-    index: "05",
-    titleKey: "home.gallery.p5Title",
-    bodyKey: "home.gallery.p5Body",
-    accent: "var(--color-ember-500)",
-    visual: <ExportVisual />,
-  },
 ]
 
 export function ScrollGallery() {
   const t = useT()
-  const [enabled, setEnabled] = useState(false)
-  const sectionRef = useRef<HTMLDivElement>(null)
-  const trackRef = useRef<HTMLDivElement>(null)
-  const barRef = useRef<HTMLDivElement>(null)
-  const [dist, setDist] = useState(0)
-  const [vh, setVh] = useState(0)
+  const [desktop, setDesktop] = useState(false)
+  const [scrollLeft, setScrollLeft] = useState(0)
+  const [scrollWidth, setScrollWidth] = useState(0)
+  const [clientWidth, setClientWidth] = useState(0)
+  const scrollRef = useRef<HTMLDivElement | null>(null)
 
-  // Enable the pinned horizontal scroll only on desktop without reduced motion.
   useEffect(() => {
-    const mqDesk = window.matchMedia("(min-width: 768px)")
-    const mqReduce = window.matchMedia("(prefers-reduced-motion: reduce)")
-    const update = () => setEnabled(mqDesk.matches && !mqReduce.matches)
+    const mq = window.matchMedia("(min-width: 768px)")
+    const update = () => setDesktop(mq.matches)
     update()
-    mqDesk.addEventListener("change", update)
-    mqReduce.addEventListener("change", update)
+    mq.addEventListener("change", update)
+    return () => mq.removeEventListener("change", update)
+  }, [])
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const measure = () => {
+      setScrollLeft(el.scrollLeft)
+      setScrollWidth(el.scrollWidth)
+      setClientWidth(el.clientWidth)
+    }
+    measure()
+    const onScroll = () => {
+      setScrollLeft(el.scrollLeft)
+      setScrollWidth(el.scrollWidth)
+      setClientWidth(el.clientWidth)
+    }
+    el.addEventListener("scroll", onScroll, { passive: true })
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
     return () => {
-      mqDesk.removeEventListener("change", update)
-      mqReduce.removeEventListener("change", update)
+      el.removeEventListener("scroll", onScroll)
+      ro.disconnect()
     }
   }, [])
 
-  // Measure how far the track must travel horizontally.
-  useEffect(() => {
-    if (!enabled) {
-      setDist(0)
-      return
-    }
-    const measure = () => {
-      const track = trackRef.current
-      const section = sectionRef.current
-      if (!track || !section) return
-      setDist(Math.max(0, track.scrollWidth - section.clientWidth))
-      setVh(window.innerHeight)
-    }
-    measure()
-    const ro = new ResizeObserver(measure)
-    if (trackRef.current) ro.observe(trackRef.current)
-    window.addEventListener("resize", measure)
-    return () => {
-      ro.disconnect()
-      window.removeEventListener("resize", measure)
-    }
-  }, [enabled])
-
-  // Scroll-link: translate the track directly (no React re-render, GPU only).
-  useEffect(() => {
-    if (!enabled) return
-    const onScroll = () => {
-      const section = sectionRef.current
-      const track = trackRef.current
-      if (!section || !track) return
-      const total = section.offsetHeight - window.innerHeight
-      const scrolled = Math.min(
-        Math.max(-section.getBoundingClientRect().top, 0),
-        total,
-      )
-      const p = total > 0 ? scrolled / total : 0
-      track.style.transform = `translate3d(${-(p * dist)}px,0,0)`
-      if (barRef.current) barRef.current.style.transform = `scaleX(${p})`
-    }
-    onScroll()
-    window.addEventListener("scroll", onScroll, { passive: true })
-    window.addEventListener("resize", onScroll)
-    return () => {
-      window.removeEventListener("scroll", onScroll)
-      window.removeEventListener("resize", onScroll)
-    }
-  }, [enabled, dist])
+  const scrollPct =
+    scrollWidth > clientWidth ? scrollLeft / (scrollWidth - clientWidth) : 0
 
   const heading = (
     <div>
@@ -131,52 +88,53 @@ export function ScrollGallery() {
   )
 
   return (
-    <div
-      ref={sectionRef}
-      className="relative"
-      style={enabled ? { height: dist + vh } : undefined}
-    >
-      {enabled ? (
-        <div className="sticky top-0 flex h-screen flex-col justify-center overflow-hidden py-16">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">{heading}</div>
-
+    <div className="py-16">
+      {heading}
+      <div
+        ref={scrollRef}
+        className={`mask-fade-x mt-10 flex ${
+          desktop
+            ? "gap-5 overflow-x-hidden hover:overflow-x-auto"
+            : "snap-x snap-mandatory gap-4 overflow-x-auto"
+        } pb-4 scrollbar-none`}
+      >
+        {PANELS.map((p) => (
           <div
-            ref={trackRef}
-            className="mt-10 flex w-max items-stretch gap-5 px-4 will-change-transform sm:px-6"
+            key={p.index}
+            className="w-[78vw] shrink-0 snap-center sm:w-[440px] lg:w-[500px]"
           >
-            {PANELS.map((p) => (
-              <div
-                key={p.index}
-                className="w-[78vw] shrink-0 sm:w-[440px] lg:w-[500px]"
-              >
-                <PanelCard panel={p} />
-              </div>
-            ))}
-            <div aria-hidden className="w-[8vw] shrink-0" />
+            <PanelCard panel={p} />
           </div>
+        ))}
+        <div aria-hidden className="w-[8vw] shrink-0" />
+      </div>
 
-          <div className="mx-auto mt-10 w-full max-w-7xl px-4 sm:px-6">
-            <div className="h-px w-full overflow-hidden bg-hairline">
-              <div
-                ref={barRef}
-                style={{ transform: "scaleX(0)" }}
-                className="h-full w-full origin-left bg-gradient-to-r from-brand-500 via-ember-400 to-brand-600"
-              />
-            </div>
+      <div className="mx-auto mt-6 max-w-md px-4 sm:px-6">
+        <div className="flex items-center gap-3">
+          <svg
+            aria-hidden
+            className="h-3 w-3 shrink-0 text-ink-500"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M5 12h14" />
+            <path d="m12 5 7 7-7 7" />
+          </svg>
+          <div className="h-px flex-1 overflow-hidden rounded-full bg-hairline">
+            <div
+              className="h-full w-full origin-left rounded-full bg-gradient-to-r from-brand-500 to-brand-400"
+              style={{ transform: `scaleX(${scrollPct || 0})` }}
+            />
           </div>
+          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+            {scrollPct < 0.95 ? "Scroll →" : "Done"}
+          </span>
         </div>
-      ) : (
-        <div className="py-16">
-          {heading}
-          <div className="mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 scrollbar-none">
-            {PANELS.map((p) => (
-              <div key={p.index} className="w-[78vw] shrink-0 snap-center sm:w-[400px]">
-                <PanelCard panel={p} />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -207,7 +165,7 @@ function PanelCard({ panel }: { panel: Panel }) {
       <h3 className="mt-6 font-display text-2xl font-bold tracking-[-0.02em] text-ink-50 sm:text-[1.7rem]">
         {t(panel.titleKey)}
       </h3>
-      <p className="mt-2 text-pretty text-sm leading-relaxed text-ink-300">
+      <p className="mt-2 text-pretty text-sm leading-relaxed text-ink-200">
         {t(panel.bodyKey)}
       </p>
       <div className="mt-auto pt-6">{panel.visual}</div>
@@ -302,3 +260,35 @@ function ExportVisual() {
     </div>
   )
 }
+
+// Unused after gallery reduction but kept for reference
+/*
+function AskVisual() {
+  const t = useT()
+  return (
+    <div className="space-y-2">
+      <div className="ml-auto w-fit max-w-[80%] rounded-2xl rounded-br-sm border border-hairline bg-white/[0.04] px-3 py-2 text-[11px] text-ink-200">
+        {t("home.gallery.askQuestion")}
+      </div>
+      <div className="w-fit max-w-[85%] rounded-2xl rounded-bl-sm border border-accent-violet/30 bg-accent-violet/[0.08] px-3 py-2 text-[11px] text-ink-200">
+        {t("home.gallery.askAnswer")}
+      </div>
+    </div>
+  )
+}
+
+function ExportVisual() {
+  return (
+    <div className="flex gap-2">
+      {["PDF", "XLSX", "DOCX"].map((f) => (
+        <span
+          key={f}
+          className="flex-1 rounded-xl border border-hairline bg-white/[0.02] px-3 py-3 text-center font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-300"
+        >
+          {f}
+        </span>
+      ))}
+    </div>
+  )
+}
+*/

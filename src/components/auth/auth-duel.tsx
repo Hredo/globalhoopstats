@@ -51,6 +51,7 @@ type PlayerState = {
   x: number
   z: number
   pelvisY: number
+  footY: number
   dirX: number
   dirZ: number
   crouch: number
@@ -71,7 +72,7 @@ type Scene = {
 }
 
 function newPlayer(): PlayerState {
-  return { x: 0, z: 5, pelvisY: 0.96, dirX: 0, dirZ: 1, crouch: 0.3, legPhase: 0, legAmp: 0, stance: 0.3, armL: "swing", armR: "swing" }
+  return { x: 0, z: 5, pelvisY: 0.96, footY: 0, dirX: 0, dirZ: 1, crouch: 0.3, legPhase: 0, legAmp: 0, stance: 0.3, armL: "swing", armR: "swing" }
 }
 
 export function AuthDuel({ className }: { className?: string }) {
@@ -332,7 +333,7 @@ export function AuthDuel({ className }: { className?: string }) {
         const wide = (leg === 0 ? 1 : -1) * p.stance * 0.17
         const fx = hx + p.dirX * stepF + latX * wide
         const fz = hz + p.dirZ * stepF + latZ * wide
-        const fy = lift
+        const fy = p.footY + lift
         const kx = (hx + fx) / 2 + p.dirX * (0.12 + p.crouch * 0.14)
         const ky = (py + fy) / 2 + 0.04
         const kz = (hz + fz) / 2 + p.dirZ * (0.12 + p.crouch * 0.14)
@@ -398,7 +399,7 @@ export function AuthDuel({ className }: { className?: string }) {
       capsule(shRX, shY, shRZ, aR.ex, aR.ey, aR.ez, 0.085, pal.jersey)
       capsule(aR.ex, aR.ey, aR.ez, aR.hx, aR.hy, aR.hz, 0.07, pal.head)
 
-      contactShadow(p.x, p.z, 0.34, 0.28)
+      contactShadow(p.x, p.z, 0.34, 0.28 * Math.max(0, 1 - p.footY * 3))
     }
 
     const drawBall = (b: Scene["ball"]) => {
@@ -469,7 +470,9 @@ export function AuthDuel({ className }: { className?: string }) {
       const defEndX = side * 0.32, defEndZ = 9.5
 
       att.pelvisY = 0.96
+      att.footY = 0
       def.pelvisY = 0.96
+      def.footY = 0
       S.netRipple = 0
       S.rimGlow = 0
       ball.spin += 0.06
@@ -531,6 +534,7 @@ export function AuthDuel({ className }: { className?: string }) {
         const jq = p < 0.3 ? 0 : ((p - 0.3) / 0.7) * 0.55
         att.pelvisY = 0.96 + 0.5 * Math.sin(Math.PI * jq)
         att.crouch = p < 0.3 ? 0.62 - p : 0.18
+        att.footY = p < 0.3 ? 0 : Math.min(0.35, (att.pelvisY - 0.96) * 0.7)
         att.legAmp = 0
         att.stance = 0.4
         face(att, RIM.x, RIM.z)
@@ -558,6 +562,7 @@ export function AuthDuel({ className }: { className?: string }) {
         const jq = 0.55 + clamp01(p / 0.45) * 0.45
         att.pelvisY = 0.96 + 0.5 * Math.sin(Math.PI * jq)
         att.crouch = 0.22
+        att.footY = Math.max(0, 0.35 * (1 - clamp01(p / 0.85)))
         att.legAmp = 0
         att.stance = 0.4
         att.armL = "raise"
@@ -572,6 +577,7 @@ export function AuthDuel({ className }: { className?: string }) {
         def.z = defEndZ
         def.pelvisY = 0.96 + 0.42 * Math.sin(Math.PI * clamp01((p + 0.3) / 0.85))
         def.crouch = 0.2
+        def.footY = Math.max(0, 0.2 * (1 - clamp01(p / 0.8)))
         def.legAmp = 0
         def.stance = 0.7
         def.armR = "up"
