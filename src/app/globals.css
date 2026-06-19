@@ -88,13 +88,16 @@
   /* ─────────────────────────────────────────────────────────────
      SEMANTIC SURFACES — warm dark, single family, five elevations
      ───────────────────────────────────────────────────────────── */
-  --color-surface-0: oklch(0.085 0.008 56);
-  --color-surface-1: oklch(0.125 0.01 57);
-  --color-surface-2: oklch(0.17 0.012 58);
-  --color-surface-3: oklch(0.22 0.014 58);
-  --color-surface-4: oklch(0.27 0.016 58);
-  --color-hairline: oklch(1 0 0 / 0.08);
-  --color-hairline-strong: oklch(1 0 0 / 0.15);
+  /* Warm graphite elevations — calibrated against real sRGB: the floor reads
+     as warm charcoal (~#21190f) and cards sit a clear step up (~#312820),
+     deliberately well above pure black. */
+  --color-surface-0: oklch(0.215 0.014 56);
+  --color-surface-1: oklch(0.288 0.016 58);
+  --color-surface-2: oklch(0.33 0.018 58);
+  --color-surface-3: oklch(0.375 0.018 58);
+  --color-surface-4: oklch(0.42 0.018 58);
+  --color-hairline: oklch(1 0 0 / 0.11);
+  --color-hairline-strong: oklch(1 0 0 / 0.22);
 
   /* ─────────────────────────────────────────────────────────────
      TYPOGRAPHY — wired to next/font variables (set in layout.tsx)
@@ -352,28 +355,41 @@
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    background:
+    background-color: oklch(0.175 0.015 54);
+    background-image:
+      /* warm key light pooled over the centre column where content sits */
       radial-gradient(
-        ellipse 90% 50% at 50% -6%,
-        oklch(0.26 0.07 52 / 0.42),
-        transparent 60%
+        125% 80% at 50% -6%,
+        oklch(0.27 0.03 62 / 0.45),
+        transparent 62%
       ),
+      /* very soft vignette — adds depth without ever crushing edges to black */
       radial-gradient(
-        ellipse 70% 50% at 50% 108%,
-        oklch(0.2 0.06 40 / 0.28),
-        transparent 60%
+        130% 125% at 50% 42%,
+        transparent 60%,
+        oklch(0.12 0.012 48 / 0.4)
       ),
-      radial-gradient(
-        ellipse at top,
-        var(--color-court-950),
-        var(--color-ink-950) 74%
-      );
+      /* hardwood planks — visible-but-quiet floor texture across the viewport,
+         so the background reads everywhere; cards still sit well above it */
+      repeating-linear-gradient(
+        0deg,
+        oklch(1 0 0 / 0.03) 0 1px,
+        transparent 1px 46px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        oklch(1 0 0 / 0.016) 0 1px,
+        transparent 1px 210px
+      ),
+      /* the floor: warm dark graphite — dark enough that panels pop, warm and
+         textured enough that it never reads as a flat black void */
+      linear-gradient(180deg, oklch(0.2 0.016 56), oklch(0.16 0.014 50));
     background-attachment: fixed;
     color: var(--color-ink-100);
     font-family: var(--font-sans);
     font-feature-settings: "cv11", "ss01";
     min-height: 100dvh;
-    overflow-x: hidden;
+    overflow-x: clip;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -550,6 +566,29 @@
       );
   }
 
+  /* courtside floor — a faint hardwood grid that fades upward, used as the
+     footer of the hero and directory bands so sections sit "on a court" */
+  .bg-court-floor {
+    background-image:
+      linear-gradient(to right, oklch(1 0 0 / 0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, oklch(1 0 0 / 0.045) 1px, transparent 1px);
+    background-size: 54px 54px;
+    -webkit-mask-image: linear-gradient(to top, black, transparent 80%);
+    mask-image: linear-gradient(to top, black, transparent 80%);
+  }
+
+  /* the fixed, full-viewport court that sits behind the entire app */
+  .court-backdrop {
+    -webkit-mask-image:
+      linear-gradient(to bottom, transparent, #000 11%, #000 89%, transparent),
+      linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      linear-gradient(to bottom, transparent, #000 11%, #000 89%, transparent),
+      linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+    mask-composite: intersect;
+  }
+
   /* full-bleed — break out of parent max-width to span viewport */
   .full-bleed {
     width: 100dvw;
@@ -562,7 +601,9 @@
     background-color: var(--color-surface-1);
     border: 1px solid var(--color-hairline);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-elev-1);
+    box-shadow:
+      inset 0 1px 0 0 oklch(1 0 0 / 0.07),
+      0 12px 34px -18px oklch(0.02 0.02 50 / 0.8);
     transition:
       transform 0.45s var(--ease-fluid),
       box-shadow 0.45s var(--ease-fluid),
@@ -575,7 +616,7 @@
   }
   /* true glass: backdrop blur + inner edge highlight to fake refraction */
   .gh-glass {
-    background-color: oklch(0.125 0.01 57 / 0.62);
+    background-color: oklch(0.125 0.01 57 / 0.78);
     backdrop-filter: blur(16px) saturate(1.4);
     -webkit-backdrop-filter: blur(16px) saturate(1.4);
     border: 1px solid oklch(1 0 0 / 0.1);

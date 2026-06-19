@@ -30,7 +30,10 @@ export function TeamHero({
             "linear-gradient(90deg, transparent, var(--team-400), transparent)",
         }}
       />
-      <div aria-hidden className="pointer-events-none absolute inset-0 bg-dot-field opacity-40" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-dot-field opacity-40"
+      />
       <div
         aria-hidden
         className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 animate-breathe rounded-full opacity-30 blur-3xl"
@@ -54,7 +57,7 @@ export function TeamHero({
             ) : null}
           </div>
           <h1
-            className="mt-3 font-display text-4xl font-bold leading-[0.9] tracking-[-0.04em] sm:text-5xl md:text-6xl"
+            className="mt-3 break-words font-display text-4xl font-bold leading-[0.9] tracking-[-0.04em] sm:text-5xl md:text-6xl"
             style={{
               background:
                 "linear-gradient(120deg, var(--team-200), var(--team-400) 45%, var(--team-600))",
