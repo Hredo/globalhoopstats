@@ -37,7 +37,7 @@ export function SectionHeading({
       {description ? (
         <p
           className={cn(
-            "text-pretty text-base leading-relaxed text-ink-300 sm:text-lg",
+            "text-pretty text-base leading-relaxed text-ink-200 sm:text-lg",
             align === "center" ? "max-w-xl" : "max-w-2xl",
           )}
         >

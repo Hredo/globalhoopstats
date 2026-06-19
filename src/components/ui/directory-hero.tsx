@@ -31,7 +31,7 @@ export function DirectoryHero({
             </h1>
           </Reveal>
           <Reveal delay={0.12}>
-            <p className="mt-5 max-w-md text-pretty text-sm leading-relaxed text-ink-300 sm:text-base">
+            <p className="mt-5 max-w-md text-pretty text-sm leading-relaxed text-ink-200 sm:text-base">
               {description}
             </p>
           </Reveal>

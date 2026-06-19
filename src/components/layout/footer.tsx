@@ -42,7 +42,15 @@ export async function Footer() {
     arr.map((l) => ({ href: l.href, label: t(l.labelKey) }))
 
   return (
-    <footer className="relative mt-20 hairline-t sm:mt-28">
+    <footer className="relative mt-20 bg-surface-1/80 sm:mt-28">
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/40 to-transparent"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 bg-grid-fade opacity-30"
+      />
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16">
         <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div className="flex flex-col gap-4">
@@ -56,10 +64,10 @@ export async function Footer() {
                 globalhoopstats<span className="text-brand-500">.</span>
               </span>
             </Link>
-            <p className="max-w-xs text-sm leading-relaxed text-ink-400">
+            <p className="max-w-xs text-sm leading-relaxed text-ink-300">
               {t("footer.tagline")}
             </p>
-            <p className="mt-1 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-500">
+            <p className="mt-1 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-400">
               <span
                 aria-hidden
                 className={`relative inline-flex h-1.5 w-1.5 rounded-full ${
@@ -81,8 +89,13 @@ export async function Footer() {
           <FooterColumn title={t("footer.company")} links={localize(LEGAL)} />
         </div>
 
-        <div className="mt-12 flex flex-col gap-3 hairline-t pt-6 text-xs text-ink-500 sm:flex-row sm:items-center sm:justify-between">
-          <p>{t("footer.rights", { year: new Date().getFullYear(), name: SITE.name })}</p>
+        <div className="mt-12 flex flex-col gap-3 hairline-t pt-6 text-xs text-ink-400 sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            {t("footer.rights", { year: new Date().getFullYear(), name: SITE.name })}
+            <span className="ml-3 font-mono text-[10px] tracking-[0.12em] text-ink-500">
+              {t("footer.version", { version: "0.1.0" })}
+            </span>
+          </p>
           <p className="font-mono uppercase tracking-[0.16em]">
             NBA · EuroLeague · ACB · LEB Oro · LEB Plata · EBA
           </p>
@@ -101,10 +114,10 @@ function FooterColumn({
 }) {
   return (
     <div className="flex flex-col gap-3">
-      <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-500">
+      <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-400">
         {title}
       </p>
-      <nav className="flex flex-col gap-2.5 text-sm text-ink-300" aria-label={title}>
+      <nav className="flex flex-col gap-2.5 text-sm text-ink-200" aria-label={title}>
         {links.map((l) => (
           <Link
             key={l.href}

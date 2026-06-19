@@ -161,17 +161,15 @@ export default async function PlayerPage({ params }: Props) {
 
   return (
     <div
-      className="full-bleed relative pb-6 pt-6 sm:pb-10 sm:pt-10"
+      className="relative pb-6 pt-6 sm:pb-10 sm:pt-10"
       style={{ ["--lg" as string]: accent.color }}
     >
       <JsonLd data={structuredData} />
-      {/* soft wash in the player's league colour, over the global court */}
       <div
         aria-hidden
         className="pointer-events-none absolute -top-24 left-1/2 -z-10 h-80 w-[820px] -translate-x-1/2 rounded-[50%] opacity-25 blur-3xl"
         style={{ background: "var(--lg)" }}
       />
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
       <FadeIn>
         <Link
           href="/players"
@@ -234,7 +232,7 @@ export default async function PlayerPage({ params }: Props) {
           </aside>
         </FadeIn>
 
-        <div className="space-y-6 sm:space-y-8">
+        <div className="min-w-0 space-y-6 sm:space-y-8">
           <FadeIn>
             <header>
               <Eyebrow>
@@ -246,7 +244,7 @@ export default async function PlayerPage({ params }: Props) {
                 {profile.league.name} ·{" "}
                 {profile.team?.name ?? t("playerProfile.freeAgent")}
               </Eyebrow>
-              <h1 className="mt-3 font-display text-4xl font-bold leading-[0.9] tracking-[-0.04em] text-ink-50 sm:text-5xl md:text-6xl">
+              <h1 className="mt-3 break-words font-display text-4xl font-bold leading-[0.9] tracking-[-0.04em] text-ink-50 sm:text-5xl md:text-6xl">
                 {profile.fullName}
               </h1>
               {season ? (
@@ -349,7 +347,6 @@ export default async function PlayerPage({ params }: Props) {
 
           <PlayerAi slug={profile.slug} name={profile.fullName} />
         </div>
-      </div>
       </div>
     </div>
   )

@@ -48,7 +48,7 @@ export async function TrustBar() {
                 {t("home.trustBar.titleB")}
               </span>
             </h2>
-            <p className="mt-3 text-pretty text-sm text-ink-300 sm:text-[15px]">
+            <p className="mt-3 text-pretty text-sm text-ink-200 sm:text-[15px]">
               {t("home.trustBar.description")}
             </p>
           </div>

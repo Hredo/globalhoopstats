@@ -35,7 +35,7 @@ export default async function AccountLayout({
   const label = planLabel(plan)
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
+    <div className="py-8 sm:py-10">
       <header className="relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-ink-800/80 via-ink-900/80 to-ink-900/80 p-5 sm:p-6">
         {/* background handled globally by the fixed court backdrop */}
         <div className="relative flex items-center gap-4">
@@ -61,7 +61,7 @@ export default async function AccountLayout({
       </header>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[230px_minmax(0,1fr)]">
-        <aside className="lg:sticky lg:top-24 lg:self-start">
+        <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-xl border border-white/5 bg-ink-900/40 p-2">
             <AccountNav />
           </div>
