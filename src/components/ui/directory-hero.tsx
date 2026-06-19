@@ -18,14 +18,7 @@ export function DirectoryHero({
 }) {
   return (
     <header className="full-bleed relative isolate overflow-hidden pb-2 pt-10 sm:pt-14">
-      <div
-        aria-hidden
-        className="absolute -top-28 left-[-6%] -z-10 h-72 w-[640px] animate-aurora rounded-full bg-brand-500/12 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="absolute inset-x-0 -top-10 -z-10 h-72 bg-dot-field opacity-50"
-      />
+      {/* background handled globally by the fixed court backdrop */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
       <div className="flex flex-col gap-7 md:flex-row md:items-end md:justify-between">
         <div>
@@ -38,7 +31,7 @@ export function DirectoryHero({
             </h1>
           </Reveal>
           <Reveal delay={0.12}>
-            <p className="mt-5 max-w-md text-pretty text-sm leading-relaxed text-ink-300 sm:text-base">
+            <p className="mt-5 max-w-md text-pretty text-sm leading-relaxed text-ink-200 sm:text-base">
               {description}
             </p>
           </Reveal>

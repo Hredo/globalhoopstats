@@ -48,6 +48,7 @@ export const en = {
     synced: "Synced {ago}",
     syncPending: "Sync pending",
     rights: "© {year} {name}. All rights reserved.",
+    version: "v{version}",
     time: {
       justNow: "just now",
       seconds: "{n}s ago",
@@ -64,12 +65,14 @@ export const en = {
   home: {
     metaTitle: "globalhoopstats — NBA, EuroLeague & ACB basketball stats",
     hero: {
-      eyebrow: "v0.4 — six leagues, one engine",
-      titleLine1: "Hoops,",
-      titleLine2: "decoded.",
+      eyebrow: "Six leagues, one engine",
+      titleLine1: "AI-driven player",
+      titleLine2: "comparison.",
       description:
-        "The scouting console for serious analysts. Box scores, advanced splits, AI analysis and side-by-side comparisons from the NBA, EuroLeague, ACB and Spain's FEB ladder — every player on one scale, in one language.",
-      browseDatabase: "Browse the database",
+        "Ask the AI advisor, compare across six leagues, and export boardroom-ready reports. All in one workspace.",
+      browseDatabase: "Browse players",
+      comparePlayers: "Compare players",
+      aiAdvisor: "AI Advisor",
     },
     stats: {
       leaguesLive: "Leagues live",
@@ -78,9 +81,14 @@ export const en = {
       toCompare: "To compare any two",
     },
     ticker: { topPerformers: "Top performers" },
+    mockup: {
+      compare: "Compare",
+      verdict: "AI Verdict",
+      verdictText: "Luka Dončić wins the statistical comparison with higher PER and rebounding, while Shai Gilgeous-Alexander keeps pace in playmaking. Both elite — Dončić edges it on volume.",
+    },
     gallery: {
       aria: "From box score to verdict",
-      eyebrow: "The pipeline",
+      eyebrow: "How it works",
       titleA: "From box score to",
       titleB: "verdict.",
       p1Title: "Six leagues, one feed.",
@@ -104,7 +112,7 @@ export const en = {
       oneScale: "one scale",
     },
     bento: {
-      eyebrow: "Inside the console",
+      eyebrow: "What you can do",
       titleA: "Everything a scout opens",
       titleB: "before tip-off.",
       description:
@@ -174,7 +182,7 @@ export const en = {
       },
     },
     features: {
-      eyebrow: "What's inside",
+      eyebrow: "Three ways to scout",
       titleA: "One console.",
       titleB: "Three workflows.",
       description:
@@ -210,6 +218,39 @@ export const en = {
       axes: "radar · 6 axes",
       playerA: "Player A",
       playerB: "Player B",
+    },
+    mobileInstall: {
+      eyebrow: "Take it with you",
+      titleA: "Your console,",
+      titleB: "in your pocket.",
+      description:
+        "GlobalHoopStats is a progressive web app — install it on your home screen and it behaves exactly like a native app. No app store, no download, no data loss.",
+      step1Title: "Open in your browser",
+      step1Desc: "Navigate to globalhoopstats.es from Safari (iOS) or Chrome (Android).",
+      step2Title: "Tap the share icon",
+      step2Desc: "On iOS tap the Share button (square with arrow). On Android tap the three-dot menu.",
+      step3Title: "Find Add to Home Screen",
+      step3Desc: "Scroll the share sheet and select \"Add to Home Screen\" — it's usually near the bottom.",
+      step4Title: "Name and confirm",
+      step4Desc: "The name defaults to \"globalhoopstats\" — tap Add in the top corner and it appears on your home screen.",
+      cta: "Try it now",
+      ios: "iOS",
+      android: "Android",
+    },
+    testimonials: {
+      eyebrow: "From the floor",
+      titleA: "Built for",
+      titleB: "scouts who need answers.",
+    },
+    emailSubscribe: {
+      eyebrow: "Stay sharp",
+      title: "One stat drop a week.",
+      description:
+        "New leagues, feature updates and the occasional deep dive. No spam — we hate it too.",
+      placeholder: "you@team.com",
+      button: "Subscribe",
+      success: "You're in. Check your inbox.",
+      error: "Something went wrong.",
     },
   },
   account: {
