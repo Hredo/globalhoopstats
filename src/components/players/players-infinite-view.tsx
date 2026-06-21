@@ -10,7 +10,10 @@ type Player = {
   id: string
   fullName: string
   slug: string
+  nationality: string | null
   position: string | null
+  heightCm: number | null
+  weightKg: number | null
   imageUrl: string | null
   league: { name: string; slug: string }
   team: {
@@ -24,9 +27,12 @@ type Player = {
     pointsTotal: number | null
     reboundsTotal: number | null
     assistsTotal: number | null
+    stealsTotal: number | null
+    blocksTotal: number | null
     fgPct: number | null
     threePct: number | null
     ftPct: number | null
+    per: number | null
   } | null
 }
 
@@ -99,8 +105,6 @@ export function PlayersInfiniteView({
     rootMargin: "0px 0px 400px 0px",
   })
 
-  const ranked = sort !== "name"
-
   if (items.length === 0) {
     return (
       <div className="gh-card flex flex-col items-center justify-center px-6 py-20 text-center">
@@ -148,7 +152,7 @@ export function PlayersInfiniteView({
             }}
             transition={{ duration: 0.35, ease: "easeOut" }}
           >
-            <PlayerCardElegant player={p} rank={ranked ? i + 1 : undefined} />
+            <PlayerCardElegant player={p} />
           </motion.li>
         ))}
       </motion.ul>

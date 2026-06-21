@@ -58,6 +58,7 @@ function decodeEntities(s: string): string {
     .replace(/&amp;/g, "&").replace(/&aacute;/g, "á").replace(/&eacute;/g, "é")
     .replace(/&iacute;/g, "í").replace(/&oacute;/g, "ó").replace(/&uacute;/g, "ú")
     .replace(/&ntilde;/g, "ñ").replace(/&Ntilde;/g, "Ñ").replace(/&uuml;/g, "ü")
+    .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, " ").replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
 }
 
@@ -105,12 +106,21 @@ function teamSelect(selects: Select[]) {
   )
 }
 
-function regularPhase(selects: Select[]): { name: string; value: string } | undefined {
-  for (const s of selects) {
-    const opt = s.options.find((o) => /regular/i.test(o.text) && /^-?\d+$/.test(o.value))
-    if (opt) return { name: s.name, value: opt.value }
-  }
-  return undefined
+function groupSelect(selects: Select[]): Select | undefined {
+  return selects.find((s) => s.name.endsWith("gruposDropDownList"))
+}
+
+/**
+ * The regular-season group(s) of a competition. Segunda FEB splits into two
+ * conferences ("Liga Regular ESTE/OESTE") and Tercera FEB (Liga EBA) into ten
+ * regional groups ("Liga Regular A-A" … "E-B"); Primera FEB has a single
+ * "Liga Regular Único". We scrape all of them — the playoff/permanencia phases
+ * the dropdown also lists only repeat a handful of qualified teams.
+ */
+function regularGroups(selects: Select[]): Array<{ value: string; text: string }> {
+  return (groupSelect(selects)?.options ?? []).filter((o) =>
+    /liga\s+regular/i.test(o.text) && /^-?\d+$/.test(o.value),
+  )
 }
 
 function buildPostBody(hiddens: Hiddens, selects: Select[], eventTarget: string, overrides: Record<string, string>): string {
@@ -360,47 +370,64 @@ type FebData = {
   statLines: FebStatLines
 }
 
-async function collectData(cfg: FebConfig): Promise<FebData> {
-  const url = `${BASE}/rankings.aspx?g=${cfg.g}&t=${SEASON_T}&nm=${cfg.nm}`
-  const firstHtml = await fetchText(url)
-  let hiddens = parseHiddens(firstHtml)
-  let selects = parseSelects(firstHtml)
-  const phase = regularPhase(selects)
-  let regHtml = firstHtml
-  if (phase) {
-    regHtml = await fetchText(url, {
-      method: "POST",
-      body: buildPostBody(hiddens, selects, phase.name, { [phase.name]: phase.value }),
-    })
-    hiddens = parseHiddens(regHtml)
-    selects = parseSelects(regHtml)
-  }
-  const points = parsePointsRanking(regHtml)
+type FebAcc = {
+  byPlayer: Map<string, FebPlayer>
+  points: Map<string, PointLine>
+  teamMeta: Map<string, FebTeamMeta>
+  statLines: FebStatLines
+}
+
+/**
+ * Scrape one regular-season group: select it via a postback, then pull every
+ * team's roster, the full counting+shooting categories and the Equipo.aspx
+ * bio/club/coach enrichment. Results accumulate into `acc`, so a player who
+ * appears in more than one group (rare mid-season transfer between regional
+ * groups) simply keeps their latest row — license ids are unique per person.
+ */
+async function collectGroup(
+  url: string,
+  cfg: FebConfig,
+  baseHiddens: Hiddens,
+  baseSelects: Select[],
+  groupName: string,
+  group: { value: string; text: string },
+  acc: FebAcc,
+): Promise<void> {
+  // Selecting the group is itself a postback; everything afterwards must keep
+  // the group pinned, so it rides along as an override on every request.
+  const groupOverride: Record<string, string> = { [groupName]: group.value }
+  await politePause()
+  const regHtml = await fetchText(url, {
+    method: "POST",
+    body: buildPostBody(baseHiddens, baseSelects, groupName, groupOverride),
+  })
+  const hiddens = parseHiddens(regHtml)
+  const selects = parseSelects(regHtml)
+
+  for (const [id, line] of parsePointsRanking(regHtml)) acc.points.set(id, line)
+
   const teams = teamSelect(selects)
   const teamOptions = (teams?.options ?? []).filter((o) => isTeamOption(o.value))
-  const teamMeta = new Map<string, FebTeamMeta>()
-  const statLines: FebStatLines = new Map()
   if (!teams || teamOptions.length === 0) {
-    return { players: [], points, teamMeta, statLines }
+    console.warn(`[feb:${cfg.id}] ${group.text}: no teams found`)
+    return
   }
-  const phaseAfter = regularPhase(selects)
   const categorySelect = findSelect(selects, (s) =>
     s.options.some((o) => /rebotes totales/i.test(o.text)),
   )
-  const byPlayer = new Map<string, FebPlayer>()
+
+  // Rosters (one postback per team).
   for (const opt of teamOptions) {
     try {
       await politePause()
-      const overrides: Record<string, string> = { [teams.name]: opt.value }
-      if (phaseAfter) overrides[phaseAfter.name] = phaseAfter.value
       const html = await fetchText(url, {
         method: "POST",
-        body: buildPostBody(hiddens, selects, teams.name, overrides),
+        body: buildPostBody(hiddens, selects, teams.name, { ...groupOverride, [teams.name]: opt.value }),
       })
-      for (const p of parseRoster(html, opt.value, opt.text)) byPlayer.set(p.playerId, p)
+      for (const p of parseRoster(html, opt.value, opt.text)) acc.byPlayer.set(p.playerId, p)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      console.warn(`[feb:${cfg.id}] team ${opt.value} failed: ${msg}`)
+      console.warn(`[feb:${cfg.id}] ${group.text} team ${opt.value} failed: ${msg}`)
     }
   }
 
@@ -408,42 +435,37 @@ async function collectData(cfg: FebConfig): Promise<FebData> {
   // open ranking view only lists the top 30, but filtering by team returns
   // every player of that club for the chosen category.
   if (categorySelect) {
-    for (const [key, catValue] of Object.entries(STAT_CATEGORIES) as Array<
-      [StatCategoryKey, string]
-    >) {
+    for (const [key, catValue] of Object.entries(STAT_CATEGORIES) as Array<[StatCategoryKey, string]>) {
       let rows = 0
       for (const opt of teamOptions) {
         try {
           await politePause()
-          const overrides: Record<string, string> = {
-            [teams.name]: opt.value,
-            [categorySelect.name]: catValue,
-          }
-          if (phaseAfter) overrides[phaseAfter.name] = phaseAfter.value
           const html = await fetchText(url, {
             method: "POST",
-            body: buildPostBody(hiddens, selects, teams.name, overrides),
+            body: buildPostBody(hiddens, selects, teams.name, {
+              ...groupOverride,
+              [teams.name]: opt.value,
+              [categorySelect.name]: catValue,
+            }),
           })
           for (const [playerId, line] of parseCategoryRows(html)) {
-            let lines = statLines.get(playerId)
+            let lines = acc.statLines.get(playerId)
             if (!lines) {
               lines = {}
-              statLines.set(playerId, lines)
+              acc.statLines.set(playerId, lines)
             }
             lines[key] = line
             rows++
           }
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err)
-          console.warn(
-            `[feb:${cfg.id}] category ${key} team ${opt.value} failed: ${msg}`,
-          )
+          console.warn(`[feb:${cfg.id}] ${group.text} category ${key} team ${opt.value} failed: ${msg}`)
         }
       }
-      console.log(`[feb:${cfg.id}] category ${key}: ${rows} rows`)
+      console.log(`[feb:${cfg.id}] ${group.text} category ${key}: ${rows} rows`)
     }
   } else {
-    console.warn(`[feb:${cfg.id}] category select not found — stats limited to points`)
+    console.warn(`[feb:${cfg.id}] ${group.text}: category select not found — stats limited to points`)
   }
 
   // Bio/club enrichment: one Equipo.aspx page per team covers its current
@@ -453,9 +475,9 @@ async function collectData(cfg: FebConfig): Promise<FebData> {
     try {
       await politePause()
       const html = await fetchText(`${BASE}/Equipo.aspx?i=${opt.value}`)
-      teamMeta.set(opt.value, parseTeamMeta(html))
+      acc.teamMeta.set(opt.value, parseTeamMeta(html))
       for (const [playerId, bio] of parseTeamRoster(html)) {
-        const p = byPlayer.get(playerId)
+        const p = acc.byPlayer.get(playerId)
         if (p) {
           mergeBio(p, bio)
           rosterHits++
@@ -463,14 +485,43 @@ async function collectData(cfg: FebConfig): Promise<FebData> {
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      console.warn(`[feb:${cfg.id}] equipo ${opt.value} failed: ${msg}`)
+      console.warn(`[feb:${cfg.id}] ${group.text} equipo ${opt.value} failed: ${msg}`)
     }
+  }
+  console.log(
+    `[feb:${cfg.id}] ${group.text}: ${teamOptions.length} teams · roster bio matched ${rosterHits}`,
+  )
+}
+
+async function collectData(cfg: FebConfig): Promise<FebData> {
+  const url = `${BASE}/rankings.aspx?g=${cfg.g}&t=${SEASON_T}&nm=${cfg.nm}`
+  const firstHtml = await fetchText(url)
+  const baseHiddens = parseHiddens(firstHtml)
+  const baseSelects = parseSelects(firstHtml)
+  const acc: FebAcc = {
+    byPlayer: new Map(),
+    points: new Map(),
+    teamMeta: new Map(),
+    statLines: new Map(),
+  }
+
+  const groupSel = groupSelect(baseSelects)
+  const groups = regularGroups(baseSelects)
+  if (!groupSel || groups.length === 0) {
+    console.warn(`[feb:${cfg.id}] no "Liga Regular" group found — nothing scraped`)
+    return { players: [], points: acc.points, teamMeta: acc.teamMeta, statLines: acc.statLines }
+  }
+  console.log(
+    `[feb:${cfg.id}] ${groups.length} regular-season group(s): ${groups.map((g) => g.text).join(" · ")}`,
+  )
+  for (const group of groups) {
+    await collectGroup(url, cfg, baseHiddens, baseSelects, groupSel.name, group, acc)
   }
 
   // Ranked players already gone from their team's roster (transfers): fall
   // back to their own page. The i= param must be the team the license is
   // registered with, which is exactly the team their ranking row linked.
-  const leftovers = [...byPlayer.values()].filter((p) => !p.position && !p.nationality)
+  const leftovers = [...acc.byPlayer.values()].filter((p) => !p.position && !p.nationality)
   for (const p of leftovers) {
     try {
       await politePause()
@@ -482,10 +533,15 @@ async function collectData(cfg: FebConfig): Promise<FebData> {
     }
   }
   console.log(
-    `[feb:${cfg.id}] bio enrichment — roster rows matched: ${rosterHits} · ` +
-      `team pages: ${teamMeta.size}/${teamOptions.length} · player-page fallbacks: ${leftovers.length}`,
+    `[feb:${cfg.id}] collected ${acc.byPlayer.size} players · ${acc.teamMeta.size} teams · ` +
+      `player-page fallbacks: ${leftovers.length}`,
   )
-  return { players: [...byPlayer.values()], points, teamMeta, statLines }
+  return {
+    players: [...acc.byPlayer.values()],
+    points: acc.points,
+    teamMeta: acc.teamMeta,
+    statLines: acc.statLines,
+  }
 }
 
 export function createFebAdapter(cfg: FebConfig): SourceAdapter {

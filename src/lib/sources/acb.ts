@@ -7,7 +7,7 @@ import {
   type ExtractedPlayerStat,
   SOURCE_META,
 } from "@/lib/sources/types"
-import { parseHeightToCm } from "@/lib/sync/slug"
+import { parseBirthdate, parseHeightToCm } from "@/lib/sync/slug"
 
 const ACB_BASE = "https://www.acb.com"
 const ACB_LIGA = "/es/liga"
@@ -286,6 +286,9 @@ function mapPlayer(raw: Raw, teamSourceId: string): SourcePlayer | null {
   return {
     sourceId: `acb-${id}`,
     fullName,
+    birthdate: parseBirthdate(
+      pickString(raw, ["birthDate", "birthday", "fechaNacimiento", "born"]),
+    ),
     nationality: pickString(raw, ["nationalityCountry"]) ?? undefined,
     position: pickString(p, ["gameRole"]) ?? undefined,
     jerseyNumber: pickString(p, ["shirtNumber"]) ?? undefined,
@@ -411,6 +414,13 @@ async function fetchAllRosters(teams: AcbTeam[]): Promise<Map<string, Roster>> {
   return out
 }
 
+/** Normalises ACB team names that differ from the EuroLeague / BR counterpart so
+ *  the orchestrator's `slugify` produces the same slug for the same club. */
+const SHARED_TEAM_NAME: Partial<Record<string, string>> = {
+  "Barça": "Barcelona",
+  "Kosner Baskonia": "Baskonia",
+}
+
 export const acbAdapter: SourceAdapter = {
   id: "acb",
   displayName: SOURCE_META.acb.displayName,
@@ -425,7 +435,7 @@ export const acbAdapter: SourceAdapter = {
       const r = data.get(t.sourceId)
       return {
         sourceId: t.sourceId,
-        name: t.name,
+        name: SHARED_TEAM_NAME[t.name] ?? t.name,
         shortName: t.shortName,
         country: "ES",
         logoUrl: t.logoUrl,
@@ -572,14 +582,25 @@ export const acbAdapter: SourceAdapter = {
       const ast = Number(cells.get("ast_per_g")) || 0
       const stl = Number(cells.get("stl_per_g")) || 0
       const blk = Number(cells.get("blk_per_g")) || 0
-      const fgm = Number(cells.get("fg")) || 0
-      const fga = Number(cells.get("fga")) || 0
-      const threeM = Number(cells.get("fg3")) || 0
-      const threeA = Number(cells.get("fg3a")) || 0
-      const ftm = Number(cells.get("ft")) || 0
-      const fta = Number(cells.get("fta")) || 0
+      const fgmPct = Number(cells.get("fg_per_g")) || 0
+      const fgaPct = Number(cells.get("fga_per_g")) || 0
+      const threeMPct = Number(cells.get("fg3_per_g")) || 0
+      const threeAPct = Number(cells.get("fg3a_per_g")) || 0
+      const ftmPct = Number(cells.get("ft_per_g")) || 0
+      const ftaPct = Number(cells.get("fta_per_g")) || 0
+      const orbPct = Number(cells.get("orb_per_g")) || 0
+      const drbPct = Number(cells.get("drb_per_g")) || 0
+      const pfPct = Number(cells.get("pf_per_g")) || 0
+      const fgaTotal = Math.round(fgaPct * g)
+      const ftaTotal = Math.round(ftaPct * g)
       const tsPct =
-        fga > 0 ? Number((pts / (2 * (fga + 0.44 * fta))).toFixed(3)) : null
+        fgaTotal > 0
+          ? Number(
+              (Math.round(pts * g) / (2 * (fgaTotal + 0.44 * ftaTotal))).toFixed(
+                3,
+              ),
+            )
+          : null
       out.push({
         playerSourceId: acbId,
         season: SEASON_YEAR,
@@ -591,15 +612,15 @@ export const acbAdapter: SourceAdapter = {
         assistsTotal: Math.round(ast * g),
         stealsTotal: Math.round(stl * g),
         blocksTotal: Math.round(blk * g),
-        fgMade: Math.round(fgm * g),
-        fgAttempted: Math.round(fga * g),
-        threeMade: Math.round(threeM * g),
-        threeAttempted: Math.round(threeA * g),
-        ftMade: Math.round(ftm * g),
-        ftAttempted: Math.round(fta * g),
-        offensiveRebounds: null,
-        defensiveRebounds: null,
-        foulsTotal: null,
+        fgMade: Math.round(fgmPct * g),
+        fgAttempted: fgaTotal,
+        threeMade: Math.round(threeMPct * g),
+        threeAttempted: Math.round(threeAPct * g),
+        ftMade: Math.round(ftmPct * g),
+        ftAttempted: ftaTotal,
+        offensiveRebounds: Math.round(orbPct * g),
+        defensiveRebounds: Math.round(drbPct * g),
+        foulsTotal: Math.round(pfPct * g),
         plusMinus: null,
         per: null,
         trueShootingPct: tsPct,

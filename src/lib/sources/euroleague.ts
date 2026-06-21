@@ -11,6 +11,7 @@ import {
   brSlugToEuroleagueCode,
   euroleagueTeamLogoUrl,
 } from "@/lib/sources/euroleague-teams"
+import { EUROLEAGUE_COACHES_2025_26 } from "@/lib/sources/euroleague-static"
 import {
   parseBirthdate,
   parseHeightToCm,
@@ -100,6 +101,29 @@ function extractTeamSlug(href: string | undefined): string | undefined {
   return m ? m[1] : undefined
 }
 
+/** Canonical names keyed by EuroLeague team code — keeps slugs stable across BR naming changes. */
+const CANONICAL_TEAM_NAMES: Record<string, string> = {
+  BER: "ALBA Berlin",
+  IST: "Anadolu Efes",
+  MCO: "AS Monaco",
+  BAS: "Baskonia",
+  RED: "Crvena zvezda Meridianbet",
+  MIL: "EA7 Emporio Armani Milano",
+  BAR: "Barcelona",
+  MUN: "Bayern München",
+  ULK: "Fenerbahçe Beko",
+  ASV: "LDLC ASVEL",
+  TEL: "Maccabi Playtika Tel Aviv",
+  OLY: "Olympiacos",
+  PAN: "Panathinaikos AKTOR",
+  PRS: "Paris Basketball",
+  PAR: "Partizan Mozzart Bet",
+  MAD: "Real Madrid",
+  VIR: "Virtus Segafredo Bologna",
+  ZAL: "Žalgiris",
+  VAL: "Valencia Basket",
+}
+
 export const euroleagueAdapter: SourceAdapter = {
   id: "euroleague",
   displayName: SOURCE_META.euroleague.displayName,
@@ -126,7 +150,7 @@ export const euroleagueAdapter: SourceAdapter = {
       seen.add(teamCode)
       out.push({
         sourceId: teamCode,
-        name,
+        name: CANONICAL_TEAM_NAMES[teamCode] ?? name,
         country: "EU",
         logoUrl: euroleagueTeamLogoUrl(teamCode),
       })
@@ -262,6 +286,21 @@ export const euroleagueAdapter: SourceAdapter = {
         role: normalizedRole,
         teamSourceId: teamCode,
       })
+    }
+    if (out.length > 0) return out
+    // BR has no coaches table for EuroLeague — fall back to static data.
+    for (const [teamCode, coaches] of Object.entries(EUROLEAGUE_COACHES_2025_26)) {
+      for (const c of coaches) {
+        const key = `${teamCode}-${c.fullName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        out.push({
+          sourceId: key,
+          fullName: c.fullName,
+          role: c.role,
+          teamSourceId: teamCode,
+        })
+      }
     }
     return out
   },

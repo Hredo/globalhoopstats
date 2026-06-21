@@ -43,13 +43,10 @@ export async function TeamStaffList({ staff }: Props) {
   }
   return (
     <div
-      className="team-staff-list space-y-5 rounded-2xl border p-5 lg:sticky lg:top-24"
+      className="team-staff-list space-y-5 rounded-2xl border border-hairline bg-surface-1 p-5 shadow-[var(--shadow-elev-1)] lg:sticky lg:top-24"
       style={{
         borderColor:
-          "color-mix(in oklch, var(--team-500) 30%, rgba(255,255,255,0.06))",
-        background:
-          "color-mix(in oklch, var(--team-500) 5%, rgba(255,255,255,0.02))",
-        boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.02)",
+          "color-mix(in oklch, var(--team-500) 20%, var(--color-hairline))",
       }}
     >
       <div className="flex items-center justify-between">

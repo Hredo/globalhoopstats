@@ -139,10 +139,28 @@ export function parseCookie(cookieHeader: string | null, name: string): string |
 
 export const TRUST_COOKIE = "ghs_trust"
 
-export function signTrustToken(userId: string): string {
+/**
+ * Short tag derived from the user's current password hash. Embedding it in the
+ * "remember this device" (2FA bypass) token makes the token implicitly
+ * revocable: any password change or reset rotates the hash, which invalidates
+ * every previously issued trust cookie — no extra DB table required.
+ */
+function trustBinding(passwordHash: string): string {
+  return createHmac("sha256", getSecret())
+    .update(`trust-binding|${passwordHash}`)
+    .digest("hex")
+    .slice(0, 16)
+}
+
+export function signTrustToken(userId: string, passwordHash: string): string {
   const now = Math.floor(Date.now() / 1000)
   const exp = now + 30 * 24 * 60 * 60
-  const payload = JSON.stringify({ sub: userId, iat: now, exp })
+  const payload = JSON.stringify({
+    sub: userId,
+    iat: now,
+    exp,
+    pv: trustBinding(passwordHash),
+  })
   const payloadB64 = b64url(Buffer.from(payload))
   const sig = b64url(
     createHmac("sha256", getSecret()).update(payloadB64).digest(),
@@ -152,8 +170,10 @@ export function signTrustToken(userId: string): string {
 
 export function verifyTrustToken(
   token: string | undefined | null,
+  passwordHash: string,
 ): { userId: string } | null {
   if (!token || typeof token !== "string") return null
+  if (!passwordHash) return null
   const parts = token.split(".")
   if (parts.length !== 2) return null
   const [payloadB64, sig] = parts
@@ -164,7 +184,7 @@ export function verifyTrustToken(
   const got = b64urlDecode(sig)
   if (expected.length !== got.length) return null
   if (!timingSafeEqual(expected, got)) return null
-  let payload: { sub: string; exp: number }
+  let payload: { sub: string; exp: number; pv?: string }
   try {
     payload = JSON.parse(b64urlDecode(payloadB64).toString("utf-8"))
   } catch {
@@ -173,6 +193,12 @@ export function verifyTrustToken(
   if (!payload || typeof payload.sub !== "string" || typeof payload.exp !== "number")
     return null
   if (payload.exp <= Math.floor(Date.now() / 1000)) return null
+  // Reject tokens minted against an older password hash (revocation on reset).
+  const expectedBinding = trustBinding(passwordHash)
+  if (typeof payload.pv !== "string" || payload.pv.length !== expectedBinding.length)
+    return null
+  if (!timingSafeEqual(Buffer.from(payload.pv), Buffer.from(expectedBinding)))
+    return null
   return { userId: payload.sub }
 }
 
