@@ -6,6 +6,7 @@ import { Footer } from "@/components/layout/footer"
 import { LazyCommandPalette } from "@/components/players/lazy-command-palette"
 import { CookieConsent } from "@/components/layout/cookie-consent"
 import { JsonLd } from "@/components/marketing/json-ld"
+import { SerwistProvider } from "@serwist/turbopack/react"
 
 import { SITE, SEO_KEYWORDS } from "@/lib/site"
 import { getLocale } from "@/lib/i18n/server"
@@ -139,6 +140,7 @@ export default async function RootLayout({
           />
         </div>
         <LocaleProvider locale={locale} dict={dict}>
+        <SerwistProvider swUrl="/serwist/sw.js">
         <JsonLd
           data={[
             {
@@ -186,6 +188,7 @@ export default async function RootLayout({
         <LazyCommandPalette />
         <Footer />
         <CookieConsent />
+        </SerwistProvider>
         </LocaleProvider>
       </body>
     </html>

@@ -296,3 +296,28 @@ export const EUROLEAGUE_COACHES_2024_25: Record<string, EuroleagueCoach[]> = {
     },
   ],
 }
+
+// Coach data for EuroLeague 2025-26 (E2025), fetched from incrowdsports API
+export const EUROLEAGUE_COACHES_2025_26: Record<string, EuroleagueCoach[]> = {
+  MAD: [{ fullName: "Sergio Scariolo", role: "head_coach", nationality: "Italy" }],
+  BAR: [{ fullName: "Xavi Pascual", role: "head_coach", nationality: "Spain" }],
+  IST: [{ fullName: "Pablo Laso", role: "head_coach", nationality: "Spain" }],
+  ULK: [{ fullName: "Šarūnas Jasikevičius", role: "head_coach", nationality: "Lithuania" }],
+  OLY: [{ fullName: "Georgios Bartzokas", role: "head_coach", nationality: "Greece" }],
+  PAN: [{ fullName: "Ergin Ataman", role: "head_coach", nationality: "Turkey" }],
+  MCO: [{ fullName: "Manuchar Markoishvili", role: "head_coach", nationality: "Georgia" }],
+  MUN: [{ fullName: "Svetislav Pešić", role: "head_coach", nationality: "Serbia" }],
+  MIL: [{ fullName: "Giuseppe Poeta", role: "head_coach", nationality: "Italy" }],
+  VIR: [{ fullName: "Nenad Jakovljević", role: "head_coach", nationality: "Serbia" }],
+  BAS: [{ fullName: "Paolo Galbiati", role: "head_coach", nationality: "Italy" }],
+  ASV: [{ fullName: "Pierric Poupet", role: "head_coach", nationality: "France" }],
+  PAM: [{ fullName: "Pedro Martínez", role: "head_coach", nationality: "Spain" }],
+  VAL: [{ fullName: "Pedro Martínez", role: "head_coach", nationality: "Spain" }],
+  ZAL: [{ fullName: "Tomas Masiulis", role: "head_coach", nationality: "Lithuania" }],
+  TEL: [{ fullName: "Oded Kattash", role: "head_coach", nationality: "Israel" }],
+  PAR: [{ fullName: "Joan Peñarroya", role: "head_coach", nationality: "Spain" }],
+  RED: [{ fullName: "Saša Obradović", role: "head_coach", nationality: "Serbia" }],
+  PRS: [{ fullName: "Julius Thomas", role: "head_coach", nationality: "France" }],
+  HTA: [{ fullName: "Dimitris Itoudis", role: "head_coach", nationality: "Greece" }],
+  DUB: [{ fullName: "Aleksander Sekulić", role: "head_coach", nationality: "Slovenia" }],
+}

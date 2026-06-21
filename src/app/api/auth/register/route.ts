@@ -115,17 +115,14 @@ export async function POST(request: Request) {
   const sessionId = newSessionId()
   const ttlMs = getSessionTtlMs()
   const expiresAt = new Date(Date.now() + ttlMs)
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    null
+  const ip = clientIp(request)
   const ua = request.headers.get("user-agent") ?? null
   await db.insert(sessions).values({
     id: sessionId,
     userId: id,
     expiresAt,
     userAgent: ua ? ua.slice(0, 250) : null,
-    ip: ip ? ip.slice(0, 60) : null,
+    ip: ip !== "unknown" ? ip.slice(0, 60) : null,
   })
 
   // Welcome email — best-effort, never blocks or fails the signup.

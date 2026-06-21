@@ -14,6 +14,7 @@ export const en = {
     pro: "Beta",
     skipToContent: "Skip to content",
     loading: "Loading…",
+    back: "Back",
   },
   language: {
     label: "Language",
@@ -373,13 +374,13 @@ export const en = {
     },
     leagues: {
       eyebrow: "Coverage",
-      titleA: "League",
-      titleB: "hubs.",
+      titleA: "Every league,",
+      titleB: "at a glance.",
       description:
-        "Six professional leagues, one scouting engine. Each hub shows the current season, the top three scorers and direct jumps into the player and team directories.",
+        "Six pro leagues, one scouting engine. Each card pairs the live season with team, player and coach counts and the current per-game leaders in points, assists, rebounds and three-point shooting — plus one-tap links into every roster and player.",
       metaTitle: "Leagues",
       metaDescription:
-        "NBA, EuroLeague and Liga ACB — coverage, season leaders and top scorers for every league in our database.",
+        "Explore every league we cover — NBA, EuroLeague, Liga ACB and Spain's FEB ladder (LEB Oro, LEB Plata, EBA). Per-game leaders in points, assists, rebounds and three-point shooting, with team, player and coach counts.",
       statLeaguesLive: "leagues live",
       statPlayersIndexed: "players indexed",
       statTeamsTracked: "teams tracked",
@@ -524,6 +525,7 @@ export const en = {
     noSeasonStats: "No season stats on record for this player yet.",
     compareWith: "Compare with",
     highlights: "Highlights",
+    switchLeague: "Switch league",
   },
   teamProfile: {
     notFound: "Team not found",
@@ -532,6 +534,7 @@ export const en = {
     backToTeams: "Back to teams",
     roster: "Roster",
     currentSeason: "Current season",
+    switchLeague: "Switch league",
     noPlayers: "No players found for this team in the current season.",
     showAll: "Show all {n} players",
     staffUnavailable: "Staff data not available for this team.",

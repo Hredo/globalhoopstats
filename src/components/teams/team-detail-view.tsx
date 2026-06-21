@@ -3,6 +3,7 @@ import { TeamHero } from "@/components/teams/team-hero"
 import { TeamRosterGrid } from "@/components/teams/team-roster-grid"
 import { TeamStaffList } from "@/components/teams/team-staff-list"
 import { TeamThemeScope } from "@/components/teams/team-theme-scope"
+import { buildTeamPalette, LEAGUE_BASE_COLORS } from "@/lib/theme/team-color"
 import { getT } from "@/lib/i18n/server"
 
 type Props = {
@@ -13,27 +14,67 @@ type Props = {
     logoUrl: string | null
     city: string | null
     league: { name: string; slug: string; region: string }
-    roster: Parameters<typeof TeamRosterGrid>[0]["players"]
-    staff: Parameters<typeof TeamStaffList>[0]["staff"]
+    availableLeagues: { name: string; slug: string; region: string }[]
+    roster: Array<{
+      id: string
+      fullName: string
+      slug: string
+      nationality: string | null
+      position: string | null
+      heightCm: number | null
+      weightKg: number | null
+      imageUrl: string | null
+      league: { name: string; slug: string }
+      team: { name: string; logoUrl: string | null } | null
+      stats: {
+        seasonName: string
+        gamesPlayed: number
+        pointsTotal: number | null
+        reboundsTotal: number | null
+        assistsTotal: number | null
+        stealsTotal: number | null
+        blocksTotal: number | null
+        fgPct: number | null
+        threePct: number | null
+        ftPct: number | null
+        per: number | null
+      } | null
+    }>
+    staff: Array<{
+      id: string
+      fullName: string
+      slug: string
+      role: "head_coach" | "assistant_coach" | "staff"
+      nationality: string | null
+      age: number | null
+      photoUrl: string | null
+      league: { id: string; name: string; slug: string; region: string }
+      team: { id: string; name: string; slug: string; logoUrl: string | null }
+    }>
   }
 }
 
 export async function TeamDetailView({ team }: Props) {
-  const palette = null
+  const baseHex = LEAGUE_BASE_COLORS[team.league.slug] ?? "#CC6B2C"
+  const palette = buildTeamPalette(baseHex, team.league.slug)
   const { t } = await getT()
+
   return (
     <TeamThemeScope palette={palette}>
       <div className="team-detail-page py-8">
         <FadeIn>
           <TeamHero
             name={team.name}
+            slug={team.slug}
             logoUrl={team.logoUrl}
             league={team.league}
+            availableLeagues={team.availableLeagues}
             city={team.city}
+            switchLabel={t("teamProfile.switchLeague")}
           />
         </FadeIn>
 
-        <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_320px]">
+        <div className="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_320px]">
           <FadeIn delay={0.05}>
             <section>
               <header className="mb-4 flex items-end justify-between">

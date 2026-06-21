@@ -5,12 +5,15 @@ import type { Metadata } from "next"
 import { and, eq, sql } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
 import { players, playerSeasonStats, seasons } from "@/lib/db/schema"
-import { getPlayerBySlug } from "@/lib/data/players"
+import { getPlayerBySlug, pickPlayerLeague } from "@/lib/data/players"
 import { PctBar } from "@/components/ui/pct-bar"
 import { FadeIn } from "@/components/animations/fade-in"
+import { LeagueTransition } from "@/components/players/league-transition"
 import { SmartImage } from "@/components/ui/smart-image"
+import { BackLink } from "@/components/ui/back-link"
 import { Eyebrow } from "@/components/ui/eyebrow"
 import { leagueAccent } from "@/components/ui/league-badge"
+import { PlayerLeagueSwitcher } from "@/components/ui/league-switcher"
 import { JsonLd } from "@/components/marketing/json-ld"
 import { breadcrumbJsonLd, playerJsonLd } from "@/lib/seo/structured-data"
 import { SITE } from "@/lib/site"
@@ -18,7 +21,10 @@ import { HighlightsSection } from "./highlights"
 import { PlayerAi } from "@/components/players/player-ai"
 import { getT } from "@/lib/i18n/server"
 
-type Props = { params: Promise<{ slug: string }> }
+type Props = {
+  params: Promise<{ slug: string }>
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
@@ -122,14 +128,22 @@ async function findComparisonCandidates(
   }>
 }
 
-export default async function PlayerPage({ params }: Props) {
+export default async function PlayerPage({ params, searchParams }: Props) {
   const { slug } = await params
+  const sp = searchParams ? await searchParams : {}
+  const leagueParam = typeof sp.league === "string" ? sp.league : null
   const { t } = await getT()
   const profile = await getPlayerBySlug(slug)
   if (!profile) notFound()
 
+  // The player may have stats in several leagues; show the requested one (from
+  // the switcher) or the primary, and read every per-league field off it.
+  const selected = pickPlayerLeague(profile, leagueParam)
+  const selLeague = selected.league
+  const selTeam = selected.team
+
   const candidates = await findComparisonCandidates(
-    profile.league.id,
+    selLeague.id,
     profile.id,
   )
   const initials = profile.fullName
@@ -138,8 +152,8 @@ export default async function PlayerPage({ params }: Props) {
     .slice(0, 2)
     .join("")
 
-  const season = profile.seasons[0]
-  const accent = leagueAccent(profile.league.slug)
+  const season = selected.seasons[0]
+  const accent = leagueAccent(selLeague.slug)
 
   const structuredData = [
     playerJsonLd({
@@ -150,8 +164,8 @@ export default async function PlayerPage({ params }: Props) {
       heightCm: profile.heightCm,
       weightKg: profile.weightKg,
       photoUrl: profile.imageUrl,
-      teamName: profile.team?.name ?? null,
-      leagueName: profile.league.name,
+      teamName: selTeam?.name ?? null,
+      leagueName: selLeague.name,
     }),
     breadcrumbJsonLd([
       { name: "Players", path: "/players" },
@@ -161,22 +175,21 @@ export default async function PlayerPage({ params }: Props) {
 
   return (
     <div
-      className="relative pb-6 pt-6 sm:pb-10 sm:pt-10"
+      className="relative pb-6 pt-6 transition-lg sm:pb-10 sm:pt-10"
       style={{ ["--lg" as string]: accent.color }}
     >
       <JsonLd data={structuredData} />
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-24 left-1/2 -z-10 h-80 w-[820px] -translate-x-1/2 rounded-[50%] opacity-25 blur-3xl"
+        className="pointer-events-none absolute -top-24 left-1/2 -z-10 h-80 w-[820px] -translate-x-1/2 rounded-[50%] opacity-25 blur-3xl transition-colors duration-500"
         style={{ background: "var(--lg)" }}
       />
       <FadeIn>
-        <Link
-          href="/players"
+        <BackLink
+          fallbackHref="/players"
+          label={t("common.back")}
           className="mb-5 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-300 transition hover:text-brand-300 sm:mb-6"
-        >
-          <span aria-hidden>←</span> {t("playerProfile.backToPlayers")}
-        </Link>
+        />
       </FadeIn>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr] lg:gap-8">
@@ -185,7 +198,7 @@ export default async function PlayerPage({ params }: Props) {
             <div className="relative mx-auto aspect-square w-44 overflow-hidden rounded-2xl bg-court-800 ring-1 ring-hairline sm:w-56 lg:w-full">
               <span
                 aria-hidden
-                className="absolute inset-x-0 top-0 z-10 h-[3px]"
+                className="absolute inset-x-0 top-0 z-10 h-[3px] transition-colors duration-500"
                 style={{ background: "var(--lg)" }}
               />
               <SmartImage
@@ -211,16 +224,16 @@ export default async function PlayerPage({ params }: Props) {
                   k={t("playerProfile.league")}
                   v={
                     <span className="font-semibold text-ink-100">
-                      {profile.league.name}
+                      {selLeague.name}
                     </span>
                   }
                 />
                 <Row
                   k={t("playerProfile.team")}
                   v={
-                    profile.team ? (
+                    selTeam ? (
                       <span className="font-semibold text-ink-100">
-                        {profile.team.name}
+                        {selTeam.name}
                       </span>
                     ) : (
                       t("playerProfile.freeAgent")
@@ -241,26 +254,33 @@ export default async function PlayerPage({ params }: Props) {
                   className="h-1.5 w-1.5 rounded-full"
                   style={{ background: "var(--lg)" }}
                 />
-                {profile.league.name} ·{" "}
-                {profile.team?.name ?? t("playerProfile.freeAgent")}
+                {selLeague.name} ·{" "}
+                {selTeam?.name ?? t("playerProfile.freeAgent")}
               </Eyebrow>
               <h1 className="mt-3 break-words font-display text-4xl font-bold leading-[0.9] tracking-[-0.04em] text-ink-50 sm:text-5xl md:text-6xl">
                 {profile.fullName}
               </h1>
-              {season ? (
-                <p className="mt-3 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-400">
-                  <span className="h-1.5 w-1.5 animate-ticker rounded-full bg-positive" />
-                  {t("playerProfile.seasonGames", {
-                    season: season.seasonName,
-                    games: season.gamesPlayed,
-                  })}
-                </p>
-              ) : null}
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <PlayerLeagueSwitcher
+                  leagues={profile.leagues.map((l) => l.league)}
+                  activeSlug={selLeague.slug}
+                  ariaLabel={t("playerProfile.switchLeague")}
+                />
+                {season ? (
+                  <p className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-400">
+                    <span className="h-1.5 w-1.5 animate-ticker rounded-full bg-positive" />
+                    {t("playerProfile.seasonGames", {
+                      season: season.seasonName,
+                      games: season.gamesPlayed,
+                    })}
+                  </p>
+                ) : null}
+              </div>
             </header>
           </FadeIn>
 
-          {season ? (
-            <FadeIn>
+          <LeagueTransition>
+            {season ? (
               <section>
                 <h2 className="gh-eyebrow mb-4">
                   {t("playerProfile.production")}
@@ -296,15 +316,15 @@ export default async function PlayerPage({ params }: Props) {
                   <ShootingTile label={t("playerProfile.freeThrow")} value={season.ftPct} />
                 </div>
               </section>
-            </FadeIn>
-          ) : (
-            <div className="rounded-xl border border-dashed border-white/10 p-6 text-center text-sm text-ink-300">
-              {t("playerProfile.noSeasonStats")}
-            </div>
-          )}
+            ) : (
+              <div className="rounded-xl border border-dashed border-white/10 p-6 text-center text-sm text-ink-300">
+                {t("playerProfile.noSeasonStats")}
+              </div>
+            )}
+          </LeagueTransition>
 
           {candidates.length > 0 ? (
-            <FadeIn>
+            <LeagueTransition>
               <section>
                 <h2 className="gh-eyebrow mb-4">
                   {t("playerProfile.compareWith")}
@@ -326,7 +346,7 @@ export default async function PlayerPage({ params }: Props) {
                   ))}
                 </div>
               </section>
-            </FadeIn>
+            </LeagueTransition>
           ) : null}
 
           <FadeIn>
@@ -338,8 +358,8 @@ export default async function PlayerPage({ params }: Props) {
                 <HighlightsSection
                   playerId={profile.id}
                   playerName={profile.fullName}
-                  teamName={profile.team?.name ?? null}
-                  leagueName={profile.league.name}
+                  teamName={selTeam?.name ?? null}
+                  leagueName={selLeague.name}
                 />
               </Suspense>
             </section>

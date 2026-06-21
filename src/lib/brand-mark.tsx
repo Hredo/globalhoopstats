@@ -25,7 +25,7 @@ const COURT_950 = "#060100"
  */
 export function BallMark({ size }: { size: number }): ReactElement {
   const fontSize = Math.round(size * 0.34)
-  const strokeW = Math.max(1, Math.round(size / 42))
+  const strokeW = Math.max(1, Math.round(size / 70))
 
   return (
     <div
