@@ -100,6 +100,10 @@ export async function Footer() {
             NBA · EuroLeague · ACB · LEB Oro · LEB Plata · EBA
           </p>
         </div>
+
+        <p className="mt-6 max-w-4xl text-[11px] leading-relaxed text-ink-500">
+          {t("footer.disclaimer")}
+        </p>
       </div>
     </footer>
   )
