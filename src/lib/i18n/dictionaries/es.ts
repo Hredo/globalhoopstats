@@ -51,6 +51,8 @@ export const es: Messages = {
     syncPending: "Sincronización pendiente",
     rights: "© {year} {name}. Todos los derechos reservados.",
     version: "v{version}",
+    disclaimer:
+      "Sitio no afiliado, respaldado ni patrocinado por la NBA, EuroLeague, Liga ACB, FEB ni ningún club. Los nombres y logos de los equipos, así como los nombres e imágenes de los jugadores, son propiedad de sus respectivos titulares y se utilizan aquí con fines exclusivamente informativos. Para solicitar la retirada de cualquier contenido, contacta con nosotros.",
     time: {
       justNow: "ahora mismo",
       seconds: "hace {n}s",
