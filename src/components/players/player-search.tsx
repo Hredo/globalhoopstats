@@ -12,21 +12,25 @@ import {
 } from "react"
 import { useRouter } from "next/navigation"
 import { SmartImage } from "@/components/ui/smart-image"
+import { useT } from "@/lib/i18n/provider"
+import { LeagueSelect, SelectControl } from "@/components/ui/filter-controls"
 
 export type AutocompleteSort = "points" | "assists" | "rebounds" | "name"
 
+// Mirrors the `season` shape returned by /api/players/search (see
+// AutocompletePlayer in lib/data/players): the API ships season *totals*
+// plus games played, and the UI derives per-game averages from them.
 type Season = {
-  year: number
-  name: string
   gamesPlayed: number
-  points: number | null
-  rebounds: number | null
-  assists: number | null
-  steals: number | null
-  blocks: number | null
+  pointsTotal: number | null
+  reboundsTotal: number | null
+  assistsTotal: number | null
+  stealsTotal: number | null
+  blocksTotal: number | null
   fgPct: number | null
   threePct: number | null
   ftPct: number | null
+  per: number | null
 }
 
 type Result = {
@@ -45,27 +49,18 @@ type Result = {
     slug: string
     logoUrl: string | null
   } | null
-  league: { id: string; name: string; slug: string; country: string }
+  league: { id: string; name: string; slug: string; region: string }
   season: Season | null
 }
 
-const LEAGUE_FILTERS = [
-  { slug: "", label: "All leagues", accent: "from-brand-500 to-accent-cyan" },
-  { slug: "nba", label: "NBA", accent: "from-brand-500 to-brand-300" },
-  {
-    slug: "euroleague",
-    label: "EuroLeague",
-    accent: "from-accent-cyan to-cyan-300",
-  },
-  { slug: "acb", label: "ACB", accent: "from-amber-400 to-orange-300" },
+// Same sort options as the /players directory, keyed to the shared i18n
+// strings so the palette's dropdown reads identically.
+const SORTS = [
+  { value: "points", labelKey: "directory.sorts.points" },
+  { value: "rebounds", labelKey: "directory.sorts.rebounds" },
+  { value: "assists", labelKey: "directory.sorts.assists" },
+  { value: "name", labelKey: "directory.sorts.name" },
 ] as const
-
-const SORT_OPTIONS: { value: AutocompleteSort; label: string }[] = [
-  { value: "points", label: "Points" },
-  { value: "assists", label: "Assists" },
-  { value: "rebounds", label: "Rebounds" },
-  { value: "name", label: "Name" },
-]
 
 const LEAGUE_BADGE: Record<string, string> = {
   nba: "bg-brand-500/15 text-brand-200 ring-brand-500/30",
@@ -96,6 +91,11 @@ function formatWeight(kg: number | null): string {
 function formatNum(n: number | null, digits = 1): string {
   if (n == null) return "—"
   return n.toFixed(digits)
+}
+
+function perGame(total: number | null, gp: number): number | null {
+  if (total == null || gp <= 0) return null
+  return total / gp
 }
 
 function initials(name: string): string {
@@ -146,6 +146,7 @@ export const PlayerSearch = forwardRef<PlayerSearchHandle, PlayerSearchProps>(
     ref,
   ) {
     const router = useRouter()
+    const t = useT()
     const isModal = variant === "modal"
 
     const [q, setQ] = useState("")
@@ -173,12 +174,9 @@ export const PlayerSearch = forwardRef<PlayerSearchHandle, PlayerSearchProps>(
       if (debounceRef.current) clearTimeout(debounceRef.current)
       const myReq = ++requestIdRef.current
 
-      if (q.trim().length < 1 && league === "" && sort === initialSort) {
-        setResults([])
-        setLoading(false)
-        return
-      }
-
+      // No early-out for the default (empty query / all leagues) state: the
+      // API returns this season's leaders for an empty query, so the palette
+      // opens with content and the "All leagues" chip behaves like the rest.
       setLoading(true)
       debounceRef.current = setTimeout(() => {
         abortRef.current?.abort()
@@ -208,7 +206,7 @@ export const PlayerSearch = forwardRef<PlayerSearchHandle, PlayerSearchProps>(
       return () => {
         if (debounceRef.current) clearTimeout(debounceRef.current)
       }
-    }, [q, league, sort, isModal, initialSort])
+    }, [q, league, sort, isModal])
 
     useEffect(() => {
       if (!isModal) return
@@ -329,72 +327,38 @@ export const PlayerSearch = forwardRef<PlayerSearchHandle, PlayerSearchProps>(
               transition={{ duration: 0.16, ease: "easeOut" }}
               className={
                 isModal
-                  ? "mt-3 overflow-hidden rounded-2xl border border-white/10 bg-ink-950/95 shadow-2xl shadow-black/70 backdrop-blur-xl"
-                  : "absolute left-0 right-0 z-50 mt-2 max-h-[75vh] overflow-hidden rounded-2xl border border-white/10 bg-ink-950/95 shadow-2xl shadow-black/60 backdrop-blur-xl"
+                  ? "mt-3 rounded-2xl border border-white/10 bg-ink-950/95 shadow-2xl shadow-black/70 backdrop-blur-xl"
+                  : "absolute left-0 right-0 z-50 mt-2 rounded-2xl border border-white/10 bg-ink-950/95 shadow-2xl shadow-black/60 backdrop-blur-xl"
               }
             >
               <div
                 aria-hidden
-                className="pointer-events-none h-px w-full bg-gradient-to-r from-transparent via-brand-500/60 to-transparent"
+                className="pointer-events-none mx-4 h-px bg-gradient-to-r from-transparent via-brand-500/60 to-transparent"
               />
-              <div className="flex flex-wrap items-center gap-2 border-b border-white/5 px-4 py-3">
-                <div className="flex flex-wrap gap-1.5">
-                  {LEAGUE_FILTERS.map((l) => {
-                    const active = league === l.slug
-                    return (
-                      <button
-                        key={l.slug || "all"}
-                        type="button"
-                        onClick={() => setLeague(l.slug)}
-                        className={`relative rounded-full px-3 py-1 text-[11px] font-semibold transition ${
-                          active
-                            ? "text-ink-950"
-                            : "text-ink-200 hover:bg-white/5"
-                        }`}
-                      >
-                        {active ? (
-                          <span
-                            className={`absolute inset-0 rounded-full bg-gradient-to-r ${l.accent}`}
-                          />
-                        ) : (
-                          <span className="absolute inset-0 rounded-full border border-white/10 bg-white/[0.03]" />
-                        )}
-                        <span className="relative">{l.label}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-                <div className="ml-auto flex items-center gap-2">
-                  <span className="text-[10px] uppercase tracking-widest text-ink-400">
-                    Sort
-                  </span>
-                  <div className="flex gap-1 rounded-full border border-white/10 bg-white/[0.03] p-0.5">
-                    {SORT_OPTIONS.map((s) => {
-                      const active = sort === s.value
-                      return (
-                        <button
-                          key={s.value}
-                          type="button"
-                          onClick={() => setSort(s.value)}
-                          className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition ${
-                            active
-                              ? "bg-brand-500 text-ink-950"
-                              : "text-ink-200 hover:text-ink-50"
-                          }`}
-                        >
-                          {s.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
+              {/* Same league + sort dropdowns as the /players directory. The
+                  panel is intentionally not clipped so the league menu can
+                  overflow over the results below it. */}
+              <div className="relative z-20 flex flex-wrap items-center gap-2 border-b border-white/5 px-4 py-3">
+                <LeagueSelect value={league} onChange={setLeague} t={t} />
+                <SelectControl
+                  ariaLabel={t("directory.sortByAria")}
+                  value={sort}
+                  onChange={(v) => setSort(v as AutocompleteSort)}
+                  className="ml-auto"
+                >
+                  {SORTS.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {t("directory.sortPrefix", { label: t(s.labelKey) })}
+                    </option>
+                  ))}
+                </SelectControl>
               </div>
 
               <div
                 className={
                   isModal
-                    ? "max-h-[60vh] overflow-y-auto p-2"
-                    : "max-h-[70vh] overflow-y-auto p-2"
+                    ? "max-h-[60vh] overflow-y-auto overflow-x-hidden p-2"
+                    : "max-h-[70vh] overflow-y-auto overflow-x-hidden rounded-b-2xl p-2"
                 }
               >
                 {loading && results.length === 0 ? (
@@ -429,7 +393,7 @@ export const PlayerSearch = forwardRef<PlayerSearchHandle, PlayerSearchProps>(
               </div>
 
               {isModal ? (
-                <div className="flex items-center justify-between border-t border-white/5 bg-white/[0.02] px-4 py-2 text-[10px] text-ink-400">
+                <div className="flex items-center justify-between rounded-b-2xl border-t border-white/5 bg-white/[0.02] px-4 py-2 text-[10px] text-ink-400">
                   <div className="flex items-center gap-3">
                     <Kbd>↑</Kbd>
                     <Kbd>↓</Kbd>
@@ -620,12 +584,35 @@ function ResultCard({
             >
               <Stat
                 label="PPG"
-                value={formatNum(player.season.points)}
+                value={formatNum(
+                  perGame(player.season.pointsTotal, player.season.gamesPlayed),
+                )}
                 highlight
               />
-              <Stat label="RPG" value={formatNum(player.season.rebounds)} />
-              <Stat label="APG" value={formatNum(player.season.assists)} />
-              <Stat label="SPG" value={formatNum(player.season.steals)} />
+              <Stat
+                label="RPG"
+                value={formatNum(
+                  perGame(
+                    player.season.reboundsTotal,
+                    player.season.gamesPlayed,
+                  ),
+                )}
+              />
+              <Stat
+                label="APG"
+                value={formatNum(
+                  perGame(
+                    player.season.assistsTotal,
+                    player.season.gamesPlayed,
+                  ),
+                )}
+              />
+              <Stat
+                label="SPG"
+                value={formatNum(
+                  perGame(player.season.stealsTotal, player.season.gamesPlayed),
+                )}
+              />
             </div>
             <div className="flex items-center gap-3">
               <CompactPctBar value={player.season.fgPct} label="FG%" />

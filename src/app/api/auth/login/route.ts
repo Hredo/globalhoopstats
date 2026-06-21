@@ -38,6 +38,13 @@ const loginSchema = z.object({
 const ATTEMPT_WINDOW_MS = 10 * 60 * 1000
 const MAX_ATTEMPTS = 12
 
+// Fixed bcrypt hash compared against when the email doesn't exist, so the
+// response takes the same time whether or not the account is real — this
+// removes the timing side-channel that would otherwise leak which emails are
+// registered. It is NOT a usable password (nobody knows its plaintext).
+const DUMMY_PASSWORD_HASH =
+  "$2b$12$co1Kk/cigmIN8dDMiz3ZJek4siia58VHSdiL9/Q3ypUjgdW5.ztNi"
+
 export async function POST(request: Request) {
   const ip = clientIp(request)
   const limited = await consumeRateLimit(
@@ -90,6 +97,8 @@ export async function POST(request: Request) {
   const user = rows[0]
 
   if (!user || !user.passwordHash) {
+    // Spend the same work as a real verify to equalise response timing.
+    await verifyPassword(password, DUMMY_PASSWORD_HASH)
     return NextResponse.json(
       { error: "Invalid email or password." },
       { status: 401 },
@@ -107,7 +116,9 @@ export async function POST(request: Request) {
     // Skip 2FA if this device was previously trusted.
     const cookieHeader = request.headers.get("cookie")
     const trustToken = parseCookie(cookieHeader, "ghs_trust")
-    const trusted = trustToken ? verifyTrustToken(trustToken) : null
+    const trusted = trustToken
+      ? verifyTrustToken(trustToken, user.passwordHash)
+      : null
     if (trusted && trusted.userId === user.id) {
       const sessionId = newSessionId()
       const ttlMs = getSessionTtlMs()

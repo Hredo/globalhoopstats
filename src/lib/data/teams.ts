@@ -1,8 +1,9 @@
-import { and, asc, eq, inArray, like, sql, type SQL } from "drizzle-orm"
+import { and, asc, eq, inArray, like, or, sql, type SQL } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
-import { leagues, playerSeasonStats, teams } from "@/lib/db/schema"
+import { leagues, players, playerSeasonStats, seasons, teams } from "@/lib/db/schema"
 import type { CoachListItem } from "@/lib/data/staff"
 import { cached } from "@/lib/data/cache"
+import { ACCENT_FROM, ACCENT_TO } from "@/lib/data/players"
 import { leagueSlugsFor } from "@/lib/league-groups"
 
 export type TeamListItem = {
@@ -50,10 +51,14 @@ async function listTeamsUncached(
   )
 
   if (leagueSlugs) {
+    // Require a CURRENT-season roster in the league, so a club that only has
+    // archived stats for it (e.g. Valencia, which sits in the EuroLeague feed
+    // from a past season) doesn't surface as an empty 0-player card.
     const orParts = leagueSlugs.map((slug) =>
       sql`exists (
         select 1 from ${playerSeasonStats} pss_l
         inner join ${leagues} l_l on l_l.id = pss_l.league_id
+        inner join ${seasons} s_l on s_l.id = pss_l.season_id and s_l.is_current
         where pss_l.team_id = ${teams.id}
         and l_l.slug = ${slug}
       )`,
@@ -81,8 +86,24 @@ async function listTeamsUncached(
   // correlation `pss.team_id = pss.id` never matches, silently yielding 0 for
   // every team. Qualifying explicitly keeps it correlated to the outer row.
   const teamId = sql`${sql.identifier("teams")}.${sql.identifier("id")}`
+  // Roster size must reflect the CURRENT season (and the league being viewed),
+  // otherwise a club's count balloons with past seasons and parallel-league
+  // entries — e.g. Real Madrid would tally EuroLeague + Liga Endesa + every
+  // archived season at once.
+  const leagueScope = leagueSlugs
+    ? sql`inner join ${leagues} l_pc on l_pc.id = pss.league_id
+        and l_pc.slug in (${sql.join(leagueSlugs.map((s) => sql`${s}`), sql`, `)})`
+    : sql``
+  // Count distinct accent-folded names, not player_ids: cross-league sync can
+  // mint two records for one person (e.g. "acb-andres-feliz" + "euroleague-
+  // andres-feliz"), which would otherwise double-count the roster — the same
+  // folding listPlayers uses to collapse them in the roster grid.
   const playerCountExpr = sql<number>`(
-    select count(distinct pss.player_id) from ${playerSeasonStats} pss
+    select count(distinct translate(lower(p_pc.first_name || ' ' || p_pc.last_name), ${ACCENT_FROM}, ${ACCENT_TO}))
+    from ${playerSeasonStats} pss
+    inner join ${players} p_pc on p_pc.id = pss.player_id
+    inner join ${seasons} s_pc on s_pc.id = pss.season_id and s_pc.is_current
+    ${leagueScope}
     where pss.team_id = ${teamId}
   )`
 
@@ -253,6 +274,9 @@ export type TeamProfile = {
   logoUrl: string | null
   city: string | null
   league: { id: string; name: string; slug: string; region: string }
+  // Every league this club competes in, for the league switcher. Includes the
+  // current one; the UI only renders a switch when there are 2+.
+  availableLeagues: { name: string; slug: string; region: string }[]
   roster: RosterPlayer[]
   staff: CoachListItem[]
 }
@@ -293,15 +317,33 @@ export const getTeamBySlug = cached(
   const { listPlayers } = await import("@/lib/data/players")
   const { listCoachesByTeam } = await import("@/lib/data/staff")
 
-  const [roster, staff] = await Promise.all([
+  const [roster, staff, availableLeagues] = await Promise.all([
     listPlayers({
       league: leagueSlug,
       team: r.name,
       sort: "name",
       order: "asc",
       pageSize: 200,
+      currentSeasonOnly: true,
     }),
-    listCoachesByTeam(r.id),
+    listCoachesByTeam(r.id, leagueSlug),
+    db
+      .selectDistinct({
+        name: leagues.name,
+        slug: leagues.slug,
+        region: leagues.region,
+      })
+      .from(playerSeasonStats)
+      .innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
+      .innerJoin(teams, eq(playerSeasonStats.teamId, teams.id))
+      .where(
+        or(
+          eq(playerSeasonStats.teamId, r.id),
+          sql`${teams.name} ILIKE ${"%" + r.name + "%"}`,
+          sql`${r.name} ILIKE ${"%" + teams.name + "%"}`,
+        ),
+      )
+      .orderBy(asc(leagues.name)),
   ])
 
   return {
@@ -316,6 +358,7 @@ export const getTeamBySlug = cached(
       slug: r.leagueSlug,
       region: r.leagueRegion,
     },
+    availableLeagues,
     roster: roster.items.map((p) => ({
       id: p.id,
       fullName: p.fullName,
@@ -346,9 +389,8 @@ export const getTeamBySlug = cached(
     staff,
   }
   },
-  // v2: cached entries can outlive deploys; key versioned for the slim
-  // RosterPlayer shape.
-  "getTeamBySlug:v2",
+  // v3: added availableLeagues for the league switcher.
+  "getTeamBySlug:v3",
   ["teams", "players"],
   3600,
 )

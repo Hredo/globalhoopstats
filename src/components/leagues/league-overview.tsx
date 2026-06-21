@@ -111,13 +111,15 @@ export async function LeagueOverview({ data, index }: Props) {
         <div className="relative mt-4">
           <div className="flex flex-wrap gap-2">
             {data.teams.map((team) => (
-              <div
+              <Link
                 key={team.slug}
-                className="group/team relative"
+                href={`/teams/${data.slug}/${team.slug}`}
                 title={team.name}
+                aria-label={team.name}
+                className="group/team relative rounded-full outline-none transition duration-200 hover:z-10 hover:scale-110 focus-visible:ring-2 focus-visible:ring-white/40"
               >
                 {team.logoUrl ? (
-                  <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-surface-0/80 sm:h-8 sm:w-8">
+                  <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-surface-0/80 transition group-hover/team:border-white/30 sm:h-8 sm:w-8">
                     <SmartImage
                       src={team.logoUrl}
                       alt={team.name}
@@ -127,11 +129,11 @@ export async function LeagueOverview({ data, index }: Props) {
                     />
                   </div>
                 ) : (
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-surface-0/80 font-display text-[8px] font-bold text-ink-400 sm:h-8 sm:w-8">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-surface-0/80 font-display text-[8px] font-bold text-ink-400 transition group-hover/team:border-white/30 sm:h-8 sm:w-8">
                     {initials(team.name)}
                   </div>
                 )}
-              </div>
+              </Link>
             ))}
           </div>
         </div>

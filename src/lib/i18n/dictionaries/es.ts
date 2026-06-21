@@ -14,6 +14,7 @@ export const es: Messages = {
     pro: "Beta",
     skipToContent: "Saltar al contenido",
     loading: "Cargando…",
+    back: "Volver",
   },
   language: {
     label: "Idioma",
@@ -379,13 +380,13 @@ export const es: Messages = {
     },
     leagues: {
       eyebrow: "Cobertura",
-      titleA: "Hubs de",
-      titleB: "ligas.",
+      titleA: "Cada liga,",
+      titleB: "de un vistazo.",
       description:
-        "Seis ligas profesionales, un solo motor de scouting. Cada hub muestra la temporada actual, los tres máximos anotadores y accesos directos a los directorios de jugadores y equipos.",
+        "Seis ligas profesionales, un solo motor de scouting. Cada tarjeta combina la temporada en vivo con el número de equipos, jugadores y entrenadores y los líderes por partido en puntos, asistencias, rebotes y triples — además de accesos directos a cada plantilla y jugador.",
       metaTitle: "Ligas",
       metaDescription:
-        "NBA, EuroLeague y Liga ACB — cobertura, líderes de temporada y máximos anotadores de cada liga en nuestra base de datos.",
+        "Explora todas las ligas que cubrimos — NBA, EuroLeague, Liga ACB y la escalera FEB de España (LEB Oro, LEB Plata, EBA). Líderes por partido en puntos, asistencias, rebotes y triples, con conteos de equipos, jugadores y entrenadores.",
       statLeaguesLive: "ligas en vivo",
       statPlayersIndexed: "jugadores indexados",
       statTeamsTracked: "equipos registrados",
@@ -530,6 +531,7 @@ export const es: Messages = {
     noSeasonStats: "Aún no hay estadísticas de temporada para este jugador.",
     compareWith: "Comparar con",
     highlights: "Highlights",
+    switchLeague: "Cambiar de liga",
   },
   teamProfile: {
     notFound: "Equipo no encontrado",
@@ -538,6 +540,7 @@ export const es: Messages = {
     backToTeams: "Volver a equipos",
     roster: "Plantilla",
     currentSeason: "Temporada actual",
+    switchLeague: "Cambiar de liga",
     noPlayers:
       "No se encontraron jugadores para este equipo en la temporada actual.",
     showAll: "Ver los {n} jugadores",

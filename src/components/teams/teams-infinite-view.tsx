@@ -86,12 +86,34 @@ export function TeamsInfiniteView({
 
   if (items.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] py-16 text-center">
-        <p className="text-ink-100">{t("directory.emptyTeamsTitle")}</p>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
+        className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] py-16 text-center"
+      >
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white/[0.04] ring-1 ring-hairline">
+          <svg
+            aria-hidden
+            className="h-6 w-6 text-ink-400"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M16.24 7.76a6 6 0 0 1 0 8.48M7.76 7.76a6 6 0 0 0 0 8.48M8.46 3.54a10 10 0 0 0 0 16.92M15.54 3.54a10 10 0 0 1 0 16.92" />
+          </svg>
+        </div>
+        <p className="font-display text-lg font-semibold text-ink-50">
+          {t("directory.emptyTeamsTitle")}
+        </p>
         <p className="mt-1 text-sm text-ink-400">
           {t("directory.emptyTeamsHint")}
         </p>
-      </div>
+      </motion.div>
     )
   }
 
@@ -109,11 +131,12 @@ export function TeamsInfiniteView({
         {items.map((t) => (
           <motion.li
             key={t.id}
+            layout
             variants={{
               hidden: { opacity: 0, y: 8 },
               show: { opacity: 1, y: 0 },
             }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
+            transition={{ duration: 0.35, ease: "easeOut", layout: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } }}
           >
             <TeamCardElegant team={t} />
           </motion.li>

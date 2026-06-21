@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { SmartImage } from "@/components/ui/smart-image"
-import { PctBar } from "@/components/ui/pct-bar"
 import { leagueAccent } from "@/components/ui/league-badge"
 import { useSpotlight } from "@/components/animations/spotlight-card"
 import { getInitials } from "@/lib/format"
@@ -12,7 +11,10 @@ type Props = {
   player: {
     fullName: string
     slug: string
+    nationality: string | null
     position: string | null
+    heightCm: number | null
+    weightKg: number | null
     imageUrl: string | null
     league: { name: string; slug: string }
     team: {
@@ -26,12 +28,14 @@ type Props = {
       pointsTotal: number | null
       reboundsTotal: number | null
       assistsTotal: number | null
+      stealsTotal: number | null
+      blocksTotal: number | null
       fgPct: number | null
       threePct: number | null
       ftPct: number | null
+      per: number | null
     } | null
   }
-  rank?: number
 }
 
 function perGame(total: number | null, gp: number): number | null {
@@ -39,15 +43,21 @@ function perGame(total: number | null, gp: number): number | null {
   return total / gp
 }
 
-export function PlayerCardElegant({ player, rank }: Props) {
+function fmt(value: number | null, decimals = 1): string {
+  if (value == null) return "—"
+  return value.toFixed(decimals)
+}
+
+export function PlayerCardElegant({ player }: Props) {
   const t = useT()
   const initials = getInitials(player.fullName)
   const s = player.stats
-  const ppg = s?.pointsTotal != null ? perGame(s.pointsTotal, s.gamesPlayed)?.toFixed(1) ?? "—" : "—"
-  const rpg = s?.reboundsTotal != null ? perGame(s.reboundsTotal, s.gamesPlayed)?.toFixed(1) ?? "—" : "—"
-  const apg = s?.assistsTotal != null ? perGame(s.assistsTotal, s.gamesPlayed)?.toFixed(1) ?? "—" : "—"
   const accent = leagueAccent(player.league.slug)
   const { ref, onPointerMove } = useSpotlight<HTMLAnchorElement>()
+
+  const ppg = s ? fmt(perGame(s.pointsTotal, s.gamesPlayed)) : "—"
+  const rpg = s ? fmt(perGame(s.reboundsTotal, s.gamesPlayed)) : "—"
+  const apg = s ? fmt(perGame(s.assistsTotal, s.gamesPlayed)) : "—"
 
   return (
     <Link
@@ -84,12 +94,6 @@ export function PlayerCardElegant({ player, rank }: Props) {
           fallbackClassName="bg-gradient-to-br from-court-800 via-court-900 to-ink-900 text-4xl font-bold text-ink-600"
           fallback={initials}
         />
-
-        {rank != null ? (
-          <span className="absolute left-3 top-3 z-[2] flex h-7 min-w-7 items-center justify-center rounded-lg bg-ink-950/70 px-1.5 font-mono text-xs font-bold tabular-nums text-ink-100 ring-1 ring-hairline backdrop-blur">
-            {rank}
-          </span>
-        ) : null}
 
         <span className="absolute right-2 top-2 z-[2] inline-flex items-center gap-1.5 rounded-full bg-ink-950/55 px-1.5 py-0.5 font-mono text-[8px] font-semibold uppercase tracking-[0.14em] text-ink-100 ring-1 ring-hairline backdrop-blur sm:right-3 sm:top-3 sm:px-2 sm:py-1 sm:text-[10px]">
           <span
@@ -132,17 +136,6 @@ export function PlayerCardElegant({ player, rank }: Props) {
         <Stat label="PPG" value={ppg} primary />
         <Stat label="RPG" value={rpg} />
         <Stat label="APG" value={apg} />
-      </div>
-      <div className="hidden grid-cols-3 divide-x divide-hairline hairline-t sm:grid">
-        <div className="px-3 py-2.5">
-          <PctBar value={s?.fgPct} size="sm" showLabel label="FG%" />
-        </div>
-        <div className="px-3 py-2.5">
-          <PctBar value={s?.threePct} size="sm" showLabel label="3P%" />
-        </div>
-        <div className="px-3 py-2.5">
-          <PctBar value={s?.ftPct} size="sm" showLabel label="FT%" />
-        </div>
       </div>
     </Link>
   )

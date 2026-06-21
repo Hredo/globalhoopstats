@@ -160,6 +160,13 @@
   --animate-nav-rise: nav-rise 0.6s var(--ease-out-expo) both;
 }
 
+/* ── Registered properties for animatable custom props ──────────── */
+@property --lg {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: oklch(0.72 0.205 50);
+}
+
 @keyframes float {
   0%,
   100% {
@@ -716,6 +723,11 @@
   }
 
   /* ── Eyebrow rule ───────────────────────────────────────────── */
+  /* smooth league accent colour transitions (used via @property --lg) */
+  .transition-lg {
+    transition: --lg 0.55s var(--ease-fluid);
+  }
+
   .gh-eyebrow {
     display: inline-flex;
     align-items: center;
