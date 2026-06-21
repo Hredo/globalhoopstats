@@ -95,6 +95,7 @@ function parseBrPlayerPage(rawHtml: string): {
   heightCm?: number
   weightKg?: number
   nationality?: string
+  birthdate?: string
 } {
   const out: ReturnType<typeof parseBrPlayerPage> = {}
   // BR's meta block separates values with &nbsp; (e.g. "(216cm,&nbsp;120kg)").
@@ -114,6 +115,18 @@ function parseBrPlayerPage(rawHtml: string): {
       out.heightCm = parseHeightInchesToCm(imperial[1])
       out.weightKg = Math.round(Number(imperial[2]) * 0.453592)
     }
+  }
+  const bornMatch = html.match(
+    /<strong>\s*Born:\s*<\/strong>\s*([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})/i,
+  )
+  if (bornMatch) {
+    const months: Record<string, string> = {
+      january: "01", february: "02", march: "03", april: "04", may: "05", june: "06",
+      july: "07", august: "08", september: "09", october: "10", november: "11", december: "12",
+    }
+    const month = months[bornMatch[1]!.toLowerCase()]
+    const day = bornMatch[2]!.padStart(2, "0")
+    if (month) out.birthdate = `${bornMatch[3]}-${month}-${day}`
   }
   const natMatch = html.match(
     /<strong>\s*Born:\s*<\/strong>[\s\S]{0,2000}?\bin\s+([A-Za-z\s,'-]+?)\s*<\/(?:span|p)>/i,
@@ -138,6 +151,7 @@ type DbPlayer = {
   height_cm: number | null
   weight_kg: number | null
   nationality: string | null
+  birthdate: string | null
   image_url: string | null
 }
 
@@ -151,19 +165,19 @@ async function main() {
     /* ---- ACB players with any null bio field (current season) ---- */
     const targets = await sql<DbPlayer[]>`
       select distinct p.id, p.first_name || ' ' || p.last_name as name,
-        p.position, p.height_cm, p.weight_kg, p.nationality, p.image_url
+        p.position, p.height_cm, p.weight_kg, p.nationality, p.birthdate, p.image_url
       from players p
       join player_season_stats pss on pss.player_id = p.id
       join leagues l on l.id = pss.league_id
       join seasons s on s.id = pss.season_id
       where l.slug = 'acb' and s.is_current
         and (p.position is null or p.height_cm is null
-          or p.weight_kg is null or p.nationality is null)
+          or p.weight_kg is null or p.nationality is null or p.birthdate is null)
     `
     console.log(`[acb] ${targets.length} players with at least one null bio field`)
     // BR has no headshots, so an image-only gap can't be filled here.
     const crawl = targets.filter(
-      (p) => !p.position || !p.height_cm || !p.weight_kg || !p.nationality,
+      (p) => !p.position || !p.height_cm || !p.weight_kg || !p.nationality || !p.birthdate,
     )
 
     /* ---- Index BR Liga ACB per_game player links by normalized name ---- */
@@ -216,6 +230,8 @@ async function main() {
         if (!p.weight_kg && parsed.weightKg) fills.weight_kg = parsed.weightKg
         if (!p.nationality && parsed.nationality)
           fills.nationality = parsed.nationality
+        if (!p.birthdate && parsed.birthdate)
+          fills.birthdate = parsed.birthdate
         if (Object.keys(fills).length === 0) {
           console.log(`  [${fetched}] ${p.name}: BR page had nothing new`)
         } else if (DRY) {

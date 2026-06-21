@@ -171,8 +171,14 @@ export function groupCoachesByTeam(items: CoachListItem[]): CoachGroup[] {
 
 export async function listCoachesByTeam(
   teamId: string,
+  leagueSlug?: string,
 ): Promise<CoachListItem[]> {
   const db = getDb()
+  // A club shared across leagues keeps a coaching staff per league; scope to the
+  // league being viewed so the team page's staff matches its league switch.
+  const where = leagueSlug
+    ? and(eq(coaches.teamId, teamId), eq(leagues.slug, leagueSlug))
+    : eq(coaches.teamId, teamId)
   const rows = await db
     .select({
       id: coaches.id,
@@ -194,7 +200,7 @@ export async function listCoachesByTeam(
     .from(coaches)
     .innerJoin(leagues, eq(coaches.leagueId, leagues.id))
     .innerJoin(teams, eq(coaches.teamId, teams.id))
-    .where(eq(coaches.teamId, teamId))
+    .where(where)
     .orderBy(asc(coaches.role), asc(coaches.fullName))
 
   return rows.map((r) => ({

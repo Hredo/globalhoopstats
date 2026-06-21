@@ -4,6 +4,7 @@ import { DirectoryControls } from "@/components/ui/directory-controls"
 import { TeamsInfiniteView } from "@/components/teams/teams-infinite-view"
 import { DirectoryHero } from "@/components/ui/directory-hero"
 import { StickyFilterBar } from "@/components/ui/sticky-filter-bar"
+import { PageTransition } from "@/components/ui/page-transition"
 import { getT } from "@/lib/i18n/server"
 
 type SearchParams = Partial<Record<keyof ListTeamsInput | "q" | "page", string>>
@@ -65,6 +66,7 @@ export default async function TeamsPage(props: {
         eyebrow={t("directory.teams.eyebrow")}
         title={t("directory.teams.title")}
         description={t("directory.teams.description")}
+        league={input.league}
         stats={[
           {
             value: result.total.toLocaleString(locale === "es" ? "es-ES" : "en-US"),
@@ -84,14 +86,21 @@ export default async function TeamsPage(props: {
         />
       </StickyFilterBar>
 
-      <TeamsInfiniteView
-        key={`${input.query ?? ""}|${input.league ?? ""}|${input.sort ?? "name"}|${input.order ?? "asc"}`}
-        initial={result}
-        query={input.query ?? ""}
+      <PageTransition
         league={input.league ?? ""}
+        query={input.query ?? ""}
         sort={input.sort ?? "name"}
         order={input.order ?? "asc"}
-      />
+      >
+        <TeamsInfiniteView
+          key={`${input.query ?? ""}|${input.league ?? ""}|${input.sort ?? "name"}|${input.order ?? "asc"}`}
+          initial={result}
+          query={input.query ?? ""}
+          league={input.league ?? ""}
+          sort={input.sort ?? "name"}
+          order={input.order ?? "asc"}
+        />
+      </PageTransition>
       </div>
     </div>
   )

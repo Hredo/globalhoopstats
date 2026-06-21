@@ -4,6 +4,7 @@ allowBuilds:
   unrs-resolver: true
   core-js: false
   better-sqlite3: set this to true or false
+  '@swc/core': true
 
 # Force patched versions of transitive (dev-only) deps flagged by `pnpm audit`.
 # esbuild: used only by drizzle-kit/tsx/vitest — NOT by `next build`.

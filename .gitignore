@@ -44,3 +44,7 @@ next-env.d.ts
 
 # drizzle generated migrations (regenerate locally with `pnpm db:generate`)
 /drizzle/
+
+# Serwist (PWA service worker)
+public/sw*
+public/swe-worker*

@@ -13,6 +13,10 @@ import { nbaCodeToId } from "@/lib/sources/nba-teams"
 const BASE_URL = "https://stats.nba.com/stats"
 const BR_BASE = "https://www.basketball-reference.com"
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
 const NBA_HEADERS = {
   Referer: "https://www.nba.com/",
   Origin: "https://www.nba.com",
@@ -109,6 +113,15 @@ function nbaSeasonYearEnd(): number {
 
 const SEASON_END_YEAR = nbaSeasonYearEnd()
 
+function normalizeName(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
 export const nbaAdapter: SourceAdapter = {
   id: "nba",
   displayName: SOURCE_META.nba.displayName,
@@ -138,10 +151,19 @@ export const nbaAdapter: SourceAdapter = {
         logoUrl: teamLogoUrl(id),
       })
     }
-    // teamdetails enrichment removed from the sync path: the 30-request burst
-    // trips stats.nba.com throttling and none of its fields (arena, capacity,
-    // founded year) are persisted by the ingestion pipeline. Call
-    // fetchTeamDetails explicitly if that data is ever needed.
+    // Enrich with team details from the teamdetails endpoint (sequential,
+    // with delays to avoid stats.nba.com throttling).
+    const teamIds = out.map((t) => t.sourceId)
+    const details = await this.fetchTeamDetails!(teamIds)
+    for (const team of out) {
+      const d = details.get(team.sourceId)
+      if (d) {
+        if (d.arena) team.arena = d.arena
+        if (d.arenaCapacity) team.arenaCapacity = d.arenaCapacity
+        if (d.foundedYear) team.foundedYear = d.foundedYear
+        if (d.websiteUrl) team.websiteUrl = d.websiteUrl
+      }
+    }
     return out
   },
 
@@ -165,34 +187,34 @@ export const nbaAdapter: SourceAdapter = {
         websiteUrl?: string
       }
     >()
-    await Promise.all(
-      teamIds.map(async (id) => {
-        try {
-          const url = `${BASE_URL}/teamdetails?LeagueID=00&TeamID=${id}`
-          const payload = await fetchJson<NbaEnvelope>(url, {
-            headers: NBA_HEADERS,
-          })
-          const set = payload.resultSets.find(
-            (rs) => rs.name === "TeamBackground",
-          )
-          if (!set) return
-          const row = set.rowSet[0]
-          if (!row) return
-          const obj: NbaRow = {}
-          for (let i = 0; i < set.headers.length; i++)
-            obj[set.headers[i]!] = row[i] ?? null
-          out.set(id, {
-            arena: obj.ARENA ? String(obj.ARENA) : undefined,
-            arenaCapacity: obj.ARENACAPACITY
-              ? Number(obj.ARENACAPACITY)
-              : undefined,
-            foundedYear: obj.YEARFOUNDED ? Number(obj.YEARFOUNDED) : undefined,
-          })
-        } catch {
-          // ignore
-        }
-      }),
-    )
+    for (const id of teamIds) {
+      try {
+        const url = `${BASE_URL}/teamdetails?LeagueID=00&TeamID=${id}`
+        const payload = await fetchJson<NbaEnvelope>(url, {
+          headers: NBA_HEADERS,
+        })
+        const set = payload.resultSets.find(
+          (rs) => rs.name === "TeamBackground",
+        )
+        if (!set) continue
+        const row = set.rowSet[0]
+        if (!row) continue
+        const obj: NbaRow = {}
+        for (let i = 0; i < set.headers.length; i++)
+          obj[set.headers[i]!] = row[i] ?? null
+        out.set(id, {
+          arena: obj.ARENA ? String(obj.ARENA) : undefined,
+          arenaCapacity: obj.ARENACAPACITY
+            ? Number(obj.ARENACAPACITY)
+            : undefined,
+          foundedYear: obj.YEARFOUNDED ? Number(obj.YEARFOUNDED) : undefined,
+          websiteUrl: obj.WEBSITE ? String(obj.WEBSITE) : undefined,
+        })
+        await sleep(250)
+      } catch {
+        // ignore individual failures
+      }
+    }
     return out
   },
 
@@ -259,17 +281,17 @@ export const nbaAdapter: SourceAdapter = {
       `${BASE_URL}/leaguegamelog?LeagueID=00&Season=${season}` +
       `&SeasonType=Regular+Season&PlayerOrTeam=P&Direction=ASC&Sorter=DATE` +
       `&DateFrom=&DateTo=&Counter=0`
-    // Full-season game log is a multi-MB payload; 15s is not enough when
-    // stats.nba.com throttles after the burst of teamdetails requests.
     const payload = await fetchJson<NbaEnvelope>(url, {
       headers: NBA_HEADERS,
       timeoutMs: 90_000,
     })
     const rows = readResultSet(payload, "LeagueGameLog")
+    const nameById = new Map<string, string>()
     const accum = new Map<
       string,
       {
         playerId: string
+        playerName: string
         teamId: string | undefined
         games: number
         min: number
@@ -295,8 +317,11 @@ export const nbaAdapter: SourceAdapter = {
       const playerId = r.PLAYER_ID
       if (playerId == null) continue
       const key = String(playerId)
+      const playerName = r.PLAYER_NAME ? String(r.PLAYER_NAME).trim() : ""
+      nameById.set(key, playerName)
       const entry = accum.get(key) ?? {
         playerId: key,
+        playerName,
         teamId: r.TEAM_ID ? String(r.TEAM_ID) : undefined,
         games: 0,
         min: 0,
@@ -336,6 +361,35 @@ export const nbaAdapter: SourceAdapter = {
       accum.set(key, entry)
     }
 
+    // Scrape PER, WS, BPM from basketball-reference advanced stats
+    const brAdvancedUrl = `${BR_BASE}/leagues/NBA_${SEASON_END_YEAR}_advanced.html`
+    const advByPlayerName = new Map<
+      string,
+      { per: number | null; winShares: number | null; bpm: number | null }
+    >()
+    try {
+      const brHtml = await fetchHtml(brAdvancedUrl)
+      const advTableHtml = extractTableById(brHtml, "advanced")
+      for (const row of rowsFromTable(advTableHtml)) {
+        const cells = getRowCells(row)
+        const playerName = cells.get("player") ?? cells.get("name_display")
+        if (!playerName) continue
+        advByPlayerName.set(
+          normalizeName(playerName),
+          {
+            per: toNumberOrNull(cells.get("per")) ?? null,
+            winShares: toNumberOrNull(cells.get("ws")) ?? null,
+            bpm: toNumberOrNull(cells.get("bpm")) ?? null,
+          },
+        )
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      console.warn(
+        `[nba] BR advanced stats unavailable — ${message}`,
+      )
+    }
+
     const out: ExtractedPlayerStat[] = []
     for (const entry of accum.values()) {
       const g = entry.games
@@ -345,6 +399,9 @@ export const nbaAdapter: SourceAdapter = {
               (entry.pts / (2 * (entry.fga + 0.44 * entry.fta))).toFixed(3),
             )
           : null
+      const adv = entry.playerName
+        ? advByPlayerName.get(normalizeName(entry.playerName))
+        : undefined
       out.push({
         playerSourceId: entry.playerId,
         season: SOURCE_META.nba.season,
@@ -366,10 +423,10 @@ export const nbaAdapter: SourceAdapter = {
         defensiveRebounds: entry.defReb,
         foulsTotal: entry.pf,
         plusMinus: entry.plusMinus,
-        per: null,
+        per: adv?.per ?? null,
         trueShootingPct: tsPct,
-        winShares: null,
-        bpm: null,
+        winShares: adv?.winShares ?? null,
+        bpm: adv?.bpm ?? null,
       })
     }
     return out

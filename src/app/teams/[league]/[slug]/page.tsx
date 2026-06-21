@@ -1,7 +1,7 @@
-import Link from "next/link"
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
 import { FadeIn } from "@/components/animations/fade-in"
+import { BackLink } from "@/components/ui/back-link"
 import { TeamDetailView } from "@/components/teams/team-detail-view"
 import { getTeamBySlug, listTeamOptions } from "@/lib/data/teams"
 import { JsonLd } from "@/components/marketing/json-ld"
@@ -71,12 +71,11 @@ export default async function TeamDetailPage({
     <div className="relative pt-6 sm:pt-8">
       <JsonLd data={structuredData} />
       <FadeIn>
-        <Link
-          href="/teams"
+        <BackLink
+          fallbackHref="/teams"
+          label={t("common.back")}
           className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-300 transition hover:text-brand-300"
-        >
-          <span aria-hidden>←</span> {t("teamProfile.backToTeams")}
-        </Link>
+        />
       </FadeIn>
       <TeamDetailView team={team} />
     </div>

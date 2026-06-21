@@ -104,6 +104,13 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
     for (const st of sourceTeams) {
       const baseSlug = slugify(st.name) || `team-${st.sourceId}`
       let row = teamBySlug.get(baseSlug)
+      const fillIns: Partial<typeof teams.$inferInsert> = {}
+      if (st.foundedYear) fillIns.foundedYear = st.foundedYear
+      if (st.arena) fillIns.arena = st.arena
+      if (st.arenaCapacity) fillIns.arenaCapacity = st.arenaCapacity
+      if (st.websiteUrl) fillIns.website = st.websiteUrl
+      if (st.primaryColor) fillIns.primaryColor = st.primaryColor
+      if (st.secondaryColor) fillIns.secondaryColor = st.secondaryColor
       if (!row) {
         const slug = uniqueSlug(baseSlug, usedTeamSlugs)
         const [inserted] = await db
@@ -113,10 +120,13 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
             slug,
             city: st.city ?? null,
             logoUrl: st.logoUrl ?? null,
+            ...fillIns,
           })
           .returning()
         row = inserted
         teamBySlug.set(slug, row)
+      } else if (Object.keys(fillIns).length > 0) {
+        await db.update(teams).set(fillIns).where(eq(teams.id, row.id))
       }
       teamIdBySourceId.set(st.sourceId, row.id)
       totals.teams++
@@ -161,6 +171,7 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
       const fillIns: Partial<typeof players.$inferInsert> = {}
 
       if (sp.photoUrl) fillIns.imageUrl = sp.photoUrl
+      if (sp.birthdate) fillIns.birthdate = sp.birthdate
       if (sp.nationality) fillIns.nationality = sp.nationality
       if (sp.position) fillIns.position = sp.position
       if (sp.heightCm) fillIns.heightCm = sp.heightCm
@@ -192,6 +203,7 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
             .insert(players)
             .values({
               firstName, lastName, slug,
+              birthdate: sp.birthdate ?? null,
               nationality: sp.nationality ?? null,
               position: sp.position ?? null,
               heightCm: sp.heightCm ?? null,
@@ -222,6 +234,7 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
           firstName,
           lastName,
           slug,
+          birthdate: sp.birthdate ?? null,
           nationality: sp.nationality ?? null,
           position: sp.position ?? null,
           heightCm: sp.heightCm ?? null,

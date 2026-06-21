@@ -139,7 +139,6 @@ async function main() {
         fouls_total: number | null
         steals_total: number | null
         blocks_total: number | null
-        turnovers_total: number | null
         rebounds_total: number | null
         assists_total: number | null
         points_total: number | null
@@ -150,7 +149,7 @@ async function main() {
         pss.games_played, pss.minutes_total,
         pss.fg_made, pss.fg_attempted, pss.three_made, pss.three_attempted,
         pss.ft_made, pss.ft_attempted, pss.offensive_rebounds, pss.defensive_rebounds,
-        pss.fouls_total, pss.steals_total, pss.blocks_total, pss.turnovers_total,
+        pss.fouls_total, pss.steals_total, pss.blocks_total,
         pss.rebounds_total, pss.assists_total, pss.points_total
       from player_season_stats pss
       join players p on p.id = pss.player_id
@@ -161,7 +160,7 @@ async function main() {
           or pss.offensive_rebounds is null or pss.fouls_total is null
           or pss.minutes_total is null or pss.rebounds_total is null
           or pss.assists_total is null or pss.steals_total is null
-          or pss.blocks_total is null or pss.turnovers_total is null)
+          or pss.blocks_total is null)
     `
     console.log(`[stats] ${rows.length} rows with null columns`)
     let updated = 0
@@ -191,7 +190,6 @@ async function main() {
       set("assists_total", r.assists_total, api.assists)
       set("steals_total", r.steals_total, api.steals)
       set("blocks_total", r.blocks_total, api.blocks)
-      set("turnovers_total", r.turnovers_total, api.turnovers)
       set("points_total", r.points_total, api.pointsScored)
       if (Object.keys(fills).length === 0) continue
       if (DRY) {

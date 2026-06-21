@@ -30,6 +30,10 @@
     "sync:feb": "tsx scripts/sync.ts leb-oro leb-plata eba",
     "backfill:colors": "tsx scripts/backfill-team-colors.ts",
     "backfill:players": "tsx scripts/backfill-players.ts",
+    "backfill:acb-bio": "tsx scripts/backfill-acb-bio.ts",
+    "backfill:team-identity": "tsx scripts/backfill-team-identity.ts",
+    "backfill:coach-wikidata": "tsx scripts/backfill-coach-wikidata.ts",
+    "backfill:coach-photos": "tsx scripts/backfill-coach-photos.ts",
     "db:dedupe-players": "tsx scripts/dedupe-players.ts"
   },
   "overrides": {
@@ -55,6 +59,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.0.0",
+    "@serwist/turbopack": "^9.5.11",
     "@svgr/webpack": "^8.1.0",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/bcryptjs": "^3.0.0",
@@ -65,6 +70,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "drizzle-kit": "^0.31.10",
+    "esbuild": "^0.28.1",
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.2.9",
     "jpeg-js": "^0.4.4",
@@ -72,6 +78,7 @@
     "postcss": "^8.5.15",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.6.14",
+    "serwist": "^9.5.11",
     "tailwindcss": "^4.0.0",
     "tsx": "^4.22.4",
     "typescript": "^5.7.0",

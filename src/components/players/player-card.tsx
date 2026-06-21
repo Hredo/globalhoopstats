@@ -61,7 +61,7 @@ export function PlayerCard({ player, index = 0 }: Props) {
   return (
     <Link
       href={`/players/${player.slug}`}
-      className="group relative block overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-3 ring-1 ring-transparent transition duration-150 hover:ring-brand-500/50 sm:p-4"
+      className="group relative block overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 ring-1 ring-transparent transition-all duration-200 hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/[0.05] hover:ring-brand-500/40 sm:p-4"
       style={{ animationDelay: `${Math.min(index, 12) * 25}ms` }}
     >
       <div className="flex items-start gap-3">
@@ -129,10 +129,16 @@ export function PlayerCard({ player, index = 0 }: Props) {
         <Stat label="BPG" value={formatStat(pg(s?.blocksTotal, s?.gamesPlayed), 1)} />
       </div>
 
-      <div className="mt-2 hidden grid-cols-3 gap-x-3 gap-y-1.5 border-t border-white/5 pt-2 sm:grid">
+      <div className="mt-2 grid grid-cols-4 gap-x-3 gap-y-1.5 border-t border-white/5 pt-2">
         <PctBar label="FG%" value={s?.fgPct} showLabel size="sm" />
         <PctBar label="3P%" value={s?.threePct} showLabel size="sm" />
         <PctBar label="FT%" value={s?.ftPct} showLabel size="sm" />
+        <div className="min-w-0">
+          <p className="text-[9px] uppercase tracking-wider text-ink-500">PER</p>
+          <p className="mt-0.5 text-xs font-semibold text-ink-100">
+            {s?.per != null ? s.per.toFixed(1) : "—"}
+          </p>
+        </div>
       </div>
 
       <div className="mt-2 flex items-center justify-between text-[10px] uppercase tracking-widest text-ink-500">

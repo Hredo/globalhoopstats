@@ -46,6 +46,9 @@ export type ListPlayersInput = {
   order?: "asc" | "desc"
   page?: number
   pageSize?: number
+  // Restrict to the current season — used by team rosters so departed players
+  // (who only have prior-season stat rows) don't linger on the squad.
+  currentSeasonOnly?: boolean
 }
 
 export type ListPlayersResult = {
@@ -91,6 +94,7 @@ async function listPlayersUncached(
   const leagueFilter = leagueSlugs
     ? sql`l.slug in (${sql.join(leagueSlugs.map((s) => sql`${s}`), sql`, `)})`
     : sql`1=1`
+  const seasonFilter = input.currentSeasonOnly ? sql`s.is_current` : sql`1=1`
 
   const fullSql = sql`
     with memberships as (
@@ -115,6 +119,7 @@ async function listPlayersUncached(
         pss.per
       from ${playerSeasonStats} pss
       inner join ${seasons} s on s.id = pss.season_id
+      where ${seasonFilter}
     ),
     ranked as (
       select
@@ -136,7 +141,7 @@ async function listPlayersUncached(
         t.slug as t_slug,
         t.logo_url as t_logo_url,
         row_number() over (
-          partition by lower(p.first_name || ' ' || p.last_name)
+          partition by translate(lower(p.first_name || ' ' || p.last_name), ${ACCENT_FROM}, ${ACCENT_TO})
           order by coalesce(m.games_played, 0) desc
         ) as rn
       from memberships m
@@ -188,6 +193,7 @@ async function listPlayersUncached(
       select pss.player_id, pss.league_id, pss.season_id, pss.team_id, pss.games_played
       from ${playerSeasonStats} pss
       inner join ${seasons} s on s.id = pss.season_id
+      where ${seasonFilter}
     ),
     ranked as (
       select
@@ -198,7 +204,7 @@ async function listPlayersUncached(
         p.position as p_position,
         m.games_played as m_games_played,
         row_number() over (
-          partition by lower(p.first_name || ' ' || p.last_name)
+          partition by translate(lower(p.first_name || ' ' || p.last_name), ${ACCENT_FROM}, ${ACCENT_TO})
           order by coalesce(m.games_played, 0) desc
         ) as rn
       from memberships m
@@ -326,6 +332,27 @@ export function listPlayers(
   return listPlayersCached(input)
 }
 
+export type PlayerSeasonLine = {
+  seasonId: string
+  seasonName: string
+  gamesPlayed: number
+  pointsTotal: number | null
+  reboundsTotal: number | null
+  assistsTotal: number | null
+  stealsTotal: number | null
+  blocksTotal: number | null
+  fgPct: number | null
+  threePct: number | null
+  ftPct: number | null
+  per: number | null
+}
+
+export type PlayerLeagueStats = {
+  league: { id: string; name: string; slug: string; region: string }
+  team: { id: string; name: string; slug: string; logoUrl: string | null } | null
+  seasons: PlayerSeasonLine[]
+}
+
 export type PlayerProfile = {
   id: string
   fullName: string
@@ -335,28 +362,21 @@ export type PlayerProfile = {
   heightCm: number | null
   weightKg: number | null
   imageUrl: string | null
+  // Primary (most-active) league — kept so existing consumers (AI, OG images)
+  // keep working without caring about multi-league.
   league: { id: string; name: string; slug: string; region: string }
   team: { id: string; name: string; slug: string; logoUrl: string | null } | null
-  seasons: Array<{
-    seasonId: string
-    seasonName: string
-    gamesPlayed: number
-    pointsTotal: number | null
-    reboundsTotal: number | null
-    assistsTotal: number | null
-    stealsTotal: number | null
-    blocksTotal: number | null
-    fgPct: number | null
-    threePct: number | null
-    ftPct: number | null
-    per: number | null
-  }>
+  seasons: PlayerSeasonLine[]
+  // One entry per league the player has stats in, most-active league first.
+  // A multi-league player (e.g. plays EuroLeague + ACB for the same club) gets
+  // several entries, which the profile renders behind a league switcher.
+  leagues: PlayerLeagueStats[]
 }
 
 export const getPlayerBySlug = cached(
   async (slug: string): Promise<PlayerProfile | null> => {
   const db = getDb()
-  const rows = await db
+  const [p] = await db
     .select({
       id: players.id,
       fullName: sql<string>`${players.firstName} || ' ' || ${players.lastName}`,
@@ -366,32 +386,24 @@ export const getPlayerBySlug = cached(
       heightCm: players.heightCm,
       weightKg: players.weightKg,
       imageUrl: players.imageUrl,
-      teamId: teams.id,
-      teamName: teams.name,
-      teamSlug: teams.slug,
-      teamLogo: teams.logoUrl,
+    })
+    .from(players)
+    .where(eq(players.slug, slug))
+    .limit(1)
+  if (!p) return null
+
+  const rows = await db
+    .select({
       leagueId: leagues.id,
       leagueName: leagues.name,
       leagueSlug: leagues.slug,
       leagueRegion: leagues.region,
-    })
-    .from(players)
-    .innerJoin(playerSeasonStats, eq(playerSeasonStats.playerId, players.id))
-    .innerJoin(seasons, eq(playerSeasonStats.seasonId, seasons.id))
-    .innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
-    .leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
-    .where(eq(players.slug, slug))
-    .orderBy(desc(seasons.name), desc(playerSeasonStats.gamesPlayed))
-    .limit(1)
-
-  const r = rows[0]
-  if (!r) return null
-
-  const rawStatRows = await db
-    .select({
       seasonId: seasons.id,
       seasonName: seasons.name,
+      teamId: teams.id,
       teamName: teams.name,
+      teamSlug: teams.slug,
+      teamLogo: teams.logoUrl,
       gamesPlayed: playerSeasonStats.gamesPlayed,
       pointsTotal: playerSeasonStats.pointsTotal,
       reboundsTotal: playerSeasonStats.reboundsTotal,
@@ -407,25 +419,62 @@ export const getPlayerBySlug = cached(
       per: playerSeasonStats.per,
     })
     .from(playerSeasonStats)
+    .innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
     .innerJoin(seasons, eq(playerSeasonStats.seasonId, seasons.id))
     .leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
-    .where(eq(playerSeasonStats.playerId, r.id))
+    .where(eq(playerSeasonStats.playerId, p.id))
     .orderBy(
       desc(seasons.name),
       desc(playerSeasonStats.gamesPlayed),
       sql`${playerSeasonStats.pointsTotal} desc nulls last`,
     )
 
-  // Seasons and teams can be duplicated by sync (same label under different
-  // ids); keep one line per season + team identity but preserve genuine
-  // mid-season transfers, which carry distinct team names.
-  const seenLines = new Set<string>()
-  const statRows: PlayerProfile["seasons"] = []
-  for (const row of rawStatRows) {
+  type Acc = {
+    league: PlayerLeagueStats["league"]
+    team: PlayerLeagueStats["team"]
+    teamGames: number
+    totalGames: number
+    seenLines: Set<string>
+    seasons: PlayerSeasonLine[]
+  }
+  const byLeague = new Map<string, Acc>()
+  for (const row of rows) {
+    let acc = byLeague.get(row.leagueSlug)
+    if (!acc) {
+      acc = {
+        league: {
+          id: row.leagueId,
+          name: row.leagueName,
+          slug: row.leagueSlug,
+          region: row.leagueRegion,
+        },
+        team: null,
+        teamGames: -1,
+        totalGames: 0,
+        seenLines: new Set(),
+        seasons: [],
+      }
+      byLeague.set(row.leagueSlug, acc)
+    }
+    acc.totalGames += row.gamesPlayed ?? 0
+    // Show the team the player logged the most games for in this league.
+    if (
+      row.teamId && row.teamName && row.teamSlug &&
+      (row.gamesPlayed ?? 0) > acc.teamGames
+    ) {
+      acc.teamGames = row.gamesPlayed ?? 0
+      acc.team = {
+        id: row.teamId,
+        name: row.teamName,
+        slug: row.teamSlug,
+        logoUrl: row.teamLogo,
+      }
+    }
+    // Keep one line per season + team identity (preserves mid-season transfers).
     const key = `${row.seasonName}::${(row.teamName ?? "").trim().toLowerCase()}`
-    if (seenLines.has(key)) continue
-    seenLines.add(key)
-    statRows.push({
+    if (acc.seenLines.has(key)) continue
+    acc.seenLines.add(key)
+    acc.seasons.push({
       seasonId: row.seasonId,
       seasonName: row.seasonName,
       gamesPlayed: row.gamesPlayed,
@@ -440,38 +489,45 @@ export const getPlayerBySlug = cached(
       per: row.per,
     })
   }
+  if (byLeague.size === 0) return null
+
+  const leaguesList = [...byLeague.values()]
+    .sort((a, b) => b.totalGames - a.totalGames)
+    .map((a) => ({ league: a.league, team: a.team, seasons: a.seasons }))
+  const primary = leaguesList[0]
 
   return {
-    id: r.id,
-    fullName: String(r.fullName),
-    slug: r.slug,
-    nationality: r.nationality,
-    position: r.position,
-    heightCm: r.heightCm,
-    weightKg: r.weightKg,
-    imageUrl: r.imageUrl,
-    league: {
-      id: r.leagueId,
-      name: r.leagueName,
-      slug: r.leagueSlug,
-      region: r.leagueRegion,
-    },
-    team:
-      r.teamId && r.teamName && r.teamSlug
-        ? {
-            id: r.teamId,
-            name: r.teamName,
-            slug: r.teamSlug,
-            logoUrl: r.teamLogo,
-          }
-        : null,
-    seasons: statRows,
+    id: p.id,
+    fullName: String(p.fullName),
+    slug: p.slug,
+    nationality: p.nationality,
+    position: p.position,
+    heightCm: p.heightCm,
+    weightKg: p.weightKg,
+    imageUrl: p.imageUrl,
+    league: primary.league,
+    team: primary.team,
+    seasons: primary.seasons,
+    leagues: leaguesList,
   }
   },
-  "getPlayerBySlug",
+  // v3: per-league grouping replaced the single-league `league`/`seasons` shape.
+  "getPlayerBySlug:v3",
   ["players", "player-season-stats"],
   3600,
 )
+
+/** Pick the requested league's stats for a profile, falling back to primary. */
+export function pickPlayerLeague(
+  profile: PlayerProfile,
+  leagueSlug?: string | null,
+): PlayerLeagueStats {
+  if (leagueSlug) {
+    const match = profile.leagues.find((l) => l.league.slug === leagueSlug)
+    if (match) return match
+  }
+  return profile.leagues[0]
+}
 
 type SearchCacheEntry = {
   expires: number
@@ -565,6 +621,36 @@ export type AutocompleteOptions = {
 const VALID_SORTS = new Set<AutocompleteSort>([
   "points", "assists", "rebounds", "name",
 ])
+
+// Accent folding: lets ASCII queries match diacritic-heavy names
+// ("doncic" → "Dončić", "sengun" → "Şengün", "jokic" → "Jokić"). The same
+// map drives the JS ranker and the SQL `translate()` so both sides agree.
+const ACCENT_MAP: Record<string, string> = {
+  á: "a", à: "a", ä: "a", â: "a", ã: "a", å: "a", ā: "a", ă: "a", ą: "a",
+  ç: "c", ć: "c", č: "c", ċ: "c",
+  é: "e", è: "e", ë: "e", ê: "e", ē: "e", ė: "e", ę: "e", ě: "e",
+  í: "i", ì: "i", ï: "i", î: "i", ī: "i", į: "i", ı: "i",
+  ğ: "g", ģ: "g", ġ: "g", ĝ: "g",
+  ķ: "k",
+  ñ: "n", ń: "n", ň: "n", ņ: "n",
+  ó: "o", ò: "o", ö: "o", ô: "o", õ: "o", ø: "o", ō: "o", ő: "o",
+  ř: "r",
+  ś: "s", š: "s", ş: "s", ș: "s",
+  ť: "t", ț: "t",
+  ú: "u", ù: "u", ü: "u", û: "u", ū: "u", ů: "u", ű: "u", ų: "u",
+  ý: "y", ÿ: "y",
+  ź: "z", ž: "z", ż: "z",
+  đ: "d", ď: "d",
+  ł: "l", ļ: "l",
+}
+export const ACCENT_FROM = Object.keys(ACCENT_MAP).join("")
+export const ACCENT_TO = Object.values(ACCENT_MAP).join("")
+
+function foldAccents(s: string): string {
+  let out = ""
+  for (const ch of s) out += ACCENT_MAP[ch] ?? ch
+  return out
+}
 
 function mapRow(
   r: {
@@ -661,9 +747,11 @@ async function runAutocomplete(
     : "points"
 
   const nameExpr = sql<string>`lower(${players.firstName} || ' ' || ${players.lastName})`
+  // Fold accents on the column so an ASCII pattern matches diacritic names.
+  const foldedNameExpr = sql<string>`translate(${nameExpr}, ${ACCENT_FROM}, ${ACCENT_TO})`
 
   const conditions = []
-  if (pattern) conditions.push(like(nameExpr, pattern))
+  if (pattern) conditions.push(like(foldedNameExpr, pattern))
   if (options.league) {
     const slugs = leagueSlugsFor(options.league)
     if (slugs) conditions.push(inArray(leagues.slug, slugs))
@@ -712,10 +800,10 @@ export function rankByQuery(
   results: AutocompletePlayer[],
   query: string,
 ): AutocompletePlayer[] {
-  const q = query.trim().toLowerCase()
+  const q = foldAccents(query.trim().toLowerCase())
   if (!q) return results
   const score = (p: AutocompletePlayer) => {
-    const name = p.fullName.toLowerCase()
+    const name = foldAccents(p.fullName.toLowerCase())
     if (name === q) return 0
     if (name.startsWith(q)) return 1
     const lastName = name.split(" ").slice(-1)[0] ?? name
@@ -733,7 +821,7 @@ export async function searchPlayersAutocomplete(
 ): Promise<AutocompletePlayer[]> {
   const q = query.trim()
   if (q.length < 1) return runAutocomplete(null, options)
-  return runAutocomplete(`%${q.toLowerCase()}%`, options)
+  return runAutocomplete(`%${foldAccents(q.toLowerCase())}%`, options)
 }
 
 export async function listTopPlayers(

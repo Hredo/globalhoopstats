@@ -180,6 +180,7 @@ export async function POST(request: Request) {
       name: users.name,
       plan: users.plan,
       role: users.role,
+      passwordHash: users.passwordHash,
     })
     .from(users)
     .where(eq(users.id, tfa.userId))
@@ -202,7 +203,12 @@ export async function POST(request: Request) {
     },
   })
   res.headers.append("Set-Cookie", buildSessionCookie(token, ttlMs))
-  res.headers.append("Set-Cookie", buildTrustCookie(signTrustToken(tfa.userId)))
+  if (user.passwordHash) {
+    res.headers.append(
+      "Set-Cookie",
+      buildTrustCookie(signTrustToken(tfa.userId, user.passwordHash)),
+    )
+  }
 
   const settingsRows = await db
     .select({ locale: userSettings.locale })

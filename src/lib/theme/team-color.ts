@@ -1,3 +1,12 @@
+export const LEAGUE_BASE_COLORS: Record<string, string> = {
+  nba: "#CC6B2C",
+  euroleague: "#2A6FBF",
+  acb: "#B83D38",
+  "leb-oro": "#C9A23D",
+  "leb-plata": "#A8ABB8",
+  eba: "#6BAEB2",
+}
+
 export type TeamPalette = {
   source: string
   base: string
