@@ -262,10 +262,38 @@ export function audit(event: string, details: Record<string, unknown>): void {
 
 // ---- IP extraction --------------------------------------------------------
 
+/**
+ * Resolve the real client IP for rate-limiting / audit.
+ *
+ * SECURITY: the LEFT-most `X-Forwarded-For` entry is fully attacker-controlled
+ * (the client sets it; trusted proxies only ever *append*). Keying rate limits
+ * on it lets an attacker rotate a fake IP per request and defeat every
+ * brute-force / abuse limit. Instead we read the entry contributed by our own
+ * trusted reverse proxy, which is the Nth value counting from the RIGHT.
+ *
+ * `TRUSTED_PROXY_HOPS` = number of proxies in front of the app (default 1, the
+ * single platform edge proxy). Bump it if your hosting adds more hops (e.g. a
+ * CDN in front of the app server) so the correct hop is selected.
+ */
+function trustedProxyHops(): number {
+  const n = Number(process.env.TRUSTED_PROXY_HOPS ?? 1)
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1
+}
+
 export function clientIp(req: Request): string {
   const xff = req.headers.get("x-forwarded-for")
-  if (xff) return xff.split(",")[0]?.trim() || "unknown"
+  if (xff) {
+    const parts = xff
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+    if (parts.length > 0) {
+      const idx = Math.max(0, parts.length - trustedProxyHops())
+      const ip = parts[idx]
+      if (ip) return ip
+    }
+  }
   const realIp = req.headers.get("x-real-ip")
-  if (realIp) return realIp
+  if (realIp) return realIp.trim() || "unknown"
   return "unknown"
 }

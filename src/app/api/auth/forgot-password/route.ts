@@ -49,6 +49,23 @@ export async function POST(request: Request) {
   }
   const { email } = parsed.data
 
+  const genericOk = NextResponse.json(
+    { ok: true, message: "If an account exists, a reset link has been sent." },
+    { status: 200 },
+  )
+
+  // Per-email cap (on top of the per-IP cap) so nobody can spam a victim's
+  // inbox with reset emails by rotating source IPs. Always return the generic
+  // response so this never reveals whether the address exists.
+  const perEmail = await consumeRateLimit(
+    `auth:forgot-password:email:${email}`,
+    3,
+    15 * 60 * 1000,
+  )
+  if (!perEmail.ok) {
+    return genericOk
+  }
+
   const db = getDb()
   const user = await db
     .select({ id: users.id, name: users.name })
@@ -57,10 +74,7 @@ export async function POST(request: Request) {
     .limit(1)
 
   if (user.length === 0) {
-    return NextResponse.json(
-      { ok: true, message: "If an account exists, a reset link has been sent." },
-      { status: 200 },
-    )
+    return genericOk
   }
 
   const userId = user[0].id

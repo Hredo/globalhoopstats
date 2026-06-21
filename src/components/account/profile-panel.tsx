@@ -39,6 +39,7 @@ export function ProfilePanel() {
   const [settings, setSettings] = useState<Settings | null>(null)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
+  const [currentPassword, setCurrentPassword] = useState("")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState<{ type: "success" | "error"; msg: string } | null>(
@@ -71,11 +72,23 @@ export function ProfilePanel() {
     try {
       const body: Record<string, string> = {}
       if (name.trim() !== profile.name) body.name = name.trim()
-      if (email.trim().toLowerCase() !== profile.email.toLowerCase())
-        body.email = email.trim()
+      const emailChanging =
+        email.trim().toLowerCase() !== profile.email.toLowerCase()
+      if (emailChanging) body.email = email.trim()
       if (Object.keys(body).length === 0) {
         setStatus({ type: "success", msg: "Nothing to change." })
         return
+      }
+      // Changing the sign-in email requires re-authentication.
+      if (emailChanging) {
+        if (!currentPassword) {
+          setStatus({
+            type: "error",
+            msg: "Enter your current password to change your email.",
+          })
+          return
+        }
+        body.currentPassword = currentPassword
       }
       const res = await fetch("/api/account/profile", {
         method: "PATCH",
@@ -88,6 +101,7 @@ export function ProfilePanel() {
         return
       }
       setProfile({ ...profile, name: body.name ?? profile.name, email: body.email ?? profile.email })
+      setCurrentPassword("")
       setStatus({ type: "success", msg: "Profile updated." })
       // Refresh the navbar's account menu without a reload.
       window.dispatchEvent(new Event("auth:changed"))
@@ -138,6 +152,24 @@ export function ProfilePanel() {
                 />
               </Field>
             </FieldRow>
+
+            {profile &&
+            email.trim().toLowerCase() !== profile.email.toLowerCase() ? (
+              <Field
+                label="Current password"
+                htmlFor="acc-current-password"
+                hint="Required to change the email you sign in with."
+              >
+                <TextInput
+                  id="acc-current-password"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  maxLength={200}
+                  autoComplete="current-password"
+                />
+              </Field>
+            ) : null}
 
             {status ? <StatusNote type={status.type}>{status.msg}</StatusNote> : null}
 

@@ -11,6 +11,7 @@ import {
   type FreeUsage,
 } from "@/lib/auth/free-usage"
 import { getUserSettings } from "@/lib/ai/user-provider"
+import { verifyPassword } from "@/lib/auth/password"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -76,6 +77,8 @@ export async function GET(request: Request) {
 const patchSchema = z.object({
   name: z.string().trim().min(2).max(60).optional(),
   email: z.string().trim().toLowerCase().email().max(254).optional(),
+  // Required only when the email is actually changing (re-authentication).
+  currentPassword: z.string().min(1).max(200).optional(),
 })
 
 export async function PATCH(request: Request) {
@@ -93,17 +96,42 @@ export async function PATCH(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid profile data." }, { status: 400 })
   }
-  const { name, email } = parsed.data
+  const { name, email, currentPassword } = parsed.data
   if (name === undefined && email === undefined) {
     return NextResponse.json({ error: "Nothing to update." }, { status: 400 })
   }
 
   const db = getDb()
-  if (email && email !== sessionUser.email.toLowerCase()) {
+  const emailChanging =
+    email !== undefined && email !== sessionUser.email.toLowerCase()
+
+  // Changing the sign-in email is a sensitive action: require the current
+  // password so a borrowed/compromised session can't silently take over the
+  // account (and lock the real owner out of email-based recovery).
+  if (emailChanging) {
+    if (!currentPassword) {
+      return NextResponse.json(
+        { error: "Enter your current password to change your email." },
+        { status: 400, headers: { "X-Reauth-Required": "password" } },
+      )
+    }
+    const rows = await db
+      .select({ passwordHash: users.passwordHash })
+      .from(users)
+      .where(eq(users.id, sessionUser.id))
+      .limit(1)
+    const hash = rows[0]?.passwordHash
+    if (!hash || !(await verifyPassword(currentPassword, hash))) {
+      return NextResponse.json(
+        { error: "Your current password is incorrect." },
+        { status: 400 },
+      )
+    }
+
     const clash = await db
       .select({ id: users.id })
       .from(users)
-      .where(and(eq(users.email, email), ne(users.id, sessionUser.id)))
+      .where(and(eq(users.email, email!), ne(users.id, sessionUser.id)))
       .limit(1)
     if (clash.length > 0) {
       return NextResponse.json(
