@@ -281,6 +281,18 @@ function trustedProxyHops(): number {
 }
 
 export function clientIp(req: Request): string {
+  // Behind Cloudflare (this site's setup): CF-Connecting-IP is set by Cloudflare
+  // to the genuine visitor IP and OVERWRITES any value the client tries to send,
+  // so it cannot be spoofed for traffic that actually traverses Cloudflare. It's
+  // the single most reliable source here, regardless of how many proxy hops sit
+  // behind it. (Requires locking the origin to Cloudflare IPs — see DEPLOY notes
+  // — so attackers can't hit Hostinger directly and forge this header.)
+  const cf = req.headers.get("cf-connecting-ip")
+  if (cf) return cf.trim() || "unknown"
+
+  // Generic fallback (no Cloudflare): the real IP is the entry contributed by
+  // our own trusted proxy, i.e. the Nth value counting from the RIGHT of
+  // X-Forwarded-For. The left-most entry is attacker-controlled.
   const xff = req.headers.get("x-forwarded-for")
   if (xff) {
     const parts = xff
