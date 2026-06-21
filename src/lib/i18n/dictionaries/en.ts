@@ -50,6 +50,8 @@ export const en = {
     syncPending: "Sync pending",
     rights: "© {year} {name}. All rights reserved.",
     version: "v{version}",
+    disclaimer:
+      "Not affiliated with, endorsed by or sponsored by the NBA, EuroLeague, Liga ACB, FEB or any club. Team names, logos and player names and images are the property of their respective owners and are used here for informational purposes only. To request removal of any content, contact us.",
     time: {
       justNow: "just now",
       seconds: "{n}s ago",
