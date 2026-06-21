@@ -19,5 +19,11 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "scripts/archive", "public/sw*", "public/swe-worker*"]
+  "exclude": [
+    "node_modules",
+    "scripts/archive",
+    "scripts/_*.ts",
+    "public/sw*",
+    "public/swe-worker*"
+  ]
 }
