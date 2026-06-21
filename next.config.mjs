@@ -6,15 +6,21 @@ const isDev = process.env.NODE_ENV !== "production"
 // models, so it must stay in connect-src.
 const OLLAMA_CONNECT = "http://localhost:11434 http://127.0.0.1:11434"
 
+// This site is served through Cloudflare (proxied). Allow Cloudflare Web
+// Analytics / Browser Insights so the hardened CSP doesn't block its beacon.
+// Harmless when the feature is disabled.
+const CF_SCRIPT = "https://static.cloudflareinsights.com"
+const CF_CONNECT = "https://cloudflareinsights.com"
+
 // In dev, Next/Turbopack needs eval (React Refresh / HMR) and a websocket for
 // hot reload. In production neither is required, so we drop them — this is what
 // makes the CSP an effective anti-XSS / anti-exfiltration control.
 const scriptSrc = isDev
-  ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
-  : "script-src 'self' 'unsafe-inline'"
+  ? `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${CF_SCRIPT}`
+  : `script-src 'self' 'unsafe-inline' ${CF_SCRIPT}`
 const connectSrc = isDev
-  ? `connect-src 'self' ws: wss: ${OLLAMA_CONNECT}`
-  : `connect-src 'self' ${OLLAMA_CONNECT}`
+  ? `connect-src 'self' ws: wss: ${OLLAMA_CONNECT} ${CF_CONNECT}`
+  : `connect-src 'self' ${OLLAMA_CONNECT} ${CF_CONNECT}`
 
 const baseCsp = [
   "default-src 'self'",
