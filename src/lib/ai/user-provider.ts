@@ -25,6 +25,7 @@ export type UserSettingsView = {
   emailProduct: boolean
   emailUsage: boolean
   reduceMotion: boolean
+  currency: string
 }
 
 export const DEFAULT_SETTINGS: UserSettingsView = {
@@ -36,6 +37,7 @@ export const DEFAULT_SETTINGS: UserSettingsView = {
   emailProduct: true,
   emailUsage: false,
   reduceMotion: false,
+  currency: "EUR",
 }
 
 export async function getUserSettings(
@@ -58,6 +60,7 @@ export async function getUserSettings(
     emailProduct: row.emailProduct,
     emailUsage: row.emailUsage,
     reduceMotion: row.reduceMotion,
+    currency: row.currency,
   }
 }
 

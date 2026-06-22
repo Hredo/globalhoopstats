@@ -124,6 +124,8 @@ export default async function Home() {
       "Cross-league player comparison",
       "Pace and possession normalization",
       "Advanced metrics (PER, ORtg, DRtg, NetRtg, TS%)",
+      "Player market valuations (transparent heuristic)",
+      "Trade simulator with balanced scenarios",
       "League hubs with leaders",
       "AI advisor for scouting queries",
       "Exports to PDF, Excel and Word",
@@ -302,7 +304,7 @@ export default async function Home() {
             />
           </StaggerItem>
 
-          <StaggerItem className="md:col-span-3">
+          <StaggerItem className="md:col-span-2">
             <BentoCard
               href="/leagues"
               kicker={t("home.bento.coverageKicker")}
@@ -311,11 +313,20 @@ export default async function Home() {
             />
           </StaggerItem>
 
-          <StaggerItem className="md:col-span-3">
+          <StaggerItem className="md:col-span-2">
             <BentoCard
               kicker={t("home.bento.exportKicker")}
               title={t("home.bento.exportTitle")}
               body={t("home.bento.exportBody")}
+            />
+          </StaggerItem>
+
+          <StaggerItem className="md:col-span-2">
+            <BentoCard
+              href="/market/trade"
+              kicker={t("home.bento.tradeKicker")}
+              title={t("home.bento.tradeTitle")}
+              body={t("home.bento.tradeBody")}
             />
           </StaggerItem>
         </Stagger>
