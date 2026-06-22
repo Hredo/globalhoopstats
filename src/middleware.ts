@@ -9,6 +9,7 @@ export const config = {
   matcher: [
     "/ai-advisor/:path*",
     "/account/:path*",
+    "/market/:path*",
     "/api/ai-advisor/:path*",
     "/api/conversations/:path*",
     "/api/compare/ai/:path*",
@@ -23,11 +24,13 @@ export const config = {
 const PROTECTED_PREFIXES = [
   "/ai-advisor",
   "/account",
+  "/market/trade",
   "/api/ai-advisor",
   "/api/conversations",
   "/api/compare/ai",
   "/api/account",
   "/api/admin",
+  "/api/market",
   "/admin",
 ]
 

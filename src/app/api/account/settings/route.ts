@@ -31,6 +31,7 @@ const putSchema = z.object({
   emailProduct: z.boolean().optional(),
   emailUsage: z.boolean().optional(),
   reduceMotion: z.boolean().optional(),
+  currency: z.enum(["EUR", "USD", "GBP"]).optional(),
 })
 
 /** Validate a provider/model pair for a feature; null = cleared. */
@@ -75,6 +76,7 @@ export async function PUT(request: Request) {
     emailProduct: current.emailProduct,
     emailUsage: current.emailUsage,
     reduceMotion: current.reduceMotion,
+    currency: current.currency,
   }
 
   if (patch.advisorProvider !== undefined || patch.advisorModel !== undefined) {
@@ -117,6 +119,7 @@ export async function PUT(request: Request) {
   if (patch.emailProduct !== undefined) next.emailProduct = patch.emailProduct
   if (patch.emailUsage !== undefined) next.emailUsage = patch.emailUsage
   if (patch.reduceMotion !== undefined) next.reduceMotion = patch.reduceMotion
+  if (patch.currency !== undefined) next.currency = patch.currency
 
   const db = getDb()
   const now = new Date()
