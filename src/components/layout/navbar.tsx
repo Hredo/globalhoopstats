@@ -7,6 +7,7 @@ import { Logo } from "@/components/svg/logo"
 import { SearchTrigger } from "@/components/players/search-trigger"
 import { UserMenu } from "@/components/auth/user-menu"
 import { MobileNav } from "@/components/layout/mobile-nav"
+
 import { SITE } from "@/lib/site"
 import { cn } from "@/components/ui/cn"
 import { LEAGUE_FILTER_TREE } from "@/lib/league-groups"
@@ -25,6 +26,7 @@ const LINKS: {
   { href: "/compare", labelKey: "nav.compare" },
   { href: "/leagues", labelKey: "nav.leagues" },
   { href: "/ai-advisor", labelKey: "nav.aiAdvisor", pro: true },
+  { href: "/market/trade", labelKey: "nav.trade" },
 ]
 
 function isActive(pathname: string, href: string) {
@@ -79,7 +81,7 @@ export function Navbar() {
         style={{ transform: "scaleX(0)" }}
         className="absolute inset-x-0 top-0 z-10 h-px origin-left bg-gradient-to-r from-brand-500 via-ember-400 to-brand-600"
       />
-      <div className="mx-auto max-w-7xl px-2 sm:px-6">
+      <div className="mx-auto max-w-[1600px] px-2 sm:px-6 lg:px-8">
         <div
           className={cn(
             "mt-2 flex items-center justify-between gap-1 rounded-full px-1.5 transition-all duration-500 ease-fluid sm:mt-3 sm:gap-3 sm:px-4",
@@ -100,7 +102,7 @@ export function Navbar() {
           </Link>
 
           <nav
-            className="hidden items-center md:flex"
+            className="hidden items-center xl:flex"
             aria-label={t("nav.primary")}
           >
             <ul className="flex items-center gap-0.5 text-sm font-medium text-ink-300">
@@ -209,7 +211,7 @@ function NavItem({
           aria-current={active ? "page" : undefined}
           className={cn(
             "flex items-center gap-1.5 py-2 transition-colors duration-300",
-            withLeagues ? "pl-3.5 pr-1 lg:pl-4" : "px-3.5 lg:px-4",
+            withLeagues ? "pl-2.5 pr-1 lg:pl-3" : "px-2.5 lg:px-3",
             !active && "hover:text-ink-50",
           )}
         >

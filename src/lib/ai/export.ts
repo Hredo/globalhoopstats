@@ -1,6 +1,7 @@
 import * as XLSX from "xlsx-js-style"
 import { saveAs } from "file-saver"
 import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
 import type { AdvisorOutput } from "@/lib/ai/local-advisor"
 
 export type ChatMessage = {
@@ -826,230 +827,337 @@ export function exportToPdf(payload: ExportPayload): void {
   const { team, messages, generatedAt = new Date() } = payload
   const last = lastAdvisorOutput(messages)
 
-  const doc = new jsPDF({ unit: "pt", format: "a4" })
-  const pageWidth = doc.internal.pageSize.getWidth()
-  const pageHeight = doc.internal.pageSize.getHeight()
-  const margin = 45
-  const contentWidth = pageWidth - margin * 2
-  let y = margin
+  // ── Palette (matches simulator export) ─────────────────────────
+  type RGB = [number, number, number]
+  const BRAND: RGB = [230, 106, 30]
+  const BRAND_DARK: RGB = [183, 78, 14]
+  const INK: RGB = [26, 24, 22]
+  const BODY: RGB = [62, 60, 64]
+  const SUBTLE: RGB = [122, 120, 126]
+  const LIGHTFILL: RGB = [245, 244, 246]
+  const LINE: RGB = [223, 221, 226]
 
-  const ensureSpace = (needed: number) => {
-    if (y + needed > pageHeight - margin) {
-      doc.addPage()
-      y = margin
+  const PAGE_W = 210
+  const MARGIN = 16
+  const CONTENT_W = PAGE_W - MARGIN * 2
+  const BOTTOM_LIMIT = 274
+  const leagueLabel = team.leagueName ?? team.leagueSlug
+
+  const doc = new jsPDF({ unit: "mm", format: "a4" })
+
+  const setText = (c: RGB) => doc.setTextColor(c[0], c[1], c[2])
+  const setFill = (c: RGB) => doc.setFillColor(c[0], c[1], c[2])
+  const setDraw = (c: RGB) => doc.setDrawColor(c[0], c[1], c[2])
+
+  // ── Helpers ────────────────────────────────────────────────────
+
+  function drawLogo(cx: number, cy: number, r: number) {
+    setFill([255, 255, 255])
+    doc.circle(cx, cy, r, "F")
+    setDraw(BRAND_DARK)
+    doc.setLineWidth(0.3)
+    doc.line(cx - r, cy, cx + r, cy)
+    doc.line(cx, cy - r, cx, cy + r)
+    setText(BRAND_DARK)
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(r * 1.45)
+    doc.text("GH", cx, cy + r * 0.5, { align: "center" })
+  }
+
+  function topBand(subtitle: string) {
+    setFill(BRAND)
+    doc.rect(0, 0, PAGE_W, 22, "F")
+    drawLogo(MARGIN + 5, 11, 5.5)
+    setText([255, 255, 255])
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(13)
+    doc.text("GLOBAL HOOP STATS", MARGIN + 14, 10)
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(8.5)
+    doc.text(subtitle, MARGIN + 14, 15.5)
+    doc.setFontSize(8)
+    doc.text(
+      generatedAt.toLocaleDateString("es-ES", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }),
+      PAGE_W - MARGIN,
+      13,
+      { align: "right" },
+    )
+  }
+
+  function addFooters() {
+    const total = doc.getNumberOfPages()
+    for (let i = 1; i <= total; i++) {
+      doc.setPage(i)
+      setDraw(LINE)
+      doc.setLineWidth(0.2)
+      doc.line(MARGIN, 285, PAGE_W - MARGIN, 285)
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(7)
+      setText(SUBTLE)
+      doc.text(
+        "Generado por Global Hoop Stats · Cifras estimadas heurísticamente, no son valores reales de contrato.",
+        MARGIN,
+        290,
+      )
+      doc.text(`${i} / ${total}`, PAGE_W - MARGIN, 290, { align: "right" })
     }
   }
 
-  const drawSectionHeader = (text: string, color: [number, number, number] = [245, 158, 11]) => {
-    ensureSpace(40)
-    doc.setFillColor(...color)
-    doc.rect(margin, y, 4, 18, "F")
-    doc.setTextColor(17, 24, 39)
+  function sectionHeading(text: string, y: number): number {
+    setFill(BRAND)
+    doc.rect(MARGIN, y - 3.4, 1.6, 4.6, "F")
     doc.setFont("helvetica", "bold")
-    doc.setFontSize(13)
-    doc.text(text, margin + 14, y + 13)
-    y += 28
+    doc.setFontSize(12)
+    setText(INK)
+    doc.text(text, MARGIN + 4.5, y)
+    return y + 6.5
   }
 
-  function drawWrappedText(
-    text: string,
-    x: number,
-    y: number,
-    maxWidth: number,
-    fontSize: number,
-  ): number {
-    const lines = doc.splitTextToSize(text, maxWidth)
-    doc.setFontSize(fontSize)
-    doc.text(lines, x, y)
-    return y + lines.length * (fontSize * 1.25)
+  function ensure(y: number, needed: number): number {
+    if (y + needed > BOTTOM_LIMIT) {
+      doc.addPage()
+      return 20
+    }
+    return y
   }
 
-  // ==================== COVER / TITLE SECTION ====================
-  doc.setFillColor(17, 24, 39)
-  doc.rect(0, 0, pageWidth, 175, "F")
-  doc.setFillColor(245, 158, 11)
-  doc.rect(0, 175, pageWidth, 4, "F")
+  function renderMarkdown(text: string, y: number): number {
+    for (const raw of text.split("\n")) {
+      const line = raw.trim()
+      if (!line) { y += 1.8; continue }
+      let content = line
+      let bullet = false
+      let heading = false
+      if (content.startsWith("### ")) { content = content.slice(4); heading = true }
+      else if (content.startsWith("## ")) { content = content.slice(3); heading = true }
+      else if (content.startsWith("- ") || content.startsWith("* ")) { content = content.slice(2); bullet = true }
+      content = content.replace(/\*\*/g, "").trim()
+      if (!content) continue
+      doc.setFont("helvetica", heading ? "bold" : "normal")
+      doc.setFontSize(heading ? 10 : 9)
+      const indent = bullet ? MARGIN + 5 : MARGIN
+      const wrapW = bullet ? CONTENT_W - 5 : CONTENT_W
+      const wrapped = doc.splitTextToSize(content, wrapW) as string[]
+      for (let i = 0; i < wrapped.length; i++) {
+        y = ensure(y, 6)
+        if (bullet && i === 0) {
+          setText(BRAND)
+          doc.text("•", MARGIN + 1.5, y)
+        }
+        setText(heading ? INK : BODY)
+        doc.text(wrapped[i], indent, y)
+        y += heading ? 5 : 4.5
+      }
+      if (heading) y += 1
+    }
+    return y
+  }
 
-  doc.setTextColor(255, 255, 255)
+  // ── Page 1: Cover ───────────────────────────────────────────────
+
+  topBand("Informe de asesoramiento")
+
+  let y = 32
   doc.setFont("helvetica", "bold")
-  doc.setFontSize(26)
-  doc.text("SIGNING ADVISOR", margin, 55)
+  doc.setFontSize(17)
+  setText(INK)
+  doc.text(team.name, MARGIN, y)
+  y += 9
 
-  doc.setFont("helvetica", "normal")
-  doc.setFontSize(11)
-  doc.setTextColor(156, 163, 175)
-  doc.text("Reporte generado por Global Hoop Stats", margin, 75)
-
-  doc.setFont("helvetica", "bold")
-  doc.setFontSize(10)
-  doc.setTextColor(245, 158, 11)
-  doc.text(`Equipo: ${team.name}`, margin, 140)
+  // Team info card
+  y = ensure(y, 24)
+  setFill(LIGHTFILL)
+  setDraw(LINE)
+  doc.setLineWidth(0.2)
+  doc.roundedRect(MARGIN, y - 2, CONTENT_W, 24, 1.6, 1.6, "FD")
+  setText(BODY)
   doc.setFont("helvetica", "normal")
   doc.setFontSize(9)
-  doc.setTextColor(209, 213, 219)
-  const leagueLabel = team.leagueName ?? team.leagueSlug
-  doc.text(`Liga: ${leagueLabel}  •  ${formatDateEs(generatedAt)}`, margin, 158)
+  doc.text(`Liga: ${leagueLabel}  ·  Generado: ${formatDateEs(generatedAt)}`, MARGIN + 4, y + 8)
+  y += 28
 
-  // ============== TEAM INFO BOX ==============
-  y = 210
-  doc.setFillColor(249, 250, 251)
-  doc.setDrawColor(229, 231, 235)
-  doc.setLineWidth(0.5)
-  doc.rect(margin, y, contentWidth, 75, "FD")
+  y = ensure(y, 16)
+  y = sectionHeading("Resumen", y)
 
-  doc.setTextColor(17, 24, 39)
-  doc.setFont("helvetica", "bold")
-  doc.setFontSize(18)
-  doc.text(team.name, margin + 16, y + 28)
-
-  doc.setFont("helvetica", "normal")
-  doc.setFontSize(10)
-  doc.setTextColor(107, 114, 128)
-  doc.text(`Liga: ${leagueLabel}`, margin + 16, y + 48)
-  doc.text(`Generado: ${formatDateEs(generatedAt)}`, margin + 16, y + 66)
-
-  // ============== STATS CARDS ==============
-  y = 310
-  const boxW = (contentWidth - 16) / 2
-  const cardH = 65
-
+  // Stats cards
+  const cardW = (CONTENT_W - 8) / 2
+  const cardH = 18
   const stats = [
-    { label: "Mensajes", value: String(messages.length), color: [59, 130, 246] },
-    { label: "Consideraciones", value: String(last?.considerations.length ?? 0), color: [245, 158, 11] },
-  ] as const
-
-  for (const [i, stat] of stats.entries()) {
-    const bx = margin + i * (boxW + 16)
-    doc.setFillColor(stat.color[0], stat.color[1], stat.color[2])
-    doc.rect(bx, y, boxW, cardH, "F")
-    doc.setTextColor(255, 255, 255)
+    { label: "Mensajes", value: String(messages.length) },
+    { label: "Candidatos", value: String(collectRecommendations(messages).length) },
+  ]
+  for (let i = 0; i < stats.length; i++) {
+    const cx = MARGIN + i * (cardW + 8)
+    setFill(BRAND)
+    doc.roundedRect(cx, y, cardW, cardH, 1.2, 1.2, "F")
+    setText([255, 255, 255])
     doc.setFont("helvetica", "bold")
-    doc.setFontSize(20)
-    doc.text(stat.value, bx + 14, y + 28)
+    doc.setFontSize(14)
+    doc.text(stats[i].value, cx + 4, y + 7)
+    doc.setFont("helvetica", "normal")
+    doc.setFontSize(7)
+    doc.text(stats[i].label, cx + 4, y + 14)
+  }
+  y += cardH + 10
+
+  // ── Team diagnosis ──────────────────────────────────────────────
+  if (last) {
+    y = ensure(y, 16)
+    y = sectionHeading("Diagnóstico del equipo", y)
+
+    if (last.intentLabel) {
+      doc.setFont("helvetica", "bold")
+      doc.setFontSize(10)
+      setText(BRAND_DARK)
+      doc.text(`${last.intentEmoji ?? ""} ${last.intentLabel}`, MARGIN, y)
+      y += 5.5
+    }
+
     doc.setFont("helvetica", "normal")
     doc.setFontSize(9)
-    doc.text(stat.label, bx + 14, y + 48)
-  }
+    setText(BODY)
+    y = renderMarkdown(last.analysis, y)
+    y += 2
 
-  y = y + cardH + 35
-
-  // ============== TEAM DIAGNOSIS ==============
-  if (last) {
-    drawSectionHeader("Diagnóstico del equipo")
-
+    // Gap highlight box
+    y = ensure(y, 14)
+    setFill([255, 247, 237])
+    setDraw(BRAND)
+    doc.setLineWidth(0.2)
+    doc.roundedRect(MARGIN, y, CONTENT_W, 8, 1.2, 1.2, "FD")
     doc.setFont("helvetica", "bold")
-    doc.setFontSize(11)
-    doc.setTextColor(180, 83, 9)
-    y = drawWrappedText(`${last.intentEmoji ?? ""} ${last.intentLabel}`, margin, y, contentWidth, 11) + 8
-
-    doc.setFont("helvetica", "normal")
-    doc.setFontSize(10)
-    doc.setTextColor(55, 65, 81)
-    y = drawWrappedText(stripMarkdown(last.analysis), margin, y, contentWidth, 10) + 8
-
-    ensureSpace(40)
-    doc.setFillColor(254, 243, 199)
-    doc.rect(margin, y, contentWidth, 26, "F")
-    doc.setTextColor(146, 64, 14)
-    doc.setFont("helvetica", "bold")
-    doc.setFontSize(10)
-    doc.text(`Carencia detectada: ${last.gap}`, margin + 10, y + 17)
-    y += 40
+    doc.setFontSize(9)
+    setText(BRAND_DARK)
+    doc.text(`Carencia detectada: ${last.gap}`, MARGIN + 4, y + 5.5)
+    y += 12
 
     if (last.team.topPlayers.length > 0) {
       doc.setFont("helvetica", "normal")
-      doc.setFontSize(10)
-      doc.setTextColor(107, 114, 128)
-      doc.text(`Jugadores actuales: ${last.team.topPlayers.join(" · ")}`, margin, y)
-      y += 24
+      doc.setFontSize(8)
+      setText(SUBTLE)
+      doc.text(`Jugadores actuales: ${last.team.topPlayers.join(" · ")}`, MARGIN, y)
+      y += 5
     }
 
-    y += 6
-  }
+    y += 3
 
-  // ============== CONSIDERATIONS ==============
-  if (last && last.considerations.length > 0) {
-    drawSectionHeader("Antes de negociar")
-
-    doc.setFont("helvetica", "normal")
-    doc.setFontSize(10)
-    doc.setTextColor(55, 65, 81)
-    for (const c of last.considerations) {
-      ensureSpace(20)
-      y = drawWrappedText(`• ${c}`, margin, y, contentWidth, 10) + 5
+    // Considerations
+    if (last.considerations.length > 0) {
+      y = ensure(y, 16)
+      y = sectionHeading("Antes de negociar", y)
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(9)
+      setText(BODY)
+      for (const c of last.considerations) {
+        y = ensure(y, 6)
+        doc.text(`• ${c}`, MARGIN + 2, y)
+        y += 4.5
+      }
+      y += 3
     }
-    y += 6
   }
 
-  // ============== FULL CONVERSATION ==============
+  // ── Candidates table ────────────────────────────────────────────
+  const recs = collectRecommendations(messages)
+  if (recs.length > 0) {
+    y = ensure(y, 24)
+    y = sectionHeading("Candidatos recomendados", y)
+    const rows = recs.map((r, i) => [
+      String(i + 1),
+      r.name,
+      r.position,
+      r.league,
+      r.priority,
+    ])
+    autoTable(doc, {
+      startY: y,
+      margin: { left: MARGIN, right: MARGIN },
+      tableWidth: CONTENT_W,
+      theme: "grid",
+      head: [["#", "Jugador", "Pos.", "Liga", "Prioridad"]],
+      body: rows,
+      headStyles: { fillColor: BRAND, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8 },
+      bodyStyles: { textColor: INK, fontSize: 8 },
+      alternateRowStyles: { fillColor: LIGHTFILL },
+      styles: { lineColor: LINE, lineWidth: 0.1, cellPadding: 2.2 },
+      columnStyles: { 0: { cellWidth: 10 }, 4: { cellWidth: 22 } },
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    y = (doc as any).lastAutoTable.finalY + 9
+  }
+
+  // ── Full conversation ───────────────────────────────────────────
   doc.addPage()
-  y = margin
+  topBand("Conversación completa")
 
-  doc.setFillColor(17, 24, 39)
-  doc.rect(0, 0, pageWidth, 60, "F")
-  doc.setFillColor(245, 158, 11)
-  doc.rect(0, 60, pageWidth, 3, "F")
-
-  doc.setTextColor(255, 255, 255)
+  y = 32
   doc.setFont("helvetica", "bold")
-  doc.setFontSize(16)
-  doc.text("Conversación completa", margin, 30)
-
+  doc.setFontSize(14)
+  setText(INK)
+  doc.text("Conversación completa", MARGIN, y)
+  y += 8
   doc.setFont("helvetica", "normal")
   doc.setFontSize(9)
-  doc.setTextColor(156, 163, 175)
-  doc.text(`${messages.length} mensajes`, margin, 46)
-
-  y = 90
+  setText(SUBTLE)
+  doc.text(`${messages.length} mensajes · ${team.name}`, MARGIN, y)
+  y += 10
 
   if (messages.length === 0) {
     doc.setFont("helvetica", "italic")
     doc.setFontSize(10)
-    doc.setTextColor(156, 163, 175)
-    doc.text("No hay mensajes en esta conversación.", margin, y)
+    setText(SUBTLE)
+    doc.text("No hay mensajes en esta conversación.", MARGIN, y)
   } else {
     for (const [i, m] of messages.entries()) {
-      ensureSpace(60)
-
+      y = ensure(y, 20)
       const isUser = m.type === "user"
-      const label = isUser ? "Tú" : "Advisor"
-      const bgColor = isUser ? [249, 250, 251] as [number, number, number] : [254, 243, 199] as [number, number, number]
-      const accentColor = isUser ? [59, 130, 246] as [number, number, number] : [245, 158, 11] as [number, number, number]
-      const labelColor = isUser ? "1E40AF" : "92400E"
-
-      doc.setFillColor(...bgColor)
-      doc.rect(margin, y, contentWidth, 24, "F")
-
-      doc.setFillColor(...accentColor)
-      doc.circle(margin + 14, y + 12, 5, "F")
-
-      doc.setTextColor(labelColor)
+      const msgBg: RGB = isUser ? LIGHTFILL : [255, 247, 237]
+      const accentColor: RGB = isUser ? [59, 130, 246] : BRAND
+      setFill(msgBg)
+      setDraw(LINE)
+      doc.setLineWidth(0.2)
+      const msgH = 10
+      doc.roundedRect(MARGIN, y, CONTENT_W, msgH, 1.2, 1.2, "FD")
+      setText([255, 255, 255])
+      setFill(accentColor)
+      doc.circle(MARGIN + 5, y + msgH / 2, 2.8, "F")
+      setText(isUser ? [30, 64, 175] : BRAND_DARK)
       doc.setFont("helvetica", "bold")
-      doc.setFontSize(9)
-      doc.text(`${label} · mensaje ${i + 1}`, margin + 26, y + 16)
-
-      y += 34
+      doc.setFontSize(7.5)
+      doc.text(isUser ? "Tú" : "Advisor", MARGIN + 11, y + 4)
+      setText(SUBTLE)
+      doc.setFont("helvetica", "normal")
+      doc.setFontSize(6.5)
+      doc.text(`#${i + 1}`, MARGIN + CONTENT_W - 10, y + 4, { align: "right" })
+      y += msgH + 3
 
       const content = m.data ? buildAdvisorText(m.data) : stripMarkdown(m.content)
-
       doc.setFont("helvetica", "normal")
-      doc.setFontSize(9)
-      doc.setTextColor(55, 65, 81)
-
-      const textLines = content.split("\n")
-      for (const line of textLines) {
+      doc.setFontSize(8.5)
+      setText(BODY)
+      for (const line of content.split("\n")) {
         if (line.trim()) {
-          const indent = /^\s{2,}/.test(line) ? margin + 16 : margin + 8
-          y = drawWrappedText(line.trim(), indent, y, contentWidth - 16, 9) + 3
+          const indent = /^\s{2,}/.test(line) ? MARGIN + 8 : MARGIN + 2
+          y = ensure(y, 6)
+          const wrapped = doc.splitTextToSize(line.trim(), CONTENT_W - 10) as string[]
+          for (const ln of wrapped) {
+            y = ensure(y, 6)
+            doc.text(ln, indent, y)
+            y += 4
+          }
         } else {
-          y += 5
+          y += 2
         }
       }
-
-      y += 8
+      y += 4
     }
   }
 
+  addFooters()
   doc.save(buildFileName(team.name, "pdf"))
 }
 

@@ -46,7 +46,7 @@ function buildPlayerPrompt(
     `Shooting: ${fgp} FG / ${threep} 3P / ${ftp} FT`,
     `PER: ${per}`,
     "",
-    `Write a 2-3 sentence scouting report about this player. Mention their role, strengths, weaknesses, and what kind of team they fit best. Plain prose, no lists, no markdown. Write in ${aiLanguageName(locale)}.`,
+    `Write a sharp 3-4 sentence scouting report. Pin down his role and archetype, his single biggest strength and his clearest weakness — back each with a specific number from above — and the exact type of team and system that gets the most out of him. Be concrete and opinionated; no generic praise ("solid", "versatile" on their own are banned). Plain prose, no lists, no markdown. Write in ${aiLanguageName(locale)}.`,
   ].join("\n")
 }
 
@@ -114,7 +114,7 @@ export async function POST(request: Request) {
           provider: engine.provider,
           model: engine.model,
           apiKey: engine.apiKey,
-          system: `You are a concise basketball scout. Given a player's stats, write a short scouting report in ${aiLanguageName(locale)}. Plain prose, no lists, no markdown.`,
+          system: `You are an elite basketball scout. Given a player's stats, write a short, specific and opinionated scouting report in ${aiLanguageName(locale)}. Anchor your claims to the numbers; no hedging, no generic filler. Plain prose, no lists, no markdown.`,
           messages: [
             {
               role: "user",
@@ -128,8 +128,8 @@ export async function POST(request: Request) {
               ),
             },
           ],
-          maxTokens: 300,
-          temperature: 0.5,
+          maxTokens: 380,
+          temperature: 0.6,
         })
         if (llm.ok) {
           analysis = cleanLlmOutput(llm.content)

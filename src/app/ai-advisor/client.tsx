@@ -7,16 +7,13 @@ import {
   useRef,
   useState,
 } from "react"
+import { useT } from "@/lib/i18n/provider"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { TeamSelector } from "@/app/ai-advisor/team-selector"
 import { ChatWindow } from "@/app/ai-advisor/chat-window"
 import { InputArea } from "@/app/ai-advisor/input-area"
-import {
-  LlmSettings,
-  loadLlmMode,
-  type LlmMode,
-} from "@/app/ai-advisor/llm-settings"
+import { DownloadMenu } from "@/app/ai-advisor/download-menu"
 import { AdvisorTour, TOUR_EVENT } from "@/app/ai-advisor/tour"
 // NOTE: Import kept for when paywall is re-enabled.
 // import { PaywallModal } from "@/components/auth/paywall-modal"
@@ -66,14 +63,7 @@ type ConversationDetail = ConversationSummary & {
   }>
 }
 
-const TIPS = [
-  "I want a strong defender for the team",
-  "I need a scoring wing",
-  "Looking for a playmaking point guard",
-  "Reinforcement for the frontcourt",
-  "A budget-friendly option for the rotation",
-  "Star signing with immediate impact",
-]
+const TIPS_KEY = "aiAdvisor.tips"
 
 const REACTIONS_KEY = "ai-advisor:reactions"
 
@@ -113,12 +103,20 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString()
 }
 
+const TIPS_LABELS = [
+  "aiAdvisor.tip0",
+  "aiAdvisor.tip1",
+  "aiAdvisor.tip2",
+  "aiAdvisor.tip3",
+  "aiAdvisor.tip4",
+  "aiAdvisor.tip5",
+] as const
+
 export default function AIAdvisorClient() {
   const [selectedTeam, setSelectedTeam] = useState<TeamOption | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(false)
   const [reactions, setReactions] = useState<Record<number, Reaction>>({})
-  const [llmMode, setLlmMode] = useState<LlmMode>("off")
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [activeConversationId, setActiveConversationId] = useState<string | null>(
     null,
@@ -129,12 +127,12 @@ export default function AIAdvisorClient() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [aiNotConfigured, setAiNotConfigured] = useState(false)
   const [aiNoticeDismissed, setAiNoticeDismissed] = useState(false)
+  const t = useT()
   const idRef = useRef(0)
   const initialized = useRef(false)
 
   useEffect(() => {
     setReactions(loadReactions())
-    setLlmMode(loadLlmMode())
   }, [])
 
   useEffect(() => {
@@ -265,7 +263,6 @@ export default function AIAdvisorClient() {
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
         }
-        if (llmMode === "ollama") headers["X-User-LLM"] = "ollama"
 
         const body: Record<string, unknown> = {
           teamSlug: selectedTeam.slug,
@@ -347,7 +344,7 @@ export default function AIAdvisorClient() {
         setLoading(false)
       }
     },
-    [selectedTeam, messages, llmMode, activeConversationId, loadConversationList],
+    [selectedTeam, messages, activeConversationId, loadConversationList],
   )
 
   const handleRedo = useCallback(
@@ -371,7 +368,6 @@ export default function AIAdvisorClient() {
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
         }
-        if (llmMode === "ollama") headers["X-User-LLM"] = "ollama"
 
         const r = await fetch("/api/ai-advisor", {
           method: "POST",
@@ -429,7 +425,7 @@ export default function AIAdvisorClient() {
         setLoading(false)
       }
     },
-    [selectedTeam, loading, messages, llmMode, activeConversationId],
+    [selectedTeam, loading, messages, activeConversationId],
   )
 
   const handleCopy = useCallback((id: number) => {
@@ -510,7 +506,7 @@ export default function AIAdvisorClient() {
                 >
                   <path strokeLinecap="round" d="M12 5v14M5 12h14" />
                 </svg>
-                New chat
+                {t("aiAdvisor.newChat")}
               </button>
               <button
                 type="button"
@@ -531,7 +527,7 @@ export default function AIAdvisorClient() {
               </button>
             </div>
             <p className="px-1 pt-1 font-mono text-[10px] uppercase tracking-widest text-ink-500">
-              Conversations
+              {t("aiAdvisor.conversations")}
             </p>
           </div>
 
@@ -556,9 +552,9 @@ export default function AIAdvisorClient() {
                   />
                 </svg>
                 <p className="mt-3 text-xs leading-relaxed text-ink-500">
-                  No conversations yet.
+                  {t("aiAdvisor.noConversations")}
                   <br />
-                  Pick a team and start a chat.
+                  {t("aiAdvisor.noConversationsHint")}
                 </p>
               </div>
             ) : (
@@ -623,7 +619,7 @@ export default function AIAdvisorClient() {
           </div>
 
           <div className="border-t border-white/10 p-3 text-[11px] leading-relaxed text-ink-500">
-            Conversations are private to your account.
+            {t("aiAdvisor.conversationsPrivate")}
           </div>
         </aside>
 
@@ -676,30 +672,35 @@ export default function AIAdvisorClient() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <h1 className="truncate font-display text-base font-bold text-ink-50 sm:text-lg">
-                    Scouting Advisor
+                    {t("aiAdvisor.title")}
                   </h1>
                   <span className="shrink-0 rounded-full border border-amber-400/50 bg-amber-400/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-300">
                     Beta
                   </span>
                 </div>
                 <p className="hidden truncate text-[11px] text-ink-400 sm:block sm:text-xs">
-                  Smart analysis powered by your player database
+                  {t("aiAdvisor.subtitle")}
                 </p>
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               {loadingConversation ? (
                 <span
                   role="status"
-                  className="font-mono text-[10px] uppercase tracking-widest text-ink-500"
+                  className="hidden font-mono text-[10px] uppercase tracking-widest text-ink-500 sm:inline"
                 >
-                  Loading…
+                  {t("aiAdvisor.loading")}
                 </span>
               ) : null}
+              <DownloadMenu
+                team={teamContext}
+                messages={messages}
+                disabled={!selectedTeam}
+              />
               <button
                 type="button"
                 onClick={() => window.dispatchEvent(new Event(TOUR_EVENT))}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-ink-200 transition hover:border-brand-400/40 hover:text-ink-50"
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-ink-200 transition hover:border-brand-400/40 hover:bg-white/[0.07] hover:text-ink-50"
               >
                 <svg
                   className="h-3.5 w-3.5 text-brand-300"
@@ -715,14 +716,30 @@ export default function AIAdvisorClient() {
                     d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4m.1 3.5h.01"
                   />
                 </svg>
-                Tour
+                <span className="hidden sm:inline">Tour</span>
               </button>
+              <Link
+                href="/account/ai-keys"
+                className="inline-flex items-center gap-1.5 rounded-full border border-brand-500/40 bg-brand-500/10 px-3 py-1.5 text-xs font-semibold text-brand-200 transition hover:bg-brand-500/20"
+              >
+                <svg
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M14 7a4 4 0 11-3.8 5.2L4 18v3h3v-2h2v-2h2l1.2-1.2A4 4 0 0114 7zm2.5 2.5h.01"
+                  />
+                </svg>
+                <span className="hidden sm:inline">AIs &amp; keys</span>
+              </Link>
             </div>
           </header>
-
-          <div data-tour="engine">
-            <LlmSettings mode={llmMode} onModeChange={setLlmMode} />
-          </div>
 
           {aiNotConfigured && !aiNoticeDismissed ? (
             <div className="flex items-start gap-3 border-b border-amber-500/20 bg-amber-500/[0.06] px-4 py-2.5 sm:px-5">
@@ -817,28 +834,29 @@ export default function AIAdvisorClient() {
                   </svg>
                   <p className="text-[11px] leading-relaxed text-ink-300">
                     <span className="font-semibold text-brand-200">
-                      Why this advisor.
+                      {t("aiAdvisor.whyAdvisorTitle")}
                     </span>{" "}
-                    It scans your roster against the full cross-league player
-                    database, detects positional gaps and proposes shortlists.
-                    All without leaving the browser.
+                    {t("aiAdvisor.whyAdvisorBody")}
                   </p>
                 </div>
                 <p className="mb-2 text-[10px] uppercase tracking-widest text-ink-500">
-                  Suggested questions — click one to send it
+                  {t("aiAdvisor.suggestedQuestions")}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {TIPS.map((tip) => (
-                    <button
-                      key={tip}
-                      type="button"
-                      onClick={() => sendMessage(tip)}
-                      disabled={loading}
-                      className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-ink-300 transition hover:border-brand-500/50 hover:bg-brand-500/10 hover:text-brand-200 disabled:opacity-30 sm:py-1.5"
-                    >
-                      {tip}
-                    </button>
-                  ))}
+                  {TIPS_LABELS.map((key) => {
+                    const label = t(key)
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => sendMessage(label)}
+                        disabled={loading}
+                        className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-ink-300 transition hover:border-brand-500/50 hover:bg-brand-500/10 hover:text-brand-200 disabled:opacity-30 sm:py-1.5"
+                      >
+                        {label}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             ) : null}
@@ -849,8 +867,6 @@ export default function AIAdvisorClient() {
               onSend={sendMessage}
               disabled={!selectedTeam}
               loading={loading}
-              team={teamContext}
-              messages={messages}
               placeholder={
                 !selectedTeam
                   ? "Pick a team above to get started…"

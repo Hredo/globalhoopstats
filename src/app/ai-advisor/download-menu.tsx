@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { useT } from "@/lib/i18n/provider"
 import type { ChatMessage, TeamContext } from "@/lib/ai/export"
 import { exportToMarkdown } from "@/lib/ai/export-markdown"
 
-type Format = "pdf" | "word" | "markdown"
+type Format = "pdf" | "markdown"
 
 type Props = {
   team: TeamContext | null
@@ -56,66 +57,6 @@ function Spinner() {
 }
 
 function FormatIcon({ id }: { id: Format }) {
-  if (id === "pdf") {
-    return (
-      <svg
-        viewBox="0 0 24 24"
-        className="h-4 w-4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={1.8}
-        aria-hidden
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"
-        />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M14 3v5h5" />
-        <text
-          x="8"
-          y="17"
-          fontSize="6"
-          fontWeight="700"
-          fill="currentColor"
-          stroke="none"
-          fontFamily="Helvetica, Arial, sans-serif"
-        >
-          PDF
-        </text>
-      </svg>
-    )
-  }
-  if (id === "word") {
-    return (
-      <svg
-        viewBox="0 0 24 24"
-        className="h-4 w-4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={1.8}
-        aria-hidden
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"
-        />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M14 3v5h5" />
-        <text
-          x="7.5"
-          y="17"
-          fontSize="6"
-          fontWeight="700"
-          fill="currentColor"
-          stroke="none"
-          fontFamily="Helvetica, Arial, sans-serif"
-        >
-          DOC
-        </text>
-      </svg>
-    )
-  }
   return (
     <svg
       viewBox="0 0 24 24"
@@ -132,7 +73,7 @@ function FormatIcon({ id }: { id: Format }) {
       />
       <path strokeLinecap="round" strokeLinejoin="round" d="M14 3v5h5" />
       <text
-        x="7.5"
+        x={id === "pdf" ? "8" : "7.5"}
         y="17"
         fontSize="6"
         fontWeight="700"
@@ -140,7 +81,7 @@ function FormatIcon({ id }: { id: Format }) {
         stroke="none"
         fontFamily="Helvetica, Arial, sans-serif"
       >
-        MD
+        {id === "pdf" ? "PDF" : "MD"}
       </text>
     </svg>
   )
@@ -157,6 +98,7 @@ type Option = {
 }
 
 export function DownloadMenu({ team, messages, disabled = false }: Props) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState<Format | null>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -191,41 +133,19 @@ export function DownloadMenu({ team, messages, disabled = false }: Props) {
   const options: Option[] = [
     {
       id: "markdown",
-      label: "Markdown (.md)",
-      hint: "Plain text — paste into docs or Notion",
+      label: t("aiAdvisor.markdownLabel"),
+      hint: t("aiAdvisor.markdownHint"),
       run: ({ team, messages }) => exportToMarkdown({ team, messages }),
     },
     {
       id: "pdf",
-      label: "PDF (.pdf)",
-      hint: "Formatted document with analysis and player cards",
-      // jspdf/docx/xlsx weigh several MB, so the export module only loads
+      label: t("aiAdvisor.pdfLabel"),
+      hint: t("aiAdvisor.pdfHint"),
+      // jspdf weighs several MB, so the export module only loads
       // when a download is actually requested.
       run: async ({ team, messages }) => {
         const { exportToPdf } = await import("@/lib/ai/export")
         return exportToPdf({ team, messages })
-      },
-    },
-    {
-      id: "word",
-      label: "Word (.docx)",
-      hint: "Editable document with every section",
-      run: async ({ team, messages }) => {
-        const resp = await fetch("/api/ai-advisor/export-word", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ team, messages }),
-        })
-        if (!resp.ok) throw new Error("Word export failed")
-        const blob = await resp.blob()
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `signing-advisor-${team.slug}.docx`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
       },
     },
   ]
@@ -255,27 +175,28 @@ export function DownloadMenu({ team, messages, disabled = false }: Props) {
         data-tour="export"
         title={
           isEmpty
-            ? "Start a conversation to download it"
-            : "Download conversation"
+            ? t("aiAdvisor.startToDownload")
+            : t("aiAdvisor.downloadConversation")
         }
-        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-ink-700 bg-ink-800/60 text-ink-200 transition hover:border-brand-500/50 hover:bg-ink-800 hover:text-brand-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-ink-700 disabled:hover:bg-ink-800/60 disabled:hover:text-ink-200"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-hairline bg-surface-0 px-3.5 py-2 text-sm font-semibold text-ink-200 transition hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {busy ? <Spinner /> : <DownloadIcon />}
+        <span className="hidden sm:inline">{t("aiAdvisor.download")}</span>
       </button>
 
       <AnimatePresence>
         {open && (
           <motion.div
             role="menu"
-            initial={{ opacity: 0, y: 6, scale: 0.97 }}
+            initial={{ opacity: 0, y: -6, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 6, scale: 0.97 }}
+            exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.14, ease: "easeOut" }}
-            className="absolute bottom-full right-0 z-30 mb-2 w-[min(18rem,calc(100vw-5.5rem))] origin-bottom-right overflow-hidden rounded-xl border border-white/10 bg-ink-900/95 p-1.5 shadow-2xl shadow-black/50 backdrop-blur-xl"
+            className="absolute right-0 top-full z-40 mt-2 w-[min(16rem,calc(100vw-2.5rem))] origin-top-right overflow-hidden rounded-xl border border-hairline bg-surface-1 p-1.5 shadow-2xl shadow-black/50"
           >
             <div className="px-2.5 pb-1.5 pt-1.5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-ink-400">
-                Download format
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">
+                {t("aiAdvisor.downloadFormat")}
               </p>
             </div>
             <div className="space-y-0.5">
@@ -286,13 +207,13 @@ export function DownloadMenu({ team, messages, disabled = false }: Props) {
                   role="menuitem"
                   onClick={() => handleSelect(opt)}
                   disabled={busy !== null}
-                  className="group flex w-full items-start gap-2.5 rounded-lg border border-transparent px-2.5 py-2 text-left transition hover:border-white/10 hover:bg-white/[0.04] disabled:opacity-40"
+                  className="group flex w-full items-center gap-3 rounded-lg border border-transparent px-2.5 py-2.5 text-left transition hover:bg-surface-2 disabled:opacity-40"
                 >
-                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-ink-200 group-hover:text-brand-200">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-hairline bg-surface-0 text-ink-300 group-hover:text-brand-300">
                     <FormatIcon id={opt.id} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-ink-50 group-hover:text-brand-200">
+                    <span className="block text-sm font-semibold text-ink-100 group-hover:text-ink-50">
                       {opt.label}
                     </span>
                     <span className="mt-0.5 block text-[11px] leading-snug text-ink-400">
