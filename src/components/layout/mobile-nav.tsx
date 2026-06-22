@@ -17,6 +17,7 @@ const PRIMARY_LINKS = [
   { href: "/compare", labelKey: "nav.compare" },
   { href: "/leagues", labelKey: "nav.leagues" },
   { href: "/ai-advisor", labelKey: "nav.aiAdvisor" },
+  { href: "/market/trade", labelKey: "nav.trade" },
 ] as const
 
 export function MobileNav() {
@@ -50,7 +51,7 @@ export function MobileNav() {
         aria-label={open ? t("nav.closeMenu") : t("nav.openMenu")}
         aria-expanded={open}
         aria-controls="mobile-nav-panel"
-        className="relative z-[110] inline-flex h-10 w-10 items-center justify-center rounded-full border border-hairline bg-white/[0.05] text-ink-100 transition-colors duration-300 hover:border-brand-400/40 md:hidden"
+        className="relative z-[110] inline-flex h-10 w-10 items-center justify-center rounded-full border border-hairline bg-white/[0.05] text-ink-100 transition-colors duration-300 hover:border-brand-400/40 xl:hidden"
       >
         <span className="relative block h-3 w-5">
           <span
@@ -72,7 +73,7 @@ export function MobileNav() {
           role="dialog"
           aria-modal="true"
           aria-label={t("nav.siteNavigation")}
-          className="fixed inset-0 z-[100] flex animate-overlay-in flex-col bg-ink-950/95 md:hidden"
+          className="fixed inset-0 z-[100] flex animate-overlay-in flex-col bg-ink-950/95 xl:hidden"
         >
           <div
             aria-hidden

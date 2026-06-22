@@ -93,7 +93,7 @@ export function CompareAi({ aSlug, bSlug, aName, bName }: Props) {
   }, [requestKey])
 
   return (
-    <section className="rounded-2xl border border-white/5 bg-gradient-to-br from-brand-500/5 via-white/[0.02] to-accent-cyan/5 p-4 sm:p-6">
+    <section className="rounded-2xl border border-white/10 bg-surface-1 bg-gradient-to-br from-brand-500/10 via-transparent to-accent-cyan/10 p-4 sm:p-6 shadow-[var(--shadow-court)]">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 ring-1 ring-brand-500/30">
@@ -177,7 +177,7 @@ export function CompareAi({ aSlug, bSlug, aName, bName }: Props) {
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="h-20 animate-pulse rounded-xl border border-white/5 bg-white/[0.02]"
+                className="h-20 animate-pulse rounded-xl border border-white/10 bg-white/5"
               />
             ))}
           </motion.div>
@@ -242,7 +242,7 @@ function ScoreCard({
   const leaderName =
     leader === "tie" ? t("compareUi.tie") : leader === "a" ? aName : bName
   return (
-    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
       <div className="mb-3 flex items-center justify-between text-[11px] font-mono uppercase tracking-widest">
         <span className="text-brand-300">{aName}</span>
         <span className="text-ink-500">{t("compareUi.aiScore")}</span>
@@ -365,7 +365,7 @@ function Categories({
           return (
             <div
               key={c.key}
-              className="rounded-lg border border-white/5 bg-white/[0.02] p-3"
+              className="rounded-lg border border-white/10 bg-white/5 p-3"
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="flex items-center gap-2 text-sm font-semibold text-ink-100">
@@ -378,20 +378,20 @@ function Categories({
                 </span>
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2 font-mono text-[11px] text-ink-200">
-                <span className="rounded bg-white/[0.03] px-2 py-1">
+                <span className="rounded bg-white/[0.06] px-2 py-1">
                   <span className="text-brand-300">
                     {aName.split(" ").slice(-1)[0]}
                   </span>
                   : {c.formatted.a}
                 </span>
-                <span className="rounded bg-white/[0.03] px-2 py-1">
+                <span className="rounded bg-white/[0.06] px-2 py-1">
                   <span className="text-accent-cyan">
                     {bName.split(" ").slice(-1)[0]}
                   </span>
                   : {c.formatted.b}
                 </span>
               </div>
-              <p className="mt-2 text-xs text-ink-300">{c.summary}</p>
+              <p className="mt-2 text-xs text-ink-200">{c.summary}</p>
             </div>
           )
         })}
@@ -456,7 +456,7 @@ function FitNotes({
 }) {
   const t = useT()
   return (
-    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
       <p className="mb-3 font-mono text-[10px] uppercase tracking-widest text-ink-400">
         {t("compareUi.archetypeFit")}
       </p>
@@ -478,7 +478,7 @@ function FitNotes({
           </p>
         </div>
       </div>
-      <ul className="space-y-1.5 text-sm text-ink-300">
+      <ul className="space-y-1.5 text-sm text-ink-200">
         {notes.map((n, i) => (
           <li key={i} className="flex gap-2">
             <span className="shrink-0 text-brand-400">›</span>

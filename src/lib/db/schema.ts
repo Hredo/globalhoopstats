@@ -205,13 +205,6 @@ export const syncRuns = pgTable("sync_runs", {
   rowsWritten: integer("rows_written").notNull().default(0),
 })
 
-export const shortlists = pgTable("shortlists", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  ownerId: text("owner_id").notNull(),
-  name: text("name").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-})
-
 export const waitlistEntries = pgTable(
   "waitlist_entries",
   {
@@ -221,24 +214,6 @@ export const waitlistEntries = pgTable(
     source: text("source"),
   },
   (t) => [uniqueIndex("waitlist_entries_email_idx").on(t.email)],
-)
-
-export const shortlistPlayers = pgTable(
-  "shortlist_players",
-  {
-    id: serial("id").primaryKey(),
-    shortlistId: uuid("shortlist_id")
-      .notNull()
-      .references(() => shortlists.id, { onDelete: "cascade" }),
-    playerId: uuid("player_id")
-      .notNull()
-      .references(() => players.id, { onDelete: "cascade" }),
-    notes: text("notes"),
-    addedAt: timestamp("added_at").notNull().defaultNow(),
-  },
-  (t) => [
-    uniqueIndex("shortlist_players_unique_idx").on(t.shortlistId, t.playerId),
-  ],
 )
 
 export const users = pgTable(
@@ -292,6 +267,7 @@ export const userSettings = pgTable("user_settings", {
   emailProduct: boolean("email_product").notNull().default(true),
   emailUsage: boolean("email_usage").notNull().default(false),
   reduceMotion: boolean("reduce_motion").notNull().default(false),
+  currency: text("currency").notNull().default("EUR"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
@@ -439,7 +415,6 @@ export type Coach = typeof coaches.$inferSelect
 export type TeamSeasonStat = typeof teamSeasonStats.$inferSelect
 export type Video = typeof videos.$inferSelect
 export type SyncRun = typeof syncRuns.$inferSelect
-export type Shortlist = typeof shortlists.$inferSelect
 export type WaitlistEntry = typeof waitlistEntries.$inferSelect
 export type User = typeof users.$inferSelect
 export type Session = typeof sessions.$inferSelect

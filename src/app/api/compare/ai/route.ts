@@ -45,7 +45,7 @@ function buildComparePrompt(
     `Category winners:`,
     cats,
     "",
-    `Write a 2-3 sentence scouting take on who fits which team better and why. Be specific about role and fit. Plain prose, no lists, no markdown. Write in ${aiLanguageName(locale)}.`,
+    `Write a sharp 3-4 sentence verdict: who is the better fit and for what kind of team and role, with the decisive reason backed by the numbers above. Add the one situation where the other player is the better pick. Commit to a call — no hedging, no generic praise. Plain prose, no lists, no markdown. Write in ${aiLanguageName(locale)}.`,
   ].join("\n")
 }
 
@@ -138,15 +138,15 @@ export async function POST(request: Request) {
         provider: engine.provider,
         model: engine.model,
         apiKey: engine.apiKey,
-        system: `You are a concise basketball scout. Given a structured head-to-head, write a short, specific verdict. No markdown, no lists, plain prose, in ${aiLanguageName(locale)}.`,
+        system: `You are an elite basketball scout. Given a structured head-to-head, write a short, specific and decisive verdict anchored to the data. No hedging, no generic filler, no markdown, no lists — plain prose, in ${aiLanguageName(locale)}.`,
         messages: [
           {
             role: "user",
             content: buildComparePrompt(aName, bName, result, locale),
           },
         ],
-        maxTokens: 220,
-        temperature: 0.5,
+        maxTokens: 320,
+        temperature: 0.6,
       })
       if (llm.ok) {
         aiSummary = cleanLlmOutput(llm.content)
