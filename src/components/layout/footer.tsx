@@ -27,6 +27,7 @@ const TOOLS = [
   { href: "/compare", labelKey: "nav.compare" },
   { href: "/leagues", labelKey: "nav.leagues" },
   { href: "/ai-advisor", labelKey: "nav.aiAdvisor" },
+  { href: "/market/trade", labelKey: "nav.trade" },
 ]
 
 const LEGAL = [

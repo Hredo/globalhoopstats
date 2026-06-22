@@ -153,16 +153,16 @@ export function TeamSelector({
   }
 
   return (
-    <div className="w-full px-4 py-3 sm:px-5" ref={wrapperRef}>
-      <div className="mb-2 flex items-center justify-between gap-2">
+    <div className="w-full px-4 py-2 sm:px-5" ref={wrapperRef}>
+      <div className="mb-1.5 flex items-center justify-between gap-2">
         <label
           htmlFor="team-selector-input"
-          className="block text-xs font-semibold uppercase tracking-widest text-ink-400"
+          className="block text-[10px] font-semibold uppercase tracking-widest text-ink-500"
         >
-          1 · Select a team
+          Team
         </label>
         {selected ? (
-          <span className="inline-flex min-w-0 max-w-[60%] items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 sm:max-w-none">
+          <span className="inline-flex min-w-0 max-w-[60%] items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 sm:max-w-none">
             <svg
               className="h-3 w-3 shrink-0"
               viewBox="0 0 24 24"
@@ -177,13 +177,13 @@ export function TeamSelector({
           </span>
         ) : (
           <span className="text-[10px] uppercase tracking-widest text-ink-500">
-            Required to start
+            Required
           </span>
         )}
       </div>
       <div className="relative">
         <svg
-          className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400"
+          className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-400"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -219,7 +219,7 @@ export function TeamSelector({
           disabled={loading}
           autoComplete="off"
           spellCheck={false}
-          className="w-full cursor-text rounded-xl border border-white/10 bg-white/[0.04] py-2.5 pl-10 pr-16 text-base text-ink-50 outline-none transition placeholder:text-ink-400 hover:border-white/20 focus:border-brand-400/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-brand-500/25 disabled:cursor-wait disabled:opacity-40 sm:text-sm"
+          className="w-full cursor-text rounded-xl border border-white/10 bg-white/[0.04] py-2 pl-9 pr-14 text-sm text-ink-50 outline-none transition placeholder:text-ink-400 hover:border-white/20 focus:border-brand-400/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-brand-500/25 disabled:cursor-wait disabled:opacity-40"
         />
         <div className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1">
           {query ? (

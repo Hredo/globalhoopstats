@@ -225,6 +225,7 @@ export function UserMenu() {
             >
               {t("userMenu.subscription")}
             </MenuLink>
+
           </div>
           {me.role === "admin" ? (
             <>

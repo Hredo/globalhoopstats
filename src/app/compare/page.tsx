@@ -5,6 +5,8 @@ import { CompareSearch } from "@/components/players/compare-search"
 import { CompareRadar } from "@/components/players/compare-radar"
 import { CompareAi } from "@/components/players/compare-ai"
 import { CompareStatsTable } from "@/components/players/compare-stats-table"
+import { CompareMarketValue } from "@/components/players/compare-market-value"
+import { getMarketPlayerBySlug } from "@/lib/market/pool"
 import { FadeIn } from "@/components/animations/fade-in"
 import { Reveal } from "@/components/animations/reveal"
 import { Eyebrow } from "@/components/ui/eyebrow"
@@ -28,11 +30,16 @@ export default async function ComparePage(props: {
   const sp = await props.searchParams
   const aSlug = (sp.a ?? "").trim() || "nba-luka-doncic"
   const bSlug = (sp.b ?? "").trim() || "nba-nikola-jokic"
-  const [playerA, playerB] = await Promise.all([
+  const [playerA, playerB, marketA, marketB] = await Promise.all([
     getPlayerForCompare(aSlug),
     getPlayerForCompare(bSlug),
+    getMarketPlayerBySlug(aSlug).catch(() => null),
+    getMarketPlayerBySlug(bSlug).catch(() => null),
   ])
   const { t } = await getT()
+
+  const showMarketValue =
+    (marketA?.valuation?.eur ?? 0) > 0 && (marketB?.valuation?.eur ?? 0) > 0
 
   return (
     <div className="relative pb-12 pt-10 sm:pt-14">
@@ -89,6 +96,19 @@ export default async function ComparePage(props: {
                 </div>
               </div>
             </div>
+          </section>
+        </Reveal>
+      ) : null}
+
+      {playerA && playerB && showMarketValue && marketA?.valuation && marketB?.valuation ? (
+        <Reveal>
+          <section className="mt-6 sm:mt-8">
+            <CompareMarketValue
+              aName={playerA.fullName}
+              bName={playerB.fullName}
+              a={marketA.valuation}
+              b={marketB.valuation}
+            />
           </section>
         </Reveal>
       ) : null}

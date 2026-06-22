@@ -1,16 +1,12 @@
 "use client"
 
 import { useState, useRef, useEffect, useId } from "react"
-import { DownloadMenu } from "./download-menu"
-import type { ChatMessage, TeamContext } from "@/lib/ai/export"
 
 type Props = {
   onSend: (content: string) => Promise<void>
   disabled?: boolean
   loading?: boolean
   placeholder?: string
-  team: TeamContext | null
-  messages: ChatMessage[]
 }
 
 export function InputArea({
@@ -18,8 +14,6 @@ export function InputArea({
   disabled = false,
   loading = false,
   placeholder = "Type your message…",
-  team,
-  messages,
 }: Props) {
   const [input, setInput] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
@@ -69,9 +63,8 @@ export function InputArea({
           maxLength={2000}
           aria-label="Ask the advisor"
           aria-describedby={helpId}
-          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-base text-ink-50 outline-none transition placeholder:text-ink-400 hover:border-white/20 focus:border-brand-400/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-brand-500/25 disabled:opacity-40 sm:text-sm"
+          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-base text-ink-50 outline-none transition placeholder:text-ink-400 hover:border-white/20 focus:border-brand-400/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-brand-500/25 disabled:opacity-40 sm:text-[15px]"
         />
-        <DownloadMenu team={team} messages={messages} disabled={disabled} />
         <button
           type="submit"
           disabled={disabled || loading || !input.trim()}
