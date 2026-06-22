@@ -25,6 +25,25 @@ export type ChatInput = {
   messages: ChatMessage[]
   maxTokens?: number
   temperature?: number
+  /**
+   * Enable the provider's NATIVE web search, billed to the user's own key
+   * (Anthropic web_search tool / Gemini Google Search grounding). Lets the
+   * advisor use the internet without a separate Tavily key. No-op on providers
+   * that don't support it.
+   */
+  webSearch?: boolean
+}
+
+/**
+ * Providers whose OWN key can search the web (no external search backend). Used
+ * to decide who gets native search vs the universal pre-fetch fallback that
+ * works with every other model (Groq, DeepSeek, Mistral, xAI, OpenAI, Ollama…).
+ */
+export function supportsNativeWebSearch(provider: AiProvider): boolean {
+  if (provider.kind === "anthropic" || provider.kind === "google") return true
+  // OpenAI-compatible providers that ground on the web with their own key:
+  // Perplexity Sonar always searches; OpenRouter exposes a web plugin.
+  return provider.id === "perplexity" || provider.id === "openrouter"
 }
 
 export type ChatResult =
@@ -112,6 +131,20 @@ async function chatOpenAiCompatible(input: ChatInput): Promise<ChatResult> {
 async function chatAnthropic(input: ChatInput): Promise<ChatResult> {
   if (!input.apiKey) return { ok: false, error: "Missing API key." }
   return withTimeout(async (signal) => {
+    const body: Record<string, unknown> = {
+      model: input.model,
+      max_tokens: input.maxTokens ?? 700,
+      temperature: input.temperature ?? 0.6,
+      system: input.system,
+      messages: input.messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      })),
+    }
+    if (input.webSearch) {
+      // Anthropic server-side web search tool (billed to the user's key).
+      body.tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }]
+    }
     const res = await fetch(`${input.provider.baseUrl}/v1/messages`, {
       method: "POST",
       headers: {
@@ -120,16 +153,7 @@ async function chatAnthropic(input: ChatInput): Promise<ChatResult> {
         "anthropic-version": "2023-06-01",
       },
       signal,
-      body: JSON.stringify({
-        model: input.model,
-        max_tokens: input.maxTokens ?? 700,
-        temperature: input.temperature ?? 0.6,
-        system: input.system,
-        messages: input.messages.map((m) => ({
-          role: m.role,
-          content: m.content,
-        })),
-      }),
+      body: JSON.stringify(body),
     })
     if (!res.ok) {
       const detail = (await res.text().catch(() => "")).slice(0, 300)
@@ -158,21 +182,26 @@ async function chatGoogle(input: ChatInput): Promise<ChatResult> {
     input.model,
   )}:generateContent?key=${encodeURIComponent(input.apiKey)}`
   return withTimeout(async (signal) => {
+    const body: Record<string, unknown> = {
+      systemInstruction: { parts: [{ text: input.system }] },
+      contents: input.messages.map((m) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }],
+      })),
+      generationConfig: {
+        maxOutputTokens: input.maxTokens ?? 800,
+        temperature: input.temperature ?? 0.6,
+      },
+    }
+    if (input.webSearch) {
+      // Gemini Google Search grounding (current models use `google_search`).
+      body.tools = [{ google_search: {} }]
+    }
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal,
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: input.system }] },
-        contents: input.messages.map((m) => ({
-          role: m.role === "assistant" ? "model" : "user",
-          parts: [{ text: m.content }],
-        })),
-        generationConfig: {
-          maxOutputTokens: input.maxTokens ?? 800,
-          temperature: input.temperature ?? 0.6,
-        },
-      }),
+      body: JSON.stringify(body),
     })
     if (!res.ok) {
       const detail = (await res.text().catch(() => "")).slice(0, 300)

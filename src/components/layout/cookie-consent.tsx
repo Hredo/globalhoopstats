@@ -60,7 +60,7 @@ export function CookieConsent() {
         <p className="text-sm leading-relaxed text-ink-200">
           We use first-party cookies that are strictly necessary to keep you
           signed in and remember your preferences. We do not use advertising or
-          third-party tracking cookies. See our{" "}
+          third-party tracking cookies.           See our{" "}
           <Link
             href="/privacy"
             className="font-semibold text-brand-400 underline-offset-2 hover:underline"

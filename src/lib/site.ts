@@ -8,8 +8,11 @@ export const SITE = {
     /\/+$/,
     "",
   ),
+  // Always points to the production domain for legal documents, regardless of
+  // the local dev environment. The official business address is the .es domain.
+  urlOfficial: "https://globalhoopstats.es",
   description:
-    "Global basketball intelligence. Box scores, advanced splits, side-by-side comparisons and highlight reels from the NBA, EuroLeague, Liga ACB and Spain's FEB leagues (LEB Oro, LEB Plata, EBA) — all in one console.",
+    "Global basketball intelligence across the NBA, EuroLeague, Liga ACB and Spain's FEB leagues (LEB Oro, LEB Plata, EBA): box scores, advanced splits, side-by-side comparisons, player market valuations, a trade simulator and an AI scouting advisor — all in one console.",
   tagline: "Hoops, decoded.",
   taglineShort: "Global basketball intelligence",
   locale: "en",
@@ -34,5 +37,10 @@ export const SEO_KEYWORDS = [
   "scouting reports",
   "player profiles",
   "shot charts",
+  "basketball market value",
+  "player market valuation",
+  "basketball trade simulator",
+  "basketball trade machine",
+  "AI basketball scouting",
   "globalhoopstats",
 ]

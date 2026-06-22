@@ -19,11 +19,6 @@ const STEPS: Step[] = [
     body: "Everything starts here. Search any club across the NBA, EuroLeague and ACB — the advisor analyses its current roster before answering.",
   },
   {
-    id: "engine",
-    title: "Choose your AI engine",
-    body: "Run a local LLM through Ollama (private and free) or connect API keys. With no AI connected, the advisor still answers in fast basic mode.",
-  },
-  {
     id: "chat",
     title: "Read the analysis",
     body: "Answers appear here: a roster diagnosis, the gap the advisor detects and a shortlist of real candidates ranked by priority.",

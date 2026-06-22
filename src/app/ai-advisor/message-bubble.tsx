@@ -383,8 +383,8 @@ function BulletList({ items, ordered }: { items: string[]; ordered: boolean }) {
     <Tag
       className={
         ordered
-          ? "list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-ink-100 marker:text-brand-400 marker:font-semibold"
-          : "list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-ink-100 marker:text-brand-400"
+          ? "list-decimal space-y-1.5 pl-5 text-[15px] leading-relaxed text-ink-100 marker:text-brand-400 marker:font-semibold"
+          : "list-disc space-y-1.5 pl-5 text-[15px] leading-relaxed text-ink-100 marker:text-brand-400"
       }
     >
       {items.map((item, i) => (
@@ -428,7 +428,7 @@ function MarkdownBlock({ text }: { text: string }) {
         }
         if (b.type === "p") {
           return (
-            <p key={i} className="text-sm leading-relaxed text-ink-100">
+            <p key={i} className="text-[15px] leading-relaxed text-ink-100">
               {renderInline(b.content)}
             </p>
           )
@@ -459,7 +459,7 @@ export function MessageBubble({
         transition={{ duration: 0.25, ease: "easeOut" }}
         className="flex justify-end"
       >
-        <div className="max-w-[80%] rounded-2xl rounded-br-md bg-brand-500 px-4 py-2.5 text-sm leading-relaxed text-ink-950 shadow-md whitespace-pre-wrap">
+        <div className="max-w-[80%] rounded-2xl rounded-br-md bg-brand-500 px-4 py-2.5 text-[15px] leading-relaxed text-ink-950 shadow-md whitespace-pre-wrap">
           {content}
         </div>
       </motion.div>
@@ -473,8 +473,8 @@ export function MessageBubble({
       transition={{ duration: 0.3, ease: "easeOut" }}
       className="flex justify-start"
     >
-      <div className="max-w-[95%] w-full">
-        <div className="rounded-2xl rounded-bl-md border border-ink-700/50 bg-ink-800/60 px-4 py-3.5 backdrop-blur">
+      <div className="w-full max-w-3xl">
+        <div className="px-0.5 py-1">
           <MarkdownBlock text={content} />
           <MessageActions
             content={content}

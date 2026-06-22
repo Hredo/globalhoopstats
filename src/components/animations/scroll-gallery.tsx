@@ -33,6 +33,13 @@ const PANELS: Panel[] = [
     accent: "var(--color-accent-cyan)",
     visual: <CompareVisual />,
   },
+  {
+    index: "04",
+    titleKey: "home.gallery.pValTitle",
+    bodyKey: "home.gallery.pValBody",
+    accent: "var(--color-brand-400)",
+    visual: <ValueVisual />,
+  },
 ]
 
 export function ScrollGallery() {
@@ -73,6 +80,27 @@ export function ScrollGallery() {
       ro.disconnect()
     }
   }, [])
+
+  // Desktop: translate a vertical mouse-wheel gesture into horizontal scroll
+  // while the pointer is over the gallery, so PC users can move the cards
+  // without a trackpad. We yield back to the page once an edge is reached, and
+  // leave genuine horizontal (trackpad) gestures untouched.
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el || !desktop) return
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return
+      const max = el.scrollWidth - el.clientWidth
+      if (max <= 0) return
+      const atStart = el.scrollLeft <= 0
+      const atEnd = el.scrollLeft >= max - 1
+      if ((e.deltaY > 0 && atEnd) || (e.deltaY < 0 && atStart)) return
+      el.scrollLeft = Math.max(0, Math.min(max, el.scrollLeft + e.deltaY))
+      e.preventDefault()
+    }
+    el.addEventListener("wheel", onWheel, { passive: false })
+    return () => el.removeEventListener("wheel", onWheel)
+  }, [desktop])
 
   const scrollPct =
     scrollWidth > clientWidth ? scrollLeft / (scrollWidth - clientWidth) : 0
@@ -205,6 +233,34 @@ function NormalizeVisual() {
         <p>per-100</p>
         <p className="text-brand-300/70">{t("home.gallery.oneScale")}</p>
       </div>
+    </div>
+  )
+}
+
+function ValueVisual() {
+  const rows = [
+    { name: "Dončić", value: "€60M", pct: 100, accent: "bg-brand-500/80" },
+    { name: "Mirotić", value: "€6.5M", pct: 48, accent: "bg-accent-cyan/70" },
+    { name: "Brizuela", value: "€3.5M", pct: 30, accent: "bg-league-euro-500/70" },
+  ]
+  return (
+    <div className="grid gap-2.5">
+      {rows.map((r) => (
+        <div key={r.name} className="flex items-center gap-3">
+          <span className="w-16 shrink-0 truncate font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">
+            {r.name}
+          </span>
+          <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/[0.05]">
+            <span
+              className={`block h-full rounded-full ${r.accent}`}
+              style={{ width: `${r.pct}%` }}
+            />
+          </div>
+          <span className="w-12 shrink-0 text-right font-mono text-[10px] font-semibold text-ink-200">
+            {r.value}
+          </span>
+        </div>
+      ))}
     </div>
   )
 }

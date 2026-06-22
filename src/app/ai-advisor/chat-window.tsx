@@ -124,7 +124,7 @@ export function ChatWindow({
           aria-live="polite"
           aria-relevant="additions"
           aria-label="Advisor conversation"
-          className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+          className="flex-1 overflow-y-auto px-4 py-5 space-y-5 sm:px-6"
         >
       {messages.map((msg, idx) => {
         const isLastAi = msg.type === "ai" && idx === messages.length - 1
