@@ -7,8 +7,20 @@ import {
   buildLocalAdvice,
   findPlayerInQuery,
   type AdvisorOutput,
+  type Recruit,
 } from "@/lib/ai/local-advisor"
 import { generateAdvisorResponse, lastLlmError } from "@/lib/ai/llm"
+import { supportsNativeWebSearch } from "@/lib/ai/chat"
+import { detectIntent, detectOperation } from "@/lib/ai/intent"
+import { findCandidates, type Candidate } from "@/lib/market/candidates"
+import { getMarketPlayerBySlug } from "@/lib/market/pool"
+import { buildTradeScenarios } from "@/lib/market/trade"
+import { researchMarket, webResearchEnabled } from "@/lib/market/web-research"
+import { formatEur } from "@/lib/market/league-strength"
+import { valuationTierLabel } from "@/lib/market/valuation"
+import { estimateClubBudget, singleSigningCap } from "@/lib/market/club-budgets"
+import { detectNationalityFilter } from "@/lib/market/nationality"
+import { analyzeRoster, type RosterAnalysis } from "@/lib/market/roster"
 import { resolveDefaultEngine, resolveEngine } from "@/lib/ai/user-provider"
 import { getProvider, resolveModel } from "@/lib/ai/providers"
 import { getCurrentUser } from "@/lib/auth/current-user"
@@ -291,6 +303,79 @@ export async function POST(request: Request) {
     audit("player-lookup-error", { ip, err: String(err) })
   }
 
+  // 11b. Market intelligence (DB-grounded). Real candidates for the detected
+  // need, a valuation for any named player, trade packages that balance their
+  // value, and — only if a search backend is configured — live web context.
+  const intent = detectIntent(userMessage)
+  const operation = detectOperation(userMessage)
+  const nationalityFilter = detectNationalityFilter(userMessage)
+  // Public-data budget for the user's club → cap a single signing realistically.
+  const teamBudget = estimateClubBudget(team.name, body.leagueSlug)
+  const signingCap = singleSigningCap(teamBudget.eur)
+  // Draft / youth questions look for prospects, not finished products.
+  const draftMaxAge = operation === "draft" ? 22 : undefined
+  let candidates: Candidate[] = []
+  try {
+    candidates = await findCandidates({
+      leagueSlug: body.leagueSlug,
+      intent,
+      excludeTeamId: team.id,
+      maxValueEur: signingCap,
+      nationality: nationalityFilter,
+      maxAge: draftMaxAge,
+      limit: 6,
+    })
+    // If the budget/cupo filters leave nothing, retry without the budget cap so
+    // we still ground the advisor on real players rather than the hardcoded list.
+    if (candidates.length === 0) {
+      candidates = await findCandidates({
+        leagueSlug: body.leagueSlug,
+        intent,
+        excludeTeamId: team.id,
+        nationality: nationalityFilter,
+        maxAge: draftMaxAge,
+        limit: 6,
+      })
+    }
+  } catch (err) {
+    audit("candidates-error", { ip, err: String(err) })
+  }
+
+  // Own-roster analysis for release / renewal questions.
+  let roster: RosterAnalysis | null = null
+  if (operation === "release" || operation === "renewal") {
+    try {
+      roster = await analyzeRoster(body.leagueSlug, team.id)
+    } catch (err) {
+      audit("roster-analysis-error", { ip, err: String(err) })
+    }
+  }
+
+  let namedValuation = null
+  let trade = null
+  if (playerProfile) {
+    try {
+      const mp = await getMarketPlayerBySlug(playerProfile.slug)
+      namedValuation = mp?.valuation ?? null
+    } catch (err) {
+      audit("valuation-error", { ip, err: String(err) })
+    }
+    if (operation === "trade") {
+      try {
+        trade = await buildTradeScenarios({
+          myPlayerSlug: playerProfile.slug,
+          maxScenarios: 5,
+        })
+      } catch (err) {
+        audit("trade-error", { ip, err: String(err) })
+      }
+    }
+  }
+
+  // Web context is fetched later, ONLY if the resolved LLM provider can't search
+  // natively (Anthropic/Gemini do it themselves with the user's key — see below).
+  let web = null
+
   // 12. LLM call. Use the engine the user configured for the advisor (a cloud
   // provider with their own key, or a local Ollama), falling back to the
   // default engine from env vars for anonymous users. Back-compat: an explicit
@@ -315,9 +400,34 @@ export async function POST(request: Request) {
 
   let aiReason: string | null = engine.ok ? null : engine.reason
   if (engine.ok) {
+    // Tavily fallback only when the provider can't search with its own key.
+    if (webResearchEnabled() && !supportsNativeWebSearch(engine.provider)) {
+      try {
+        const q = playerProfile
+          ? `${playerProfile.fullName} baloncesto sueldo contrato fichaje ${team.league.name}`
+          : `${team.name} fichajes mercado baloncesto sueldos presupuesto ${team.league.name}`
+        web = await researchMarket(q.trim())
+      } catch (err) {
+        audit("web-research-error", { ip, err: String(err) })
+      }
+    }
     try {
       const llm = await generateAdvisorResponse(
-        { team, userMessage, history, playerProfile, locale },
+        {
+          team,
+          userMessage,
+          history,
+          playerProfile,
+          locale,
+          candidates,
+          namedValuation,
+          trade,
+          web,
+          teamBudget,
+          operation,
+          nationalityFilter,
+          roster,
+        },
         {
           provider: engine.provider,
           model: engine.model,
@@ -346,12 +456,14 @@ export async function POST(request: Request) {
     }
   }
 
-  // 13. Fallback (rule-based). Always available, even with no AI configured.
+  // 13. Fallback (rule-based). Always available, even with no AI configured —
+  // now grounded on the same real DB candidates as the LLM path.
   try {
     const fallback: AdvisorOutput = await buildLocalAdvice(
       team,
       userMessage,
       locale,
+      candidatesToRecruits(candidates),
     )
     const safe = cleanLlmOutput(fallback.analysis)
     await persistAssistant(db, conversationId!, safe, null, "local")
@@ -373,6 +485,26 @@ export async function POST(request: Request) {
       500,
     )
   }
+}
+
+/** Shape DB candidates into the Recruit cards the fallback UI renders. */
+function candidatesToRecruits(candidates: Candidate[]): Recruit[] {
+  return candidates.map((c) => {
+    const p = c.player
+    return {
+      name: p.fullName,
+      position: p.position ?? "N/A",
+      league: p.league.name,
+      age: p.age ?? 0,
+      contractValue: formatEur(p.valuation.eur),
+      strengths: [
+        valuationTierLabel(p.valuation.tier),
+        `Rating ${p.valuation.rating}/100`,
+      ],
+      fit: c.reason,
+      market: p.team ? p.team.name : "Agente libre",
+    }
+  })
 }
 
 async function persistAssistant(

@@ -6,6 +6,7 @@ import { and, eq, sql } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
 import { players, playerSeasonStats, seasons } from "@/lib/db/schema"
 import { getPlayerBySlug, pickPlayerLeague } from "@/lib/data/players"
+import { getMarketPlayerBySlug } from "@/lib/market/pool"
 import { PctBar } from "@/components/ui/pct-bar"
 import { FadeIn } from "@/components/animations/fade-in"
 import { LeagueTransition } from "@/components/players/league-transition"
@@ -13,6 +14,7 @@ import { SmartImage } from "@/components/ui/smart-image"
 import { BackLink } from "@/components/ui/back-link"
 import { Eyebrow } from "@/components/ui/eyebrow"
 import { leagueAccent } from "@/components/ui/league-badge"
+import { MarketValueCard } from "@/components/market/market-value-card"
 import { PlayerLeagueSwitcher } from "@/components/ui/league-switcher"
 import { JsonLd } from "@/components/marketing/json-ld"
 import { breadcrumbJsonLd, playerJsonLd } from "@/lib/seo/structured-data"
@@ -155,6 +157,8 @@ export default async function PlayerPage({ params, searchParams }: Props) {
   const season = selected.seasons[0]
   const accent = leagueAccent(selLeague.slug)
 
+  const marketPlayer = await getMarketPlayerBySlug(slug)
+
   const structuredData = [
     playerJsonLd({
       fullName: profile.fullName,
@@ -242,6 +246,9 @@ export default async function PlayerPage({ params, searchParams }: Props) {
                 />
               </dl>
             </div>
+            {marketPlayer?.valuation.eur ? (
+              <MarketValueCard valuation={marketPlayer.valuation} />
+            ) : null}
           </aside>
         </FadeIn>
 

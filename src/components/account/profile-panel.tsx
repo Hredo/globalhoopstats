@@ -11,9 +11,12 @@ import {
 } from "@/components/account/primitives"
 import { getProvider } from "@/lib/ai/providers"
 
+import { CURRENCIES, type CurrencyCode } from "@/lib/market/currency"
+
 type Settings = {
   advisorProvider: string | null
   compareProvider: string | null
+  currency?: string
 }
 
 type Profile = {
@@ -218,6 +221,39 @@ export function ProfilePanel() {
             </StatusNote>
           </div>
         ) : null}
+      </AccountSection>
+
+      <AccountSection
+        title="Currency"
+        description="Default currency for market valuations and the trade simulator."
+      >
+        <div className="flex flex-wrap gap-2">
+          {(["EUR", "USD", "GBP"] as CurrencyCode[]).map((code) => (
+            <button
+              key={code}
+              onClick={async () => {
+                const res = await fetch("/api/account/settings", {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ currency: code }),
+                })
+                if (res.ok) {
+                  setSettings((prev) =>
+                    prev ? { ...prev, currency: code } : prev,
+                  )
+                }
+              }}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
+                (settings?.currency ?? "EUR") === code
+                  ? "border-brand-500/40 bg-brand-500/15 text-brand-200"
+                  : "border-hairline bg-surface-0 text-ink-300 hover:border-brand-500/30 hover:text-ink-100"
+              }`}
+            >
+              <span className="text-xs">{CURRENCIES[code].symbol}</span>
+              {code}
+            </button>
+          ))}
+        </div>
       </AccountSection>
 
       {profile ? (

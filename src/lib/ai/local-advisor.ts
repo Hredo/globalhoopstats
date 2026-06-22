@@ -6,41 +6,25 @@ import { leagues, playerSeasonStats, players, teams } from "@/lib/db/schema"
 import { and, asc, eq, like, or, sql, type SQL } from "drizzle-orm"
 import { formatStat } from "@/lib/format"
 import type { Locale } from "@/lib/i18n/config"
+import { detectIntent, INTENT_LABELS_ES, type Intent } from "@/lib/ai/intent"
+
+export type { Intent } from "@/lib/ai/intent"
 
 /** Pick the right string for the active locale. */
 function pick(locale: Locale, en: string, es: string): string {
   return locale === "es" ? es : en
 }
 
-const INTENT_LABELS_ES: Record<Intent, string> = {
-  defender: "Refuerzo defensivo",
-  scorer: "Anotador / tirador",
-  playmaker: "Base organizador",
-  wing: "Alero versátil",
-  big: "Refuerzo interior",
-  cheap: "Opción económica",
-  star: "Movimiento de estrella",
-  general: "Análisis general",
-}
-
 function intentLabel(intent: Intent, locale: Locale): string {
   return locale === "es" ? INTENT_LABELS_ES[intent] : INTENT_META[intent].label
 }
 
-export type Intent =
-  | "defender"
-  | "scorer"
-  | "playmaker"
-  | "wing"
-  | "big"
-  | "cheap"
-  | "star"
-  | "general"
-
 export type Recruit = {
   name: string
   position: string
-  league: "NBA" | "EuroLeague" | "ACB"
+  // Widened from the old NBA/EuroLeague/ACB union so DB-grounded candidates
+  // from any league (ACB, LEB Oro/Plata, EBA) can flow through unchanged.
+  league: string
   age: number
   contractValue: string
   strengths: string[]
@@ -428,26 +412,6 @@ const INTENT_META: Record<
   },
 }
 
-function detectIntent(q: string): Intent {
-  const s = q.toLowerCase()
-  if (s.match(/defens|defender|defensor|stop|stoper|stopper/)) return "defender"
-  if (s.match(/anot|tirador|scorer|scoring|puntos|3 puntos|triples/))
-    return "scorer"
-  if (s.match(/base|playmaker|director|point|asistente|generador|organizador/))
-    return "playmaker"
-  if (s.match(/ala|alero|wing|forward/)) return "wing"
-  if (
-    s.match(
-      /p[ií]vot|pivot|center|interior|rebote|rebounder|post|aro|pintura|tap[oó]n|tablero/,
-    )
-  )
-    return "big"
-  if (s.match(/barato|econ[oó]mico|cheap|m[íi]nimo|low cost|salary cap/))
-    return "cheap"
-  if (s.match(/estrella|star|superstar|franquicia|all-star|mvp/)) return "star"
-  return "general"
-}
-
 function getPositionBreakdown(
   roster: TeamProfile["roster"],
 ): Record<string, number> {
@@ -557,6 +521,10 @@ export async function buildLocalAdvice(
   team: TeamProfile,
   userMessage: string,
   locale: Locale = "en",
+  // Real, DB-grounded candidates (priced & scoped to adjacent leagues). When
+  // provided they replace the legacy hardcoded star list, so even the
+  // no-AI-configured fallback recommends actual players we have data for.
+  dbCandidates?: Recruit[],
 ): Promise<AdvisorOutput> {
   const specific = await findPlayerInQuery(userMessage)
   if (specific) {
@@ -566,7 +534,10 @@ export async function buildLocalAdvice(
   const intent = detectIntent(userMessage)
   const meta = INTENT_META[intent]
   const label = intentLabel(intent, locale)
-  const recs = pickRecommendations(intent, 3, team.league.name)
+  const recs =
+    dbCandidates && dbCandidates.length > 0
+      ? dbCandidates.slice(0, 3)
+      : pickRecommendations(intent, 3, team.league.name)
   const gap = analyzeTeamGaps(team.roster, locale)
 
   const priorities = [

@@ -25,11 +25,11 @@ const TIERS = [
     price: "Early access",
     cadence: "closed beta",
     description:
-      "Shortlists, exports and persistent AI advisor sessions. We're onboarding one cohort at a time.",
+      "Trade simulator, exports and persistent AI advisor sessions. We're onboarding one cohort at a time.",
     cta: { href: "#waitlist-form", label: "Request access", variant: "primary" as const },
     features: [
       "Everything in Public",
-      "Shortlists with notes and share links",
+      "Trade simulator with AI analysis",
       "PDF / Excel / Word exports",
       "Priority sync, no rate limits",
     ],
@@ -59,7 +59,7 @@ export function PricingCta() {
               <span className="text-gradient-brand">Pro when you need it.</span>
             </span>
           }
-          description="We'll never paywall the data. The Pro tier is for people who want to work faster — save shortlists and export reports."
+          description="We'll never paywall the data. The Pro tier is for people who want to work faster — simulate trades and export reports."
         />
       </FadeIn>
 

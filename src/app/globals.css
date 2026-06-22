@@ -762,6 +762,84 @@
     color: var(--color-ink-300);
   }
 
+  /* ── Form controls ───────────────────────────────────────────── */
+  /* framed input/select used across the market simulator and forms */
+  .gh-input {
+    width: 100%;
+    background-color: var(--color-surface-0);
+    border: 1px solid var(--color-hairline);
+    border-radius: 0.75rem;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    color: var(--color-ink-50);
+    transition:
+      border-color 0.2s var(--ease-fluid),
+      box-shadow 0.2s var(--ease-fluid),
+      background-color 0.2s var(--ease-fluid);
+  }
+  .gh-input::placeholder {
+    color: var(--color-ink-400);
+  }
+  .gh-input:hover {
+    border-color: var(--color-hairline-strong);
+  }
+  .gh-input:focus,
+  .gh-input:focus-visible {
+    outline: none;
+    border-color: var(--color-brand-500);
+    background-color: var(--color-surface-1);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-brand-500) 22%, transparent);
+  }
+  .gh-input:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  /* native select: hide default arrow and draw our own chevron */
+  select.gh-input {
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    padding-right: 2.25rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a8a29e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
+    background-size: 1.05rem;
+  }
+
+  /* primary action button */
+  .gh-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    border-radius: 0.75rem;
+    border: 1px solid transparent;
+    background-color: var(--color-brand-600);
+    color: #fff;
+    padding: 0.6rem 1.15rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 10px 24px -14px color-mix(in oklch, var(--color-brand-600) 70%, transparent);
+    transition:
+      background-color 0.2s var(--ease-fluid),
+      box-shadow 0.2s var(--ease-fluid),
+      transform 0.1s var(--ease-fluid);
+  }
+  .gh-btn-primary:hover {
+    background-color: var(--color-brand-500);
+    box-shadow: 0 12px 30px -12px color-mix(in oklch, var(--color-brand-500) 70%, transparent);
+  }
+  .gh-btn-primary:active {
+    transform: scale(0.98);
+  }
+  .gh-btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
   /* ── Focus / glow helpers ────────────────────────────────────── */
   .ring-brand {
     box-shadow: 0 0 0 1px var(--color-brand-500), var(--shadow-brand-glow);
@@ -810,5 +888,20 @@
   .draw-path {
     stroke-dasharray: var(--len, 1);
     stroke-dashoffset: var(--len, 1);
+  }
+
+  @keyframes star-pop {
+    0% { transform: scale(1) rotate(0deg); }
+    30% { transform: scale(1.4) rotate(15deg); }
+    60% { transform: scale(0.9) rotate(-8deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+
+  @keyframes star-fill {
+    0% { transform: scale(1) rotate(0deg); }
+    25% { transform: scale(0.8) rotate(-10deg); }
+    50% { transform: scale(1.35) rotate(12deg); }
+    75% { transform: scale(0.95) rotate(-5deg); }
+    100% { transform: scale(1) rotate(0deg); }
   }
 }
