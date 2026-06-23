@@ -36,10 +36,6 @@
     "backfill:coach-photos": "tsx scripts/backfill-coach-photos.ts",
     "db:dedupe-players": "tsx scripts/dedupe-players.ts"
   },
-  "overrides": {
-    "esbuild": "^0.28.1",
-    "postcss": "^8.5.15"
-  },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "docx": "^9.5.0",
@@ -49,7 +45,7 @@
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "next": "^15.2.0",
-    "nodemailer": "^8.0.11",
+    "nodemailer": "^9.0.1",
     "p-limit": "^7.3.0",
     "postgres": "^3.4.9",
     "react": "^19.0.0",

@@ -6,9 +6,11 @@ allowBuilds:
   better-sqlite3: set this to true or false
   '@swc/core': true
 
-# Force patched versions of transitive (dev-only) deps flagged by `pnpm audit`.
+# Force patched versions of transitive deps flagged by `pnpm audit`.
 # esbuild: used only by drizzle-kit/tsx/vitest — NOT by `next build`.
 # postcss: pulled in transitively by Next at 8.4.31 (vuln); 8.5.x is compatible.
+# dompurify: pulled in transitively by jspdf at <=3.4.10 (GHSA-cmwh-pvxp-8882); 3.4.11 patches it.
 overrides:
   esbuild: "^0.28.1"
   postcss: "^8.5.15"
+  dompurify: "^3.4.11"
