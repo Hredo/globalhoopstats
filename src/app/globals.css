@@ -904,4 +904,26 @@
     75% { transform: scale(0.95) rotate(-5deg); }
     100% { transform: scale(1) rotate(0deg); }
   }
+
+  /* Title rule — a warm vertical accent bar set in the margin beside a big
+     headline (the "spine" of a heading). Brand orange, lighter at the top. */
+  .gh-title-rule {
+    position: relative;
+    padding-left: 1.1rem;
+  }
+  .gh-title-rule::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.08em;
+    bottom: 0.08em;
+    width: 5px;
+    border-radius: 5px;
+    background: linear-gradient(
+      to bottom,
+      var(--color-brand-300),
+      var(--color-brand-600)
+    );
+    box-shadow: 0 0 20px -1px var(--color-brand-500);
+  }
 }

@@ -1,3 +1,5 @@
+import { motion } from "framer-motion"
+
 type Split = {
   label: string
   a: number | null
@@ -20,14 +22,14 @@ function formatPct(v: number | null): string {
   return `${(v * 100).toFixed(1)}%`
 }
 
-function arc(value: number | null, color: string) {
+function arc(value: number | null, color: string, delay: number) {
   const v =
     value == null || !Number.isFinite(value)
       ? 0
       : Math.min(1, Math.max(0, value))
   const dash = CIRC * v
   return (
-    <circle
+    <motion.circle
       cx={SIZE / 2}
       cy={SIZE / 2}
       r={R}
@@ -35,9 +37,11 @@ function arc(value: number | null, color: string) {
       strokeWidth={STROKE}
       strokeLinecap="round"
       fill="none"
-      strokeDasharray={`${dash} ${CIRC - dash}`}
+      initial={{ strokeDasharray: `0 ${CIRC}` }}
+      whileInView={{ strokeDasharray: `${dash} ${CIRC - dash}` }}
+      viewport={{ once: true, amount: 0.5 }}
+      transition={{ duration: 0.6, ease: [0.19, 1, 0.22, 1], delay }}
       transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
-      style={{ transition: "stroke-dasharray 600ms ease-out" }}
     />
   )
 }
@@ -67,8 +71,8 @@ export function CompareShootingSplits({ aName, bName, splits }: Props) {
                   fill="none"
                   opacity="0.4"
                 />
-                {arc(s.b, "var(--color-accent-cyan)")}
-                {arc(s.a, "var(--color-brand-400)")}
+                {arc(s.b, "var(--color-accent-cyan)", 0.1)}
+                {arc(s.a, "var(--color-brand-400)", 0.25)}
               </svg>
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
                 <span className="font-display text-lg font-bold leading-none text-ink-50">
