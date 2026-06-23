@@ -1,5 +1,6 @@
 "use client"
 
+import { motion } from "framer-motion"
 import { formatCurrency, type CurrencyCode } from "@/lib/market/currency"
 import type { Valuation } from "@/lib/market/valuation"
 import { SmartImage } from "@/components/ui/smart-image"
@@ -105,8 +106,9 @@ export function TradeScenarioCard({
       : "border-amber-500/30"
 
   return (
-    <div
+    <motion.div
       className={`gh-card overflow-hidden border-l-2 ${color}`}
+      whileHover={{ y: -4, transition: { duration: 0.3, ease: [0.19, 1, 0.22, 1] } }}
     >
       <div className="p-4 sm:p-5">
         <div className="mb-3 flex items-center justify-between gap-3">
@@ -156,29 +158,36 @@ export function TradeScenarioCard({
           ))}
         </div>
 
-        <div className="mt-4 border-t border-hairline pt-3">
-          <div className="mb-2 flex items-center justify-between text-sm">
-            <span className="text-ink-400">
-              {outgoingName}: {formatCurrency(outgoingValue, currency)}
-            </span>
-            <span className="font-bold text-ink-100">
-              {t("trade.scenarioCard.balance")}: {scenario.balance.toFixed(2)}
-            </span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-white/10">
-            <div
-              className={`h-full rounded-full transition-all ${
-                isBalanced
-                  ? "bg-emerald-500"
-                  : scenario.balance < 0.95
-                    ? "bg-amber-500"
-                    : "bg-brand-500"
-              }`}
-              style={{
-                width: `${Math.min(scenario.balance, 1.25) * 80}%`,
-              }}
-            />
-          </div>
+          <div className="mt-4 border-t border-hairline pt-3">
+            <div className="mb-2 flex items-center justify-between text-sm">
+              <span className="text-ink-400">
+                {outgoingName}: {formatCurrency(outgoingValue, currency)}
+              </span>
+              <motion.span
+                className="font-bold text-ink-100"
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3, duration: 0.4, ease: [0.19, 1, 0.22, 1] }}
+              >
+                {t("trade.scenarioCard.balance")}: {scenario.balance.toFixed(2)}
+              </motion.span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-white/10">
+              <motion.div
+                className={`h-full rounded-full ${
+                  isBalanced
+                    ? "bg-emerald-500"
+                    : scenario.balance < 0.95
+                      ? "bg-amber-500"
+                      : "bg-brand-500"
+                }`}
+                initial={{ width: "0%" }}
+                whileInView={{ width: `${Math.min(scenario.balance, 1.25) * 80}%` }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, ease: [0.19, 1, 0.22, 1], delay: 0.15 }}
+              />
+            </div>
           <div className="mt-2 flex justify-between font-mono text-[10px] text-ink-500">
             <span>−25%</span>
             <span className="font-semibold text-ink-300">0%</span>
@@ -238,6 +247,6 @@ export function TradeScenarioCard({
           </div>
         ) : null}
       </div>
-    </div>
+    </motion.div>
   )
 }

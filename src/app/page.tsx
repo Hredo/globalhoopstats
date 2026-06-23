@@ -19,6 +19,7 @@ import { getFaqData } from "@/components/marketing/faq-data"
 // NOTE: PricingCta commented out until subscriptions are re-enabled.
 // import { PricingCta } from "@/components/marketing/pricing-cta"
 import { Eyebrow } from "@/components/ui/eyebrow"
+import { TitleRule } from "@/components/ui/title-rule"
 import { SectionHeading } from "@/components/ui/section-heading"
 import { ButtonLink } from "@/components/ui/button"
 import { SITE } from "@/lib/site"
@@ -27,25 +28,25 @@ import { getLocale, getT } from "@/lib/i18n/server"
 import { getDictionary } from "@/lib/i18n/dictionaries"
 
 const TICKER_LEFT = [
-  { name: "Luka Dončić", team: "LAL · NBA", stat: "33.2 PPG" },
-  { name: "Facundo Campazzo", team: "RMB · EuroLeague", stat: "7.9 APG" },
-  { name: "Santi Aldama", team: "MEM · NBA", stat: "14.8 PPG" },
-  { name: "Nikola Mirotić", team: "MIL · EuroLeague", stat: "17.5 PPG" },
-  { name: "Willy Hernangómez", team: "RMB · EuroLeague", stat: "9.1 RPG" },
-  { name: "Ante Tomić", team: "JOV · ACB", stat: "12.3 PPG" },
-  { name: "Juan Núñez", team: "RMB · EuroLeague", stat: "7.1 APG" },
-  { name: "Dario Brizuela", team: "FCB · ACB", stat: "15.4 PPG" },
+  { name: "Shai Gilgeous-Alexander", team: "OKC · NBA", stat: "31.4 PPG" },
+  { name: "Lorenzo Brown", team: "MCO · EuroLeague", stat: "8.1 APG" },
+  { name: "Victor Wembanyama", team: "SAS · NBA", stat: "3.6 BPG" },
+  { name: "Edy Tavares", team: "RMB · EuroLeague", stat: "6.9 RPG" },
+  { name: "Trae Young", team: "ATL · NBA", stat: "11.6 APG" },
+  { name: "Markus Howard", team: "BAS · EuroLeague", stat: "19.2 PPG" },
+  { name: "Giannis Antetokounmpo", team: "MIL · NBA", stat: "30.8 PPG" },
+  { name: "Dzanan Musa", team: "RMB · EuroLeague", stat: "14.7 PPG" },
 ]
 
 const TICKER_RIGHT = [
-  { name: "Dončić", stat: "33.2 / 9.1 / 8.4" },
-  { name: "Aldama", stat: "14.8 / 7.2 / 2.6" },
-  { name: "Mirotic", stat: "17.5 / 5.8 / 1.6" },
-  { name: "Campazzo", stat: "11.8 / 3.2 / 7.9" },
-  { name: "Núñez", stat: "9.4 / 2.8 / 7.1" },
-  { name: "Brizuela", stat: "15.4 / 2.6 / 2.8" },
-  { name: "Hernangómez", stat: "10.2 / 9.1 / 1.8" },
-  { name: "Tomić", stat: "12.3 / 6.4 / 3.1" },
+  { name: "SGA", stat: "31.4 / 5.8 / 6.7" },
+  { name: "Wembanyama", stat: "23.5 / 10.8 / 3.6" },
+  { name: "Giannis", stat: "30.8 / 12.1 / 6.5" },
+  { name: "L. Brown", stat: "13.2 / 3.1 / 8.1" },
+  { name: "Howard", stat: "19.2 / 2.4 / 3.1" },
+  { name: "Trae Young", stat: "26.4 / 3.2 / 11.6" },
+  { name: "Musa", stat: "14.7 / 3.4 / 2.8" },
+  { name: "Tavares", stat: "10.8 / 6.9 / 1.9" },
 ]
 
 const STATS = [
@@ -154,13 +155,15 @@ export default async function Home() {
             </FadeIn>
 
             <FadeIn delay={0.08} y={28}>
-              <h1 className="mt-6 font-display text-[3.4rem] font-bold leading-[0.86] tracking-[-0.045em] text-ink-50 sm:text-[5rem] md:text-[6rem] xl:text-[6.75rem]">
-                {t("home.hero.titleLine1")}
-                <br />
-                <span className="text-gradient-shimmer">
-                  {t("home.hero.titleLine2")}
-                </span>
-              </h1>
+              <TitleRule className="mt-6">
+                <h1 className="font-display text-[3.4rem] font-bold leading-[0.86] tracking-[-0.045em] text-ink-50 sm:text-[5rem] md:text-[6rem] xl:text-[6.75rem]">
+                  {t("home.hero.titleLine1")}
+                  <br />
+                  <span className="text-gradient-shimmer">
+                    {t("home.hero.titleLine2")}
+                  </span>
+                </h1>
+              </TitleRule>
             </FadeIn>
 
             <FadeIn delay={0.18} y={20}>
@@ -492,10 +495,11 @@ async function BentoCard({
 /* a small abstract "compare" glyph for the big bento card */
 function CompareGlyph() {
   const rows = [
-    { l: "PPG", a: 86, b: 64 },
-    { l: "RPG", a: 48, b: 72 },
-    { l: "APG", a: 70, b: 90 },
-    { l: "TS%", a: 78, b: 66 },
+    { l: "PPG", a: 92, b: 58 },
+    { l: "RPG", a: 38, b: 82 },
+    { l: "APG", a: 62, b: 94 },
+    { l: "TS%", a: 84, b: 60 },
+    { l: "PER", a: 76, b: 68 },
   ]
   return (
     <div className="grid gap-2.5">
