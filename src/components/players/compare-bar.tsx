@@ -1,3 +1,5 @@
+import { AnimatedBar } from "@/components/animations/animated-bar"
+
 type Props = {
   label: string
   aName: string
@@ -52,16 +54,17 @@ export function CompareBar({
             {aName}
           </span>
           <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/5">
-            <div
-              className={`h-full rounded-full ${
-                a == null
-                  ? "bg-white/10"
-                  : aWins
-                    ? "bg-gradient-to-r from-accent-lime to-brand-400"
-                    : "bg-brand-500/60"
-              }`}
-              style={{ width: `${aPct}%`, transition: "width 600ms ease-out" }}
-            />
+            {a != null ? (
+              <AnimatedBar
+                value={aPct}
+                max={100}
+                delay={0.1}
+                duration={0.6}
+                color={aWins ? "bg-gradient-to-r from-accent-lime to-brand-400" : "bg-brand-500/60"}
+              />
+            ) : (
+              <div className="h-full rounded-full bg-white/10" style={{ width: "100%" }} />
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -69,16 +72,17 @@ export function CompareBar({
             {bName}
           </span>
           <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/5">
-            <div
-              className={`h-full rounded-full ${
-                b == null
-                  ? "bg-white/10"
-                  : bWins
-                    ? "bg-gradient-to-r from-accent-lime to-brand-400"
-                    : "bg-brand-500/60"
-              }`}
-              style={{ width: `${bPct}%`, transition: "width 600ms ease-out" }}
-            />
+            {b != null ? (
+              <AnimatedBar
+                value={bPct}
+                max={100}
+                delay={0.2}
+                duration={0.6}
+                color={bWins ? "bg-gradient-to-r from-accent-lime to-brand-400" : "bg-brand-500/60"}
+              />
+            ) : (
+              <div className="h-full rounded-full bg-white/10" style={{ width: "100%" }} />
+            )}
           </div>
         </div>
       </div>

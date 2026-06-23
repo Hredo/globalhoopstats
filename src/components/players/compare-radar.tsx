@@ -1,6 +1,7 @@
 "use client"
 
-import { useId } from "react"
+import { useEffect, useId, useState } from "react"
+import { motion, useReducedMotion } from "framer-motion"
 import type { ComparePlayer } from "@/lib/data/compare"
 import { useT } from "@/lib/i18n/provider"
 
@@ -124,6 +125,7 @@ function clamp01(v: number): number {
 
 export function CompareRadar({ a, b }: Props) {
   const t = useT()
+  const reduce = useReducedMotion()
   const aId = useId()
   const bId = useId()
   const aValues = AXES.map((ax) => {
@@ -134,6 +136,16 @@ export function CompareRadar({ a, b }: Props) {
     const raw = ax.pick(b)
     return raw == null ? 0 : clamp01(raw / ax.max)
   })
+  const [show, setShow] = useState(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShow(true), 200)
+    return () => clearTimeout(timer)
+  }, [])
+
+  const centerPath = polygonFromValues(AXES.map(() => 0))
+  const aPath = polygonFromValues(aValues)
+  const bPath = polygonFromValues(bValues)
 
   return (
     <div className="relative h-full w-full">
@@ -202,23 +214,37 @@ export function CompareRadar({ a, b }: Props) {
           )
         })}
 
-        <path d={polygonFromValues(aValues)} fill={`url(#${aId})`} />
-        <path
-          d={polygonFromValues(aValues)}
+        <motion.path
+          d={show || reduce ? aPath : centerPath}
+          fill={`url(#${aId})`}
+          animate={{ d: aPath }}
+          transition={{ duration: 0.8, ease: [0.19, 1, 0.22, 1], delay: 0.1 }}
+        />
+        <motion.path
+          d={show || reduce ? aPath : centerPath}
           fill="none"
           stroke="var(--color-brand-400)"
           strokeWidth="2"
           strokeLinejoin="round"
+          animate={{ d: aPath }}
+          transition={{ duration: 0.8, ease: [0.19, 1, 0.22, 1], delay: 0.1 }}
         />
 
-        <path d={polygonFromValues(bValues)} fill={`url(#${bId})`} />
-        <path
-          d={polygonFromValues(bValues)}
+        <motion.path
+          d={show || reduce ? bPath : centerPath}
+          fill={`url(#${bId})`}
+          animate={{ d: bPath }}
+          transition={{ duration: 0.8, ease: [0.19, 1, 0.22, 1], delay: 0.25 }}
+        />
+        <motion.path
+          d={show || reduce ? bPath : centerPath}
           fill="none"
           stroke="var(--color-accent-cyan)"
           strokeWidth="2"
           strokeLinejoin="round"
           strokeDasharray="4 4"
+          animate={{ d: bPath }}
+          transition={{ duration: 0.8, ease: [0.19, 1, 0.22, 1], delay: 0.25 }}
         />
 
         {AXES.map((axis, i) => {
@@ -268,7 +294,12 @@ export function CompareRadar({ a, b }: Props) {
         })}
       </svg>
 
-      <div className="absolute left-3 top-3 flex items-center gap-3 text-[11px] font-medium text-ink-200">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6, duration: 0.5 }}
+        className="absolute left-3 top-3 flex items-center gap-3 text-[11px] font-medium text-ink-200"
+      >
         <span className="inline-flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-sm bg-brand-400" />
           <span className="max-w-[100px] truncate sm:max-w-[140px]">
@@ -281,7 +312,7 @@ export function CompareRadar({ a, b }: Props) {
             {b.fullName}
           </span>
         </span>
-      </div>
+      </motion.div>
     </div>
   )
 }
