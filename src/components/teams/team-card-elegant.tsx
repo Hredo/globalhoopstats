@@ -54,7 +54,7 @@ export function TeamCardElegant({ team }: Props) {
             src={team.logoUrl}
             alt={team.name}
             fit="contain"
-            className="relative h-full w-full p-8 transition-transform duration-700 ease-fluid group-hover:scale-[1.07]"
+            className="relative h-full w-full p-3 transition-transform duration-700 ease-fluid group-hover:scale-[1.07] sm:p-8"
             fallbackClassName="text-3xl font-bold text-ink-300"
             fallback={initials}
           />
@@ -63,7 +63,7 @@ export function TeamCardElegant({ team }: Props) {
             {initials}
           </div>
         )}
-        <span className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-ink-950/55 px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-100 ring-1 ring-hairline backdrop-blur">
+        <span className="absolute right-1.5 top-1.5 inline-flex items-center gap-1 rounded-full bg-ink-950/55 px-1.5 py-0.5 font-mono text-[8px] font-semibold uppercase tracking-[0.1em] text-ink-100 ring-1 ring-hairline backdrop-blur sm:right-3 sm:top-3 sm:gap-1.5 sm:px-2 sm:py-1 sm:text-[10px] sm:tracking-[0.14em]">
           <span
             aria-hidden
             className="h-1.5 w-1.5 rounded-full"
@@ -73,26 +73,26 @@ export function TeamCardElegant({ team }: Props) {
         </span>
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 p-4 hairline-t">
+      <div className="flex flex-1 flex-col gap-2 p-2.5 hairline-t sm:gap-3 sm:p-4">
         <div>
-          <h3 className="truncate font-display text-base font-bold tracking-[-0.01em] text-ink-50 sm:text-lg">
+          <h3 className="truncate font-display text-sm font-bold tracking-[-0.01em] text-ink-50 sm:text-lg">
             {team.name}
           </h3>
           {team.city || team.league.region ? (
-            <p className="mt-0.5 truncate text-xs text-ink-400">
+            <p className="mt-0.5 truncate text-[10px] text-ink-400 sm:text-xs">
               {team.city ?? team.league.region}
             </p>
           ) : null}
         </div>
 
-        <div className="mt-auto flex items-end justify-between">
-          <div>
-            <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-ink-500">
+        <div className="mt-auto flex items-end justify-between gap-1">
+          <div className="min-w-0">
+            <p className="font-mono text-[8px] uppercase tracking-[0.14em] text-ink-500 sm:text-[9px] sm:tracking-[0.18em]">
               {t("directory.rosterLabel")}
             </p>
-            <p className="font-display text-lg font-bold tabular-nums text-ink-50">
+            <p className="truncate font-display text-base font-bold tabular-nums text-ink-50 sm:text-lg">
               {team.playerCount}{" "}
-              <span className="text-sm font-medium text-ink-400">
+              <span className="text-xs font-medium text-ink-400 sm:text-sm">
                 {team.playerCount === 1
                   ? t("directory.playerOne")
                   : t("directory.playerOther")}
@@ -101,7 +101,7 @@ export function TeamCardElegant({ team }: Props) {
           </div>
           <span
             aria-hidden
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.04] text-ink-400 ring-1 ring-hairline transition-all duration-300 ease-fluid group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-ink-50"
+            className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.04] text-ink-400 ring-1 ring-hairline transition-all duration-300 ease-fluid group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-ink-50 sm:inline-flex"
           >
             <svg
               className="h-3.5 w-3.5"
