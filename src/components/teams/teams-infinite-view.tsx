@@ -126,7 +126,7 @@ export function TeamsInfiniteView({
           hidden: {},
           show: { transition: { staggerChildren: 0.025, delayChildren: 0.05 } },
         }}
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4"
+        className="grid grid-cols-3 gap-2.5 sm:gap-4 lg:grid-cols-3 lg:gap-5 xl:grid-cols-4"
       >
         {items.map((t) => (
           <motion.li
