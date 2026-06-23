@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import { Reveal } from "@/components/animations/reveal"
 import { Eyebrow } from "@/components/ui/eyebrow"
+import { TitleRule } from "@/components/ui/title-rule"
 import { StatFigure } from "@/components/ui/stat-figure"
 import { leagueAccent } from "@/components/ui/league-badge"
 
@@ -59,9 +60,11 @@ export function DirectoryHero({
             <Eyebrow>{eyebrow}</Eyebrow>
           </Reveal>
           <Reveal delay={0.06}>
-            <h1 className="mt-4 font-display text-6xl font-bold leading-[0.84] tracking-[-0.045em] text-ink-50 sm:text-7xl md:text-8xl">
-              {title}
-            </h1>
+            <TitleRule className="mt-4">
+              <h1 className="font-display text-6xl font-bold leading-[0.84] tracking-[-0.045em] text-ink-50 sm:text-7xl md:text-8xl">
+                {title}
+              </h1>
+            </TitleRule>
           </Reveal>
           <Reveal delay={0.12}>
             <p className="mt-5 max-w-md text-pretty text-sm leading-relaxed text-ink-200 sm:text-base">

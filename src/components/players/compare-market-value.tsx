@@ -1,8 +1,10 @@
 "use client"
 
+import { motion, type Variants } from "framer-motion"
 import { formatEur } from "@/lib/market/league-strength"
 import type { Valuation } from "@/lib/market/valuation"
 import { ValuationBadge } from "@/components/market/valuation-badge"
+import { AnimatedBar } from "@/components/animations/animated-bar"
 import { useT } from "@/lib/i18n/provider"
 
 type Props = {
@@ -17,19 +19,50 @@ type Props = {
  * compare colour language (player A = brand, player B = accent-cyan) and reuses
  * the same valuation labels as the trade simulator.
  */
+const columnVariants: Variants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.12, duration: 0.5, ease: [0.19, 1, 0.22, 1] as const },
+  }),
+}
+
 export function CompareMarketValue({ aName, bName, a, b }: Props) {
   const t = useT()
   return (
-    <div className="gh-card p-4 sm:p-5">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{ duration: 0.5, ease: [0.19, 1, 0.22, 1] }}
+      className="gh-card p-4 sm:p-5"
+    >
       <h2 className="gh-eyebrow">{t("trade.marketValue.title")}</h2>
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <ValueColumn name={aName} v={a} accent="brand" leads={a.eur > b.eur} />
-        <ValueColumn name={bName} v={b} accent="cyan" leads={b.eur > a.eur} />
+        <motion.div
+          custom={0}
+          variants={columnVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+        >
+          <ValueColumn name={aName} v={a} accent="brand" leads={a.eur > b.eur} />
+        </motion.div>
+        <motion.div
+          custom={1}
+          variants={columnVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+        >
+          <ValueColumn name={bName} v={b} accent="cyan" leads={b.eur > a.eur} />
+        </motion.div>
       </div>
       <p className="mt-3 text-[11px] leading-relaxed text-ink-400">
         {t("compare.marketValueNote")}
       </p>
-    </div>
+    </motion.div>
   )
 }
 
@@ -79,9 +112,12 @@ function ValueColumn({
         <span className="font-mono text-xs font-bold text-ink-100">{v.rating}/100</span>
       </div>
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-        <div
-          className={`h-full rounded-full ${barColor} transition-all duration-500`}
-          style={{ width: `${v.rating}%` }}
+        <AnimatedBar
+          value={v.rating}
+          max={100}
+          delay={0.15}
+          duration={0.6}
+          color={barColor}
         />
       </div>
     </div>
