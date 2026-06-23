@@ -1,5 +1,6 @@
 "use client"
 
+import { motion, type Variants } from "framer-motion"
 import type { ComparePlayer, CompareStats } from "@/lib/data/compare"
 import { useT } from "@/lib/i18n/provider"
 
@@ -155,32 +156,60 @@ function compareValues(a: number | null, b: number | null, higherBetter: boolean
   return diff > 0 ? "a" : "b"
 }
 
+const sectionVariants: Variants = {
+  hidden: { opacity: 0, y: 16 },
+  show: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.08, duration: 0.5, ease: [0.19, 1, 0.22, 1] as const },
+  }),
+}
+
 export function CompareStatsTable({ a, b }: Props) {
   const aName = a.fullName
   const bName = b.fullName
 
   return (
     <div className="w-full">
-      <div className="mb-3 grid grid-cols-[1fr_auto_auto_auto] gap-x-3 gap-y-1 px-1 text-[10px] font-mono uppercase tracking-widest text-ink-500">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.19, 1, 0.22, 1] }}
+        className="mb-3 grid grid-cols-[1fr_auto_auto_auto] gap-x-3 gap-y-1 px-1 text-[10px] font-mono uppercase tracking-widest text-ink-500"
+      >
         <div />
         <div className="text-right">{aName}</div>
         <div className="w-6 text-center" />
         <div className="text-left">{bName}</div>
-      </div>
-      {GROUPS.map((group) => (
-        <GroupSection
+      </motion.div>
+      {GROUPS.map((group, i) => (
+        <motion.div
           key={group.labelKey}
-          group={group}
-          aStats={a.stats}
-          bStats={b.stats}
-        />
+          custom={i}
+          variants={sectionVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.2 }}
+        >
+          <GroupSection
+            group={group}
+            aStats={a.stats}
+            bStats={b.stats}
+          />
+        </motion.div>
       ))}
-      <div className="mt-3 grid grid-cols-[1fr_auto_auto_auto] gap-x-3 gap-y-1 px-1 text-[10px] font-mono uppercase tracking-widest text-ink-500">
+      <motion.div
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ delay: 0.6, duration: 0.4 }}
+        className="mt-3 grid grid-cols-[1fr_auto_auto_auto] gap-x-3 gap-y-1 px-1 text-[10px] font-mono uppercase tracking-widest text-ink-500"
+      >
         <div />
         <div className="text-right">{aName}</div>
         <div className="w-6 text-center" />
         <div className="text-left">{bName}</div>
-      </div>
+      </motion.div>
     </div>
   )
 }
