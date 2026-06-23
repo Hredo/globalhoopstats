@@ -6,9 +6,10 @@ import { CompareRadar } from "@/components/players/compare-radar"
 import { CompareAi } from "@/components/players/compare-ai"
 import { CompareStatsTable } from "@/components/players/compare-stats-table"
 import { CompareMarketValue } from "@/components/players/compare-market-value"
+import { CompareVsDivider } from "@/components/players/compare-vs-divider"
 import { getMarketPlayerBySlug } from "@/lib/market/pool"
-import { FadeIn } from "@/components/animations/fade-in"
 import { Reveal } from "@/components/animations/reveal"
+import { ScaleIn } from "@/components/animations/scale-in"
 import { Eyebrow } from "@/components/ui/eyebrow"
 import { SmartImage } from "@/components/ui/smart-image"
 import { leagueAccent } from "@/components/ui/league-badge"
@@ -66,38 +67,42 @@ export default async function ComparePage(props: {
       </div>
 
       <div className="mt-6 grid grid-cols-1 items-stretch gap-4 sm:mt-8 sm:gap-5 md:grid-cols-[1fr_auto_1fr]">
-        <ComparePlayerCard side="a" player={playerA} requested={aSlug} />
-        <div className="flex items-center justify-center md:flex-col" aria-hidden>
-          <span className="hidden h-full w-px bg-gradient-to-b from-transparent via-hairline-strong to-transparent md:block" />
-          <span className="gh-bezel flex h-14 w-14 items-center justify-center">
-            <span className="gh-bezel-inner flex h-full w-full items-center justify-center font-display text-base font-bold text-ink-200">
-              {t("compare.vs")}
-            </span>
-          </span>
-          <span className="hidden h-full w-px bg-gradient-to-b from-transparent via-hairline-strong to-transparent md:block" />
-        </div>
-        <ComparePlayerCard side="b" player={playerB} requested={bSlug} />
+        <Reveal direction="right" amount={0.1}>
+          <ComparePlayerCard side="a" player={playerA} requested={aSlug} />
+        </Reveal>
+        <ScaleIn delay={0.25} amount={0.5}>
+          <CompareVsDivider label={t("compare.vs")} />
+        </ScaleIn>
+        <Reveal direction="left" amount={0.1}>
+          <ComparePlayerCard side="b" player={playerB} requested={bSlug} />
+        </Reveal>
       </div>
 
       {playerA && playerB ? (
-        <Reveal>
-          <section className="mt-6 sm:mt-8">
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_380px]">
-              <div className="gh-card p-4 sm:p-5">
-                <h2 className="gh-eyebrow">{t("compare.fullStats")}</h2>
-                <div className="mt-4">
-                  <CompareStatsTable a={playerA} b={playerB} />
-                </div>
+        <>
+          <Reveal>
+            <section className="mt-6 sm:mt-8">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_380px]">
+                <ScaleIn amount={0.15}>
+                  <div className="gh-card p-4 sm:p-5">
+                    <h2 className="gh-eyebrow">{t("compare.fullStats")}</h2>
+                    <div className="mt-4">
+                      <CompareStatsTable a={playerA} b={playerB} />
+                    </div>
+                  </div>
+                </ScaleIn>
+                <ScaleIn amount={0.15} delay={0.12}>
+                  <div className="gh-card p-4 sm:p-5">
+                    <h2 className="gh-eyebrow">{t("compare.radar")}</h2>
+                    <div className="mt-4 aspect-square w-full">
+                      <CompareRadar a={playerA} b={playerB} />
+                    </div>
+                  </div>
+                </ScaleIn>
               </div>
-              <div className="gh-card p-4 sm:p-5">
-                <h2 className="gh-eyebrow">{t("compare.radar")}</h2>
-                <div className="mt-4 aspect-square w-full">
-                  <CompareRadar a={playerA} b={playerB} />
-                </div>
-              </div>
-            </div>
-          </section>
-        </Reveal>
+            </section>
+          </Reveal>
+        </>
       ) : null}
 
       {playerA && playerB && showMarketValue && marketA?.valuation && marketB?.valuation ? (
@@ -114,7 +119,7 @@ export default async function ComparePage(props: {
       ) : null}
 
       {playerA && playerB ? (
-        <FadeIn>
+        <ScaleIn amount={0.15}>
           <div id="ai-analysis" className="mt-6 scroll-mt-24 sm:mt-8">
             <CompareAi
               aSlug={playerA.slug}
@@ -123,7 +128,7 @@ export default async function ComparePage(props: {
               bName={playerB.fullName}
             />
           </div>
-        </FadeIn>
+        </ScaleIn>
       ) : null}
     </div>
   )

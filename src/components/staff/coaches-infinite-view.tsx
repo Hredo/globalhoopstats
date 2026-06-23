@@ -92,7 +92,7 @@ export function CoachesInfiniteView({ initial, query, league, role }: Props) {
           hidden: {},
           show: { transition: { staggerChildren: 0.02, delayChildren: 0.05 } },
         }}
-        className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3"
+        className="grid grid-cols-3 gap-2.5 sm:gap-4 lg:grid-cols-3"
       >
         {items.map((c) => (
           <motion.li
