@@ -239,9 +239,9 @@ function NormalizeVisual() {
 
 function ValueVisual() {
   const rows = [
-    { name: "Dončić", value: "€60M", pct: 100, accent: "bg-brand-500/80" },
-    { name: "Mirotić", value: "€6.5M", pct: 48, accent: "bg-accent-cyan/70" },
-    { name: "Brizuela", value: "€3.5M", pct: 30, accent: "bg-league-euro-500/70" },
+    { name: "Wembanyama", value: "€120M", pct: 100, accent: "bg-brand-500/80" },
+    { name: "SGA", value: "€85M", pct: 72, accent: "bg-accent-cyan/70" },
+    { name: "Campazzo", value: "€4.2M", pct: 26, accent: "bg-league-euro-500/70" },
   ]
   return (
     <div className="grid gap-2.5">
@@ -267,9 +267,10 @@ function ValueVisual() {
 
 function CompareVisual() {
   const rows = [
-    { l: "PTS", a: 88, b: 60 },
-    { l: "AST", a: 52, b: 84 },
-    { l: "REB", a: 70, b: 76 },
+    { l: "PTS", a: 92, b: 54 },
+    { l: "AST", a: 46, b: 88 },
+    { l: "REB", a: 64, b: 80 },
+    { l: "BLK", a: 28, b: 96 },
   ]
   return (
     <div className="grid gap-2.5">

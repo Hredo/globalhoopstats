@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { Reveal } from "@/components/animations/reveal"
 import Link from "next/link"
 import { TradeScenarioCard } from "@/components/market/trade-scenario-card"
 import { PlayerSearchPopover } from "@/components/market/player-search-popover"
@@ -684,21 +685,40 @@ export default function TradePage() {
                   {t("trade.results.noScenarios")}
                 </div>
               ) : (
-                <div className="grid gap-4 sm:grid-cols-2">
+                <motion.div
+                  className="grid gap-4 sm:grid-cols-2"
+                  initial="hidden"
+                  animate="visible"
+                  variants={{
+                    hidden: {},
+                    visible: { transition: { staggerChildren: 0.08 } },
+                  }}
+                >
                   {result.scenarios.map((s, i) => (
-                    <TradeScenarioCard
+                    <motion.div
                       key={i}
-                      scenario={s}
-                      outgoingName={result.outgoing.name}
-                      outgoingValue={result.outgoing.valuation.eur}
-                      currency={currency}
-                      onAnalyze={() => runScenarioAi(i)}
-                      aiLoading={scenarioAi[i]?.loading ?? false}
-                      aiAnalysis={scenarioAi[i]?.analysis ?? null}
-                      aiError={scenarioAi[i]?.error ?? null}
-                    />
+                      variants={{
+                        hidden: { opacity: 0, y: 20 },
+                        visible: {
+                          opacity: 1,
+                          y: 0,
+                          transition: { duration: 0.5, ease: [0.19, 1, 0.22, 1] },
+                        },
+                      }}
+                    >
+                      <TradeScenarioCard
+                        scenario={s}
+                        outgoingName={result.outgoing.name}
+                        outgoingValue={result.outgoing.valuation.eur}
+                        currency={currency}
+                        onAnalyze={() => runScenarioAi(i)}
+                        aiLoading={scenarioAi[i]?.loading ?? false}
+                        aiAnalysis={scenarioAi[i]?.analysis ?? null}
+                        aiError={scenarioAi[i]?.error ?? null}
+                      />
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
               )}
             </div>
           ) : null}
@@ -730,9 +750,11 @@ export default function TradePage() {
                 </span>
               </div>
               <div className="mx-auto mt-3 h-2 w-full max-w-md overflow-hidden rounded-full bg-white/10">
-                <div
-                  className={`h-full rounded-full transition-all ${balanced ? "bg-emerald-500" : "bg-amber-500"}`}
-                  style={{ width: `${Math.min(balance, 1.5) * 66}%` }}
+                <motion.div
+                  className={`h-full rounded-full ${balanced ? "bg-emerald-500" : "bg-amber-500"}`}
+                  initial={{ width: "0%" }}
+                  animate={{ width: `${Math.min(balance, 1.5) * 66}%` }}
+                  transition={{ duration: 0.7, ease: [0.19, 1, 0.22, 1] }}
                 />
               </div>
             </div>
@@ -753,9 +775,17 @@ export default function TradePage() {
                 </span>
               </div>
 
-              <div className="space-y-2">
+              <AnimatePresence mode="popLayout">
                 {outgoing.map((p) => (
-                  <div key={p.slug} className="flex items-start gap-3 rounded-lg border border-amber-500/20 bg-surface-0 p-3">
+                  <motion.div
+                    key={p.slug}
+                    layout
+                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: -20, scale: 0.95 }}
+                    transition={{ duration: 0.25, ease: [0.19, 1, 0.22, 1] }}
+                    className="flex items-start gap-3 rounded-lg border border-amber-500/20 bg-surface-0 p-3"
+                  >
                     <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md bg-court-800">
                       <SmartImage src={p.imageUrl} alt={p.fullName} fit="cover"
                         fallbackClassName="text-[9px] font-bold text-ink-400"
@@ -788,9 +818,9 @@ export default function TradePage() {
                         <path d="M18 6L6 18M6 6l12 12" />
                       </svg>
                     </button>
-                  </div>
+                  </motion.div>
                 ))}
-              </div>
+              </AnimatePresence>
 
               <div className="mt-2">
                 <PlayerSearchPopover
@@ -837,9 +867,17 @@ export default function TradePage() {
                 </span>
               </div>
 
-              <div className="space-y-2">
+              <AnimatePresence mode="popLayout">
                 {incoming.map((p) => (
-                  <div key={p.slug} className="flex items-start gap-3 rounded-lg border border-emerald-500/20 bg-surface-0 p-3">
+                  <motion.div
+                    key={p.slug}
+                    layout
+                    initial={{ opacity: 0, x: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
+                    transition={{ duration: 0.25, ease: [0.19, 1, 0.22, 1] }}
+                    className="flex items-start gap-3 rounded-lg border border-emerald-500/20 bg-surface-0 p-3"
+                  >
                     <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md bg-court-800">
                       <SmartImage src={p.imageUrl} alt={p.fullName} fit="cover"
                         fallbackClassName="text-[9px] font-bold text-ink-400"
@@ -872,9 +910,9 @@ export default function TradePage() {
                         <path d="M18 6L6 18M6 6l12 12" />
                       </svg>
                     </button>
-                  </div>
+                  </motion.div>
                 ))}
-              </div>
+              </AnimatePresence>
 
               <div className="mt-2">
                 <PlayerSearchPopover
