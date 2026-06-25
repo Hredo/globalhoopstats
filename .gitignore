@@ -48,3 +48,13 @@ next-env.d.ts
 # Serwist (PWA service worker)
 public/sw*
 public/swe-worker*
+
+# AI / agent tooling — kept local, not for the public repo
+/AGENTS.md
+/.agents/
+/agent_configs/
+/.claude/
+/skills-lock.json
+
+# internal deployment notes
+/DEPLOY-HOSTINGER.md
