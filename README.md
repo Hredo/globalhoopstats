@@ -1,4 +1,4 @@
-# globalhoopstats 
+# Globalhoopstats 
 
 Basketball statistics tracking web application — work in progress.
 
