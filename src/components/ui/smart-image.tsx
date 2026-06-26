@@ -10,6 +10,7 @@ type Props = {
   fallbackClassName?: string
   fit?: "cover" | "contain"
   eager?: boolean
+  priority?: boolean
   referrerPolicy?: React.HTMLAttributeReferrerPolicy
 }
 
@@ -21,6 +22,7 @@ export function SmartImage({
   fallbackClassName = "",
   fit = "cover",
   eager = false,
+  priority = false,
   referrerPolicy = "no-referrer",
 }: Props) {
   const [errored, setErrored] = useState(false)
@@ -47,6 +49,7 @@ export function SmartImage({
       alt={alt}
       loading={eager ? "eager" : "lazy"}
       decoding="async"
+      fetchPriority={priority ? "high" : undefined}
       referrerPolicy={referrerPolicy}
       onError={() => setErrored(true)}
       className={`h-full w-full object-${fit} ${className}`}

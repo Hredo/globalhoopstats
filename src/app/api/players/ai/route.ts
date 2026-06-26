@@ -6,7 +6,7 @@ import { getCurrentUser } from "@/lib/auth/current-user"
 import { resolveEngine, resolveDefaultEngine } from "@/lib/ai/user-provider"
 import { chatComplete } from "@/lib/ai/chat"
 import { getLocale } from "@/lib/i18n/server"
-import { aiLanguageName } from "@/lib/ai/language"
+import { aiLanguageDirective } from "@/lib/ai/language"
 import type { Locale } from "@/lib/i18n/config"
 
 export const dynamic = "force-dynamic"
@@ -46,7 +46,9 @@ function buildPlayerPrompt(
     `Shooting: ${fgp} FG / ${threep} 3P / ${ftp} FT`,
     `PER: ${per}`,
     "",
-    `Write a sharp 3-4 sentence scouting report. Pin down his role and archetype, his single biggest strength and his clearest weakness — back each with a specific number from above — and the exact type of team and system that gets the most out of him. Be concrete and opinionated; no generic praise ("solid", "versatile" on their own are banned). Plain prose, no lists, no markdown. Write in ${aiLanguageName(locale)}.`,
+    aiLanguageDirective(locale),
+    "",
+    `Write a sharp 3-4 sentence scouting report. Pin down his role and archetype, his single biggest strength and his clearest weakness — back each with a specific number from above — and the exact type of team and system that gets the most out of him. Be concrete and opinionated; no generic praise ("solid", "versatile" on their own are banned). Plain prose, no lists, no markdown.`,
   ].join("\n")
 }
 
@@ -114,7 +116,7 @@ export async function POST(request: Request) {
           provider: engine.provider,
           model: engine.model,
           apiKey: engine.apiKey,
-          system: `You are an elite basketball scout. Given a player's stats, write a short, specific and opinionated scouting report in ${aiLanguageName(locale)}. Anchor your claims to the numbers; no hedging, no generic filler. Plain prose, no lists, no markdown.`,
+          system: `You are an elite basketball scout. Given a player's stats, write a short, specific and opinionated scouting report. Anchor your claims to the numbers; no hedging, no generic filler. Plain prose, no lists, no markdown. ${aiLanguageDirective(locale)}`,
           messages: [
             {
               role: "user",

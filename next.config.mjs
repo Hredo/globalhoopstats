@@ -59,6 +59,19 @@ const advisorCsp = [
 const nextConfig = {
   // Don't advertise the framework (information disclosure).
   poweredByHeader: false,
+  images: {
+    formats: ["image/avif", "image/webp"],
+    deviceSizes: [480, 768, 1024, 1280, 1536],
+    imageSizes: [96, 128, 256, 384],
+    remotePatterns: [
+      { protocol: "https", hostname: "cdn.nba.com" },
+      { protocol: "https", hostname: "cdn.ssref.net" },
+      { protocol: "https", hostname: "upload.wikimedia.org" },
+      { protocol: "https", hostname: "i.ytimg.com" },
+      { protocol: "https", hostname: "imagenes.feb.es" },
+      { protocol: "https", hostname: "www.acb.com" },
+    ],
+  },
   eslint: {
     // Los errores de lint son preexistentes (reglas nuevas de React 19 en
     // eslint-config-next v16). No bloquean el build para no romper el deploy.

@@ -1,8 +1,16 @@
 "use client"
 
-import { useState, type FormEvent } from "react"
+import { useState, useEffect, useCallback, type FormEvent } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter, useSearchParams } from "next/navigation"
+
+function formatTime(ms: number): string {
+  if (ms <= 0) return "0:00"
+  const totalSec = Math.ceil(ms / 1000)
+  const m = Math.floor(totalSec / 60)
+  const s = totalSec % 60
+  return `${m}:${s.toString().padStart(2, "0")}`
+}
 
 export function TwoFactorVerifyForm() {
   const router = useRouter()
@@ -13,6 +21,20 @@ export function TwoFactorVerifyForm() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [useBackup, setUseBackup] = useState(false)
+  const [expiresAt, setExpiresAt] = useState(
+    () => Number(searchParams.get("e")) || 0,
+  )
+  const [now, setNow] = useState(Date.now())
+  const [resending, setResending] = useState(false)
+
+  useEffect(() => {
+    if (expiresAt <= 0) return
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [expiresAt])
+
+  const remaining = Math.max(0, expiresAt - now)
+  const expired = remaining <= 0
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -40,6 +62,32 @@ export function TwoFactorVerifyForm() {
       setSubmitting(false)
     }
   }
+
+  const handleResend = useCallback(async () => {
+    if (resending || !sessionId) return
+    setResending(true)
+    setError(null)
+
+    try {
+      const res = await fetch("/api/auth/2fa/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      })
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(payload.error ?? "Could not resend code.")
+        return
+      }
+      setExpiresAt(payload.expiresAt)
+      setNow(Date.now())
+      setCode("")
+    } catch {
+      setError("We couldn't reach the server. Check your connection and retry.")
+    } finally {
+      setResending(false)
+    }
+  }, [sessionId, resending])
 
   if (!sessionId) {
     return (
@@ -111,6 +159,31 @@ export function TwoFactorVerifyForm() {
             />
           </div>
 
+          {!useBackup && expiresAt > 0 && (
+            <div className="flex items-center justify-center gap-1.5 text-xs text-ink-400">
+              {expired ? (
+                <span className="text-red-300">Code expired</span>
+              ) : (
+                <>
+                  <svg
+                    className="h-3.5 w-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <path strokeLinecap="round" d="M12 6v6l4 2" />
+                  </svg>
+                  Code expires in{" "}
+                  <span className="font-mono font-semibold text-ink-100 tabular-nums">
+                    {formatTime(remaining)}
+                  </span>
+                </>
+              )}
+            </div>
+          )}
+
           <AnimatePresence>
             {error ? (
               <motion.div
@@ -127,7 +200,7 @@ export function TwoFactorVerifyForm() {
 
           <button
             type="submit"
-            disabled={submitting || !code.trim()}
+            disabled={submitting || !code.trim() || (!useBackup && expired)}
             className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-brand-500 px-4 py-3.5 text-sm font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? (
@@ -162,6 +235,48 @@ export function TwoFactorVerifyForm() {
               aria-hidden
             />
           </button>
+
+          {!useBackup && expired && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resending}
+                className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl border border-brand-500/40 bg-transparent px-4 py-3 text-sm font-semibold text-brand-400 transition hover:border-brand-500/60 hover:text-brand-300 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {resending ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-brand-400" />
+                    <span
+                      className="h-2 w-2 animate-bounce rounded-full bg-brand-400"
+                      style={{ animationDelay: "120ms" }}
+                    />
+                    <span
+                      className="h-2 w-2 animate-bounce rounded-full bg-brand-400"
+                      style={{ animationDelay: "240ms" }}
+                    />
+                    <span className="ml-1.5">Sending…</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2">
+                    <svg
+                      className="h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Resend code
+                  </span>
+                )}
+              </button>
+            </motion.div>
+          )}
 
           <button
             type="button"

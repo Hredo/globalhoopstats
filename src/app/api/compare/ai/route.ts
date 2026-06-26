@@ -10,7 +10,7 @@ import { getCurrentUser } from "@/lib/auth/current-user"
 import { resolveEngine, resolveDefaultEngine } from "@/lib/ai/user-provider"
 import { chatComplete } from "@/lib/ai/chat"
 import { getLocale } from "@/lib/i18n/server"
-import { aiLanguageName } from "@/lib/ai/language"
+import { aiLanguageDirective } from "@/lib/ai/language"
 import type { Locale } from "@/lib/i18n/config"
 
 export const dynamic = "force-dynamic"
@@ -45,7 +45,9 @@ function buildComparePrompt(
     `Category winners:`,
     cats,
     "",
-    `Write a sharp 3-4 sentence verdict: who is the better fit and for what kind of team and role, with the decisive reason backed by the numbers above. Add the one situation where the other player is the better pick. Commit to a call — no hedging, no generic praise. Plain prose, no lists, no markdown. Write in ${aiLanguageName(locale)}.`,
+    aiLanguageDirective(locale),
+    "",
+    `Write a sharp 3-4 sentence verdict: who is the better fit and for what kind of team and role, with the decisive reason backed by the numbers above. Add the one situation where the other player is the better pick. Commit to a call — no hedging, no generic praise. Plain prose, no lists, no markdown.`,
   ].join("\n")
 }
 
@@ -138,7 +140,7 @@ export async function POST(request: Request) {
         provider: engine.provider,
         model: engine.model,
         apiKey: engine.apiKey,
-        system: `You are an elite basketball scout. Given a structured head-to-head, write a short, specific and decisive verdict anchored to the data. No hedging, no generic filler, no markdown, no lists — plain prose, in ${aiLanguageName(locale)}.`,
+        system: `You are an elite basketball scout. Given a structured head-to-head, write a short, specific and decisive verdict anchored to the data. No hedging, no generic filler, no markdown, no lists — plain prose. ${aiLanguageDirective(locale)}`,
         messages: [
           {
             role: "user",

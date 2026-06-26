@@ -39,14 +39,15 @@ export function FadeIn({
   as = "div",
 }: FadeInProps) {
   const ref = useRef<HTMLElement | null>(null)
-  const [shown, setShown] = useState(false)
+  const [shown, setShown] = useState(true)
   const [reduce, setReduce] = useState(false)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
     setReduce(mq.matches)
     if (mq.matches) {
-      setShown(true)
+      setReady(true)
       return
     }
     const el = ref.current
@@ -54,9 +55,11 @@ export function FadeIn({
     const rect = el.getBoundingClientRect()
     const inView = rect.top < window.innerHeight && rect.bottom > 0
     if (inView) {
-      setShown(true)
+      setReady(true)
       return
     }
+    setShown(false)
+    setReady(true)
     const io = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
@@ -72,17 +75,18 @@ export function FadeIn({
     return () => io.disconnect()
   }, [])
 
-  const style: CSSProperties = reduce
-    ? {}
-    : {
-        opacity: shown ? 1 : 0,
-        transform: shown
-          ? "translate3d(0,0,0)"
-          : `translate3d(${x}px,${y}px,0)`,
-        filter: blur ? (shown ? "blur(0px)" : "blur(8px)") : undefined,
-        transition: `opacity 0.7s var(--ease-out-expo) ${delay}s, transform 0.8s var(--ease-out-expo) ${delay}s, filter 0.7s var(--ease-out-expo) ${delay}s`,
-        willChange: shown ? "auto" : "opacity, transform, filter",
-      }
+  const style: CSSProperties =
+    reduce || !ready
+      ? {}
+      : {
+          opacity: shown ? 1 : 0,
+          transform: shown
+            ? "translate3d(0,0,0)"
+            : `translate3d(${x}px,${y}px,0)`,
+          filter: blur ? (shown ? "blur(0px)" : "blur(8px)") : undefined,
+          transition: `opacity 0.7s var(--ease-out-expo) ${delay}s, transform 0.8s var(--ease-out-expo) ${delay}s, filter 0.7s var(--ease-out-expo) ${delay}s`,
+          willChange: shown ? "auto" : "opacity, transform, filter",
+        }
 
   return createElement(as, { ref, className, style }, children)
 }

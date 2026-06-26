@@ -22,6 +22,7 @@ type FieldProps = {
   hint?: string
   error?: string | null
   children?: React.ReactNode
+  endAdornment?: React.ReactNode
 }
 
 function FloatingField({
@@ -38,6 +39,7 @@ function FloatingField({
   hint,
   error,
   children,
+  endAdornment,
 }: FieldProps) {
   const [focused, setFocused] = useState(false)
   const filled = value.length > 0
@@ -70,6 +72,8 @@ function FloatingField({
         aria-invalid={error ? "true" : undefined}
         aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
         className={`w-full rounded-xl border bg-ink-900/60 px-4 pb-2 pt-6 text-base text-ink-50 outline-none transition-all duration-200 ${
+          endAdornment ? "pr-12" : ""
+        } ${
           error
             ? "border-red-500/60 focus:border-red-400"
             : focused
@@ -77,6 +81,11 @@ function FloatingField({
               : "border-white/10 hover:border-white/20"
         }`}
       />
+      {endAdornment ? (
+        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+          {endAdornment}
+        </div>
+      ) : null}
       {children}
       <AnimatePresence>
         {error ? (
@@ -156,6 +165,8 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const isRegister = variant === "register"
   const endpoint = isRegister ? "/api/auth/register" : "/api/auth/login"
@@ -171,7 +182,7 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
     const localErrors: Record<string, string> = {}
     if (isRegister) {
       if (name.trim().length < 2) localErrors.name = t("auth.nameMin")
-      if (password !== confirm && confirm.length > 0) {
+      if (password !== confirm) {
         localErrors.confirm = t("auth.passwordsMismatch")
       }
     }
@@ -212,7 +223,9 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
         return
       }
       if (payload.requiresTwoFactor && payload.twoFactorSessionId) {
-        router.push(`/login/2fa?session=${encodeURIComponent(payload.twoFactorSessionId)}`)
+        const params = new URLSearchParams({ session: payload.twoFactorSessionId })
+        if (payload.expiresAt) params.set("e", String(payload.expiresAt))
+        router.push(`/login/2fa?${params}`)
         return
       }
       // Tell the navbar (UserMenu) the session changed so it swaps
@@ -316,7 +329,7 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
                 <FloatingField
                   id="password"
                   label={t("auth.passwordLabel")}
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={setPassword}
                   placeholder="••••••••"
@@ -325,6 +338,66 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
                   minLength={isRegister ? 8 : 1}
                   maxLength={200}
                   error={fieldErrors.password}
+                  endAdornment={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((p) => !p)}
+                      tabIndex={-1}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-ink-400 transition-colors hover:bg-white/10 hover:text-ink-200"
+                    >
+                      <AnimatePresence mode="wait">
+                        {showPassword ? (
+                          <motion.span
+                            key="off"
+                            initial={{ opacity: 0, scale: 0.5, rotate: -90 }}
+                            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                            exit={{ opacity: 0, scale: 0.5, rotate: 90 }}
+                            transition={{ duration: 0.2, ease: "easeInOut" }}
+                            className="flex"
+                          >
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-4 w-4"
+                              aria-hidden
+                            >
+                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                              <line x1="1" y1="1" x2="23" y2="23" />
+                            </svg>
+                          </motion.span>
+                        ) : (
+                          <motion.span
+                            key="on"
+                            initial={{ opacity: 0, scale: 0.5, rotate: -90 }}
+                            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                            exit={{ opacity: 0, scale: 0.5, rotate: 90 }}
+                            transition={{ duration: 0.2, ease: "easeInOut" }}
+                            className="flex"
+                          >
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-4 w-4"
+                              aria-hidden
+                            >
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </button>
+                  }
                 >
                   {isRegister ? (
                     <div className="mt-2 flex items-center gap-2">
@@ -350,7 +423,7 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
                 <FloatingField
                   id="confirm"
                   label={t("auth.repeatPasswordLabel")}
-                  type="password"
+                  type={showConfirm ? "text" : "password"}
                   value={confirm}
                   onChange={setConfirm}
                   placeholder="••••••••"
@@ -359,6 +432,66 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
                   minLength={8}
                   maxLength={200}
                   error={fieldErrors.confirm}
+                  endAdornment={
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirm((c) => !c)}
+                      tabIndex={-1}
+                      aria-label={showConfirm ? "Hide password" : "Show password"}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-ink-400 transition-colors hover:bg-white/10 hover:text-ink-200"
+                    >
+                      <AnimatePresence mode="wait">
+                        {showConfirm ? (
+                          <motion.span
+                            key="off"
+                            initial={{ opacity: 0, scale: 0.5, rotate: -90 }}
+                            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                            exit={{ opacity: 0, scale: 0.5, rotate: 90 }}
+                            transition={{ duration: 0.2, ease: "easeInOut" }}
+                            className="flex"
+                          >
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-4 w-4"
+                              aria-hidden
+                            >
+                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                              <line x1="1" y1="1" x2="23" y2="23" />
+                            </svg>
+                          </motion.span>
+                        ) : (
+                          <motion.span
+                            key="on"
+                            initial={{ opacity: 0, scale: 0.5, rotate: -90 }}
+                            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                            exit={{ opacity: 0, scale: 0.5, rotate: 90 }}
+                            transition={{ duration: 0.2, ease: "easeInOut" }}
+                            className="flex"
+                          >
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-4 w-4"
+                              aria-hidden
+                            >
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </button>
+                  }
                 />
               ) : null}
 
