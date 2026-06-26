@@ -232,7 +232,7 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
       // "Sign in / Get started" for the account menu without a reload.
       window.dispatchEvent(new Event("auth:changed"))
       router.refresh()
-      router.push(next)
+      router.push("/")
     } catch {
       setFormError(t("auth.networkError"))
     } finally {
