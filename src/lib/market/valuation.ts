@@ -89,27 +89,26 @@ function scarcityFactor(position: string | null): number {
 }
 
 /**
- * Map a raw 0-100 rating to a tier RELATIVE to the player's league.
- * Weaker leagues get scaled-down thresholds (via sqrt(strength)) so the best
- * players in every league can reach "franchise" within their own context, but
- * their tier is NOT comparable across leagues — a franchise in EBA is not the
- * same as a franchise in the NBA (reflected in the vastly different EUR value).
+ * Map a normalized 0-100 rating to a tier. The rating is already adjusted by
+ * league strength (see computeRating), so thresholds are fixed. A player's
+ * tier is always relative to their own league context.
  */
-function tierFor(rating: number, leagueSlug?: string): ValuationTier {
-  const s = leagueSlug ? Math.sqrt(leagueStrength(leagueSlug)) : 1
-  if (rating >= 78 * s) return "franchise"
-  if (rating >= 60 * s) return "starter"
-  if (rating >= 42 * s) return "rotation"
-  if (rating >= 25 * s) return "role"
+function tierFor(rating: number): ValuationTier {
+  if (rating >= 78) return "franchise"
+  if (rating >= 60) return "starter"
+  if (rating >= 42) return "rotation"
+  if (rating >= 25) return "role"
   return "fringe"
 }
 
 /**
- * Core talent/production rating, 0..100. Box-score creation on a per-game
- * basis, adjusted by whatever advanced metrics are available (TS%, PER, BPM,
- * Win Shares). Missing advanced metrics simply contribute 0 (no penalty).
+ * Core talent/production rating, 0..100, normalised by league strength.
+ * Box-score creation on a per-game basis, adjusted by whatever advanced metrics
+ * are available (TS%, PER, BPM, Win Shares). The raw absolute rating is then
+ * divided by sqrt(leagueStrength) so a player's standing within their own league
+ * is reflected on the 0–100 scale regardless of the league's absolute stat level.
  */
-function computeRating(stats: MarketStatLine): {
+function computeRating(stats: MarketStatLine, leagueSlug?: string): {
   rating: number
   production: number
   efficiency: number
@@ -135,7 +134,12 @@ function computeRating(stats: MarketStatLine): {
   const wsAdj = stats.winShares != null ? stats.winShares * 1.2 : 0
   const efficiency = tsAdj + perAdj + bpmAdj + wsAdj
 
-  const rating = Math.max(0, Math.min(100, base + efficiency))
+  const raw = Math.max(0, Math.min(100, base + efficiency))
+
+  // Normalise by league strength so the rating reflects league-relative standing.
+  const s = leagueSlug ? Math.sqrt(leagueStrength(leagueSlug)) : 1
+  const rating = Math.min(100, raw / Math.max(0.1, s))
+
   return { rating, production, efficiency }
 }
 
@@ -161,7 +165,7 @@ export function estimateValuation(input: ValuationInput): Valuation {
     }
   }
 
-  const { rating, production, efficiency } = computeRating(stats)
+  const { rating, production, efficiency } = computeRating(stats, input.leagueSlug ?? undefined)
   const age = ageFactor(input.age)
   const scarcity = scarcityFactor(input.position)
 
@@ -183,7 +187,7 @@ export function estimateValuation(input: ValuationInput): Valuation {
   return {
     eur: Math.max(0, round(rawValue, valueStep)),
     annualEur: Math.max(0, round(rawSalary, salaryStep)),
-    tier: tierFor(rating, input.leagueSlug ?? undefined),
+    tier: tierFor(rating),
     leagueSlug: input.leagueSlug ?? "unknown",
     confidence,
     rating: Math.round(rating),
