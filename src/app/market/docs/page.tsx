@@ -71,6 +71,11 @@ function EnglishDocs() {
     { tier: "0–24", label: "Fringe", desc: "Marginal minutes. No significant market impact." },
   ]
 
+  // Tiers are league-relative. The rating thresholds above apply to the NBA
+  // (strength 1.0). For weaker leagues the thresholds are scaled down so the
+  // best players can still reach higher tiers within their league, but a
+  // "Franchise" in EBA is NOT comparable to a "Franchise" in the NBA.
+
   return (
     <>
       <section className="mt-10 space-y-6">
@@ -246,6 +251,16 @@ function EnglishDocs() {
               </tbody>
             </table>
           </div>
+          <p className="mt-3 text-xs text-ink-400">
+            <strong className="text-ink-200">League-relative scaling:</strong>{" "}
+            The thresholds above apply to the NBA (strength 1.0). In lower-tier
+            leagues the thresholds scale down proportionally so the best players
+            can still earn top categories within their league — a{" "}
+            <strong>Franchise</strong> in EBA means world-beater <em>for that
+            level</em>, not a Franchise-calibre player in the NBA. Each category
+            badge shows the league name so there is no confusion across
+            competitions.
+          </p>
         </FadeIn>
 
         <FadeIn>
@@ -562,6 +577,16 @@ function SpanishDocs() {
               </tbody>
             </table>
           </div>
+          <p className="mt-3 text-xs text-ink-400">
+            <strong className="text-ink-200">Escalado por liga:</strong>{" "}
+            Los umbrales mostrados corresponden a la NBA (fuerza 1.0). En ligas
+            inferiores los umbrales se reducen proporcionalmente para que los
+            mejores jugadores puedan alcanzar las categorías más altas dentro de
+            su contexto — un <strong>Franquicia</strong> en EBA significa que es
+            el mejor <em>para ese nivel</em>, no que sea equiparable a un
+            Franquicia de la NBA. Cada categoría muestra el nombre de la liga
+            para evitar confusiones entre competiciones.
+          </p>
         </FadeIn>
 
         <FadeIn>

@@ -637,7 +637,7 @@ export default function TradePage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="font-display text-xl font-bold text-ink-50">{result.outgoing.name}</p>
-                      <ValuationBadge tier={result.outgoing.valuation.tier} size="sm" />
+                      <ValuationBadge tier={result.outgoing.valuation.tier} size="sm" leagueSlug={result.outgoing.league.slug} />
                     </div>
                     <p className="font-mono text-[11px] text-ink-400">
                       {result.outgoing.position ?? "—"} · {result.outgoing.league.name} · {result.outgoing.team?.name ?? "FA"}
@@ -794,7 +794,7 @@ export default function TradePage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <p className="truncate text-sm font-semibold text-ink-100">{p.fullName}</p>
-                        {p.valuation ? <ValuationBadge tier={p.valuation.tier} size="sm" /> : null}
+                        {p.valuation ? <ValuationBadge tier={p.valuation.tier} size="sm" leagueSlug={p.league.slug} /> : null}
                       </div>
                       <p className="font-mono text-[10px] text-ink-400">
                         {p.position ?? "—"} · {p.team?.name ?? "FA"} · {p.league.name}
@@ -886,7 +886,7 @@ export default function TradePage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <p className="truncate text-sm font-semibold text-ink-100">{p.fullName}</p>
-                        {p.valuation ? <ValuationBadge tier={p.valuation.tier} size="sm" /> : null}
+                        {p.valuation ? <ValuationBadge tier={p.valuation.tier} size="sm" leagueSlug={p.league.slug} /> : null}
                       </div>
                       <p className="font-mono text-[10px] text-ink-400">
                         {p.position ?? "—"} · {p.team?.name ?? "FA"} · {p.league.name}

@@ -152,7 +152,7 @@ export function TradeScenarioCard({
                 <p className="font-display text-sm font-bold text-ink-50">
                   {formatCurrency(p.valuation.eur, currency)}
                 </p>
-                <ValuationBadge tier={p.valuation.tier} />
+                <ValuationBadge tier={p.valuation.tier} leagueSlug={p.league.slug} />
               </div>
             </div>
           ))}

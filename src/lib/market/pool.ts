@@ -149,7 +149,7 @@ async function loadPool(
  */
 export const getMarketPool = cached(
   (leagueSlugs: string[], minGames = 5) => loadPool(leagueSlugs, minGames),
-  "market-pool:v1",
+  "market-pool:v2",
   ["players", "player-season-stats"],
   1800,
 )
@@ -175,7 +175,7 @@ async function loadMarketPlayer(slug: string): Promise<MarketPlayer | null> {
 /** A single player's current-season market row (stats + valuation). */
 export const getMarketPlayerBySlug = cached(
   (slug: string) => loadMarketPlayer(slug),
-  "market-player:v1",
+  "market-player:v2",
   ["players", "player-season-stats"],
   1800,
 )

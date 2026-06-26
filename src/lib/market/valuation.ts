@@ -8,7 +8,7 @@
  * exposed in `Valuation.components` so the number can be explained and audited.
  * Anchored to per-league ceilings from league-strength.ts.
  */
-import { leagueEconomics } from "@/lib/market/league-strength"
+import { leagueEconomics, leagueStrength } from "@/lib/market/league-strength"
 
 export type MarketStatLine = {
   gamesPlayed: number
@@ -40,6 +40,8 @@ export type Valuation = {
   /** Estimated annual salary (EUR). */
   annualEur: number
   tier: ValuationTier
+  /** League context for this tier (tiers are relative within each league). */
+  leagueSlug: string
   confidence: "high" | "medium" | "low"
   /** Normalised 0..100 production+impact rating. */
   rating: number
@@ -86,11 +88,19 @@ function scarcityFactor(position: string | null): number {
   return 1.0
 }
 
-function tierFor(rating: number): ValuationTier {
-  if (rating >= 78) return "franchise"
-  if (rating >= 60) return "starter"
-  if (rating >= 42) return "rotation"
-  if (rating >= 25) return "role"
+/**
+ * Map a raw 0-100 rating to a tier RELATIVE to the player's league.
+ * Weaker leagues get scaled-down thresholds (via sqrt(strength)) so the best
+ * players in every league can reach "franchise" within their own context, but
+ * their tier is NOT comparable across leagues — a franchise in EBA is not the
+ * same as a franchise in the NBA (reflected in the vastly different EUR value).
+ */
+function tierFor(rating: number, leagueSlug?: string): ValuationTier {
+  const s = leagueSlug ? Math.sqrt(leagueStrength(leagueSlug)) : 1
+  if (rating >= 78 * s) return "franchise"
+  if (rating >= 60 * s) return "starter"
+  if (rating >= 42 * s) return "rotation"
+  if (rating >= 25 * s) return "role"
   return "fringe"
 }
 
@@ -138,6 +148,7 @@ export function estimateValuation(input: ValuationInput): Valuation {
       eur: 0,
       annualEur: 0,
       tier: "fringe",
+      leagueSlug: input.leagueSlug ?? "unknown",
       confidence: "low",
       rating: 0,
       components: {
@@ -172,7 +183,8 @@ export function estimateValuation(input: ValuationInput): Valuation {
   return {
     eur: Math.max(0, round(rawValue, valueStep)),
     annualEur: Math.max(0, round(rawSalary, salaryStep)),
-    tier: tierFor(rating),
+    tier: tierFor(rating, input.leagueSlug ?? undefined),
+    leagueSlug: input.leagueSlug ?? "unknown",
     confidence,
     rating: Math.round(rating),
     components: {
@@ -208,6 +220,9 @@ const TIER_LABEL_ES: Record<ValuationTier, string> = {
   fringe: "Fondo de armario",
 }
 
-export function valuationTierLabel(tier: ValuationTier): string {
-  return TIER_LABEL_ES[tier]
+export function valuationTierLabel(tier: ValuationTier, leagueSlug?: string): string {
+  const label = TIER_LABEL_ES[tier]
+  if (!leagueSlug) return label
+  const econ = leagueEconomics(leagueSlug)
+  return `${label} — ${econ.label}`
 }

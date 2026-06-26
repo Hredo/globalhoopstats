@@ -48,7 +48,7 @@ export function MarketValueCard({
 
       <div className="flex items-center justify-between gap-2">
         <span className="text-ink-400">{t("trade.marketValue.category")}</span>
-        <ValuationBadge tier={valuation.tier} />
+        <ValuationBadge tier={valuation.tier} leagueSlug={valuation.leagueSlug} />
       </div>
 
       <div className="flex items-center justify-between gap-2">

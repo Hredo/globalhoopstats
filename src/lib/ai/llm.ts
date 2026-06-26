@@ -153,7 +153,7 @@ function buildCandidatesContext(candidates: Candidate[]): string {
     const bits = [p.position ?? "?", p.league.name]
     if (p.team) bits.push(p.team.name)
     if (p.age) bits.push(`${p.age} años`)
-    return `- ${p.fullName} — ${bits.join(", ")}. Valor est. ${formatEur(p.valuation.eur)} (${valuationTierLabel(p.valuation.tier)}, rating ${p.valuation.rating}/100). ${c.reason}.`
+    return `- ${p.fullName} — ${bits.join(", ")}. Valor est. ${formatEur(p.valuation.eur)} (${valuationTierLabel(p.valuation.tier, p.valuation.leagueSlug)}, rating ${p.valuation.rating}/100). ${c.reason}.`
   })
   return [
     "",
@@ -167,7 +167,7 @@ function buildValuationContext(name: string, v: Valuation): string {
   return [
     "",
     "# Valuation of the mentioned player",
-    `- ${name}: valor de mercado est. ${formatEur(v.eur)}, sueldo anual est. ${formatEur(v.annualEur)}, perfil ${valuationTierLabel(v.tier)} (rating ${v.rating}/100, confianza ${v.confidence}). Estimación heurística sobre estadísticas, no un dato contractual real.`,
+    `- ${name}: valor de mercado est. ${formatEur(v.eur)}, sueldo anual est. ${formatEur(v.annualEur)}, perfil ${valuationTierLabel(v.tier, v.leagueSlug)} (rating ${v.rating}/100, confianza ${v.confidence}). Estimación heurística sobre estadísticas, no un dato contractual real.`,
   ].join("\n")
 }
 
@@ -229,7 +229,7 @@ function operationGuidance(op: MarketOperation): string {
 
 function buildRosterContext(roster: RosterAnalysis): string {
   const fmt = (p: RosterAnalysis["keep"][number]) =>
-    `- ${p.fullName} (${p.position ?? "?"}${p.age ? `, ${p.age} a.` : ""}) — ${valuationTierLabel(p.valuation.tier)}, rating ${p.valuation.rating}/100, valor ${formatEur(p.valuation.eur)}`
+    `- ${p.fullName} (${p.position ?? "?"}${p.age ? `, ${p.age} a.` : ""}) — ${valuationTierLabel(p.valuation.tier, p.valuation.leagueSlug)}, rating ${p.valuation.rating}/100, valor ${formatEur(p.valuation.eur)}`
   return [
     "",
     `# Tu plantilla (valorada, ${roster.size} jugadores)`,

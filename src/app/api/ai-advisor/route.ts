@@ -498,7 +498,7 @@ function candidatesToRecruits(candidates: Candidate[]): Recruit[] {
       age: p.age ?? 0,
       contractValue: formatEur(p.valuation.eur),
       strengths: [
-        valuationTierLabel(p.valuation.tier),
+        valuationTierLabel(p.valuation.tier, p.valuation.leagueSlug),
         `Rating ${p.valuation.rating}/100`,
       ],
       fit: c.reason,
