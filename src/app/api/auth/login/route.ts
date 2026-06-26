@@ -182,6 +182,7 @@ export async function POST(request: Request) {
       ok: true,
       requiresTwoFactor: true,
       twoFactorSessionId: tfaId,
+      expiresAt: expiresAt.getTime(),
       user: {
         id: user.id,
         email: user.email,

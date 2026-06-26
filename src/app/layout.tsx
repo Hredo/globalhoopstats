@@ -6,8 +6,7 @@ import { Footer } from "@/components/layout/footer"
 import { LazyCommandPalette } from "@/components/players/lazy-command-palette"
 import { CookieConsent } from "@/components/layout/cookie-consent"
 import { JsonLd } from "@/components/marketing/json-ld"
-import { SerwistProvider } from "@serwist/turbopack/react"
-
+import { SerwistGate } from "@/components/layout/serwist-gate"
 import { SITE, SEO_KEYWORDS } from "@/lib/site"
 import { getLocale } from "@/lib/i18n/server"
 import { getDictionary } from "@/lib/i18n/dictionaries"
@@ -128,6 +127,12 @@ export default async function RootLayout({
       data-scroll-behavior="smooth"
       className={`${geist.variable} ${archivo.variable} ${jetbrainsMono.variable}`}
     >
+      <link rel="preconnect" href="https://cdn.nba.com" />
+      <link rel="preconnect" href="https://upload.wikimedia.org" />
+      <link rel="preconnect" href="https://cdn.ssref.net" />
+      <link rel="preconnect" href="https://i.ytimg.com" />
+      <link rel="dns-prefetch" href="//imagenes.feb.es" />
+      <link rel="dns-prefetch" href="//www.acb.com" />
       <body className="font-sans" suppressHydrationWarning>
         <div
           aria-hidden
@@ -140,7 +145,7 @@ export default async function RootLayout({
           />
         </div>
         <LocaleProvider locale={locale} dict={dict}>
-        <SerwistProvider swUrl="/serwist/sw.js">
+        <SerwistGate>
         <JsonLd
           data={[
             {
@@ -188,7 +193,7 @@ export default async function RootLayout({
         <LazyCommandPalette />
         <Footer />
         <CookieConsent />
-        </SerwistProvider>
+        </SerwistGate>
         </LocaleProvider>
       </body>
     </html>
