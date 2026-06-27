@@ -26,11 +26,16 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "key and value are required" }, { status: 400 })
   }
 
+  if (typeof key !== "string" || key.trim() === "") {
+    return NextResponse.json({ error: "key must be a string" }, { status: 400 })
+  }
+
   const db = getDb()
+  // Parameterised query: even an admin-supplied key can't break out of the SQL.
   await db.execute(
-    sql.raw(`INSERT INTO app_config (key, value, updated_at)
-      VALUES ('${key}', '${JSON.stringify(value).replace(/'/g, "''")}', now())
-      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`),
+    sql`INSERT INTO app_config (key, value, updated_at)
+      VALUES (${key}, ${JSON.stringify(value)}, now())
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
   )
 
   invalidateConfigCache()

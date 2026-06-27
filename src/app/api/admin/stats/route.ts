@@ -17,7 +17,11 @@ export async function GET(request: Request) {
 
   const rowCounts: Record<string, number> = {}
   for (const t of tables) {
-    const [r] = await db.execute(sql.raw(`SELECT count(*)::int AS n FROM "${t}"`))
+    // `t` is from the fixed allowlist above; sql.identifier still quotes it
+    // safely so this never becomes an injection vector.
+    const [r] = await db.execute(
+      sql`SELECT count(*)::int AS n FROM ${sql.identifier(t)}`,
+    )
     rowCounts[t] = (r as { n: number }).n ?? 0
   }
 
