@@ -20,18 +20,19 @@ const TYPE_STYLES: Record<string, string> = {
 
 async function getActiveBanners(): Promise<Announcement[]> {
   const db = getDb()
-  const now = new Date().toISOString()
+  // Use the database clock via now() instead of interpolating a JS timestamp,
+  // so the query carries no string interpolation at all.
   const rows = await db.execute(
-    sql.raw(`
+    sql`
       SELECT id, type, title, content, priority
       FROM announcements
       WHERE active = true
         AND type = 'banner'
-        AND (starts_at IS NULL OR starts_at <= '${now}'::timestamp)
-        AND (expires_at IS NULL OR expires_at > '${now}'::timestamp)
+        AND (starts_at IS NULL OR starts_at <= now())
+        AND (expires_at IS NULL OR expires_at > now())
       ORDER BY priority DESC, created_at DESC
       LIMIT 3
-    `),
+    `,
   )
   return rows as unknown as Announcement[]
 }
