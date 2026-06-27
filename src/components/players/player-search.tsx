@@ -193,6 +193,15 @@ export const PlayerSearch = forwardRef<PlayerSearchHandle, PlayerSearchProps>(
           .then((r) => r.json())
           .then((data: FetchPayload) => {
             if (myReq !== requestIdRef.current) return
+            if (q.trim()) {
+              const count = (data.results ?? []).length
+              fetch("/api/track/search", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: q.trim(), resultCount: count }),
+                keepalive: true,
+              }).catch(() => {})
+            }
             setResults(data.results ?? [])
             setActiveIdx(-1)
             setLoading(false)

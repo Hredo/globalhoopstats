@@ -108,7 +108,7 @@ function ValueColumn({
       </div>
 
       <div className="mt-2.5 flex items-center justify-between gap-2">
-        <ValuationBadge tier={v.tier} />
+        <ValuationBadge tier={v.tier} leagueSlug={v.leagueSlug} />
         <span className="font-mono text-xs font-bold text-ink-100">{v.rating}/100</span>
       </div>
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">

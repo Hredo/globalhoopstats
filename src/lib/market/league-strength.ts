@@ -125,7 +125,14 @@ export function leagueEconomics(slug: string | null | undefined): LeagueEconomic
   return LEAGUE_ECONOMICS[slug] ?? DEFAULT_ECONOMICS
 }
 
+export let strengthOverrides: Record<string, number> | null = null
+
+export function setStrengthOverrides(overrides: Record<string, number> | null) {
+  strengthOverrides = overrides
+}
+
 export function leagueStrength(slug: string | null | undefined): number {
+  if (slug && strengthOverrides?.[slug] != null) return strengthOverrides[slug]
   return leagueEconomics(slug).strength
 }
 

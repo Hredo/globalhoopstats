@@ -7,6 +7,9 @@ import { LazyCommandPalette } from "@/components/players/lazy-command-palette"
 import { CookieConsent } from "@/components/layout/cookie-consent"
 import { JsonLd } from "@/components/marketing/json-ld"
 import { SerwistGate } from "@/components/layout/serwist-gate"
+import { PageTracker } from "@/components/admin/page-tracker"
+import { AnnouncementBanner } from "@/components/admin/announcement-banner"
+import { ensureOverridesLoaded } from "@/lib/admin/init-overrides"
 import { SITE, SEO_KEYWORDS } from "@/lib/site"
 import { getLocale } from "@/lib/i18n/server"
 import { getDictionary } from "@/lib/i18n/dictionaries"
@@ -121,6 +124,7 @@ export default async function RootLayout({
 }) {
   const locale = await getLocale()
   const dict = getDictionary(locale)
+  await ensureOverridesLoaded()
   return (
     <html
       lang={locale}
@@ -146,6 +150,8 @@ export default async function RootLayout({
         </div>
         <LocaleProvider locale={locale} dict={dict}>
         <SerwistGate>
+        <PageTracker />
+        <AnnouncementBanner />
         <JsonLd
           data={[
             {

@@ -8,7 +8,7 @@
  * exposed in `Valuation.components` so the number can be explained and audited.
  * Anchored to per-league ceilings from league-strength.ts.
  */
-import { leagueEconomics } from "@/lib/market/league-strength"
+import { leagueEconomics, leagueStrength } from "@/lib/market/league-strength"
 
 export type MarketStatLine = {
   gamesPlayed: number
@@ -40,6 +40,8 @@ export type Valuation = {
   /** Estimated annual salary (EUR). */
   annualEur: number
   tier: ValuationTier
+  /** League context for this tier (tiers are relative within each league). */
+  leagueSlug: string
   confidence: "high" | "medium" | "low"
   /** Normalised 0..100 production+impact rating. */
   rating: number
@@ -86,6 +88,11 @@ function scarcityFactor(position: string | null): number {
   return 1.0
 }
 
+/**
+ * Map a normalized 0-100 rating to a tier. The rating is already adjusted by
+ * league strength (see computeRating), so thresholds are fixed. A player's
+ * tier is always relative to their own league context.
+ */
 function tierFor(rating: number): ValuationTier {
   if (rating >= 78) return "franchise"
   if (rating >= 60) return "starter"
@@ -95,11 +102,13 @@ function tierFor(rating: number): ValuationTier {
 }
 
 /**
- * Core talent/production rating, 0..100. Box-score creation on a per-game
- * basis, adjusted by whatever advanced metrics are available (TS%, PER, BPM,
- * Win Shares). Missing advanced metrics simply contribute 0 (no penalty).
+ * Core talent/production rating, 0..100, normalised by league strength.
+ * Box-score creation on a per-game basis, adjusted by whatever advanced metrics
+ * are available (TS%, PER, BPM, Win Shares). The raw absolute rating is then
+ * divided by sqrt(leagueStrength) so a player's standing within their own league
+ * is reflected on the 0–100 scale regardless of the league's absolute stat level.
  */
-function computeRating(stats: MarketStatLine): {
+function computeRating(stats: MarketStatLine, leagueSlug?: string): {
   rating: number
   production: number
   efficiency: number
@@ -125,7 +134,12 @@ function computeRating(stats: MarketStatLine): {
   const wsAdj = stats.winShares != null ? stats.winShares * 1.2 : 0
   const efficiency = tsAdj + perAdj + bpmAdj + wsAdj
 
-  const rating = Math.max(0, Math.min(100, base + efficiency))
+  const raw = Math.max(0, Math.min(100, base + efficiency))
+
+  // Normalise by league strength so the rating reflects league-relative standing.
+  const s = leagueSlug ? Math.sqrt(leagueStrength(leagueSlug)) : 1
+  const rating = Math.min(100, raw / Math.max(0.1, s))
+
   return { rating, production, efficiency }
 }
 
@@ -138,6 +152,7 @@ export function estimateValuation(input: ValuationInput): Valuation {
       eur: 0,
       annualEur: 0,
       tier: "fringe",
+      leagueSlug: input.leagueSlug ?? "unknown",
       confidence: "low",
       rating: 0,
       components: {
@@ -150,7 +165,7 @@ export function estimateValuation(input: ValuationInput): Valuation {
     }
   }
 
-  const { rating, production, efficiency } = computeRating(stats)
+  const { rating, production, efficiency } = computeRating(stats, input.leagueSlug ?? undefined)
   const age = ageFactor(input.age)
   const scarcity = scarcityFactor(input.position)
 
@@ -173,6 +188,7 @@ export function estimateValuation(input: ValuationInput): Valuation {
     eur: Math.max(0, round(rawValue, valueStep)),
     annualEur: Math.max(0, round(rawSalary, salaryStep)),
     tier: tierFor(rating),
+    leagueSlug: input.leagueSlug ?? "unknown",
     confidence,
     rating: Math.round(rating),
     components: {
@@ -208,6 +224,9 @@ const TIER_LABEL_ES: Record<ValuationTier, string> = {
   fringe: "Fondo de armario",
 }
 
-export function valuationTierLabel(tier: ValuationTier): string {
-  return TIER_LABEL_ES[tier]
+export function valuationTierLabel(tier: ValuationTier, leagueSlug?: string): string {
+  const label = TIER_LABEL_ES[tier]
+  if (!leagueSlug) return label
+  const econ = leagueEconomics(leagueSlug)
+  return `${label} — ${econ.label}`
 }

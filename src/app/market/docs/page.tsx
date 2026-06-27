@@ -71,6 +71,12 @@ function EnglishDocs() {
     { tier: "0–24", label: "Fringe", desc: "Marginal minutes. No significant market impact." },
   ]
 
+  // Tiers are league-relative. The rating is normalised by sqrt(leagueStrength)
+  // before tier assignment, so thresholds are fixed. A player who dominates in
+  // EBA gets a much higher normalised rating than their raw stats would suggest,
+  // but the EUR value is still capped by the league's ceiling. A "Franchise" in
+  // EBA is NOT comparable to a "Franchise" in the NBA.
+
   return (
     <>
       <section className="mt-10 space-y-6">
@@ -122,10 +128,22 @@ function EnglishDocs() {
               </p>
             </Step>
 
-            <Step n={3} title="Final rating (0–100)">
+            <Step n={3} title="League normalisation">
               <p className="text-ink-300">
-                The final rating is the sum of production and efficiency, clamped between 0 and 100.
-                This rating determines the player&apos;s tier.
+                The raw rating is then normalised by the league&apos;s strength so that a
+                player&apos;s standing within their own league is reflected on the 0–100
+                scale:
+              </p>
+              <pre className="my-2 overflow-x-auto rounded-lg bg-ink-950/50 p-3 font-mono text-[11px] text-ink-200">
+                rating = rawRating / sqrt(leagueStrength)
+              </pre>
+              <p className="text-ink-300">
+                For the NBA (strength 1.0) the rating stays unchanged. For weaker
+                leagues the divisor is smaller, so the rating rises — a dominant
+                player in EBA (strength 0.28) gets roughly 1.9× their raw rating.
+                This means the best players in every league can reach 90–100 within
+                their context, but their EUR value remains capped by the league&apos;s
+                economic ceiling.
               </p>
             </Step>
 
@@ -246,6 +264,17 @@ function EnglishDocs() {
               </tbody>
             </table>
           </div>
+          <p className="mt-3 text-xs text-ink-400">
+            <strong className="text-ink-200">League-relative scaling:</strong>{" "}
+            The thresholds are fixed (78/60/42/25) because the rating is already
+            normalised by <code className="text-ink-200">sqrt(leagueStrength)</code>.
+            A dominant player in EBA gets a much higher normalised rating than
+            their raw stats would suggest, so they can reach &quot;Franchise&quot;
+            within their league context. A <strong>Franchise</strong> in EBA means
+            world-beater <em>for that level</em>, not a Franchise-calibre player
+            in the NBA. Each category badge shows the league name so there is no
+            confusion across competitions.
+          </p>
         </FadeIn>
 
         <FadeIn>
@@ -438,10 +467,22 @@ function SpanishDocs() {
               </p>
             </Step>
 
-            <Step n={3} title="Valoración final (0–100)">
+            <Step n={3} title="Normalización por liga">
               <p className="text-ink-300">
-                La valoración final es la suma de producción y eficiencia, acotada entre 0 y 100.
-                Esta valoración determina la categoría del jugador.
+                La valoración cruda se normaliza por la fuerza de la liga para que
+                el nivel del jugador dentro de su propia competición se refleje en
+                la escala 0–100:
+              </p>
+              <pre className="my-2 overflow-x-auto rounded-lg bg-ink-950/50 p-3 font-mono text-[11px] text-ink-200">
+                valoración = valoraciónCruda / sqrt(fuerzaLiga)
+              </pre>
+              <p className="text-ink-300">
+                En la NBA (fuerza 1,0) la valoración no cambia. En ligas más
+                débiles el divisor es menor, por lo que la valoración sube — un
+                jugador dominante en EBA (fuerza 0,28) recibe aproximadamente 1,9×
+                su valoración cruda. Esto permite que los mejores de cada liga
+                lleguen a 90–100 en su contexto, pero su valor en EUR sigue
+                limitado por el techo económico de la liga.
               </p>
             </Step>
 
@@ -562,6 +603,18 @@ function SpanishDocs() {
               </tbody>
             </table>
           </div>
+          <p className="mt-3 text-xs text-ink-400">
+            <strong className="text-ink-200">Escalado por liga:</strong>{" "}
+            Los umbrales son fijos (78/60/42/25) porque la valoración ya viene
+            normalizada por <code className="text-ink-200">sqrt(fuerzaLiga)</code>.
+            Un jugador dominante en EBA recibe una valoración normalizada mucho
+            mayor de lo que sugieren sus estadísticas brutas, por lo que puede
+            alcanzar &quot;Franquicia&quot; dentro de su contexto. Un{" "}
+            <strong>Franquicia</strong> en EBA significa que es el mejor
+            <em>para ese nivel</em>, no que sea equiparable a un Franquicia de la
+            NBA. Cada categoría muestra el nombre de la liga para evitar
+            confusiones entre competiciones.
+          </p>
         </FadeIn>
 
         <FadeIn>

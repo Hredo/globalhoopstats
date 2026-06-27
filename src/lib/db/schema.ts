@@ -388,6 +388,41 @@ export const twoFactorBackupCodes = pgTable(
   ],
 )
 
+export const announcements = pgTable("announcements", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  type: text("type").notNull().default("banner"),
+  title: text("title").notNull(),
+  content: text("content"),
+  active: boolean("active").notNull().default(true),
+  priority: integer("priority").notNull().default(0),
+  startsAt: timestamp("starts_at"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+})
+
+export const appConfig = pgTable("app_config", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  description: text("description"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+})
+
+export const pageViews = pgTable("page_views", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  pageType: text("page_type").notNull(),
+  pageSlug: text("page_slug"),
+  leagueSlug: text("league_slug"),
+  viewedAt: timestamp("viewed_at").notNull().defaultNow(),
+})
+
+export const searchLog = pgTable("search_log", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  query: text("query").notNull(),
+  resultCount: integer("result_count").notNull().default(0),
+  searchedAt: timestamp("searched_at").notNull().defaultNow(),
+})
+
 export const rateLimits = pgTable("rate_limits", {
   // Composite identifier, e.g. "login:1.2.3.4" or "ai-advisor:1.2.3.4".
   key: text("key").primaryKey(),
@@ -425,4 +460,9 @@ export type UserSettings = typeof userSettings.$inferSelect
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect
 export type TwoFactorSession = typeof twoFactorSessions.$inferSelect
 export type TwoFactorBackupCode = typeof twoFactorBackupCodes.$inferSelect
+export type Announcement = typeof announcements.$inferSelect
+export type NewAnnouncement = typeof announcements.$inferInsert
+export type AppConfig = typeof appConfig.$inferSelect
+export type PageView = typeof pageViews.$inferSelect
+export type SearchLogEntry = typeof searchLog.$inferSelect
 export type RateLimit = typeof rateLimits.$inferSelect

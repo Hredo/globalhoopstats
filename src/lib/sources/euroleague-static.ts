@@ -311,7 +311,6 @@ export const EUROLEAGUE_COACHES_2025_26: Record<string, EuroleagueCoach[]> = {
   VIR: [{ fullName: "Nenad Jakovljević", role: "head_coach", nationality: "Serbia" }],
   BAS: [{ fullName: "Paolo Galbiati", role: "head_coach", nationality: "Italy" }],
   ASV: [{ fullName: "Pierric Poupet", role: "head_coach", nationality: "France" }],
-  PAM: [{ fullName: "Pedro Martínez", role: "head_coach", nationality: "Spain" }],
   VAL: [{ fullName: "Pedro Martínez", role: "head_coach", nationality: "Spain" }],
   ZAL: [{ fullName: "Tomas Masiulis", role: "head_coach", nationality: "Lithuania" }],
   TEL: [{ fullName: "Oded Kattash", role: "head_coach", nationality: "Israel" }],

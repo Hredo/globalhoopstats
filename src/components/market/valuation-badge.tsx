@@ -1,6 +1,7 @@
 "use client"
 
 import type { ValuationTier } from "@/lib/market/valuation"
+import { leagueEconomics } from "@/lib/market/league-strength"
 import { useT } from "@/lib/i18n/provider"
 
 const TIER_COLORS: Record<
@@ -40,9 +41,11 @@ const TIER_KEYS: Record<ValuationTier, string> = {
 export function ValuationBadge({
   tier,
   size = "sm",
+  leagueSlug,
 }: {
   tier: ValuationTier
   size?: "sm" | "md"
+  leagueSlug?: string
 }) {
   const t = useT()
   const c = TIER_COLORS[tier]
@@ -57,6 +60,11 @@ export function ValuationBadge({
         style={{ backgroundColor: "currentColor" }}
       />
       {t(TIER_KEYS[tier])}
+      {leagueSlug ? (
+        <span className="opacity-60">
+          {leagueEconomics(leagueSlug).label}
+        </span>
+      ) : null}
     </span>
   )
 }
