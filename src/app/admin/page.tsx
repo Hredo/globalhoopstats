@@ -17,9 +17,9 @@ type SyncRecord = {
   id: number
   source: string
   status: string
-  rows_written: number
-  started_at: string
-  finished_at: string | null
+  rowsWritten: number
+  startedAt: string
+  finishedAt: string | null
   error: string | null
 }
 
@@ -504,8 +504,8 @@ export default function AdminPage() {
                   <tr key={r.id} className="border-b border-white/[0.03] text-ink-200">
                     <td className="py-1.5 pr-3 font-medium text-ink-50">{r.source}</td>
                     <td className="py-1.5 pr-3"><Badge variant={r.status} /></td>
-                    <td className="py-1.5 pr-3 font-mono">{r.rows_written}</td>
-                    <td className="py-1.5 pr-3 text-xs">{formatDate(r.started_at)}</td>
+                    <td className="py-1.5 pr-3 font-mono">{r.rowsWritten}</td>
+                    <td className="py-1.5 pr-3 text-xs">{formatDate(r.startedAt)}</td>
                     <td className="max-w-[200px] truncate py-1.5 text-xs text-ember-400">{r.error ?? "—"}</td>
                   </tr>
                 ))}

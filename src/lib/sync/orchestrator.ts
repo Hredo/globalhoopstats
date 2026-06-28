@@ -1,5 +1,5 @@
 import pLimit from "p-limit"
-import { eq, sql } from "drizzle-orm"
+import { and, eq, lt, sql } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
 import {
   coaches,
@@ -38,6 +38,9 @@ import { slugify, uniqueSlug } from "@/lib/sync/slug"
  */
 
 const MAX_CONCURRENT_LEAGUES = 2
+
+/** A "running" sync row older than this is treated as orphaned and swept. */
+const STALE_RUN_WINDOW_MS = 45 * 60_000
 
 export type LeagueSyncTotals = {
   teams: number
@@ -362,6 +365,27 @@ export async function startGlobalSync(
 ): Promise<GlobalSyncReport> {
   const started = Date.now()
   const db = getDb()
+
+  // Self-heal: close out orphaned "running" rows left by a previous process
+  // that died mid-sync (crash, restart, Ctrl-C, aborted admin request). Without
+  // this they pile up in the admin view forever and could block the cron's
+  // overlap guard. Only rows older than the window are touched, so the current
+  // run's own rows are never affected.
+  const staleCutoff = new Date(Date.now() - STALE_RUN_WINDOW_MS)
+  const swept = await db
+    .update(syncRuns)
+    .set({
+      status: "failed",
+      finishedAt: new Date(),
+      error: "stale run (process ended before completion)",
+    })
+    .where(
+      and(eq(syncRuns.status, "running"), lt(syncRuns.startedAt, staleCutoff)),
+    )
+    .returning({ id: syncRuns.id })
+  if (swept.length > 0) {
+    console.log(`[orchestrator] swept ${swept.length} stale running sync rows`)
+  }
 
   console.log(
     `[orchestrator] global sync starting — leagues: ${targets.join(", ")} · ` +
