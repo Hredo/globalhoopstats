@@ -3,7 +3,9 @@ import { timingSafeEqual } from "node:crypto"
 import { and, eq, gt } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
 import { syncRuns } from "@/lib/db/schema"
+import { SOURCE_IDS } from "@/lib/sources"
 import { startGlobalSync } from "@/lib/sync/orchestrator"
+import { beginSync, endSync, isCancelRequested } from "@/lib/sync/controller"
 
 /** Constant-time string compare that never short-circuits on length. */
 function safeEqual(a: string, b: string): boolean {
@@ -73,8 +75,18 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Claim the in-process run lock too, so a manual admin sync and the cron can
+  // never run at the same time (and an admin "stop" can halt this run).
+  if (!beginSync([...SOURCE_IDS], "cron")) {
+    return NextResponse.json(
+      { ok: false, skipped: true, reason: "a sync is already in progress" },
+      { status: 409 },
+    )
+  }
   try {
-    const report = await startGlobalSync()
+    const report = await startGlobalSync(undefined, {
+      shouldCancel: isCancelRequested,
+    })
     const succeeded = report.results.filter((r) => r.status === "ok").length
     const failed = report.results.filter((r) => r.status === "failed")
     return NextResponse.json({
@@ -92,6 +104,8 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     return NextResponse.json({ ok: false, error: message }, { status: 500 })
+  } finally {
+    endSync()
   }
 }
 

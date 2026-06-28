@@ -362,7 +362,9 @@ async function syncLeague(
 
 export async function startGlobalSync(
   targets: SourceId[] = SOURCE_IDS,
+  opts: { shouldCancel?: () => boolean } = {},
 ): Promise<GlobalSyncReport> {
+  const shouldCancel = opts.shouldCancel ?? (() => false)
   const started = Date.now()
   const db = getDb()
 
@@ -543,7 +545,24 @@ export async function startGlobalSync(
   /* ---- Run all leagues, max 2 at a time ---- */
   const limit = pLimit(MAX_CONCURRENT_LEAGUES)
   const results = await Promise.all(
-    targets.map((id) => limit(() => syncLeague(SOURCES[id], ctx))),
+    targets.map((id) =>
+      limit(async (): Promise<LeagueSyncResult> => {
+        // Cancellation is cooperative and checked between leagues: once a stop
+        // is requested, queued leagues are skipped while in-flight ones finish.
+        if (shouldCancel()) {
+          return {
+            source: id,
+            league: SOURCES[id].displayName,
+            status: "failed",
+            durationMs: 0,
+            rowsWritten: 0,
+            error: "cancelled by operator",
+            totals: emptyTotals(),
+          }
+        }
+        return syncLeague(SOURCES[id], ctx)
+      }),
+    ),
   )
 
   /* ---- Summary ---- */

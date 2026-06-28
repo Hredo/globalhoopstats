@@ -2,6 +2,24 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 
+const SYNC_SOURCES = [
+  "all",
+  "nba",
+  "euroleague",
+  "acb",
+  "leb-oro",
+  "leb-plata",
+  "eba",
+] as const
+
+type SyncStatus = {
+  running: boolean
+  targets: string[]
+  startedAt: string | null
+  cancelRequested: boolean
+  trigger: "admin" | "cron" | null
+}
+
 type RowCounts = Record<string, number>
 
 type LeagueStat = {
@@ -132,6 +150,9 @@ export default function AdminPage() {
   const [config, setConfig] = useState<ConfigRow[]>([])
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState<Toast>(null)
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
+  const [syncSource, setSyncSource] = useState<string>("all")
+  const [syncBusy, setSyncBusy] = useState(false)
 
   const showToast = useCallback((message: string, type: "success" | "error") => {
     setToast({ message, type })
@@ -151,6 +172,13 @@ export default function AdminPage() {
     try {
       const res = await fetch("/api/admin/sync")
       if (res.ok) setSyncHistory(await res.json())
+    } catch { /* ignore */ }
+  }, [])
+
+  const fetchSyncStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/sync/status")
+      if (res.ok) setSyncStatus(await res.json())
     } catch { /* ignore */ }
   }, [])
 
@@ -182,11 +210,22 @@ export default function AdminPage() {
     Promise.all([
       fetchStats(),
       fetchSyncHistory(),
+      fetchSyncStatus(),
       fetchAnalytics(),
       fetchAnnouncements(),
       fetchConfig(),
     ]).finally(() => setLoading(false))
-  }, [fetchStats, fetchSyncHistory, fetchAnalytics, fetchAnnouncements, fetchConfig])
+  }, [fetchStats, fetchSyncHistory, fetchSyncStatus, fetchAnalytics, fetchAnnouncements, fetchConfig])
+
+  // While a sync runs, poll status + history so the table updates live.
+  useEffect(() => {
+    if (!syncStatus?.running) return
+    const id = setInterval(() => {
+      fetchSyncStatus()
+      fetchSyncHistory()
+    }, 4000)
+    return () => clearInterval(id)
+  }, [syncStatus?.running, fetchSyncStatus, fetchSyncHistory])
 
   async function saveConfig(key: string, rawValue: string) {
     let parsed: unknown
@@ -209,6 +248,48 @@ export default function AdminPage() {
     }
   }
 
+  async function startSync() {
+    setSyncBusy(true)
+    try {
+      const res = await fetch("/api/admin/sync/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: syncSource }),
+      })
+      if (res.ok) {
+        showToast(
+          syncSource === "all"
+            ? "Sync started for all leagues"
+            : `Sync started for ${syncSource}`,
+          "success",
+        )
+        await fetchSyncStatus()
+        fetchSyncHistory()
+      } else {
+        const data = await res.json().catch(() => ({}))
+        showToast(data.error ?? "Failed to start sync", "error")
+      }
+    } finally {
+      setSyncBusy(false)
+    }
+  }
+
+  async function stopSync() {
+    setSyncBusy(true)
+    try {
+      const res = await fetch("/api/admin/sync/stop", { method: "POST" })
+      if (res.ok) {
+        showToast("Stop requested — finishing the current league…", "success")
+      } else {
+        const data = await res.json().catch(() => ({}))
+        showToast(data.error ?? "Nothing to stop", "error")
+      }
+      await fetchSyncStatus()
+    } finally {
+      setSyncBusy(false)
+    }
+  }
+
   async function createAnnouncement(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
@@ -217,7 +298,7 @@ export default function AdminPage() {
       title: form.get("title") as string,
       content: (form.get("content") as string) || undefined,
       active: form.get("active") === "on",
-      priority: parseInt(form.get("priority") as string) || 0,
+      priority: parseInt(form.get("priority") as string) || 3,
     }
     const res = await fetch("/api/admin/announcements", {
       method: "POST",
@@ -404,14 +485,23 @@ export default function AdminPage() {
             <h3 className="text-sm font-semibold text-ink-300">New Entry</h3>
             <div className="grid gap-3 sm:grid-cols-3">
               <select name="type" className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-ink-200">
-                <option value="banner">Banner</option>
+                <option value="banner">Banner / Notice</option>
                 <option value="faq">FAQ</option>
                 <option value="changelog">Changelog</option>
               </select>
               <input name="title" placeholder="Title" required className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-ink-200 placeholder:text-ink-500" />
-              <input name="priority" type="number" defaultValue={0} placeholder="Priority" className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-ink-200 placeholder:text-ink-500" />
+              <select name="priority" defaultValue={3} title="Higher priority shows first and on top" className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-ink-200">
+                <option value={1}>Priority 1 — Low</option>
+                <option value={2}>Priority 2 — Normal</option>
+                <option value={3}>Priority 3 — Elevated</option>
+                <option value={4}>Priority 4 — High</option>
+                <option value={5}>Priority 5 — Critical</option>
+              </select>
             </div>
-            <textarea name="content" rows={2} placeholder="Content (optional)" className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-ink-200 placeholder:text-ink-500" />
+            <textarea name="content" rows={2} placeholder="Content / description (optional) — if filled, the notice opens as a centered modal" className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-ink-200 placeholder:text-ink-500" />
+            <p className="text-[11px] leading-relaxed text-ink-500">
+              For <strong>Banner / Notice</strong> entries: with no content it shows as a dismissible top banner below the navbar; with a description it opens as a centered modal. Notices appear live (within ~60s) without a page refresh and stay dismissed once closed.
+            </p>
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2 text-sm text-ink-300">
                 <input name="active" type="checkbox" defaultChecked className="rounded border-white/20 bg-white/[0.04]" />
@@ -485,8 +575,56 @@ export default function AdminPage() {
         </div>
       </Section>
 
-      {/* Sync History (read-only) */}
+      {/* Sync History + manual controls */}
       <Section title="Sync History" id="sync">
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] p-3">
+          <select
+            value={syncSource}
+            onChange={(e) => setSyncSource(e.target.value)}
+            disabled={syncStatus?.running || syncBusy}
+            className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-ink-200 disabled:opacity-50"
+          >
+            {SYNC_SOURCES.map((s) => (
+              <option key={s} value={s}>
+                {s === "all" ? "All leagues" : s}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={startSync}
+            disabled={syncStatus?.running || syncBusy}
+            className="gh-sheen rounded-lg border border-positive/30 bg-positive/15 px-4 py-1.5 text-sm font-medium text-positive transition hover:bg-positive/25 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Run sync
+          </button>
+          <button
+            type="button"
+            onClick={stopSync}
+            disabled={!syncStatus?.running || syncStatus?.cancelRequested || syncBusy}
+            className="rounded-lg border border-ember-500/30 bg-ember-500/15 px-4 py-1.5 text-sm font-medium text-ember-300 transition hover:bg-ember-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Stop
+          </button>
+          <span className="ml-1 flex items-center gap-2 text-xs text-ink-400">
+            {syncStatus?.running ? (
+              <>
+                <span className="relative inline-flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-70" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400" />
+                </span>
+                {syncStatus.cancelRequested
+                  ? "Stopping after current league…"
+                  : `Running (${syncStatus.trigger ?? "manual"}): ${syncStatus.targets.join(", ")}`}
+              </>
+            ) : (
+              <>
+                <span className="inline-flex h-2 w-2 rounded-full bg-ink-600" />
+                Idle
+              </>
+            )}
+          </span>
+        </div>
         {syncHistory && syncHistory.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">

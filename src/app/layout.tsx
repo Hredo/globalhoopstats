@@ -8,7 +8,7 @@ import { CookieConsent } from "@/components/layout/cookie-consent"
 import { JsonLd } from "@/components/marketing/json-ld"
 import { SerwistGate } from "@/components/layout/serwist-gate"
 import { PageTracker } from "@/components/admin/page-tracker"
-import { AnnouncementBanner } from "@/components/admin/announcement-banner"
+import { AnnouncementNotices } from "@/components/layout/announcement-notices"
 import { ensureOverridesLoaded } from "@/lib/admin/init-overrides"
 import { SITE, SEO_KEYWORDS, SITE_SOCIAL } from "@/lib/site"
 import { getLocale } from "@/lib/i18n/server"
@@ -151,7 +151,6 @@ export default async function RootLayout({
         <LocaleProvider locale={locale} dict={dict}>
         <SerwistGate>
         <PageTracker />
-        <AnnouncementBanner />
         <JsonLd
           data={[
             {
@@ -193,6 +192,7 @@ export default async function RootLayout({
           {dict.common.skipToContent}
         </a>
         <Navbar />
+        <AnnouncementNotices />
         <main id="main" className="mx-auto max-w-7xl px-4 sm:px-6">
           {children}
         </main>
