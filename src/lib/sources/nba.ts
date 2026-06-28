@@ -1,4 +1,4 @@
-import { fetchJson } from "@/lib/sources/fetcher"
+import { fetchJson, fetchText } from "@/lib/sources/fetcher"
 import {
   type ExtractedPlayerStat,
   type SourceAdapter,
@@ -51,18 +51,10 @@ function teamLogoUrl(teamId: number | string): string {
 }
 
 async function fetchHtml(url: string): Promise<string> {
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-      Accept: "text/html,application/xhtml+xml",
-      "Accept-Language": "en-US,en;q=0.9",
-    },
-  })
-  if (!res.ok) {
-    throw new Error(`NBA BR upstream ${res.status} ${res.statusText} (${url})`)
-  }
-  return res.text()
+  // Shared polite fetcher (identifiable UA, per-host rate limiting). The JSON
+  // stats.nba.com calls already go through `fetchJson` with the Referer/Origin
+  // headers below.
+  return fetchText(url, { headers: { "Accept-Language": "en-US,en;q=0.9" } })
 }
 
 function decodeEntities(s: string): string {

@@ -7,6 +7,7 @@ import {
   type SourceTeamStats,
   SOURCE_META,
 } from "@/lib/sources/types"
+import { fetchText } from "@/lib/sources/fetcher"
 import {
   brSlugToEuroleagueCode,
   euroleagueTeamLogoUrl,
@@ -30,18 +31,10 @@ const SEASON_START_YEAR = (() => {
 const BR_SEASON_SUFFIX = String(SEASON_START_YEAR)
 
 async function fetchHtml(url: string): Promise<string> {
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
-      Accept: "text/html,application/xhtml+xml",
-      "Accept-Language": "en-US,en;q=0.9",
-    },
-  })
-  if (!res.ok) {
-    throw new Error(`EL BR upstream ${res.status} ${res.statusText} (${url})`)
-  }
-  return res.text()
+  // Shared polite fetcher — note EuroLeague pulls from basketball-reference.com,
+  // the same host as the NBA adapter, so the per-host throttle stops a parallel
+  // sync from double-hammering Basketball Reference.
+  return fetchText(url, { headers: { "Accept-Language": "en-US,en;q=0.9" } })
 }
 
 function decodeEntities(s: string): string {

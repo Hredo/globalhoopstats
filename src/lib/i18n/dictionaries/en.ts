@@ -15,6 +15,8 @@ export const en = {
     skipToContent: "Skip to content",
     loading: "Loading…",
     back: "Back",
+    dataUpdated: "Data updated {ago}",
+    updatePending: "Update pending",
   },
   language: {
     label: "Language",
@@ -45,6 +47,7 @@ export const en = {
     tools: "Tools",
     company: "Company",
     contact: "Contact",
+    methodology: "Methodology",
     terms: "Terms",
     privacy: "Privacy",
     synced: "Synced {ago}",

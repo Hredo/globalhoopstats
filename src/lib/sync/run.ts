@@ -11,6 +11,11 @@ import {
   teams,
 } from "@/lib/db/schema"
 import type { SourceAdapter, SourceId } from "@/lib/sources/types"
+import {
+  alertQualityGate,
+  evaluateScrape,
+  QualityGateError,
+} from "@/lib/sync/quality-gate"
 import { slugify, uniqueSlug } from "@/lib/sync/slug"
 
 function scorePlayerRecord(p: {
@@ -94,8 +99,28 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
       seasonId = inserted.id
     }
 
-    /* ---- Teams ---- */
+    /* ---- Fetch the full batch before writing anything ---- */
+    // The quality gate sees teams + players + stats together and compares them
+    // against the last good sync, so a broken scrape can never overwrite good
+    // data — the league keeps yesterday's correct rows instead.
     const sourceTeams = await adapter.fetchTeams()
+    const sourcePlayers = await adapter.fetchPlayers()
+    const sourceStats = await adapter.fetchStats()
+
+    const verdict = await evaluateScrape(leagueId, seasonId, {
+      teams: sourceTeams,
+      players: sourcePlayers,
+      stats: sourceStats,
+    })
+    if (!verdict.ok) {
+      await alertQualityGate(adapter.displayName, verdict.reasons)
+      throw new QualityGateError(
+        `quality gate blocked ${adapter.displayName}: ${verdict.reasons.join("; ")}`,
+        verdict.reasons,
+      )
+    }
+
+    /* ---- Teams ---- */
     const existingTeams = await db.select().from(teams)
     const teamBySlug = new Map(existingTeams.map((t) => [t.slug, t]))
     const usedTeamSlugs = new Set(existingTeams.map((t) => t.slug))
@@ -133,7 +158,6 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
     }
 
     /* ---- Players ---- */
-    const sourcePlayers = await adapter.fetchPlayers()
     const existingPlayerRows = await db.select().from(players)
     const existingPlayersBySlug = new Map(
       existingPlayerRows.map((p) => [p.slug, p]),
@@ -250,7 +274,6 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
     }
 
     /* ---- Player Stats ---- */
-    const sourceStats = await adapter.fetchStats()
     for (const s of sourceStats) {
       const playerId = playerIdBySourceId.get(s.playerSourceId)
       if (!playerId) continue

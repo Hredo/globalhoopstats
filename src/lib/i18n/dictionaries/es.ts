@@ -15,6 +15,8 @@ export const es: Messages = {
     skipToContent: "Saltar al contenido",
     loading: "Cargando…",
     back: "Volver",
+    dataUpdated: "Datos actualizados {ago}",
+    updatePending: "Actualización pendiente",
   },
   language: {
     label: "Idioma",
@@ -46,6 +48,7 @@ export const es: Messages = {
     tools: "Herramientas",
     company: "Compañía",
     contact: "Contacto",
+    methodology: "Metodología",
     terms: "Términos",
     privacy: "Privacidad",
     synced: "Sincronizado {ago}",

@@ -4,11 +4,13 @@ import { getLeagueTheme } from "@/lib/league-styles"
 import type { LeagueOverview as LeagueOverviewData } from "@/lib/data/leagues"
 import { CountUp } from "@/components/marketing/count-up"
 import { SmartImage } from "@/components/ui/smart-image"
+import { UpdatedStamp } from "@/components/ui/updated-stamp"
 import { getT } from "@/lib/i18n/server"
 
 type Props = {
   data: LeagueOverviewData
   index: number
+  lastSyncAt?: Date | null
 }
 
 function initials(name: string): string {
@@ -17,7 +19,7 @@ function initials(name: string): string {
   return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase()
 }
 
-export async function LeagueOverview({ data, index }: Props) {
+export async function LeagueOverview({ data, index, lastSyncAt = null }: Props) {
   const theme = getLeagueTheme(data.slug)
   const accentBarStyle = { background: theme.glowVar }
   const { t, locale } = await getT()
@@ -86,6 +88,8 @@ export async function LeagueOverview({ data, index }: Props) {
           {t("directory.leagues.live")}
         </span>
       </header>
+
+      <UpdatedStamp date={lastSyncAt} className="relative mt-3" />
 
       <dl className="relative mt-5 grid grid-cols-3 gap-3 sm:gap-4">
         {[
