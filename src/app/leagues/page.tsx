@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { FadeIn } from "@/components/animations/fade-in"
 import { getGlobalLeagueCounts, listLeagueOverviews } from "@/lib/data/leagues"
+import { getSyncTimesBySource } from "@/lib/data/sync"
 import { GlobalStatsBand } from "@/components/leagues/global-stats-band"
 import { LeagueOverview } from "@/components/leagues/league-overview"
 import { DirectoryHero } from "@/components/ui/directory-hero"
@@ -17,9 +18,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export const revalidate = 600
 
 export default async function LeaguesPage() {
-  const [leagues, counts] = await Promise.all([
+  const [leagues, counts, syncTimes] = await Promise.all([
     listLeagueOverviews(),
     getGlobalLeagueCounts(),
+    getSyncTimesBySource(),
   ])
   const { t } = await getT()
 
@@ -46,7 +48,11 @@ export default async function LeaguesPage() {
       <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-3">
         {leagues.map((lg, i) => (
           <FadeIn key={lg.id} delay={0.05 * (i + 1)} y={20}>
-            <LeagueOverview data={lg} index={i} />
+            <LeagueOverview
+              data={lg}
+              index={i}
+              lastSyncAt={syncTimes.get(lg.slug) ?? null}
+            />
           </FadeIn>
         ))}
       </div>

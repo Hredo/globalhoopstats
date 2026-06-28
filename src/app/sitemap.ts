@@ -13,6 +13,7 @@ const STATIC_ROUTES: Array<{
   { path: "/leagues", changeFrequency: "daily", priority: 0.9 },
   { path: "/compare", changeFrequency: "monthly", priority: 0.6 },
   { path: "/ai-advisor", changeFrequency: "monthly", priority: 0.6 },
+  { path: "/methodology", changeFrequency: "monthly", priority: 0.4 },
   { path: "/terms", changeFrequency: "monthly", priority: 0.3 },
   { path: "/privacy", changeFrequency: "monthly", priority: 0.3 },
 ]

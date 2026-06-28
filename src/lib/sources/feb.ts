@@ -6,10 +6,9 @@ import {
   type SourceTeamStats,
   type ExtractedPlayerStat,
 } from "@/lib/sources/types"
+import { fetchText as politeFetch } from "@/lib/sources/fetcher"
 import { parseBirthdate, parseHeightToCm, parseWeightToKg } from "@/lib/sync/slug"
 
-const UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 const BASE = "https://baloncestoenvivo.feb.es"
 const SEASON_YEAR = 2025
 const SEASON_T = "2025"
@@ -39,18 +38,15 @@ type Select = {
 }
 
 async function fetchText(url: string, init?: { method?: string; body?: string }): Promise<string> {
-  const res = await fetch(url, {
-    method: init?.method ?? "GET",
+  // Routed through the shared polite fetcher. The ASP.NET viewstate POSTs keep
+  // working: method/body pass through and the Content-Type for form bodies is
+  // set by the core fetcher. The local `politePause()` between enrichment
+  // requests still applies on top, so FEB stays very lightly loaded.
+  return politeFetch(url, {
+    method: init?.method,
     body: init?.body,
-    headers: {
-      "User-Agent": UA,
-      Accept: "text/html,application/xhtml+xml",
-      "Accept-Language": "es-ES,es;q=0.9",
-      ...(init?.body ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
-    },
+    headers: { "Accept-Language": "es-ES,es;q=0.9" },
   })
-  if (!res.ok) throw new Error(`FEB ${res.status} ${res.statusText} (${url})`)
-  return res.text()
 }
 
 function decodeEntities(s: string): string {

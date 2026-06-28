@@ -2,20 +2,8 @@ import Link from "next/link"
 import { Logo } from "@/components/svg/logo"
 import { SITE } from "@/lib/site"
 import { getLatestSyncTime } from "@/lib/data/sync"
-import { getT, type ServerTranslator } from "@/lib/i18n/server"
-
-function formatRelative(d: Date, t: ServerTranslator["t"]): string {
-  const diff = Date.now() - d.getTime()
-  if (diff < 0) return t("footer.time.justNow")
-  const sec = Math.floor(diff / 1000)
-  if (sec < 60) return t("footer.time.seconds", { n: sec })
-  const min = Math.floor(sec / 60)
-  if (min < 60) return t("footer.time.minutes", { n: min })
-  const hr = Math.floor(min / 60)
-  if (hr < 48) return t("footer.time.hours", { n: hr })
-  const day = Math.floor(hr / 24)
-  return t("footer.time.days", { n: day })
-}
+import { formatRelativeAgo } from "@/lib/format-time"
+import { getT } from "@/lib/i18n/server"
 
 const EXPLORE = [
   { href: "/players", labelKey: "nav.players" },
@@ -32,6 +20,7 @@ const TOOLS = [
 
 const LEGAL = [
   { href: "/contact", labelKey: "footer.contact" },
+  { href: "/methodology", labelKey: "footer.methodology" },
   { href: "/terms", labelKey: "footer.terms" },
   { href: "/privacy", labelKey: "footer.privacy" },
 ]
@@ -80,7 +69,7 @@ export async function Footer() {
                 ) : null}
               </span>
               {lastSync
-                ? t("footer.synced", { ago: formatRelative(lastSync, t) })
+                ? t("footer.synced", { ago: formatRelativeAgo(lastSync, t) })
                 : t("footer.syncPending")}
             </p>
           </div>

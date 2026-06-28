@@ -18,6 +18,11 @@ import type {
   SourceTeam,
 } from "@/lib/sources/types"
 import { EntityMatcher, type MatcherStats } from "@/lib/sync/entity-matcher"
+import {
+  alertQualityGate,
+  evaluateScrape,
+  QualityGateError,
+} from "@/lib/sync/quality-gate"
 import { revalidateCacheTags } from "@/lib/sync/revalidate"
 import { slugify, uniqueSlug } from "@/lib/sync/slug"
 
@@ -139,8 +144,29 @@ async function syncLeague(
     const leagueId = league.id
     const seasonId = await ctx.ensureSeason(adapter.seasonCode)
 
-    /* ---- Teams ---- */
+    /* ---- Fetch the full batch before writing anything ---- */
+    // The quality gate needs to see teams, players and stats together and
+    // compare them against the last good sync, so nothing is persisted until
+    // the batch has been judged healthy.
     const sourceTeams = await adapter.fetchTeams()
+    const sourcePlayers = await adapter.fetchPlayers()
+    const sourceStats = await adapter.fetchStats()
+
+    /* ---- Quality gate ---- */
+    const verdict = await evaluateScrape(leagueId, seasonId, {
+      teams: sourceTeams,
+      players: sourcePlayers,
+      stats: sourceStats,
+    })
+    if (!verdict.ok) {
+      await alertQualityGate(adapter.displayName, verdict.reasons)
+      throw new QualityGateError(
+        `quality gate blocked ${adapter.displayName}: ${verdict.reasons.join("; ")}`,
+        verdict.reasons,
+      )
+    }
+
+    /* ---- Teams ---- */
     const teamIdBySourceId = new Map<string, string>()
     for (const st of sourceTeams) {
       teamIdBySourceId.set(st.sourceId, await ctx.ensureTeam(st))
@@ -149,7 +175,6 @@ async function syncLeague(
     console.log(`${tag} teams ready (${totals.teams})`)
 
     /* ---- Players (entity matching) ---- */
-    const sourcePlayers = await adapter.fetchPlayers()
     const playerIdBySourceId = new Map<string, string>()
     for (const sp of sourcePlayers) {
       const decision = await matcher.resolve({
@@ -213,7 +238,6 @@ async function syncLeague(
     )
 
     /* ---- Player season stats ---- */
-    const sourceStats = await adapter.fetchStats()
     for (const stat of sourceStats) {
       const playerId = playerIdBySourceId.get(stat.playerSourceId)
       const teamId = stat.teamSourceId

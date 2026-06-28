@@ -7,6 +7,7 @@ import {
   type ExtractedPlayerStat,
   SOURCE_META,
 } from "@/lib/sources/types"
+import { fetchText } from "@/lib/sources/fetcher"
 import { parseBirthdate, parseHeightToCm } from "@/lib/sync/slug"
 
 const ACB_BASE = "https://www.acb.com"
@@ -39,18 +40,9 @@ function pickNumber(row: Raw, keys: string[]): number | undefined {
 }
 
 async function fetchHtml(url: string): Promise<string> {
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-      Accept: "text/html,application/xhtml+xml",
-      "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
-    },
-  })
-  if (!res.ok) {
-    throw new Error(`ACB upstream ${res.status} ${res.statusText} (${url})`)
-  }
-  return res.text()
+  // Routed through the shared polite fetcher (identifiable UA, per-host rate
+  // limiting, Retry-After handling). Only the language hint is ACB-specific.
+  return fetchText(url, { headers: { "Accept-Language": "es-ES,es;q=0.9,en;q=0.8" } })
 }
 
 function unescapeJsonString(s: string): string {
