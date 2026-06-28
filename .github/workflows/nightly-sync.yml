@@ -1,0 +1,41 @@
+name: Nightly data sync
+
+# Runs the gated global sync every night by calling the production cron endpoint.
+# Runs on GitHub's servers — your laptop can be off, and no Hostinger Cron Jobs
+# section is needed.
+
+on:
+  schedule:
+    # GitHub cron is in UTC. 03:00 UTC ≈ 04:00 (winter) / 05:00 (summer) in
+    # Europe/Madrid. Adjust if you want a different local hour.
+    - cron: "0 3 * * *"
+  workflow_dispatch: {} # lets you run it manually from the Actions tab
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger production sync endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::Repository secret CRON_SECRET is not set (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          echo "Triggering nightly sync…"
+          code=$(curl -sS -o /tmp/sync.json -w "%{http_code}" \
+            --max-time 1800 -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            https://globalhoopstats.es/api/cron/sync)
+          echo "HTTP status: $code"
+          echo "Response:"
+          cat /tmp/sync.json 2>/dev/null || true
+          echo
+          # 200 = ran, 409 = a sync was already in progress (both are fine).
+          if [ "$code" = "200" ] || [ "$code" = "409" ]; then
+            echo "Nightly sync triggered successfully."
+          else
+            echo "::error::Sync endpoint returned HTTP $code"
+            exit 1
+          fi

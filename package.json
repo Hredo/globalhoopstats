@@ -34,7 +34,8 @@
     "backfill:team-identity": "tsx scripts/backfill-team-identity.ts",
     "backfill:coach-wikidata": "tsx scripts/backfill-coach-wikidata.ts",
     "backfill:coach-photos": "tsx scripts/backfill-coach-photos.ts",
-    "db:dedupe-players": "tsx scripts/dedupe-players.ts"
+    "db:dedupe-players": "tsx scripts/dedupe-players.ts",
+    "db:cleanup-syncs": "tsx scripts/cleanup-stale-syncs.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
