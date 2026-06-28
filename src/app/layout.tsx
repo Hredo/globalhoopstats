@@ -10,7 +10,7 @@ import { SerwistGate } from "@/components/layout/serwist-gate"
 import { PageTracker } from "@/components/admin/page-tracker"
 import { AnnouncementBanner } from "@/components/admin/announcement-banner"
 import { ensureOverridesLoaded } from "@/lib/admin/init-overrides"
-import { SITE, SEO_KEYWORDS } from "@/lib/site"
+import { SITE, SEO_KEYWORDS, SITE_SOCIAL } from "@/lib/site"
 import { getLocale } from "@/lib/i18n/server"
 import { getDictionary } from "@/lib/i18n/dictionaries"
 import { LocaleProvider } from "@/lib/i18n/provider"
@@ -161,7 +161,7 @@ export default async function RootLayout({
               url: SITE.url,
               logo: `${SITE.url}/icon`,
               description: SITE.description,
-              sameAs: [],
+              sameAs: SITE_SOCIAL,
               contactPoint: [
                 {
                   "@type": "ContactPoint",

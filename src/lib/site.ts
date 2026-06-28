@@ -43,4 +43,33 @@ export const SEO_KEYWORDS = [
   "basketball trade machine",
   "AI basketball scouting",
   "globalhoopstats",
+  // Spanish-language terms — the canonical domain is .es and we cover the
+  // Spanish basketball pyramid (ACB, LEB, EBA), so target ES queries too.
+  "estadísticas baloncesto",
+  "estadísticas NBA",
+  "estadísticas EuroLeague",
+  "estadísticas Liga ACB",
+  "estadísticas LEB Oro",
+  "estadísticas LEB Plata",
+  "estadísticas EBA",
+  "baloncesto español",
+  "comparar jugadores baloncesto",
+  "valoración de mercado jugadores",
+  "simulador de traspasos",
+  "métricas avanzadas baloncesto",
+  "scouting baloncesto",
+  "perfiles de jugadores",
+  "global hoop stats",
 ]
+
+/**
+ * Brand/profile URLs for the same organization across the web. Wired into the
+ * Organization JSON-LD `sameAs` so Google can connect this site to the brand's
+ * social presence (a real ranking/knowledge-panel signal). Fill in as accounts
+ * are created; empty strings are filtered out before rendering.
+ */
+export const SITE_SOCIAL: string[] = [
+  // "https://twitter.com/globalhoopstats",
+  // "https://www.instagram.com/globalhoopstats",
+  // "https://github.com/globalhoopstats",
+].filter(Boolean)
