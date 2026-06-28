@@ -10,7 +10,7 @@ const createSchema = z.object({
   title: z.string().min(1),
   content: z.string().optional(),
   active: z.boolean().default(true),
-  priority: z.number().int().default(0),
+  priority: z.number().int().min(1).max(5).default(3),
   startsAt: z.string().optional(),
   expiresAt: z.string().optional(),
 })

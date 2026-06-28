@@ -394,7 +394,7 @@ export const announcements = pgTable("announcements", {
   title: text("title").notNull(),
   content: text("content"),
   active: boolean("active").notNull().default(true),
-  priority: integer("priority").notNull().default(0),
+  priority: integer("priority").notNull().default(3),
   startsAt: timestamp("starts_at"),
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
