@@ -106,6 +106,10 @@ scripts/                # data sync, backfills, migrations, maintenance
 drizzle/                # SQL migrations & snapshots
 ```
 
+> 📐 **Deep dive:** for a full architecture & developer guide — data model, ingestion
+> pipeline, entity matching, auth/security, AI engine and onboarding recipes — see
+> [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
 ---
 
 ## Getting started
