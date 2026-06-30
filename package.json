@@ -28,6 +28,7 @@
     "sync:leb-plata": "tsx scripts/sync.ts leb-plata",
     "sync:eba": "tsx scripts/sync.ts eba",
     "sync:feb": "tsx scripts/sync.ts leb-oro leb-plata eba",
+    "sync:elite": "tsx scripts/sync.ts nba acb euroleague",
     "backfill:colors": "tsx scripts/backfill-team-colors.ts",
     "backfill:players": "tsx scripts/backfill-players.ts",
     "backfill:acb-bio": "tsx scripts/backfill-acb-bio.ts",

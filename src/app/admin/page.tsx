@@ -18,6 +18,10 @@ type SyncStatus = {
   startedAt: string | null
   cancelRequested: boolean
   trigger: "admin" | "cron" | null
+  // True when any sync_runs row is "running" in the DB — possibly a different or
+  // dead process. Drives the Stop button so it is never stuck on a zombie row.
+  dbRunning?: boolean
+  dbRunningSources?: string[]
 }
 
 type RowCounts = Record<string, number>
@@ -217,15 +221,17 @@ export default function AdminPage() {
     ]).finally(() => setLoading(false))
   }, [fetchStats, fetchSyncHistory, fetchSyncStatus, fetchAnalytics, fetchAnnouncements, fetchConfig])
 
-  // While a sync runs, poll status + history so the table updates live.
+  // While a sync runs (in this process OR anywhere per the DB), poll status +
+  // history so the table updates live and the Stop button stays responsive.
+  const syncActive = Boolean(syncStatus?.running || syncStatus?.dbRunning)
   useEffect(() => {
-    if (!syncStatus?.running) return
+    if (!syncActive) return
     const id = setInterval(() => {
       fetchSyncStatus()
       fetchSyncHistory()
     }, 4000)
     return () => clearInterval(id)
-  }, [syncStatus?.running, fetchSyncStatus, fetchSyncHistory])
+  }, [syncActive, fetchSyncStatus, fetchSyncHistory])
 
   async function saveConfig(key: string, rawValue: string) {
     let parsed: unknown
@@ -278,10 +284,19 @@ export default function AdminPage() {
     setSyncBusy(true)
     try {
       const res = await fetch("/api/admin/sync/stop", { method: "POST" })
+      const data = await res.json().catch(() => ({}))
       if (res.ok) {
-        showToast("Stop requested — finishing the current league…", "success")
+        const closed = typeof data.runsClosed === "number" ? data.runsClosed : 0
+        showToast(
+          closed > 0
+            ? `Stopped — cleared ${closed} running row(s). In-flight league finishes, queued ones skipped.`
+            : "Stop requested — finishing the current league…",
+          "success",
+        )
+        // Refresh immediately so the table + buttons reflect the stop.
+        fetchSyncStatus()
+        fetchSyncHistory()
       } else {
-        const data = await res.json().catch(() => ({}))
         showToast(data.error ?? "Nothing to stop", "error")
       }
       await fetchSyncStatus()
@@ -581,7 +596,7 @@ export default function AdminPage() {
           <select
             value={syncSource}
             onChange={(e) => setSyncSource(e.target.value)}
-            disabled={syncStatus?.running || syncBusy}
+            disabled={syncActive || syncBusy}
             className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-ink-200 disabled:opacity-50"
           >
             {SYNC_SOURCES.map((s) => (
@@ -593,7 +608,7 @@ export default function AdminPage() {
           <button
             type="button"
             onClick={startSync}
-            disabled={syncStatus?.running || syncBusy}
+            disabled={syncActive || syncBusy}
             className="gh-sheen rounded-lg border border-positive/30 bg-positive/15 px-4 py-1.5 text-sm font-medium text-positive transition hover:bg-positive/25 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Run sync
@@ -601,7 +616,7 @@ export default function AdminPage() {
           <button
             type="button"
             onClick={stopSync}
-            disabled={!syncStatus?.running || syncStatus?.cancelRequested || syncBusy}
+            disabled={!syncActive || syncBusy}
             className="rounded-lg border border-ember-500/30 bg-ember-500/15 px-4 py-1.5 text-sm font-medium text-ember-300 transition hover:bg-ember-500/25 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Stop

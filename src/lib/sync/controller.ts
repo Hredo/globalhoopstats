@@ -78,3 +78,40 @@ export function syncSnapshot(): SyncSnapshot {
     trigger: state.trigger,
   }
 }
+
+/**
+ * Cross-process cancellation. The in-memory flag above only reaches a sync
+ * running in THIS process (the admin/cron Next.js server). A sync launched from
+ * a terminal (`pnpm sync:*`) or another worker is a different process, so Stop
+ * also drops a timestamp sentinel in `app_config`; every sync polls it at league
+ * boundaries and aborts when it sees a cancel newer than its own start.
+ */
+const CANCEL_KEY = "sync_cancel_at"
+
+/** Record a cancel request visible to every process. */
+export async function requestCancelDb(): Promise<void> {
+  const { getDb } = await import("@/lib/db/client")
+  const { appConfig } = await import("@/lib/db/schema")
+  const db = getDb()
+  const now = String(Date.now())
+  await db
+    .insert(appConfig)
+    .values({ key: CANCEL_KEY, value: now, description: "Sync stop signal (ms epoch)" })
+    .onConflictDoUpdate({ target: appConfig.key, set: { value: now, updatedAt: new Date() } })
+}
+
+/** True when a Stop was requested AFTER the given run-start time (ms epoch). */
+export async function isSyncCancelled(sinceMs: number): Promise<boolean> {
+  const { getDb } = await import("@/lib/db/client")
+  const { appConfig } = await import("@/lib/db/schema")
+  const { eq } = await import("drizzle-orm")
+  const db = getDb()
+  const [row] = await db
+    .select({ value: appConfig.value })
+    .from(appConfig)
+    .where(eq(appConfig.key, CANCEL_KEY))
+    .limit(1)
+  if (!row) return false
+  const at = Number(row.value)
+  return Number.isFinite(at) && at > sinceMs
+}

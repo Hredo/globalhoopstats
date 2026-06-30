@@ -1,4 +1,5 @@
 import { safeOllamaBaseUrl } from "@/lib/security/ai-advisor"
+import { tierForName, tiersConflict, type LeagueTier } from "@/lib/leagues-tier"
 
 /**
  * Cross-league player identity resolution for the sync orchestrator.
@@ -9,6 +10,14 @@ import { safeOllamaBaseUrl } from "@/lib/security/ai-advisor"
  *   2. no candidate shares a name token     → NEW, no LLM call
  *   3. ambiguous (e.g. "Edy Tavares" vs "Walter Tavares") → ask Ollama
  *   4. Ollama down/unreachable              → conservative heuristic fallback
+ *
+ * HARD GUARD (applied at every rung, before anything else): a FEB player and a
+ * top-tier player are NEVER the same person (see src/lib/leagues-tier.ts). Spain
+ * is full of amateur namesakes of professionals, so any candidate whose tier
+ * conflicts with the incoming player's league is dropped from consideration —
+ * even on an exact name match. This is what stops "Daniel García" (EBA) from
+ * being fused into "Daniel García" (ACB) once Ollama is gone and the matcher
+ * relies on name-only fallbacks.
  *
  * The matcher is shared by all leagues in one run so a player inserted by the
  * ACB job is visible to the EuroLeague job without re-reading the DB.
@@ -26,6 +35,8 @@ export type MatchCandidate = {
   nationality: string | null
   position: string | null
   heightCm: number | null
+  /** League tiers this candidate already has stat rows in. */
+  tiers?: LeagueTier[]
 }
 
 export type MatchInput = {
@@ -77,7 +88,7 @@ function nameTokens(normalized: string): string[] {
 }
 
 export class EntityMatcher {
-  private readonly byExactName = new Map<string, MatchCandidate>()
+  private readonly byExactName = new Map<string, MatchCandidate[]>()
   private readonly byToken = new Map<string, MatchCandidate[]>()
   private readonly decisions = new Map<string, MatchDecision>()
   private readonly inFlight = new Map<string, Promise<MatchDecision>>()
@@ -107,41 +118,63 @@ export class EntityMatcher {
     return this.baseUrl !== null && !this.disabled
   }
 
-  /** Make a freshly inserted player visible to subsequent resolutions. */
-  register(candidate: MatchCandidate): void {
-    this.index(candidate)
-    this.decisions.set(normalizeName(candidate.fullName), {
-      kind: "existing",
-      playerId: candidate.id,
-    })
+  /**
+   * Make a freshly inserted player visible to subsequent resolutions. `tier` is
+   * the tier of the league that just created it, so a same-name player in a
+   * conflicting tier later in the run is correctly kept separate.
+   */
+  register(candidate: MatchCandidate, tier?: LeagueTier): void {
+    const c: MatchCandidate = { ...candidate, tiers: tier ? [tier] : candidate.tiers }
+    this.index(c)
+    if (tier) {
+      this.decisions.set(this.cacheKey(tier, normalizeName(candidate.fullName)), {
+        kind: "existing",
+        playerId: candidate.id,
+      })
+    }
+  }
+
+  private cacheKey(tier: LeagueTier, name: string): string {
+    return `${tier}::${name}`
+  }
+
+  /** A candidate is eligible only if its tiers don't conflict with the incoming league. */
+  private compatible(candidate: MatchCandidate, incoming: LeagueTier): boolean {
+    const tiers = candidate.tiers ?? []
+    if (tiers.length === 0) return true // unknown tier: don't block reuse
+    return !tiersConflict(tiers, [incoming])
   }
 
   async resolve(input: MatchInput): Promise<MatchDecision> {
     const key = normalizeName(input.fullName)
     if (!key) return { kind: "new" }
+    const tier = tierForName(input.league)
+    const ck = this.cacheKey(tier, key)
 
-    const cached = this.decisions.get(key)
+    const cached = this.decisions.get(ck)
     if (cached) {
       if (cached.kind === "existing") this.stats.exactMatches++
       return cached
     }
 
-    const pending = this.inFlight.get(key)
+    const pending = this.inFlight.get(ck)
     if (pending) return pending
 
-    const promise = this.decide(key, input).finally(() => {
-      this.inFlight.delete(key)
+    const promise = this.decide(key, tier, input).finally(() => {
+      this.inFlight.delete(ck)
     })
-    this.inFlight.set(key, promise)
+    this.inFlight.set(ck, promise)
     const decision = await promise
-    this.decisions.set(key, decision)
+    this.decisions.set(ck, decision)
     return decision
   }
 
   private index(candidate: MatchCandidate): void {
     const key = normalizeName(candidate.fullName)
     if (!key) return
-    if (!this.byExactName.has(key)) this.byExactName.set(key, candidate)
+    const exact = this.byExactName.get(key)
+    if (exact) exact.push(candidate)
+    else this.byExactName.set(key, [candidate])
     for (const token of nameTokens(key)) {
       const bucket = this.byToken.get(token)
       if (bucket) bucket.push(candidate)
@@ -149,14 +182,21 @@ export class EntityMatcher {
     }
   }
 
-  private async decide(key: string, input: MatchInput): Promise<MatchDecision> {
-    const exact = this.byExactName.get(key)
-    if (exact) {
+  private async decide(
+    key: string,
+    tier: LeagueTier,
+    input: MatchInput,
+  ): Promise<MatchDecision> {
+    // Exact normalized-name hit, but only a tier-COMPATIBLE one. A blocked
+    // exact match (e.g. EBA "Daniel García" vs the existing ACB one) falls
+    // through to NEW rather than fusing two different people.
+    const exact = (this.byExactName.get(key) ?? []).filter((c) => this.compatible(c, tier))
+    if (exact.length > 0) {
       this.stats.exactMatches++
-      return { kind: "existing", playerId: exact.id }
+      return { kind: "existing", playerId: exact[0]!.id }
     }
 
-    const candidates = this.candidatesFor(key)
+    const candidates = this.candidatesFor(key, tier)
     if (candidates.length === 0) {
       this.stats.noCandidates++
       return { kind: "new" }
@@ -188,11 +228,13 @@ export class EntityMatcher {
     }
   }
 
-  private candidatesFor(key: string): MatchCandidate[] {
+  /** Token-overlap candidates, already filtered to tier-compatible records. */
+  private candidatesFor(key: string, tier: LeagueTier): MatchCandidate[] {
     const tokens = nameTokens(key)
     const scores = new Map<MatchCandidate, number>()
     for (const token of tokens) {
       for (const candidate of this.byToken.get(token) ?? []) {
+        if (!this.compatible(candidate, tier)) continue
         scores.set(candidate, (scores.get(candidate) ?? 0) + 1)
       }
     }
@@ -206,6 +248,7 @@ export class EntityMatcher {
    * No-LLM fallback: only merge when exactly one candidate shares both the
    * last name and the first initial — anything weaker creates a new player
    * (duplicates are recoverable via db:dedupe-players; wrong merges are not).
+   * `candidates` is already tier-filtered upstream.
    */
   private heuristic(key: string, candidates: MatchCandidate[]): MatchDecision {
     this.stats.heuristicFallbacks++

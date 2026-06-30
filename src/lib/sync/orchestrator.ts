@@ -25,6 +25,8 @@ import {
 } from "@/lib/sync/quality-gate"
 import { revalidateCacheTags } from "@/lib/sync/revalidate"
 import { slugify, uniqueSlug } from "@/lib/sync/slug"
+import { tierForName, tierForSlug, type LeagueTier } from "@/lib/leagues-tier"
+import { isSyncCancelled } from "@/lib/sync/controller"
 
 /**
  * Central ingestion orchestrator: runs every league adapter (NBA, EuroLeague,
@@ -169,6 +171,13 @@ async function syncLeague(
       )
     }
 
+    // Last checkpoint before any write: the scrape above is where a sync spends
+    // its long "running" time, so a Stop pressed during it must leave the DB
+    // untouched. Bail now — nothing below this line has run yet.
+    if (await isSyncCancelled(started)) {
+      throw new Error("cancelled by operator (before writes)")
+    }
+
     /* ---- Teams ---- */
     const teamIdBySourceId = new Map<string, string>()
     for (const st of sourceTeams) {
@@ -225,13 +234,16 @@ async function syncLeague(
           imageUrl: sp.photoUrl ?? null,
         })
         .returning()
-      matcher.register({
-        id: row.id,
-        fullName: sp.fullName,
-        nationality: sp.nationality ?? null,
-        position: sp.position ?? null,
-        heightCm: sp.heightCm ?? null,
-      })
+      matcher.register(
+        {
+          id: row.id,
+          fullName: sp.fullName,
+          nationality: sp.nationality ?? null,
+          position: sp.position ?? null,
+          heightCm: sp.heightCm ?? null,
+        },
+        tierForName(adapter.displayName),
+      )
       playerIdBySourceId.set(sp.sourceId, row.id)
       totals.playersCreated++
     }
@@ -396,6 +408,22 @@ export async function startGlobalSync(
 
   /* ---- Shared state: identity registry, slugs, team & season caches ---- */
   const existingPlayers = await db.select().from(players)
+  // Each player's current league tiers, so the matcher never fuses a FEB
+  // namesake into a top-tier professional (or vice versa) on a name collision.
+  const tierRows = (await db.execute(
+    sql`
+      SELECT pss.player_id AS player_id, l.slug AS slug
+      FROM player_season_stats pss
+      JOIN leagues l ON l.id = pss.league_id
+      GROUP BY pss.player_id, l.slug
+    `,
+  )) as unknown as { player_id: string; slug: string }[]
+  const tiersByPlayer = new Map<string, Set<LeagueTier>>()
+  for (const r of tierRows) {
+    const set = tiersByPlayer.get(r.player_id) ?? new Set<LeagueTier>()
+    set.add(tierForSlug(r.slug))
+    tiersByPlayer.set(r.player_id, set)
+  }
   const matcher = new EntityMatcher(
     existingPlayers.map((p) => ({
       id: p.id,
@@ -403,6 +431,7 @@ export async function startGlobalSync(
       nationality: p.nationality,
       position: p.position,
       heightCm: p.heightCm,
+      tiers: [...(tiersByPlayer.get(p.id) ?? [])],
     })),
   )
   const usedPlayerSlugs = new Set(existingPlayers.map((p) => p.slug))
@@ -549,7 +578,8 @@ export async function startGlobalSync(
       limit(async (): Promise<LeagueSyncResult> => {
         // Cancellation is cooperative and checked between leagues: once a stop
         // is requested, queued leagues are skipped while in-flight ones finish.
-        if (shouldCancel()) {
+        // Both the in-process flag and the cross-process DB sentinel count.
+        if (shouldCancel() || (await isSyncCancelled(started))) {
           return {
             source: id,
             league: SOURCES[id].displayName,

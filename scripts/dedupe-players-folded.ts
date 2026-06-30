@@ -123,15 +123,47 @@ async function main() {
       list.push(p)
       groups.set(key, list)
     }
+
+    // FEB ↔ top-tier guard: load each player's league tiers so we never fuse a
+    // FEB namesake into a professional just because the folded name matches.
+    const tierRows = await sql<{ player_id: string; slug: string }[]>`
+      select distinct pss.player_id, l.slug
+      from player_season_stats pss join leagues l on l.id = pss.league_id
+    `
+    const FEB = new Set(["leb-oro", "leb-plata", "eba"])
+    const tiersOf = new Map<string, Set<string>>()
+    for (const r of tierRows) {
+      const set = tiersOf.get(r.player_id) ?? new Set<string>()
+      set.add(FEB.has(r.slug) ? "feb" : "top")
+      tiersOf.set(r.player_id, set)
+    }
+    const groupTiers = (g: Player[]) => {
+      const t = new Set<string>()
+      for (const p of g) for (const x of tiersOf.get(p.id) ?? []) t.add(x)
+      return t
+    }
+
     const dupGroups = [...groups.entries()].filter(([, g]) => g.length > 1)
-    console.log(`[dedupe] ${dupGroups.length} duplicate name group(s)`)
+    let skippedFeb = 0
+    const safeGroups = dupGroups.filter(([key, g]) => {
+      const t = groupTiers(g)
+      if (t.has("feb") && t.has("top")) {
+        console.log(`[dedupe] SKIP "${key}" — would fuse FEB + top tier (different people)`)
+        skippedFeb++
+        return false
+      }
+      return true
+    })
+    console.log(
+      `[dedupe] ${dupGroups.length} duplicate name group(s); ${skippedFeb} skipped (FEB↔top); ${safeGroups.length} to process`,
+    )
 
     let merged = 0
     let droppedStats = 0
     let movedStats = 0
     let deletedPlayers = 0
 
-    for (const [key, group] of dupGroups) {
+    for (const [key, group] of safeGroups) {
       const ids = group.map((p) => p.id)
       const stats = await sql<Stat[]>`
         select id, player_id, team_id, league_id, season_id, games_played,

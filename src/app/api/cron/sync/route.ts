@@ -30,7 +30,10 @@ export const dynamic = "force-dynamic"
 // Hostinger Node server it is ignored and the handler runs to completion.
 
 /**
- * Nightly data sync, triggered by Hostinger cron.
+ * MANUAL / remote sync trigger. The SCHEDULED sync now runs as a separate
+ * process via the CLI + Hostinger shell cron (see docs/SYNC.md); do not schedule
+ * this endpoint. It is kept for on-demand/remote runs and runs the sync IN the
+ * web process, so prefer the CLI for anything heavy.
  *
  *   curl -fsS --max-time 1800 -X POST \
  *     -H "Authorization: Bearer $CRON_SECRET" \
