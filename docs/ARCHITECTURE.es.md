@@ -1,5 +1,7 @@
 # GlobalHoopStats — Guía de Arquitectura y Desarrollo
 
+**Idioma / Language:** Español · [English](ARCHITECTURE.en.md)
+
 > Documentación técnica interna. Su objetivo es que **cualquier programador nuevo entienda el sistema completo** —
 > qué hace, cómo está construido, cómo fluyen los datos y dónde tocar para cada tipo de cambio — sin tener que
 > ingeniería‑inversa sobre 327 archivos.

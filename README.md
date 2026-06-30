@@ -108,7 +108,8 @@ drizzle/                # SQL migrations & snapshots
 
 > 📐 **Deep dive:** for a full architecture & developer guide — data model, ingestion
 > pipeline, entity matching, auth/security, AI engine and onboarding recipes — see
-> [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+> [`docs/ARCHITECTURE.en.md`](docs/ARCHITECTURE.en.md) (English) ·
+> [`docs/ARCHITECTURE.es.md`](docs/ARCHITECTURE.es.md) (Español).
 
 ---
 
