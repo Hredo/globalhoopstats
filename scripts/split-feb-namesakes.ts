@@ -2,7 +2,7 @@
  * Repairs the FEB ↔ top-tier name-collision merges.
  *
  * Per the domain invariant (see src/lib/leagues-tier.ts) a single person cannot
- * hold both a FEB stat row (LEB Oro / LEB Plata / EBA) and a top-tier one
+ * hold both a FEB stat row (Primera FEB / Segunda FEB / Tercera FEB) and a top-tier one
  * (ACB / EuroLeague / NBA). Where one player record carries both, the top-tier
  * identity OWNS the record (its slug, bio, photo, height and nationality all
  * describe the professional) and the FEB rows belong to an amateur namesake the

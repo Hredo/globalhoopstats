@@ -108,7 +108,7 @@ function groupSelect(selects: Select[]): Select | undefined {
 
 /**
  * The regular-season group(s) of a competition. Segunda FEB splits into two
- * conferences ("Liga Regular ESTE/OESTE") and Tercera FEB (Liga EBA) into ten
+ * conferences ("Liga Regular ESTE/OESTE") and Tercera FEB into ten
  * regional groups ("Liga Regular A-A" … "E-B"); Primera FEB has a single
  * "Liga Regular Único". We scrape all of them — the playoff/permanencia phases
  * the dropdown also lists only repeat a handful of qualified teams.
@@ -648,9 +648,9 @@ export function createFebAdapter(cfg: FebConfig): SourceAdapter {
 }
 
 export const FEB_CONFIGS: FebConfig[] = [
-  { id: "leb-oro", displayName: "LEB Oro", g: 1, nm: "primerafeb" },
-  { id: "leb-plata", displayName: "LEB Plata", g: 2, nm: "segundafeb" },
-  { id: "eba", displayName: "Liga EBA", g: 3, nm: "tercerafeb" },
+  { id: "leb-oro", displayName: "Primera FEB", g: 1, nm: "primerafeb" },
+  { id: "leb-plata", displayName: "Segunda FEB", g: 2, nm: "segundafeb" },
+  { id: "eba", displayName: "Tercera FEB", g: 3, nm: "tercerafeb" },
 ]
 
 export const febAdapters = FEB_CONFIGS.map(createFebAdapter)

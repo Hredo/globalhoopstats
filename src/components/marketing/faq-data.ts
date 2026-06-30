@@ -9,7 +9,7 @@ const FAQ_DATA_EN: FaqItem[] = [
   {
     question: "Where does the data come from and how fresh is it?",
     answer:
-      "We ingest public box scores and team feeds directly from the NBA, EuroLeague, Liga ACB and Spain's FEB ladder (LEB Oro, LEB Plata, EBA). NBA and EuroLeague stats land within minutes of the final buzzer; ACB and FEB data follows within a few hours. Every player profile shows a timestamp so you know exactly how fresh the numbers are.",
+      "We ingest public box scores and team feeds directly from the NBA, EuroLeague, Liga ACB and Spain's FEB ladder (Primera FEB, Segunda FEB, Tercera FEB). NBA and EuroLeague stats land within minutes of the final buzzer; ACB and FEB data follows within a few hours. Every player profile shows a timestamp so you know exactly how fresh the numbers are.",
   },
   {
     question: "Do I need an account to use the platform?",
@@ -19,7 +19,7 @@ const FAQ_DATA_EN: FaqItem[] = [
   {
     question: "Which leagues are currently covered?",
     answer:
-      "The NBA, EuroLeague, Liga ACB, LEB Oro, LEB Plata and EBA (Spain's full FEB ladder). That's six leagues under one roof with normalized stats across all of them.",
+      "The NBA, EuroLeague, Liga ACB, Primera FEB, Segunda FEB and Tercera FEB (Spain's full FEB ladder). That's six leagues under one roof with normalized stats across all of them.",
   },
   {
     question: "How do you make cross-league comparisons fair?",
@@ -57,7 +57,7 @@ const FAQ_DATA_ES: FaqItem[] = [
   {
     question: "¿De dónde vienen los datos y qué tan actualizados están?",
     answer:
-      "Ingerimos box scores públicos y feeds de la NBA, EuroLeague, Liga ACB y el escalafón FEB de España (LEB Oro, LEB Plata, EBA). Las estadísticas de NBA y EuroLeague llegan a los pocos minutos de la bocina final; los datos de ACB y FEB, en cuestión de horas. Cada perfil de jugador muestra una marca de tiempo para que sepas exactamente qué tan frescos están los números.",
+      "Ingerimos box scores públicos y feeds de la NBA, EuroLeague, Liga ACB y el escalafón FEB de España (Primera FEB, Segunda FEB, Tercera FEB). Las estadísticas de NBA y EuroLeague llegan a los pocos minutos de la bocina final; los datos de ACB y FEB, en cuestión de horas. Cada perfil de jugador muestra una marca de tiempo para que sepas exactamente qué tan frescos están los números.",
   },
   {
     question: "¿Necesito una cuenta para usar la plataforma?",
@@ -67,7 +67,7 @@ const FAQ_DATA_ES: FaqItem[] = [
   {
     question: "¿Qué ligas están disponibles actualmente?",
     answer:
-      "La NBA, la EuroLeague, la Liga ACB, LEB Oro, LEB Plata y EBA (los seis escalones del baloncesto profesional español). Seis ligas bajo un mismo techo con estadísticas normalizadas entre todas ellas.",
+      "La NBA, la EuroLeague, la Liga ACB, Primera FEB, Segunda FEB y Tercera FEB (los seis escalones del baloncesto profesional español). Seis ligas bajo un mismo techo con estadísticas normalizadas entre todas ellas.",
   },
   {
     question: "¿Cómo hacéis justas las comparaciones entre ligas?",

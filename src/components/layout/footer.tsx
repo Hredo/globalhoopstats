@@ -87,7 +87,7 @@ export async function Footer() {
             </span>
           </p>
           <p className="font-mono uppercase tracking-[0.16em]">
-            NBA · EuroLeague · ACB · LEB Oro · LEB Plata · EBA
+            NBA · EuroLeague · ACB · Primera FEB · Segunda FEB · Tercera FEB
           </p>
         </div>
 

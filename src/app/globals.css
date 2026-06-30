@@ -37,18 +37,21 @@
   --color-court-900: oklch(0.15 0.035 50);
   --color-court-950: oklch(0.09 0.022 48);
 
-  /* Ink — near-neutral text/greys, a hair warm so nothing reads sterile */
-  --color-ink-50: oklch(0.975 0.004 70);
-  --color-ink-100: oklch(0.92 0.005 70);
-  --color-ink-200: oklch(0.83 0.006 68);
-  --color-ink-300: oklch(0.75 0.007 66);
-  --color-ink-400: oklch(0.65 0.008 64);
-  --color-ink-500: oklch(0.55 0.008 62);
-  --color-ink-600: oklch(0.4 0.008 60);
-  --color-ink-700: oklch(0.25 0.008 58);
-  --color-ink-800: oklch(0.17 0.008 56);
-  --color-ink-900: oklch(0.11 0.008 54);
-  --color-ink-950: oklch(0.055 0.008 52);
+  /* Ink — near-neutral text/greys, a hair warm so nothing reads sterile.
+     Contrast-optimised: 400+ bumped brighter so they read clearly on dark
+     surfaces (WCAG AA+). In light mode (see [data-theme="light"] below) the
+     same names are re-pointed to darker values for the inverted background. */
+  --color-ink-50: oklch(0.985 0.005 70);
+  --color-ink-100: oklch(0.95 0.006 70);
+  --color-ink-200: oklch(0.90 0.007 68);
+  --color-ink-300: oklch(0.85 0.008 66);
+  --color-ink-400: oklch(0.80 0.010 64);
+  --color-ink-500: oklch(0.72 0.011 62);
+  --color-ink-600: oklch(0.58 0.011 60);
+  --color-ink-700: oklch(0.38 0.010 58);
+  --color-ink-800: oklch(0.25 0.010 56);
+  --color-ink-900: oklch(0.14 0.012 54);
+  --color-ink-950: oklch(0.07 0.010 52);
 
   --color-paper-50: oklch(0.99 0.005 80);
   --color-paper-100: oklch(0.97 0.01 80);
@@ -461,18 +464,20 @@ html[data-theme="light"] {
   /* Overlay key: dark tints replace white tints on light surfaces. */
   --color-white: oklch(0.28 0.018 56);
 
-  /* Inverted ink ramp — 50 = darkest (primary text), 950 = lightest. */
-  --color-ink-50: oklch(0.2 0.014 56);
-  --color-ink-100: oklch(0.24 0.013 56);
-  --color-ink-200: oklch(0.29 0.013 56);
-  --color-ink-300: oklch(0.35 0.012 56);
-  --color-ink-400: oklch(0.42 0.011 56);
-  --color-ink-500: oklch(0.47 0.01 56);
-  --color-ink-600: oklch(0.55 0.009 58);
-  --color-ink-700: oklch(0.7 0.011 60);
-  --color-ink-800: oklch(0.86 0.013 72);
-  --color-ink-900: oklch(0.93 0.012 78);
-  --color-ink-950: oklch(0.97 0.008 80);
+  /* Inverted ink ramp — 50 = darkest (primary text), 950 = lightest.
+     Darkened ~0.04–0.08 across the text end so every shade clears WCAG AA
+     on paper-white surfaces. */
+  --color-ink-50: oklch(0.16 0.014 56);
+  --color-ink-100: oklch(0.20 0.013 56);
+  --color-ink-200: oklch(0.25 0.013 56);
+  --color-ink-300: oklch(0.30 0.013 56);
+  --color-ink-400: oklch(0.36 0.012 56);
+  --color-ink-500: oklch(0.42 0.011 56);
+  --color-ink-600: oklch(0.48 0.010 58);
+  --color-ink-700: oklch(0.58 0.010 60);
+  --color-ink-800: oklch(0.75 0.012 70);
+  --color-ink-900: oklch(0.88 0.012 78);
+  --color-ink-950: oklch(0.95 0.010 80);
 
   /* Surfaces — warm paper. Elevation now reads brighter, not darker. */
   --color-surface-0: oklch(0.965 0.006 80);
@@ -485,9 +490,37 @@ html[data-theme="light"] {
   --color-hairline: oklch(0.2 0.02 56 / 0.12);
   --color-hairline-strong: oklch(0.2 0.02 56 / 0.24);
 
-  /* Brand peak pulled a touch deeper so orange-on-white keeps AA contrast. */
-  --color-brand-300: oklch(0.66 0.19 48);
-  --color-brand-400: oklch(0.62 0.2 47);
+  /* Accent text shades. In dark mode the light shades (100–400) of every
+     accent are used as TEXT on a faint same-hue tint (e.g. text-brand-300 on
+     bg-brand-500/10) — which washes out on a light page. Re-point those text
+     shades to deep, saturated versions that read on both the pale tint AND on
+     white, while the tint backgrounds/borders (which use the -500/<alpha>
+     shade, left untouched) stay light. AA-clean on paper. */
+  --color-brand-100: oklch(0.52 0.16 47);
+  --color-brand-200: oklch(0.52 0.17 47);
+  --color-brand-300: oklch(0.53 0.18 47);
+  --color-brand-400: oklch(0.56 0.19 46);
+
+  --color-amber-100: oklch(0.52 0.12 70);
+  --color-amber-200: oklch(0.52 0.13 70);
+  --color-amber-300: oklch(0.53 0.13 68);
+  --color-amber-400: oklch(0.56 0.14 66);
+
+  --color-emerald-100: oklch(0.5 0.12 162);
+  --color-emerald-200: oklch(0.5 0.13 162);
+  --color-emerald-300: oklch(0.51 0.13 162);
+  --color-emerald-400: oklch(0.53 0.14 162);
+
+  --color-red-200: oklch(0.52 0.18 25);
+  --color-red-300: oklch(0.53 0.19 25);
+  --color-red-400: oklch(0.55 0.2 25);
+
+  --color-sky-300: oklch(0.52 0.13 235);
+  --color-cyan-300: oklch(0.52 0.11 200);
+  --color-violet-300: oklch(0.52 0.18 290);
+  --color-rose-300: oklch(0.53 0.18 12);
+  --color-orange-300: oklch(0.55 0.16 50);
+  --color-blue-300: oklch(0.52 0.18 255);
 
   /* Shadows: lighter and tighter — heavy black glows look muddy on paper. */
   --shadow-court: 0 24px 50px -24px oklch(0.4 0.04 56 / 0.28);

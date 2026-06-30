@@ -7,6 +7,7 @@ import {
   seasons,
   teams,
 } from "@/lib/db/schema"
+import { resolveLeagueName } from "@/lib/sources/types"
 import { cached } from "@/lib/data/cache"
 
 export type CompareStats = {
@@ -120,7 +121,7 @@ export const getPlayerForCompare = cached(
     nationality: r.nationality,
     league: {
       id: r.leagueId,
-      name: r.leagueName,
+      name: resolveLeagueName(r.leagueSlug, r.leagueName),
       slug: r.leagueSlug,
       region: r.leagueRegion,
     },

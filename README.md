@@ -30,7 +30,7 @@ It is built as a production application — not a demo — with real authenticat
 | Region | Competitions |
 | --- | --- |
 | 🇪🇺 Europe | EuroLeague |
-| 🇪🇸 Spain | ACB (Liga Endesa) · LEB Oro · LEB Plata · EBA |
+| 🇪🇸 Spain | ACB (Liga Endesa) · Primera FEB · Segunda FEB · Tercera FEB |
 | 🇺🇸 North America | NBA |
 
 ---
@@ -189,7 +189,7 @@ All values are optional for local development (sensible defaults apply); **`SESS
 | --- | --- |
 | `pnpm sync:global` | Sync every supported league |
 | `pnpm sync:nba` · `:euroleague` · `:acb` | Sync a single competition |
-| `pnpm sync:feb` | Sync all FEB leagues (LEB Oro, LEB Plata, EBA) |
+| `pnpm sync:feb` | Sync all FEB leagues (Primera FEB, Segunda FEB, Tercera FEB) |
 | `pnpm backfill:players` · `:colors` · `:team-identity` · … | Targeted historical backfills |
 
 ---

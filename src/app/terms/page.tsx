@@ -72,7 +72,7 @@ function EnglishContent() {
       <Section title="2. Description of the service">
         <p>
           The site aggregates public basketball data from the NBA, EuroLeague,
-          Liga ACB and Spain&apos;s FEB leagues (LEB Oro, LEB Plata, EBA),
+          Liga ACB and Spain&apos;s FEB leagues (Primera FEB, Segunda FEB, Tercera FEB),
           normalises it across leagues, and provides tools to compare players,
           teams and coaches through a web interface and an AI scouting advisor.
         </p>
@@ -303,7 +303,7 @@ function EnglishContent() {
         <p>
           The purpose of the Website is the aggregation, normalisation and
           visualisation of public basketball statistics from the NBA, EuroLeague,
-          Liga ACB and Spain&apos;s FEB leagues (LEB Oro, LEB Plata, EBA), as well
+          Liga ACB and Spain&apos;s FEB leagues (Primera FEB, Segunda FEB, Tercera FEB), as well
           as the provision of tools to compare players, teams and coaches, and an
           AI-based scouting assistant.
         </p>
@@ -404,7 +404,7 @@ function SpanishContent() {
       <Section title="2. Descripción del servicio">
         <p>
           El sitio agrega datos públicos de baloncesto de la NBA, EuroLeague,
-          Liga ACB y las ligas FEB de España (LEB Oro, LEB Plata, EBA), los
+          Liga ACB y las ligas FEB de España (Primera FEB, Segunda FEB, Tercera FEB), los
           normaliza entre ligas y proporciona herramientas para comparar
           jugadores, equipos y entrenadores a través de una interfaz web y un
           asesor de scouting con IA.
@@ -653,7 +653,7 @@ function SpanishContent() {
         <p>
           El Sitio Web tiene como objeto la agregación, normalización y
           visualización de estadísticas públicas de baloncesto procedentes de la
-          NBA, EuroLeague, Liga ACB y las ligas FEB (LEB Oro, LEB Plata, EBA),
+          NBA, EuroLeague, Liga ACB y las ligas FEB (Primera FEB, Segunda FEB, Tercera FEB),
           así como la provisión de herramientas de comparación entre jugadores,
           equipos y entrenadores, y un asistente de scouting basado en
           inteligencia artificial.

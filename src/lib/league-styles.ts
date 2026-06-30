@@ -56,9 +56,9 @@ const THEME: Record<LeagueThemeKey, LeagueTheme> = {
 // label so they don't fall back to the NBA theme.
 const LABEL_OVERRIDES: Record<string, { base: LeagueThemeKey; label: string }> =
   {
-    "leb-oro": { base: "acb", label: "ORO" },
-    "leb-plata": { base: "acb", label: "PLATA" },
-    eba: { base: "acb", label: "EBA" },
+    "leb-oro": { base: "acb", label: "1F" },
+    "leb-plata": { base: "acb", label: "2F" },
+    eba: { base: "acb", label: "3F" },
   }
 
 export function getLeagueTheme(slug: string | null | undefined): LeagueTheme {

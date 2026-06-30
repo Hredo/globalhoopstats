@@ -5,6 +5,7 @@ import type { CoachListItem } from "@/lib/data/staff"
 import { cached } from "@/lib/data/cache"
 import { ACCENT_FROM, ACCENT_TO } from "@/lib/data/players"
 import { leagueSlugsFor } from "@/lib/league-groups"
+import { resolveLeagueName } from "@/lib/sources/types"
 
 export type TeamListItem = {
   id: string
@@ -162,7 +163,7 @@ async function listTeamsUncached(
       if (!leagueByTeam.has(l.teamId)) {
         leagueByTeam.set(l.teamId, {
           id: l.leagueId,
-          name: l.leagueName,
+          name: resolveLeagueName(l.leagueSlug, l.leagueName),
           slug: l.leagueSlug,
           region: l.leagueRegion,
         })

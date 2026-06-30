@@ -5,7 +5,7 @@
  * the whole market layer is a transparent, tunable heuristic anchored here:
  *
  *  - `strength`   relative on-court level (0..1). Drives cross-league
- *                 translation ("his EBA numbers ≈ X in LEB Oro").
+ *                 translation ("his Tercera FEB numbers ≈ X in Primera FEB").
  *  - `tier`       coarse ladder used to pick "adjacent / similar leagues".
  *  - `valueCeiling` / `salaryCeiling`  the top realistic transfer value and
  *                 annual salary at that level, in EUR. Caps the valuation curve
@@ -45,9 +45,9 @@ export type LeagueEconomics = {
  *    €240–600K; top stars €1.8–5M gross (hispanosnba, 2024-25).
  *  - EuroLeague: top player+coach spend ~€20.5M; top salaries Mirotic/Fournier
  *    ~€4.5–5M net; top-10 entry ~€2.2M net (BasketNews / Eurohoops, 2024-25).
- *  - LEB Oro: average club budget ~€750K (Andorra €2.7M, Estudiantes €1.3M);
+ *  - Primera FEB: average club budget ~€750K (Andorra €2.7M, Estudiantes €1.3M);
  *    salaries €20–50K (lucentumblogging / basketcantera).
- *  - LEB Plata / EBA: semi-pro / amateur; far less reported — kept conservative.
+ *  - Segunda FEB / Tercera FEB: semi-pro / amateur; far less reported — kept conservative.
  *
  * NBA is included for completeness but its economics are not EUR-native and it
  * is isolated from the Spanish/European market in adjacentLeagueSlugs().
@@ -82,7 +82,7 @@ export const LEAGUE_ECONOMICS: Record<string, LeagueEconomics> = {
   },
   "leb-oro": {
     slug: "leb-oro",
-    label: "LEB Oro",
+    label: "Primera FEB",
     strength: 0.52,
     tier: 3,
     valueCeiling: 120_000,
@@ -91,7 +91,7 @@ export const LEAGUE_ECONOMICS: Record<string, LeagueEconomics> = {
   },
   "leb-plata": {
     slug: "leb-plata",
-    label: "LEB Plata",
+    label: "Segunda FEB",
     strength: 0.4,
     tier: 4,
     valueCeiling: 50_000,
@@ -100,7 +100,7 @@ export const LEAGUE_ECONOMICS: Record<string, LeagueEconomics> = {
   },
   eba: {
     slug: "eba",
-    label: "EBA",
+    label: "Tercera FEB",
     strength: 0.28,
     tier: 5,
     valueCeiling: 20_000,

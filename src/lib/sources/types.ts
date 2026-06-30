@@ -36,23 +36,36 @@ export const SOURCE_META: Record<
     season: 2025,
   },
   "leb-oro": {
-    displayName: "LEB Oro",
+    displayName: "Primera FEB",
     country: "ES",
     seasonCode: "2025-26",
     season: 2025,
   },
   "leb-plata": {
-    displayName: "LEB Plata",
+    displayName: "Segunda FEB",
     country: "ES",
     seasonCode: "2025-26",
     season: 2025,
   },
   eba: {
-    displayName: "Liga EBA",
+    displayName: "Tercera FEB",
     country: "ES",
     seasonCode: "2025-26",
     season: 2025,
   },
+}
+
+/**
+ * Resolve the canonical display name for a league by its slug.
+ * Falls back to the DB-stored name when the slug is unknown so that
+ * data-layer queries always show the correct name regardless of what
+ * the `leagues` table currently holds from past syncs.
+ */
+export function resolveLeagueName(slug: string, fallback: string): string {
+  if (slug in SOURCE_META) {
+    return SOURCE_META[slug as SourceId].displayName
+  }
+  return fallback
 }
 
 export type SourceTeam = {

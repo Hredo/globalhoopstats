@@ -74,7 +74,7 @@ export const es: Messages = {
   metadata: {
     tagline: "Baloncesto, descifrado.",
     description:
-      "Inteligencia global de baloncesto en la NBA, EuroLeague, Liga ACB y las ligas FEB de España (LEB Oro, LEB Plata, EBA): estadísticas, splits avanzados, comparaciones lado a lado, valoraciones de mercado, un simulador de traspasos y un asesor de scouting con IA — todo en una consola.",
+      "Inteligencia global de baloncesto en la NBA, EuroLeague, Liga ACB y las ligas FEB de España (Primera FEB, Segunda FEB, Tercera FEB): estadísticas, splits avanzados, comparaciones lado a lado, valoraciones de mercado, un simulador de traspasos y un asesor de scouting con IA — todo en una consola.",
   },
   home: {
     metaTitle:
@@ -150,7 +150,7 @@ export const es: Messages = {
       coverageKicker: "04 · Cobertura",
       coverageTitle: "Seis ligas, un solo feed.",
       coverageBody:
-        "NBA · EuroLeague · ACB · LEB Oro · LEB Plata · EBA — actualizado tras cada partido.",
+        "NBA · EuroLeague · ACB · Primera FEB · Segunda FEB · Tercera FEB — actualizado tras cada partido.",
       exportKicker: "05 · Exportar",
       exportTitle: "Listo para la sala de juntas en un clic.",
       exportBody:
@@ -408,7 +408,7 @@ export const es: Messages = {
         "Seis ligas profesionales, un solo motor de scouting. Cada tarjeta combina la temporada en vivo con el número de equipos, jugadores y entrenadores y los líderes por partido en puntos, asistencias, rebotes y triples — además de accesos directos a cada plantilla y jugador.",
       metaTitle: "Ligas",
       metaDescription:
-        "Explora todas las ligas que cubrimos — NBA, EuroLeague, Liga ACB y la escalera FEB de España (LEB Oro, LEB Plata, EBA). Líderes por partido en puntos, asistencias, rebotes y triples, con conteos de equipos, jugadores y entrenadores.",
+        "Explora todas las ligas que cubrimos — NBA, EuroLeague, Liga ACB y la escalera FEB de España (Primera FEB, Segunda FEB, Tercera FEB). Líderes por partido en puntos, asistencias, rebotes y triples, con conteos de equipos, jugadores y entrenadores.",
       statLeaguesLive: "ligas en vivo",
       statPlayersIndexed: "jugadores indexados",
       statTeamsTracked: "equipos registrados",

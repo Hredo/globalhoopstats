@@ -91,7 +91,7 @@ export function PlayerCardElegant({ player }: Props) {
           alt={player.fullName}
           fit="cover"
           className="h-full w-full object-cover transition-transform duration-[700ms] ease-fluid group-hover:scale-[1.06]"
-          fallbackClassName="bg-gradient-to-br from-court-800 via-court-900 to-ink-900 text-4xl font-bold text-ink-600"
+          fallbackClassName="bg-gradient-to-br from-court-800 via-court-900 to-ink-900 text-4xl font-bold text-ink-300"
           fallback={initials}
         />
 
