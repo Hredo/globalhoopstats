@@ -641,7 +641,7 @@ function DangerZone() {
               type="button"
               onClick={remove}
               disabled={busy || !password}
-              className="inline-flex h-10 items-center rounded-full bg-red-500 px-5 text-sm font-semibold text-white transition hover:bg-red-400 disabled:opacity-50"
+              className="inline-flex h-10 items-center rounded-full bg-red-500 px-5 text-sm font-semibold text-[#fff] transition hover:bg-red-400 disabled:opacity-50"
             >
               {busy ? "Deleting…" : "Permanently delete"}
             </button>

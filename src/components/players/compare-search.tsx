@@ -47,9 +47,9 @@ const SOURCE_LABEL: Record<string, string> = {
   nba: "NBA",
   euroleague: "EuroLeague",
   acb: "ACB",
-  "leb-oro": "LEB Oro",
-  "leb-plata": "LEB Plata",
-  eba: "EBA",
+  "leb-oro": "Primera FEB",
+  "leb-plata": "Segunda FEB",
+  eba: "Tercera FEB",
 }
 
 function getInitials(name: string): string {

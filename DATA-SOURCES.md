@@ -13,7 +13,7 @@ companion crawler page at [`/bot`](src/app/bot/page.tsx)).
 | NBA | `stats.nba.com`, Basketball-Reference | JSON API + HTML |
 | EuroLeague | Basketball-Reference (`/international/euroleague`) | HTML |
 | ACB (Liga Endesa) | `acb.com` | HTML |
-| LEB Oro · LEB Plata · EBA | `baloncestoenvivo.feb.es` (FEB) | HTML (ASP.NET) |
+| Primera FEB · Segunda FEB · Tercera FEB | `baloncestoenvivo.feb.es` (FEB) | HTML (ASP.NET) |
 
 Per-league adapters live in [`src/lib/sources/`](src/lib/sources); each one
 normalizes its source into the shared `SourceAdapter` interface

@@ -15,7 +15,7 @@ const QUOTES = [
   },
   {
     quote:
-      "Finally — a tool that treats LEB Oro and the NBA like they're the same sport. Our international scouting pipeline lives here now.",
+      "Finally — a tool that treats Primera FEB and the NBA like they're the same sport. Our international scouting pipeline lives here now.",
     name: "David Clemente",
   },
 ]

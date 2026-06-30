@@ -12,7 +12,7 @@ export const SITE = {
   // the local dev environment. The official business address is the .es domain.
   urlOfficial: "https://globalhoopstats.es",
   description:
-    "Global basketball intelligence across the NBA, EuroLeague, Liga ACB and Spain's FEB leagues (LEB Oro, LEB Plata, EBA): box scores, advanced splits, side-by-side comparisons, player market valuations, a trade simulator and an AI scouting advisor — all in one console.",
+    "Global basketball intelligence across the NBA, EuroLeague, Liga ACB and Spain's FEB leagues (Primera FEB, Segunda FEB, Tercera FEB): box scores, advanced splits, side-by-side comparisons, player market valuations, a trade simulator and an AI scouting advisor — all in one console.",
   tagline: "Hoops, decoded.",
   taglineShort: "Global basketball intelligence",
   locale: "en",
@@ -49,9 +49,9 @@ export const SEO_KEYWORDS = [
   "estadísticas NBA",
   "estadísticas EuroLeague",
   "estadísticas Liga ACB",
-  "estadísticas LEB Oro",
-  "estadísticas LEB Plata",
-  "estadísticas EBA",
+  "estadísticas Primera FEB",
+  "estadísticas Segunda FEB",
+  "estadísticas Tercera FEB",
   "baloncesto español",
   "comparar jugadores baloncesto",
   "valoración de mercado jugadores",

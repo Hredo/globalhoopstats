@@ -1,7 +1,7 @@
 /*
  * READ-ONLY diagnostic for the multi-league name-collision problem.
  *
- * Domain rule (owner): a player who appears in a FEB league (LEB Oro, LEB Plata,
+ * Domain rule (owner): a player who appears in a FEB league (Primera FEB, Segunda FEB,
  * EBA) cannot ALSO legitimately be a top-tier player (ACB / EuroLeague / NBA) in
  * this dataset. When a record carries BOTH, it is almost always two DIFFERENT
  * people that a loose name+surname dedupe collapsed into one.

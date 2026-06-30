@@ -48,7 +48,7 @@ fast, **bilingual (ES/EN)** web app.
 | 🇺🇸 North America | NBA | `nba` |
 | 🇪🇺 Europe | EuroLeague | `euroleague` |
 | 🇪🇸 Spain | Liga Endesa (ACB) | `acb` |
-| 🇪🇸 Spain (FEB) | LEB Oro · LEB Plata · EBA | `leb-oro`, `leb-plata`, `eba` |
+| 🇪🇸 Spain (FEB) | Primera FEB · Segunda FEB · Tercera FEB | `leb-oro`, `leb-plata`, `eba` |
 
 On top of that unified database, three products are built:
 
@@ -565,7 +565,7 @@ Defined in `package.json` (run with `tsx`).
 | --- | --- |
 | `pnpm sync:global` | sync all leagues |
 | `pnpm sync:{nba,euroleague,acb,leb-oro,leb-plata,eba}` | a single competition |
-| `pnpm sync:feb` | all FEB leagues (LEB Oro + Plata + EBA) |
+| `pnpm sync:feb` | all FEB leagues (Primera FEB + Segunda FEB + Tercera FEB) |
 | `pnpm backfill:{players,colors,team-identity,acb-bio,coach-wikidata,coach-photos}` | targeted enrichments |
 
 In production, the sync runs **nightly via cron** (`POST /api/cron/sync`, Hostinger). On a long‑running Node server,

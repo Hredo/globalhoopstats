@@ -1,13 +1,14 @@
 /**
  * League "tier" classification used for identity resolution.
  *
- * Domain invariant (owner): the Spanish FEB feeder divisions (LEB Oro, LEB
- * Plata, Liga EBA) are MUTUALLY EXCLUSIVE with the top tier (ACB / EuroLeague /
- * NBA) for a single person in this dataset. Spain has many people who share a
- * first name + first surname, and the FEB rosters are full of amateurs/youth
- * namesakes of professional players. So a record carrying BOTH a FEB and a
- * top-tier stat row is, in practice, two different people that loose name-only
- * matching collapsed into one. We therefore never merge across this boundary.
+ * Domain invariant (owner): the Spanish FEB feeder divisions (Primera FEB,
+ * Segunda FEB, Tercera FEB) are MUTUALLY EXCLUSIVE with the top tier
+ * (ACB / EuroLeague / NBA) for a single person in this dataset. Spain has
+ * many people who share a first name + first surname, and the FEB rosters are
+ * full of amateurs/youth namesakes of professional players. So a record
+ * carrying BOTH a FEB and a top-tier stat row is, in practice, two different
+ * people that loose name-only matching collapsed into one. We therefore never
+ * merge across this boundary.
  *
  * This is deliberately conservative: it can leave a genuine LEB→ACB promotion
  * as two records (a recoverable, cheap mistake) but it never fuses a star with
@@ -21,6 +22,9 @@ export const FEB_LEAGUE_NAMES = new Set([
   "leb oro",
   "leb plata",
   "liga eba",
+  "primera feb",
+  "segunda feb",
+  "tercera feb",
 ])
 
 export type LeagueTier = "feb" | "top"
@@ -30,7 +34,7 @@ export function tierForSlug(slug: string): LeagueTier {
   return FEB_LEAGUE_SLUGS.has(slug) ? "feb" : "top"
 }
 
-/** Tier for a league DISPLAY NAME (e.g. "Liga EBA" -> "feb"). */
+/** Tier for a league DISPLAY NAME (e.g. "Tercera FEB" -> "feb"). */
 export function tierForName(name: string): LeagueTier {
   return FEB_LEAGUE_NAMES.has(name.trim().toLowerCase()) ? "feb" : "top"
 }

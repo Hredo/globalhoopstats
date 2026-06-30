@@ -15,9 +15,9 @@ const LEAGUES = [
   { league: "NBA", strength: "1.0", tier: 1, value: "€60M", salary: "€50M" },
   { league: "EuroLeague", strength: "0.90", tier: 1, value: "€6,5M", salary: "€5M" },
   { league: "ACB", strength: "0.74", tier: 2, value: "€3,5M", salary: "€2,5M" },
-  { league: "LEB Oro", strength: "0.52", tier: 3, value: "€120K", salary: "€70K" },
-  { league: "LEB Plata", strength: "0.40", tier: 4, value: "€50K", salary: "€30K" },
-  { league: "EBA", strength: "0.28", tier: 5, value: "€20K", salary: "€12K" },
+  { league: "Primera FEB", strength: "0.52", tier: 3, value: "€120K", salary: "€70K" },
+  { league: "Segunda FEB", strength: "0.40", tier: 4, value: "€50K", salary: "€30K" },
+  { league: "Tercera FEB", strength: "0.28", tier: 5, value: "€20K", salary: "€12K" },
 ]
 
 export default async function MarketDocsPage() {
@@ -73,9 +73,9 @@ function EnglishDocs() {
 
   // Tiers are league-relative. The rating is normalised by sqrt(leagueStrength)
   // before tier assignment, so thresholds are fixed. A player who dominates in
-  // EBA gets a much higher normalised rating than their raw stats would suggest,
+  // Tercera FEB gets a much higher normalised rating than their raw stats would suggest,
   // but the EUR value is still capped by the league's ceiling. A "Franchise" in
-  // EBA is NOT comparable to a "Franchise" in the NBA.
+  // Tercera FEB is NOT comparable to a "Franchise" in the NBA.
 
   return (
     <>
@@ -140,7 +140,7 @@ function EnglishDocs() {
               <p className="text-ink-300">
                 For the NBA (strength 1.0) the rating stays unchanged. For weaker
                 leagues the divisor is smaller, so the rating rises — a dominant
-                player in EBA (strength 0.28) gets roughly 1.9× their raw rating.
+                player in Tercera FEB (strength 0.28) gets roughly 1.9× their raw rating.
                 This means the best players in every league can reach 90–100 within
                 their context, but their EUR value remains capped by the league&apos;s
                 economic ceiling.
@@ -188,7 +188,7 @@ function EnglishDocs() {
 
             <Step n={7} title="League ceiling">
               <p className="text-ink-300">
-                Each league has a value and salary ceiling that limits the curve. A LEB Plata
+                Each league has a value and salary ceiling that limits the curve. A Segunda FEB
                 player can never be worth as much as an ACB player because their league&apos;s ceiling
                 is much lower. Ceilings are based on specialized press reports.
               </p>
@@ -268,9 +268,9 @@ function EnglishDocs() {
             <strong className="text-ink-200">League-relative scaling:</strong>{" "}
             The thresholds are fixed (78/60/42/25) because the rating is already
             normalised by <code className="text-ink-200">sqrt(leagueStrength)</code>.
-            A dominant player in EBA gets a much higher normalised rating than
+            A dominant player in Tercera FEB gets a much higher normalised rating than
             their raw stats would suggest, so they can reach &quot;Franchise&quot;
-            within their league context. A <strong>Franchise</strong> in EBA means
+            within their league context. A <strong>Franchise</strong> in Tercera FEB means
             world-beater <em>for that level</em>, not a Franchise-calibre player
             in the NBA. Each category badge shows the league name so there is no
             confusion across competitions.
@@ -479,7 +479,7 @@ function SpanishDocs() {
               <p className="text-ink-300">
                 En la NBA (fuerza 1,0) la valoración no cambia. En ligas más
                 débiles el divisor es menor, por lo que la valoración sube — un
-                jugador dominante en EBA (fuerza 0,28) recibe aproximadamente 1,9×
+                jugador dominante en Tercera FEB (fuerza 0,28) recibe aproximadamente 1,9×
                 su valoración cruda. Esto permite que los mejores de cada liga
                 lleguen a 90–100 en su contexto, pero su valor en EUR sigue
                 limitado por el techo económico de la liga.
@@ -607,10 +607,10 @@ function SpanishDocs() {
             <strong className="text-ink-200">Escalado por liga:</strong>{" "}
             Los umbrales son fijos (78/60/42/25) porque la valoración ya viene
             normalizada por <code className="text-ink-200">sqrt(fuerzaLiga)</code>.
-            Un jugador dominante en EBA recibe una valoración normalizada mucho
+            Un jugador dominante en Tercera FEB recibe una valoración normalizada mucho
             mayor de lo que sugieren sus estadísticas brutas, por lo que puede
             alcanzar &quot;Franquicia&quot; dentro de su contexto. Un{" "}
-            <strong>Franquicia</strong> en EBA significa que es el mejor
+            <strong>Franquicia</strong> en Tercera FEB significa que es el mejor
             <em>para ese nivel</em>, no que sea equiparable a un Franquicia de la
             NBA. Cada categoría muestra el nombre de la liga para evitar
             confusiones entre competiciones.

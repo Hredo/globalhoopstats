@@ -26,6 +26,12 @@ export const en = {
     change: "Change language",
     current: "Current language: {language}",
   },
+  theme: {
+    light: "Light",
+    dark: "Dark",
+    switchToLight: "Switch to light mode",
+    switchToDark: "Switch to dark mode",
+  },
   nav: {
     players: "Players",
     teams: "Teams",
@@ -67,7 +73,7 @@ export const en = {
   metadata: {
     tagline: "Hoops, decoded.",
     description:
-      "Global basketball intelligence across the NBA, EuroLeague, Liga ACB and Spain's FEB leagues (LEB Oro, LEB Plata, EBA): box scores, advanced splits, side-by-side comparisons, player market valuations, a trade simulator and an AI scouting advisor — all in one console.",
+      "Global basketball intelligence across the NBA, EuroLeague, Liga ACB and Spain's FEB leagues (Primera FEB, Segunda FEB, Tercera FEB): box scores, advanced splits, side-by-side comparisons, player market valuations, a trade simulator and an AI scouting advisor — all in one console.",
   },
   home: {
     metaTitle: "globalhoopstats — NBA, EuroLeague & ACB basketball stats",
@@ -142,7 +148,7 @@ export const en = {
       coverageKicker: "04 · Coverage",
       coverageTitle: "Six leagues, one feed.",
       coverageBody:
-        "NBA · EuroLeague · ACB · LEB Oro · LEB Plata · EBA — refreshed after every tip-off.",
+        "NBA · EuroLeague · ACB · Primera FEB · Segunda FEB · Tercera FEB — refreshed after every tip-off.",
       exportKicker: "05 · Export",
       exportTitle: "Boardroom-ready in a click.",
       exportBody:
@@ -287,7 +293,11 @@ export const en = {
       usageAlerts: "Usage & quota alerts",
       usageAlertsHint: "A heads-up when you're close to a free-plan limit.",
       accessibilityTitle: "Accessibility",
-      accessibilityDescription: "Tone down the heavier motion across the site.",
+      accessibilityDescription:
+        "Adjust the appearance and motion of the site to suit how you read.",
+      lightMode: "Light mode",
+      lightModeHint:
+        "A brighter, higher-contrast theme that's easier on the eyes.",
       reduceMotion: "Reduce motion",
       reduceMotionHint: "Minimise large scroll and reveal animations.",
       saved: "Preferences saved.",
@@ -393,7 +403,7 @@ export const en = {
         "Six pro leagues, one scouting engine. Each card pairs the live season with team, player and coach counts and the current per-game leaders in points, assists, rebounds and three-point shooting — plus one-tap links into every roster and player.",
       metaTitle: "Leagues",
       metaDescription:
-        "Explore every league we cover — NBA, EuroLeague, Liga ACB and Spain's FEB ladder (LEB Oro, LEB Plata, EBA). Per-game leaders in points, assists, rebounds and three-point shooting, with team, player and coach counts.",
+        "Explore every league we cover — NBA, EuroLeague, Liga ACB and Spain's FEB ladder (Primera FEB, Segunda FEB, Tercera FEB). Per-game leaders in points, assists, rebounds and three-point shooting, with team, player and coach counts.",
       statLeaguesLive: "leagues live",
       statPlayersIndexed: "players indexed",
       statTeamsTracked: "teams tracked",

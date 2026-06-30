@@ -23,7 +23,7 @@ export type Recruit = {
   name: string
   position: string
   // Widened from the old NBA/EuroLeague/ACB union so DB-grounded candidates
-  // from any league (ACB, LEB Oro/Plata, EBA) can flow through unchanged.
+  // from any league (ACB, Primera FEB / Segunda FEB, Tercera FEB) can flow through unchanged.
   league: string
   age: number
   contractValue: string

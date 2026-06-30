@@ -9,6 +9,7 @@ import {
   seasons,
   teams,
 } from "@/lib/db/schema"
+import { resolveLeagueName } from "@/lib/sources/types"
 import { cached } from "@/lib/data/cache"
 
 export type LeagueTeamLogo = {
@@ -285,7 +286,7 @@ export const listLeagueOverviews = cached(
         return {
           id: row.id,
           slug: row.slug,
-          name: row.name,
+          name: resolveLeagueName(row.slug, row.name),
           region: row.region,
           logoUrl: row.logoUrl,
           seasonLabel: formatSeasonLabel(season?.name ?? null),

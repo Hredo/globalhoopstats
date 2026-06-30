@@ -21,9 +21,9 @@ export const LEAGUE_FILTER_TREE: LeagueFilterNode[] = [
     slug: FEB_GROUP_SLUG,
     label: "FEB",
     children: [
-      { slug: "leb-oro", label: "LEB Oro" },
-      { slug: "leb-plata", label: "LEB Plata" },
-      { slug: "eba", label: "EBA" },
+      { slug: "leb-oro", label: "Primera FEB" },
+      { slug: "leb-plata", label: "Segunda FEB" },
+      { slug: "eba", label: "Tercera FEB" },
     ],
   },
 ]
