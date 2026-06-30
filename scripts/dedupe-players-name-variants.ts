@@ -158,10 +158,37 @@ async function main() {
       for (const c of byRoot.values()) if (c.length > 1) clusters.push(c)
     }
 
-    console.log(`[name-variants] ${clusters.length} duplicate cluster(s)`)
+    // FEB ↔ top-tier guard: never merge a cluster that mixes a FEB namesake
+    // with a professional (see src/lib/leagues-tier.ts).
+    const tierRows = await sql<{ player_id: string; slug: string }[]>`
+      select distinct pss.player_id, l.slug
+      from player_season_stats pss join leagues l on l.id = pss.league_id
+    `
+    const FEB = new Set(["leb-oro", "leb-plata", "eba"])
+    const tiersOf = new Map<string, Set<string>>()
+    for (const r of tierRows) {
+      const set = tiersOf.get(r.player_id) ?? new Set<string>()
+      set.add(FEB.has(r.slug) ? "feb" : "top")
+      tiersOf.set(r.player_id, set)
+    }
+    let skippedFeb = 0
+    const safeClusters = clusters.filter((c) => {
+      const t = new Set<string>()
+      for (const p of c) for (const x of tiersOf.get(p.id) ?? []) t.add(x)
+      if (t.has("feb") && t.has("top")) {
+        console.log(`[name-variants] SKIP "${c[0]!.first_name} ${c[0]!.last_name}" — FEB↔top (different people)`)
+        skippedFeb++
+        return false
+      }
+      return true
+    })
+
+    console.log(
+      `[name-variants] ${clusters.length} duplicate cluster(s); ${skippedFeb} skipped (FEB↔top); ${safeClusters.length} to process`,
+    )
     let merged = 0, movedStats = 0, droppedStats = 0, deletedPlayers = 0
 
-    for (const cluster of clusters) {
+    for (const cluster of safeClusters) {
       const ids = cluster.map((p) => p.id)
       const stats = await sql<Stat[]>`
         select id, player_id, team_id, league_id, season_id, games_played,

@@ -37,6 +37,12 @@ function loadEnv() {
 }
 
 const DRY = process.argv.includes("--dry")
+// FEB feeder divisions never share a person with the top tier (see
+// src/lib/leagues-tier.ts) — even when a club name like "Baskonia" exists in
+// both ACB and EBA and thus resolves to one shared team row.
+const FEB = new Set(["leb-oro", "leb-plata", "eba"])
+const hasFeb = (leagues: Set<string>) => [...leagues].some((l) => FEB.has(l))
+const hasTop = (leagues: Set<string>) => [...leagues].some((l) => !FEB.has(l))
 const fold = (s: string) =>
   s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim()
 
@@ -127,6 +133,8 @@ async function main() {
           const a = g[i], b = g[j]
           const disjoint = [...a.leagues].every((l) => !b.leagues.has(l))
           if (!disjoint) continue
+          // Never bridge the FEB↔top boundary (amateur namesake vs professional).
+          if ((hasFeb(a.leagues) && hasTop(b.leagues)) || (hasFeb(b.leagues) && hasTop(a.leagues))) continue
           if (!firstNameCompatible(a.firstName, b.firstName)) continue
           pairs.set(pairKey(a.id, b.id), [a, b])
         }
