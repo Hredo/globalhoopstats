@@ -41,10 +41,10 @@
   --color-ink-50: oklch(0.975 0.004 70);
   --color-ink-100: oklch(0.92 0.005 70);
   --color-ink-200: oklch(0.83 0.006 68);
-  --color-ink-300: oklch(0.7 0.007 66);
-  --color-ink-400: oklch(0.56 0.008 64);
-  --color-ink-500: oklch(0.43 0.008 62);
-  --color-ink-600: oklch(0.33 0.008 60);
+  --color-ink-300: oklch(0.75 0.007 66);
+  --color-ink-400: oklch(0.65 0.008 64);
+  --color-ink-500: oklch(0.55 0.008 62);
+  --color-ink-600: oklch(0.4 0.008 60);
   --color-ink-700: oklch(0.25 0.008 58);
   --color-ink-800: oklch(0.17 0.008 56);
   --color-ink-900: oklch(0.11 0.008 54);
@@ -462,14 +462,14 @@ html[data-theme="light"] {
   --color-white: oklch(0.28 0.018 56);
 
   /* Inverted ink ramp — 50 = darkest (primary text), 950 = lightest. */
-  --color-ink-50: oklch(0.23 0.013 56);
-  --color-ink-100: oklch(0.27 0.013 56);
-  --color-ink-200: oklch(0.33 0.012 56);
-  --color-ink-300: oklch(0.41 0.011 56);
-  --color-ink-400: oklch(0.49 0.01 56);
-  --color-ink-500: oklch(0.51 0.009 56);
-  --color-ink-600: oklch(0.59 0.009 58);
-  --color-ink-700: oklch(0.74 0.011 60);
+  --color-ink-50: oklch(0.2 0.014 56);
+  --color-ink-100: oklch(0.24 0.013 56);
+  --color-ink-200: oklch(0.29 0.013 56);
+  --color-ink-300: oklch(0.35 0.012 56);
+  --color-ink-400: oklch(0.42 0.011 56);
+  --color-ink-500: oklch(0.47 0.01 56);
+  --color-ink-600: oklch(0.55 0.009 58);
+  --color-ink-700: oklch(0.7 0.011 60);
   --color-ink-800: oklch(0.86 0.013 72);
   --color-ink-900: oklch(0.93 0.012 78);
   --color-ink-950: oklch(0.97 0.008 80);
@@ -536,11 +536,11 @@ html[data-theme="light"] body::after {
 
 /* Glass surfaces (sticky navbar, dropdowns) — frosted paper, not smoked. */
 html[data-theme="light"] .gh-glass {
-  background-color: oklch(0.99 0.005 85 / 0.82);
-  border-color: oklch(0.2 0.02 56 / 0.1);
+  background-color: oklch(0.975 0.006 82 / 0.9);
+  border-color: oklch(0.2 0.02 56 / 0.18);
   box-shadow:
-    inset 0 1px 0 0 oklch(1 0 0 / 0.7),
-    0 16px 40px -24px oklch(0.3 0.03 56 / 0.3);
+    inset 0 1px 0 0 oklch(1 0 0 / 0.8),
+    0 10px 30px -16px oklch(0.3 0.03 56 / 0.35);
 }
 
 /* Card top-edge highlight is a white sheen built for dark; soften on light. */

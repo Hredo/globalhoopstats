@@ -133,8 +133,8 @@ export default async function RootLayout({
       lang={locale}
       data-scroll-behavior="smooth"
       className={`${geist.variable} ${archivo.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
     >
-      <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       <link rel="preconnect" href="https://cdn.nba.com" />
       <link rel="preconnect" href="https://upload.wikimedia.org" />
       <link rel="preconnect" href="https://cdn.ssref.net" />
@@ -142,6 +142,10 @@ export default async function RootLayout({
       <link rel="dns-prefetch" href="//imagenes.feb.es" />
       <link rel="dns-prefetch" href="//www.acb.com" />
       <body className="font-sans" suppressHydrationWarning>
+        {/* Runs before paint to apply the saved theme (no dark→light flash).
+            Lives as the first body node — a raw <script> may not be a direct
+            child of <html>, and this still executes before content renders. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <div
           aria-hidden
           className="court-backdrop pointer-events-none fixed inset-0 -z-10 flex items-center justify-center overflow-hidden"
