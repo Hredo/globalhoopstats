@@ -35,7 +35,7 @@ schedule it.
 ```bash
 pnpm sync                 # all sources (in-season only)
 pnpm sync:elite           # nba acb euroleague
-pnpm sync:feb             # leb-oro leb-plata eba
+pnpm sync:feb             # Primera FEB / Segunda FEB / Tercera FEB
 pnpm sync:nba             # a single source
 pnpm sync nba acb --force # ignore the off-season skip (backfill)
 ```

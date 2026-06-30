@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@11.6.0",
   "engines": {
-    "node": "20.x"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "dev": "next dev --turbopack",
@@ -36,13 +36,15 @@
     "backfill:coach-wikidata": "tsx scripts/backfill-coach-wikidata.ts",
     "backfill:coach-photos": "tsx scripts/backfill-coach-photos.ts",
     "db:dedupe-players": "tsx scripts/dedupe-players.ts",
-    "db:cleanup-syncs": "tsx scripts/cleanup-stale-syncs.ts"
+    "db:cleanup-syncs": "tsx scripts/cleanup-stale-syncs.ts",
+    "migrate:league-names": "tsx scripts/migrate-league-names.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "docx": "^9.5.0",
     "drizzle-orm": "^0.45.2",
     "esbuild": "^0.28.1",
+    "esbuild-wasm": "^0.28.1",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.40.0",
     "jspdf": "^4.2.1",

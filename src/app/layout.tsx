@@ -14,6 +14,9 @@ import { SITE, SEO_KEYWORDS, SITE_SOCIAL } from "@/lib/site"
 import { getLocale } from "@/lib/i18n/server"
 import { getDictionary } from "@/lib/i18n/dictionaries"
 import { LocaleProvider } from "@/lib/i18n/provider"
+import { ThemeProvider } from "@/lib/theme/provider"
+import { ThemeToggleFab } from "@/components/layout/theme-toggle-fab"
+import { THEME_INIT_SCRIPT } from "@/lib/theme/init-script"
 import "./globals.css"
 
 const geist = Geist({
@@ -130,6 +133,7 @@ export default async function RootLayout({
       lang={locale}
       data-scroll-behavior="smooth"
       className={`${geist.variable} ${archivo.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
     >
       <link rel="preconnect" href="https://cdn.nba.com" />
       <link rel="preconnect" href="https://upload.wikimedia.org" />
@@ -138,6 +142,10 @@ export default async function RootLayout({
       <link rel="dns-prefetch" href="//imagenes.feb.es" />
       <link rel="dns-prefetch" href="//www.acb.com" />
       <body className="font-sans" suppressHydrationWarning>
+        {/* Runs before paint to apply the saved theme (no dark→light flash).
+            Lives as the first body node — a raw <script> may not be a direct
+            child of <html>, and this still executes before content renders. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <div
           aria-hidden
           className="court-backdrop pointer-events-none fixed inset-0 -z-10 flex items-center justify-center overflow-hidden"
@@ -149,6 +157,7 @@ export default async function RootLayout({
           />
         </div>
         <LocaleProvider locale={locale} dict={dict}>
+        <ThemeProvider>
         <SerwistGate>
         <PageTracker />
         <JsonLd
@@ -192,6 +201,7 @@ export default async function RootLayout({
           {dict.common.skipToContent}
         </a>
         <Navbar />
+        <ThemeToggleFab />
         <AnnouncementNotices />
         <main id="main" className="mx-auto max-w-7xl px-4 sm:px-6">
           {children}
@@ -200,6 +210,7 @@ export default async function RootLayout({
         <Footer />
         <CookieConsent />
         </SerwistGate>
+        </ThemeProvider>
         </LocaleProvider>
       </body>
     </html>

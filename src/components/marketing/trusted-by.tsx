@@ -6,9 +6,9 @@ const LEAGUES = [
   { name: "NBA", slug: "nba" },
   { name: "EuroLeague", slug: "euroleague" },
   { name: "Liga ACB", slug: "acb" },
-  { name: "LEB Oro", slug: "leb-oro" },
-  { name: "LEB Plata", slug: "leb-plata" },
-  { name: "EBA", slug: "eba" },
+  { name: "Primera FEB", slug: "leb-oro" },
+  { name: "Segunda FEB", slug: "leb-plata" },
+  { name: "Tercera FEB", slug: "eba" },
 ]
 
 export async function TrustedBy() {

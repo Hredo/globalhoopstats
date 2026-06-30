@@ -502,7 +502,7 @@ export default function TradePage() {
                   }}
                   className={`rounded-md px-2.5 py-1 text-xs font-semibold transition ${
                     currency === code
-                      ? "bg-brand-600 text-white"
+                      ? "bg-brand-600 text-[#fff]"
                       : "text-ink-400 hover:text-ink-100"
                   }`}
                 >
@@ -532,7 +532,7 @@ export default function TradePage() {
             key={m}
             onClick={() => switchMode(m)}
             className={`relative flex-1 rounded-lg px-4 py-2 text-sm font-semibold transition-colors duration-200 ${
-              mode === m ? "text-white" : "text-ink-300 hover:text-ink-100"
+              mode === m ? "text-[#fff]" : "text-ink-300 hover:text-ink-100"
             }`}
           >
             {mode === m ? (
@@ -956,7 +956,7 @@ export default function TradePage() {
               <button
                 onClick={runAiAnalysis}
                 disabled={aiLoading}
-                className="inline-flex items-center gap-1.5 rounded-lg border-2 border-brand-500/40 bg-brand-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-900/30 transition hover:bg-brand-500 hover:shadow-brand-700/40 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border-2 border-brand-500/40 bg-brand-600 px-5 py-2.5 text-sm font-bold text-[#fff] shadow-lg shadow-brand-900/30 transition hover:bg-brand-500 hover:shadow-brand-700/40 disabled:opacity-50"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />

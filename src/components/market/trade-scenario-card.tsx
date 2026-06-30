@@ -206,7 +206,7 @@ export function TradeScenarioCard({
                 type="button"
                 onClick={onAnalyze}
                 disabled={aiLoading}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-brand-500/40 bg-brand-600/90 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-500 disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-brand-500/40 bg-brand-600/90 px-3 py-2 text-sm font-semibold text-[#fff] shadow-sm transition hover:bg-brand-500 disabled:opacity-60"
               >
                 <SparkIcon className={aiLoading ? "h-4 w-4 animate-pulse" : "h-4 w-4"} />
                 <span>{aiLoading ? t("trade.ai.scenario.analyzing") : t("trade.ai.scenario.analyze")}</span>
@@ -223,7 +223,7 @@ export function TradeScenarioCard({
             {aiAnalysis ? (
               <div className="rounded-xl border border-brand-500/25 bg-surface-0 p-3.5">
                 <div className="mb-2 flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-brand-600 text-white">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-brand-600 text-[#fff]">
                     <SparkIcon className="h-3.5 w-3.5" />
                   </span>
                   <span className="text-xs font-bold text-ink-50">

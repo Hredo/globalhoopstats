@@ -56,8 +56,8 @@ export default async function MethodologyPage() {
       <h2>{es ? "1. Fuentes de datos" : "1. Data sources"}</h2>
       <p>
         {es
-          ? "Agregamos estadísticas que son de acceso público en las webs oficiales de cada competición. Cubrimos NBA, EuroLeague, ACB (Liga Endesa) y el escalafón FEB de España: LEB Oro, LEB Plata y EBA. Cada competición se recoge con un adaptador propio que normaliza su formato a un modelo común."
-          : "We aggregate statistics that are publicly available on each competition's official website. We cover the NBA, EuroLeague, ACB (Liga Endesa) and Spain's FEB ladder: LEB Oro, LEB Plata and EBA. Each competition is collected by its own adapter that normalizes its format into a shared model."}
+          ? "Agregamos estadísticas que son de acceso público en las webs oficiales de cada competición. Cubrimos NBA, EuroLeague, ACB (Liga Endesa) y el escalafón FEB de España: Primera FEB, Segunda FEB y Tercera FEB. Cada competición se recoge con un adaptador propio que normaliza su formato a un modelo común."
+          : "We aggregate statistics that are publicly available on each competition's official website. We cover the NBA, EuroLeague, ACB (Liga Endesa) and Spain's FEB ladder: Primera FEB, Segunda FEB and Tercera FEB. Each competition is collected by its own adapter that normalizes its format into a shared model."}
       </p>
       <p>
         {es
@@ -80,8 +80,8 @@ export default async function MethodologyPage() {
       </h2>
       <p>
         {es
-          ? "Los jugadores y entrenadores se mueven entre ligas (un jugador puede pasar de EBA a LEB y a la ACB). Mantenemos una única ficha por persona y conectamos sus líneas estadísticas de cada competición, en lugar de crear perfiles duplicados. Esto permite comparar y seguir una carrera completa de forma coherente."
-          : "Players and coaches move between leagues (a player may go from EBA to LEB to the ACB). We keep a single profile per person and connect their stat lines from each competition, instead of creating duplicate profiles. This lets you compare and follow an entire career coherently."}
+          ? "Los jugadores y entrenadores se mueven entre ligas (un jugador puede pasar de Tercera FEB a Primera FEB y a la ACB). Mantenemos una única ficha por persona y conectamos sus líneas estadísticas de cada competición, en lugar de crear perfiles duplicados. Esto permite comparar y seguir una carrera completa de forma coherente."
+          : "Players and coaches move between leagues (a player may go from Tercera FEB to Primera FEB to the ACB). We keep a single profile per person and connect their stat lines from each competition, instead of creating duplicate profiles. This lets you compare and follow an entire career coherently."}
       </p>
 
       <h2>{es ? "4. Valoración de mercado" : "4. Market valuation"}</h2>

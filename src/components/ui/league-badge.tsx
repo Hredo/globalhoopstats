@@ -30,19 +30,19 @@ const ACCENTS: Record<string, LeagueAccent> = {
     color: "oklch(0.76 0.13 85)",
     text: "oklch(0.82 0.11 85)",
     glow: "0 0 44px -10px oklch(0.76 0.13 85 / 0.5)",
-    short: "ORO",
+    short: "1F",
   },
   "leb-plata": {
     color: "oklch(0.74 0.02 240)",
     text: "oklch(0.82 0.02 240)",
     glow: "0 0 44px -10px oklch(0.74 0.02 240 / 0.45)",
-    short: "PLA",
+    short: "2F",
   },
   eba: {
     color: "oklch(0.7 0.11 200)",
     text: "oklch(0.78 0.1 200)",
     glow: "0 0 44px -10px oklch(0.7 0.11 200 / 0.45)",
-    short: "EBA",
+    short: "3F",
   },
 }
 

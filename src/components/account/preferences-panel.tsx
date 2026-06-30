@@ -8,6 +8,7 @@ import {
 } from "@/components/account/primitives"
 import { LanguageSwitcher } from "@/components/layout/language-switcher"
 import { useT } from "@/lib/i18n/provider"
+import { useTheme } from "@/lib/theme/provider"
 
 type Settings = {
   emailProduct: boolean
@@ -23,6 +24,7 @@ const DEFAULTS: Settings = {
 
 export function PreferencesPanel() {
   const t = useT()
+  const { theme, setTheme } = useTheme()
   const [settings, setSettings] = useState<Settings>(DEFAULTS)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -114,6 +116,12 @@ export function PreferencesPanel() {
         description={t("account.preferences.accessibilityDescription")}
       >
         <div className="divide-y divide-white/5">
+          <Toggle
+            label={t("account.preferences.lightMode")}
+            description={t("account.preferences.lightModeHint")}
+            checked={theme === "light"}
+            onChange={(v) => setTheme(v ? "light" : "dark")}
+          />
           <Toggle
             label={t("account.preferences.reduceMotion")}
             description={t("account.preferences.reduceMotionHint")}

@@ -24,7 +24,7 @@ type Props = {
   stats: AuthCourtStats
 }
 
-const LEAGUES = ["NBA", "EuroLeague", "ACB", "LEB Oro", "LEB Plata", "EBA"]
+const LEAGUES = ["NBA", "EuroLeague", "ACB", "Primera FEB", "Segunda FEB", "Tercera FEB"]
 
 export function AuthCourt({ className, stats }: Props) {
   const t = useT()

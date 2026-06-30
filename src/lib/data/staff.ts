@@ -2,6 +2,7 @@ import { and, asc, eq, inArray, like, sql } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
 import { coaches, leagues, teams } from "@/lib/db/schema"
 import { cached } from "@/lib/data/cache"
+import { resolveLeagueName } from "@/lib/sources/types"
 import { leagueSlugsFor } from "@/lib/league-groups"
 
 export type CoachListItem = {
@@ -108,7 +109,7 @@ async function listCoachesUncached(
       photoUrl: r.photoUrl,
       league: {
         id: r.leagueId,
-        name: r.leagueName,
+        name: resolveLeagueName(r.leagueSlug, r.leagueName),
         slug: r.leagueSlug,
         region: r.leagueRegion,
       },

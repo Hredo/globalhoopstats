@@ -203,7 +203,7 @@ function PanelCard({ panel }: { panel: Panel }) {
 
 /* ── panel mini-visuals ───────────────────────────────────────── */
 function LeaguesVisual() {
-  const leagues = ["NBA", "EuroLeague", "ACB", "LEB Oro", "LEB Plata", "EBA"]
+  const leagues = ["NBA", "EuroLeague", "ACB", "Primera FEB", "Segunda FEB", "Tercera FEB"]
   return (
     <div className="flex flex-wrap gap-2">
       {leagues.map((l) => (

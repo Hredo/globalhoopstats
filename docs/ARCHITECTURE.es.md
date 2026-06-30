@@ -48,7 +48,7 @@ rápida y **bilingüe (ES/EN)**.
 | 🇺🇸 Norteamérica | NBA | `nba` |
 | 🇪🇺 Europa | EuroLeague | `euroleague` |
 | 🇪🇸 España | Liga Endesa (ACB) | `acb` |
-| 🇪🇸 España (FEB) | LEB Oro · LEB Plata · EBA | `leb-oro`, `leb-plata`, `eba` |
+| 🇪🇸 España (FEB) | Primera FEB · Segunda FEB · Tercera FEB | `leb-oro`, `leb-plata`, `eba` |
 
 Sobre esa base de datos unificada se construyen tres productos:
 
@@ -570,7 +570,7 @@ Definidos en `package.json` (ejecutados con `tsx`).
 | --- | --- |
 | `pnpm sync:global` | sincroniza todas las ligas |
 | `pnpm sync:{nba,euroleague,acb,leb-oro,leb-plata,eba}` | una competición |
-| `pnpm sync:feb` | todas las FEB (LEB Oro + Plata + EBA) |
+| `pnpm sync:feb` | todas las FEB (Primera FEB + Segunda FEB + Tercera FEB) |
 | `pnpm backfill:{players,colors,team-identity,acb-bio,coach-wikidata,coach-photos}` | enriquecidos puntuales |
 
 En producción, el sync corre **de noche por cron** (`POST /api/cron/sync`, Hostinger). En servidor Node de larga

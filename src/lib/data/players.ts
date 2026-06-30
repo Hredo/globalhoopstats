@@ -9,6 +9,7 @@ import {
 } from "@/lib/db/schema"
 import { cached } from "@/lib/data/cache"
 import { leagueSlugsFor } from "@/lib/league-groups"
+import { resolveLeagueName } from "@/lib/sources/types"
 import { inArray } from "drizzle-orm"
 
 export type PlayerListItem = {
@@ -444,7 +445,7 @@ export const getPlayerBySlug = cached(
       acc = {
         league: {
           id: row.leagueId,
-          name: row.leagueName,
+          name: resolveLeagueName(row.leagueSlug, row.leagueName),
           slug: row.leagueSlug,
           region: row.leagueRegion,
         },
@@ -683,7 +684,7 @@ function mapRow(
         ? { id: r.teamId, name: r.teamName, slug: r.teamSlug, logoUrl: r.teamLogo }
         : null,
     league: {
-      id: r.leagueId, name: r.leagueName, slug: r.leagueSlug, region: r.leagueRegion,
+      id: r.leagueId, name: resolveLeagueName(r.leagueSlug, r.leagueName), slug: r.leagueSlug, region: r.leagueRegion,
     },
     season: r.seasonId
       ? {

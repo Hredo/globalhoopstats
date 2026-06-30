@@ -40,7 +40,7 @@ function CompareVisual() {
         <polygon
           points="0,-60 52,-30 52,30 0,60 -52,30 -52,-30"
           fill="url(#cg1)"
-          fillOpacity="0.18"
+          fillOpacity="0.2"
           stroke="url(#cg1)"
           strokeWidth="1.4"
         />
@@ -53,8 +53,7 @@ function CompareVisual() {
               y1={0}
               x2={Math.cos(a) * 60}
               y2={Math.sin(a) * 60}
-              stroke="white"
-              strokeOpacity="0.08"
+              stroke="var(--color-hairline)"
               strokeWidth="0.8"
             />
           )
@@ -64,7 +63,7 @@ function CompareVisual() {
         <polygon
           points="0,-60 52,-30 52,30 0,60 -52,30 -52,-30"
           fill="url(#cg2)"
-          fillOpacity="0.18"
+          fillOpacity="0.2"
           stroke="url(#cg2)"
           strokeWidth="1.4"
         />
@@ -77,8 +76,7 @@ function CompareVisual() {
               y1={0}
               x2={Math.cos(a) * 60}
               y2={Math.sin(a) * 60}
-              stroke="white"
-              strokeOpacity="0.08"
+              stroke="var(--color-hairline)"
               strokeWidth="0.8"
             />
           )
@@ -89,15 +87,14 @@ function CompareVisual() {
         y1="20"
         x2="160"
         y2="180"
-        stroke="white"
-        strokeOpacity="0.08"
+        stroke="var(--color-hairline)"
         strokeDasharray="2 4"
       />
       <text
         x="80"
         y="20"
         textAnchor="middle"
-        fill="oklch(0.92 0 0)"
+        fill="var(--color-ink-300)"
         fontSize="9"
         fontFamily="monospace"
       >
@@ -107,7 +104,7 @@ function CompareVisual() {
         x="240"
         y="20"
         textAnchor="middle"
-        fill="oklch(0.92 0 0)"
+        fill="var(--color-ink-300)"
         fontSize="9"
         fontFamily="monospace"
       >
@@ -132,8 +129,7 @@ function RadarVisual() {
             width="280"
             height="32"
             rx="6"
-            fill="white"
-            fillOpacity="0.04"
+            fill="var(--color-surface-1)"
           />
           <circle
             cx="16"
@@ -147,8 +143,7 @@ function RadarVisual() {
             width={100 - row * 16}
             height="6"
             rx="3"
-            fill="white"
-            fillOpacity="0.18"
+            fill="var(--color-ink-400)"
           />
           <rect
             x="34"
@@ -156,16 +151,14 @@ function RadarVisual() {
             width={60 - row * 10}
             height="4"
             rx="2"
-            fill="white"
-            fillOpacity="0.1"
+            fill="var(--color-ink-500)"
           />
           <text
             x="266"
             y="20"
             textAnchor="end"
             fontSize="9"
-            fill="white"
-            fillOpacity="0.5"
+            fill="var(--color-ink-300)"
             fontFamily="monospace"
           >
             {["32.4", "27.1", "30.4"][row]}
@@ -176,8 +169,7 @@ function RadarVisual() {
         x="20"
         y="22"
         fontSize="9"
-        fill="white"
-        fillOpacity="0.4"
+        fill="var(--color-ink-400)"
         fontFamily="monospace"
       >
         TOP SCORERS
@@ -208,8 +200,7 @@ function ShotVisual() {
       <path
         d="M140 60 a20 20 0 1 1 40 0 a20 20 0 1 1 -40 0"
         fill="none"
-        stroke="white"
-        strokeOpacity="0.3"
+        stroke="var(--color-hairline-strong)"
         strokeWidth="1.2"
       />
       <line
@@ -217,8 +208,7 @@ function ShotVisual() {
         y1="60"
         x2="160"
         y2="180"
-        stroke="white"
-        strokeOpacity="0.2"
+        stroke="var(--color-hairline)"
       />
       {[
         [120, 110, 8, 0.7],
