@@ -219,7 +219,7 @@ export function ExportMenu({ team, messages, disabled = false }: Props) {
             ? "Start a conversation to export"
             : "Export conversation"
         }
-        className="group relative inline-flex items-center gap-2.5 overflow-hidden rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-500/25 ring-1 ring-brand-400/40 transition hover:from-brand-400 hover:to-brand-500 hover:shadow-xl hover:shadow-brand-500/40 focus:outline-none focus:ring-2 focus:ring-brand-300 focus:ring-offset-2 focus:ring-offset-ink-950 disabled:cursor-not-allowed disabled:from-ink-700 disabled:to-ink-800 disabled:shadow-none disabled:ring-ink-700/40"
+        className="group relative inline-flex items-center gap-2.5 overflow-hidden rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 px-4 py-2.5 text-sm font-semibold text-[#fff] shadow-lg shadow-brand-500/25 ring-1 ring-brand-400/40 transition hover:from-brand-400 hover:to-brand-500 hover:shadow-xl hover:shadow-brand-500/40 focus:outline-none focus:ring-2 focus:ring-brand-300 focus:ring-offset-2 focus:ring-offset-ink-950 disabled:cursor-not-allowed disabled:from-ink-700 disabled:to-ink-800 disabled:shadow-none disabled:ring-ink-700/40"
       >
         <span
           className="absolute inset-y-0 left-0 w-1 bg-white/30 transition-all group-hover:w-1.5"

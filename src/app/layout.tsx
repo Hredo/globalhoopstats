@@ -14,6 +14,9 @@ import { SITE, SEO_KEYWORDS, SITE_SOCIAL } from "@/lib/site"
 import { getLocale } from "@/lib/i18n/server"
 import { getDictionary } from "@/lib/i18n/dictionaries"
 import { LocaleProvider } from "@/lib/i18n/provider"
+import { ThemeProvider } from "@/lib/theme/provider"
+import { ThemeToggleFab } from "@/components/layout/theme-toggle-fab"
+import { THEME_INIT_SCRIPT } from "@/lib/theme/init-script"
 import "./globals.css"
 
 const geist = Geist({
@@ -131,6 +134,7 @@ export default async function RootLayout({
       data-scroll-behavior="smooth"
       className={`${geist.variable} ${archivo.variable} ${jetbrainsMono.variable}`}
     >
+      <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       <link rel="preconnect" href="https://cdn.nba.com" />
       <link rel="preconnect" href="https://upload.wikimedia.org" />
       <link rel="preconnect" href="https://cdn.ssref.net" />
@@ -149,6 +153,7 @@ export default async function RootLayout({
           />
         </div>
         <LocaleProvider locale={locale} dict={dict}>
+        <ThemeProvider>
         <SerwistGate>
         <PageTracker />
         <JsonLd
@@ -192,6 +197,7 @@ export default async function RootLayout({
           {dict.common.skipToContent}
         </a>
         <Navbar />
+        <ThemeToggleFab />
         <AnnouncementNotices />
         <main id="main" className="mx-auto max-w-7xl px-4 sm:px-6">
           {children}
@@ -200,6 +206,7 @@ export default async function RootLayout({
         <Footer />
         <CookieConsent />
         </SerwistGate>
+        </ThemeProvider>
         </LocaleProvider>
       </body>
     </html>

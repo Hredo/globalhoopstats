@@ -26,6 +26,12 @@ export const en = {
     change: "Change language",
     current: "Current language: {language}",
   },
+  theme: {
+    light: "Light",
+    dark: "Dark",
+    switchToLight: "Switch to light mode",
+    switchToDark: "Switch to dark mode",
+  },
   nav: {
     players: "Players",
     teams: "Teams",
@@ -287,7 +293,11 @@ export const en = {
       usageAlerts: "Usage & quota alerts",
       usageAlertsHint: "A heads-up when you're close to a free-plan limit.",
       accessibilityTitle: "Accessibility",
-      accessibilityDescription: "Tone down the heavier motion across the site.",
+      accessibilityDescription:
+        "Adjust the appearance and motion of the site to suit how you read.",
+      lightMode: "Light mode",
+      lightModeHint:
+        "A brighter, higher-contrast theme that's easier on the eyes.",
       reduceMotion: "Reduce motion",
       reduceMotionHint: "Minimise large scroll and reveal animations.",
       saved: "Preferences saved.",

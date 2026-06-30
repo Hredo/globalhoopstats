@@ -154,7 +154,7 @@ export function Toggle({
       >
         <span
           className={cn(
-            "inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200",
+            "inline-block h-4 w-4 transform rounded-full bg-[#fff] shadow transition-transform duration-200",
             checked ? "translate-x-5" : "translate-x-0.5",
           )}
         />

@@ -27,6 +27,12 @@ export const es: Messages = {
     change: "Cambiar idioma",
     current: "Idioma actual: {language}",
   },
+  theme: {
+    light: "Claro",
+    dark: "Oscuro",
+    switchToLight: "Cambiar a modo claro",
+    switchToDark: "Cambiar a modo oscuro",
+  },
   nav: {
     players: "Jugadores",
     teams: "Equipos",
@@ -291,7 +297,10 @@ export const es: Messages = {
         "Un aviso cuando estés cerca del límite del plan gratuito.",
       accessibilityTitle: "Accesibilidad",
       accessibilityDescription:
-        "Reduce las animaciones más intensas de la web.",
+        "Ajusta la apariencia y el movimiento de la web a tu forma de leer.",
+      lightMode: "Modo claro",
+      lightModeHint:
+        "Un tema más claro y con más contraste, más fácil para la vista.",
       reduceMotion: "Reducir movimiento",
       reduceMotionHint:
         "Minimiza las animaciones grandes de scroll y aparición.",
