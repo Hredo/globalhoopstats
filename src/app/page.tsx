@@ -6,7 +6,9 @@ import { Parallax } from "@/components/animations/parallax"
 import { SpotlightCard } from "@/components/animations/spotlight-card"
 import { ScrollGallery } from "@/components/animations/scroll-gallery"
 import { AppMockup } from "@/components/marketing/app-mockup"
-import { CountUp } from "@/components/marketing/count-up"
+import { HeroDuel } from "@/components/three/hero-duel"
+import { StatCounter } from "@/components/ui/stat-counter"
+import { TiltCard } from "@/components/ui/tilt-card"
 import { Marquee } from "@/components/marketing/marquee"
 import { JsonLd } from "@/components/marketing/json-ld"
 import { TrustedBy } from "@/components/marketing/trusted-by"
@@ -142,7 +144,7 @@ export default async function Home() {
         {/* background handled globally by the fixed court backdrop */}
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="grid items-center gap-12 md:grid-cols-[1.05fr_0.95fr]">
+        <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
           <div>
             <FadeIn>
               <Eyebrow>
@@ -156,10 +158,10 @@ export default async function Home() {
 
             <FadeIn delay={0.08} y={28}>
               <TitleRule className="mt-6">
-                <h1 className="font-display text-[3.4rem] font-bold leading-[0.86] tracking-[-0.045em] text-ink-50 sm:text-[5rem] md:text-[6rem] xl:text-[6.75rem]">
+                <h1 className="font-display text-[2.75rem] font-semibold leading-[0.96] tracking-[-0.012em] text-balance text-ink-50 [overflow-wrap:break-word] sm:text-[3.9rem] lg:text-[4.3rem] xl:text-[5.25rem]">
                   {t("home.hero.titleLine1")}
                   <br />
-                  <span className="text-gradient-shimmer">
+                  <span className="text-gradient-shimmer italic">
                     {t("home.hero.titleLine2")}
                   </span>
                 </h1>
@@ -193,8 +195,8 @@ export default async function Home() {
                     key={s.labelKey}
                     className="border-l-2 border-brand-500/40 pl-4"
                   >
-                    <dt className="font-display text-2xl font-bold tabular-nums text-ink-50 sm:text-3xl">
-                      <CountUp
+                    <dt className="font-display text-2xl font-semibold tabular-nums text-ink-50 sm:text-3xl">
+                      <StatCounter
                         to={s.v}
                         suffix={s.suffix}
                         decimals={"decimals" in s ? s.decimals : 0}
@@ -210,13 +212,19 @@ export default async function Home() {
           </div>
 
           <FadeIn delay={0.2} className="relative">
-            <Parallax speed={24}>
-              <div
-                aria-hidden
-                className="absolute inset-0 -z-10 rounded-[2rem] bg-gradient-to-br from-brand-500/25 via-transparent to-league-euro-600/20 blur-2xl"
-              />
-              <AppMockup />
-            </Parallax>
+            <div
+              aria-hidden
+              className="absolute inset-0 -z-10 rounded-[2rem] bg-gradient-to-br from-brand-500/25 via-transparent to-league-euro-600/20 blur-2xl"
+            />
+            {/* Signature 3D centerpiece — falls back to the static editorial
+                mockup on mobile / reduced-motion / crawlers. */}
+            <HeroDuel
+              fallback={
+                <Parallax speed={24}>
+                  <AppMockup />
+                </Parallax>
+              }
+            />
           </FadeIn>
         </div>
         </div>
@@ -434,7 +442,8 @@ async function BentoCard({
 }) {
   const { t } = await getT()
   return (
-    <SpotlightCard className="gh-card gh-card-interactive group relative flex h-full flex-col overflow-hidden p-6 sm:p-7">
+    <TiltCard max={5} className="group">
+    <SpotlightCard className="gh-card gh-card-interactive relative flex h-full flex-col overflow-hidden p-6 sm:p-7">
       <div className="flex items-center justify-between gap-3">
         <span className="gh-eyebrow">{kicker}</span>
         {/* NOTE: Pro badge kept for when Pro is re-enabled. */}
@@ -489,6 +498,7 @@ async function BentoCard({
         <Link href={href} className="absolute inset-0" aria-label={title} />
       ) : null}
     </SpotlightCard>
+    </TiltCard>
   )
 }
 

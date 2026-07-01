@@ -11,6 +11,7 @@ import { getMarketPlayerBySlug } from "@/lib/market/pool"
 import { Reveal } from "@/components/animations/reveal"
 import { ScaleIn } from "@/components/animations/scale-in"
 import { Eyebrow } from "@/components/ui/eyebrow"
+import { TiltCard } from "@/components/ui/tilt-card"
 import { SmartImage } from "@/components/ui/smart-image"
 import { leagueAccent } from "@/components/ui/league-badge"
 import { getT } from "@/lib/i18n/server"
@@ -47,13 +48,15 @@ export default async function ComparePage(props: {
       <Reveal>
         <header className="mb-8">
           <Eyebrow>{t("compare.eyebrow")}</Eyebrow>
-          <h1 className="mt-4 font-display text-5xl font-bold leading-[0.86] tracking-[-0.045em] text-ink-50 sm:text-6xl md:text-7xl">
-            {t("compare.titleA")}{" "}
-            <span className="text-gradient-brand">{t("compare.titleB")}</span>
-          </h1>
-          <p className="mt-5 max-w-2xl text-pretty text-sm leading-relaxed text-ink-300 sm:text-base">
-            {t("compare.description")}
-          </p>
+          <div className="gh-title-rule mt-4">
+            <h1 className="font-display text-[2.75rem] font-semibold leading-[0.98] tracking-[-0.012em] text-balance text-ink-50 sm:text-6xl md:text-7xl">
+              {t("compare.titleA")}{" "}
+              <span className="text-gradient-brand italic">{t("compare.titleB")}</span>
+            </h1>
+            <p className="mt-5 max-w-2xl text-pretty text-sm leading-relaxed text-ink-300 sm:text-base">
+              {t("compare.description")}
+            </p>
+          </div>
         </header>
       </Reveal>
 
@@ -68,13 +71,17 @@ export default async function ComparePage(props: {
 
       <div className="mt-6 grid grid-cols-1 items-stretch gap-4 sm:mt-8 sm:gap-5 md:grid-cols-[1fr_auto_1fr]">
         <Reveal direction="right" amount={0.1}>
-          <ComparePlayerCard side="a" player={playerA} requested={aSlug} />
+          <TiltCard max={5}>
+            <ComparePlayerCard side="a" player={playerA} requested={aSlug} />
+          </TiltCard>
         </Reveal>
         <ScaleIn delay={0.25} amount={0.5}>
           <CompareVsDivider label={t("compare.vs")} />
         </ScaleIn>
         <Reveal direction="left" amount={0.1}>
-          <ComparePlayerCard side="b" player={playerB} requested={bSlug} />
+          <TiltCard max={5}>
+            <ComparePlayerCard side="b" player={playerB} requested={bSlug} />
+          </TiltCard>
         </Reveal>
       </div>
 

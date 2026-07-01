@@ -626,8 +626,12 @@ export default function AIAdvisorClient() {
         {/* ── Console ─────────────────────────────────────────────── */}
         <section
           aria-label="Scouting Advisor console"
-          className="flex min-h-[calc(100dvh-120px)] w-full min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-ink-950/40 lg:h-[calc(100dvh-92px)] lg:min-h-0"
+          className="relative flex min-h-[calc(100dvh-120px)] w-full min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-ink-950/40 lg:h-[calc(100dvh-92px)] lg:min-h-0"
         >
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 z-20 h-px bg-gradient-to-r from-transparent via-brand-500/70 to-transparent"
+          />
           <header className="flex items-center justify-between gap-2 border-b border-white/10 bg-ink-950/50 px-3 py-3 backdrop-blur-sm sm:gap-3 sm:px-5">
             <div className="flex min-w-0 items-center gap-2 sm:gap-3">
               <button
@@ -671,7 +675,7 @@ export default function AIAdvisorClient() {
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h1 className="truncate font-display text-base font-bold text-ink-50 sm:text-lg">
+                  <h1 className="truncate font-display text-base font-bold tracking-[-0.01em] text-ink-50 sm:text-xl">
                     {t("aiAdvisor.title")}
                   </h1>
                   <span className="shrink-0 rounded-full border border-amber-400/50 bg-amber-400/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-300">

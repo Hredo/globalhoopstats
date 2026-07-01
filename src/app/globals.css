@@ -104,13 +104,13 @@
 
   /* ─────────────────────────────────────────────────────────────
      TYPOGRAPHY — wired to next/font variables (set in layout.tsx)
-     Display: Archivo · Body: Geist · Mono: JetBrains Mono
+     Display: Fraunces (editorial serif) · Body: Hanken Grotesk · Mono: Space Mono
      ───────────────────────────────────────────────────────────── */
-  --font-display: var(--font-display-loaded), "Archivo", ui-sans-serif,
+  --font-display: var(--font-display-loaded), "Fraunces", "Times New Roman",
+    ui-serif, Georgia, serif;
+  --font-sans: var(--font-sans-loaded), "Hanken Grotesk", ui-sans-serif,
     system-ui, sans-serif;
-  --font-sans: var(--font-sans-loaded), "Geist", ui-sans-serif, system-ui,
-    sans-serif;
-  --font-mono: var(--font-mono-loaded), "JetBrains Mono", ui-monospace, monospace;
+  --font-mono: var(--font-mono-loaded), "Space Mono", ui-monospace, monospace;
 
   /* Radii — softer on containers, tighter on inner elements */
   --radius-sm: 0.375rem;
@@ -161,6 +161,9 @@
   --animate-overlay-in: overlay-in 0.15s ease-out both;
   --animate-modal-in: modal-in 0.18s ease-out both;
   --animate-nav-rise: nav-rise 0.6s var(--ease-out-expo) both;
+  --animate-orbit: orbit 32s linear infinite;
+  --animate-orbit-reverse: orbit-reverse 46s linear infinite;
+  --animate-drift: drift 16s var(--ease-fluid) infinite;
 }
 
 /* ── Registered properties for animatable custom props ──────────── */
@@ -331,6 +334,38 @@
     opacity: 1;
     transform: translate3d(0, 0, 0);
     filter: blur(0);
+  }
+}
+
+/* slow orbital spin for 3D-ish rings and league arcs */
+@keyframes orbit {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes orbit-reverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+/* lazy positional drift for floating accents (larger, softer than float) */
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  33% {
+    transform: translate3d(2%, -3%, 0);
+  }
+  66% {
+    transform: translate3d(-2%, 2%, 0);
   }
 }
 
@@ -652,12 +687,16 @@ html[data-theme="light"] .court-backdrop {
     -webkit-text-stroke: 1.5px var(--color-brand-500);
     -webkit-text-fill-color: transparent;
   }
-  /* tightened headline defaults for the display face */
+  /* tightened headline defaults for the display face. Fraunces is a serif, so
+     it wants far less negative tracking than the old sans; optical sizing is
+     pushed to its display end and WONK/SOFT axes give it editorial character. */
   .text-display {
     font-family: var(--font-display);
-    font-weight: 700;
-    letter-spacing: -0.04em;
-    line-height: 0.92;
+    font-weight: 600;
+    letter-spacing: -0.018em;
+    line-height: 0.94;
+    font-optical-sizing: auto;
+    font-variation-settings: "opsz" 144, "SOFT" 0, "WONK" 1;
   }
 
   /* ── Backgrounds & texture ───────────────────────────────────── */
@@ -1059,6 +1098,70 @@ html[data-theme="light"] .court-backdrop {
     100% { transform: scale(1) rotate(0deg); }
   }
 
+  /* ── 3D / perspective helpers (CSS pseudo-3D, no WebGL) ───────── */
+  .perspective-near {
+    perspective: 900px;
+  }
+  .perspective-far {
+    perspective: 1600px;
+  }
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+  /* pointer-tilt card: JS sets --rx/--ry (deg); we translate the glare too.
+     Falls back flat if the custom props are unset. Reduced-motion neutralises
+     the transform below. */
+  .gh-tilt {
+    transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+    transform-style: preserve-3d;
+    transition: transform 0.4s var(--ease-fluid);
+    will-change: transform;
+  }
+  .gh-tilt-lift {
+    transform: translateZ(28px);
+    transform-style: preserve-3d;
+  }
+  /* cursor-tracked glare sheen for tilt cards (needs --gx/--gy) */
+  .gh-glare::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      42% 60% at var(--gx, 50%) var(--gy, 0%),
+      oklch(1 0 0 / 0.16),
+      transparent 60%
+    );
+    opacity: 0;
+    transition: opacity 0.4s var(--ease-fluid);
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+  .gh-tilt:hover .gh-glare::after,
+  .gh-glare:hover::after {
+    opacity: 1;
+  }
+
+  /* editorial drop-cap for long-form intros (methodology / docs) */
+  .gh-dropcap::first-letter {
+    float: left;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 3.4em;
+    line-height: 0.72;
+    padding: 0.06em 0.12em 0 0;
+    color: var(--color-brand-400);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gh-tilt {
+      transform: none !important;
+    }
+  }
+
   /* Title rule — a warm vertical accent bar set in the margin beside a big
      headline (the "spine" of a heading). Brand orange, lighter at the top. */
   .gh-title-rule {
@@ -1079,5 +1182,40 @@ html[data-theme="light"] .court-backdrop {
       var(--color-brand-600)
     );
     box-shadow: 0 0 20px -1px var(--color-brand-500);
+  }
+
+  /* Neutral loading panel for the hero 3D piece while three.js streams in —
+     a soft brand-tinted surface with a sweeping shimmer. */
+  .gh-hero-skeleton {
+    background:
+      radial-gradient(
+        58% 50% at 50% 42%,
+        color-mix(in oklab, var(--color-brand-500) 12%, transparent),
+        transparent 72%
+      ),
+      linear-gradient(180deg, var(--color-surface-1), var(--color-surface-0));
+  }
+  .gh-hero-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      110deg,
+      transparent 32%,
+      color-mix(in oklab, var(--color-brand-400) 14%, transparent) 50%,
+      transparent 68%
+    );
+    transform: translateX(-100%);
+    animation: gh-shimmer 1.6s ease-in-out infinite;
+  }
+  @keyframes gh-shimmer {
+    to {
+      transform: translateX(100%);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .gh-hero-skeleton::after {
+      animation: none;
+    }
   }
 }
