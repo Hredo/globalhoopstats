@@ -54,8 +54,7 @@ export function TwoFactorVerifyForm() {
         return
       }
       window.dispatchEvent(new Event("auth:changed"))
-      router.refresh()
-      router.push("/ai-advisor")
+      router.replace("/ai-advisor")
     } catch {
       setError("We couldn't reach the server. Check your connection and retry.")
     } finally {

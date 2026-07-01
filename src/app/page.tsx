@@ -219,6 +219,7 @@ export default async function Home() {
             {/* Signature 3D centerpiece — falls back to the static editorial
                 mockup on mobile / reduced-motion / crawlers. */}
             <HeroDuel
+              prefer3d
               fallback={
                 <Parallax speed={24}>
                   <AppMockup />
