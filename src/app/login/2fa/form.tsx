@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, type FormEvent } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 
 function formatTime(ms: number): string {
   if (ms <= 0) return "0:00"
@@ -13,7 +13,6 @@ function formatTime(ms: number): string {
 }
 
 export function TwoFactorVerifyForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const sessionId = searchParams.get("session") ?? ""
 
@@ -54,7 +53,7 @@ export function TwoFactorVerifyForm() {
         return
       }
       window.dispatchEvent(new Event("auth:changed"))
-      router.replace("/ai-advisor")
+      window.location.href = "/ai-advisor"
     } catch {
       setError("We couldn't reach the server. Check your connection and retry.")
     } finally {

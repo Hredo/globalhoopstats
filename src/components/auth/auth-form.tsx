@@ -3,9 +3,8 @@
 import { useState, type FormEvent } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { AuthCourt, type AuthCourtStats } from "@/components/auth/auth-court"
-import { safeNextPath } from "@/lib/auth/safe-redirect"
 import { useT } from "@/lib/i18n/provider"
 
 type FieldProps = {
@@ -153,9 +152,7 @@ type AuthFormProps = {
 
 export function AuthForm({ variant, stats }: AuthFormProps) {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const t = useT()
-  const next = safeNextPath(searchParams.get("next"))
 
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -231,7 +228,9 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
       // Tell the navbar (UserMenu) the session changed so it swaps
       // "Sign in / Get started" for the account menu without a reload.
       window.dispatchEvent(new Event("auth:changed"))
-      router.replace(next || "/")
+      // Hard redirect clears the RSC prefetch cache so protected pages
+      // (trade, compare, ai-advisor) don't follow stale middleware redirects.
+      window.location.href = "/"
     } catch {
       setFormError(t("auth.networkError"))
     } finally {

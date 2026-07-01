@@ -212,7 +212,7 @@ export default async function RootLayout({
         <Navbar />
         <ThemeToggleFab />
         <AnnouncementNotices />
-        <main id="main" className="mx-auto max-w-7xl px-4 sm:px-6">
+        <main id="main" className="mx-auto min-h-dvh max-w-7xl px-4 sm:px-6">
           {children}
         </main>
         <LazyCommandPalette />
