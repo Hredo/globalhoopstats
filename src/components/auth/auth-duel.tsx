@@ -130,6 +130,12 @@ export function AuthDuel({ className }: { className?: string }) {
     const col = (c: [number, number, number], b: number, a = 1): string =>
       `hsla(${c[0]}, ${c[1]}%, ${Math.min(92, c[2] * b)}%, ${a})`
 
+    // Theme-aware structural lines (backboard, net): white on dark, ink on
+    // light — otherwise they'd be invisible on a light backdrop.
+    let isLight = document.documentElement.getAttribute("data-theme") === "light"
+    const struct = (a: number): string =>
+      isLight ? `rgba(26, 18, 10, ${a})` : `rgba(255, 255, 255, ${a})`
+
     // ── Painter's queue (reused) ─────────────────────────────────
     const prims: Array<{ z: number; draw: () => void }> = []
     const push = (z: number, draw: () => void) => prims.push({ z, draw })
@@ -219,9 +225,9 @@ export function AuthDuel({ className }: { className?: string }) {
         ctx.lineTo(bb[4], bb[5])
         ctx.lineTo(bb[6], bb[7])
         ctx.closePath()
-        ctx.fillStyle = "rgba(255, 255, 255, 0.05)"
+        ctx.fillStyle = struct(isLight ? 0.08 : 0.05)
         ctx.fill()
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.28)"
+        ctx.strokeStyle = struct(0.32)
         ctx.lineWidth = 1.2
         ctx.stroke()
       })
@@ -254,7 +260,7 @@ export function AuthDuel({ className }: { className?: string }) {
         }
         ctx.stroke()
         // net
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"
+        ctx.strokeStyle = struct(isLight ? 0.42 : 0.3)
         ctx.lineWidth = 0.9
         for (let s = 0; s < 6; s++) {
           const a = (s / 6) * TAU
@@ -704,6 +710,19 @@ export function AuthDuel({ className }: { className?: string }) {
     })
     io.observe(canvas)
 
+    // React to theme toggles: refresh the structural palette. The animation loop
+    // picks it up on the next frame; a static (reduced-motion) frame is redrawn.
+    const themeObs = new MutationObserver(() => {
+      const next = document.documentElement.getAttribute("data-theme") === "light"
+      if (next === isLight) return
+      isLight = next
+      if (reduced) renderFrame(PH.iso * 0.3)
+    })
+    themeObs.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    })
+
     const onVis = () => {
       visible = !document.hidden
       wake()
@@ -715,6 +734,7 @@ export function AuthDuel({ className }: { className?: string }) {
       if (raf !== null) cancelAnimationFrame(raf)
       ro.disconnect()
       io.disconnect()
+      themeObs.disconnect()
       document.removeEventListener("visibilitychange", onVis)
     }
   }, [])

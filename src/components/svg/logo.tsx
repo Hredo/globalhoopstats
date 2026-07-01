@@ -40,7 +40,7 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       <path
         d="M6 32 H58"
         stroke="var(--color-court-950)"
-        strokeWidth="1.5"
+        strokeWidth="1.1"
         strokeLinecap="round"
         fill="none"
         opacity="0.75"
@@ -48,7 +48,7 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       <path
         d="M32 6 C18 18 18 46 32 58"
         stroke="var(--color-court-950)"
-        strokeWidth="1.5"
+        strokeWidth="1.1"
         strokeLinecap="round"
         fill="none"
         opacity="0.75"
@@ -56,7 +56,7 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       <path
         d="M32 6 C46 18 46 46 32 58"
         stroke="var(--color-court-950)"
-        strokeWidth="1.5"
+        strokeWidth="1.1"
         strokeLinecap="round"
         fill="none"
         opacity="0.75"
