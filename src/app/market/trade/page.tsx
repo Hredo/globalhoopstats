@@ -10,6 +10,7 @@ import { AiAnalysisDisplay } from "@/components/market/ai-analysis-display"
 import { exportTradePdf } from "@/components/market/export-pdf"
 import { ValuationBadge } from "@/components/market/valuation-badge"
 import { SmartImage } from "@/components/ui/smart-image"
+import { Eyebrow } from "@/components/ui/eyebrow"
 import { useT, useLocale } from "@/lib/i18n/provider"
 import { CURRENCIES, formatCurrency, type CurrencyCode } from "@/lib/market/currency"
 import type { Valuation } from "@/lib/market/valuation"
@@ -476,14 +477,15 @@ export default function TradePage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+      <Reveal>
       <div className="mb-8">
-        <p className="gh-eyebrow">{t("trade.page.eyebrow")}</p>
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="mt-2 font-display text-4xl font-bold tracking-[-0.03em] text-ink-50 sm:text-5xl">
+        <Eyebrow>{t("trade.page.eyebrow")}</Eyebrow>
+        <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
+          <div className="gh-title-rule">
+            <h1 className="font-display text-[2.5rem] font-semibold leading-[0.98] tracking-[-0.012em] text-balance text-ink-50 sm:text-5xl md:text-6xl">
               {t("trade.page.title")}
             </h1>
-            <p className="mt-2 max-w-2xl text-sm text-ink-300">
+            <p className="mt-4 max-w-2xl text-pretty text-sm leading-relaxed text-ink-300 sm:text-base">
               {t("trade.page.description")}
             </p>
           </div>
@@ -524,6 +526,7 @@ export default function TradePage() {
           </div>
         </div>
       </div>
+      </Reveal>
 
       {/* Mode tabs */}
       <div className="mb-6 flex gap-1 rounded-xl border border-hairline bg-surface-1 p-1">

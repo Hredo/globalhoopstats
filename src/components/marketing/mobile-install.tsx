@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import { FadeIn } from "@/components/animations/fade-in"
 import { Eyebrow } from "@/components/ui/eyebrow"
 import { useLocale } from "@/lib/i18n/provider"
@@ -37,6 +38,7 @@ export function MobileInstall() {
   const [platform, setPlatform] = useState<Platform>("ios")
   const steps = platform === "ios" ? STEPS_IOS : STEPS_ANDROID
   const prefix = "home.mobileInstall"
+  const reduce = useReducedMotion()
 
   return (
     <section className="relative hairline-t py-32 sm:py-40">
@@ -64,8 +66,31 @@ export function MobileInstall() {
 
         <div className="mt-14 grid items-center gap-10 md:grid-cols-[1.1fr_0.9fr]">
           <FadeIn delay={0.1}>
-            <div className="relative mx-auto max-w-[280px] md:max-w-none">
-              <PhoneFrame platform={platform} />
+            <div
+              className="relative mx-auto max-w-[280px] md:max-w-none"
+              style={{ perspective: 1200 }}
+            >
+              {reduce ? (
+                <PhoneFrame platform={platform} />
+              ) : (
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={platform}
+                    initial={{ rotateY: 65, opacity: 0, scale: 0.94 }}
+                    animate={{ rotateY: 0, opacity: 1, scale: 1 }}
+                    exit={{ rotateY: -65, opacity: 0, scale: 0.94 }}
+                    transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                    style={{ transformStyle: "preserve-3d", transformOrigin: "center" }}
+                  >
+                    <PhoneFrame platform={platform} />
+                  </motion.div>
+                </AnimatePresence>
+              )}
+              {/* soft plate shadow that stays put while the phone flips */}
+              <div
+                aria-hidden
+                className="absolute inset-x-8 bottom-2 -z-10 h-10 rounded-[50%] bg-black/40 blur-2xl"
+              />
             </div>
           </FadeIn>
 
@@ -99,7 +124,7 @@ export function MobileInstall() {
               </div>
             </FadeIn>
 
-            <ol className="space-y-4 sm:space-y-5">
+            <ol key={platform} className="space-y-4 sm:space-y-5">
               {steps.map((step, i) => (
                 <FadeIn key={step.titleKey} delay={0.08 * (i + 3)} y={16}>
                   <li className="group flex items-start gap-4 rounded-xl border border-white/[0.04] bg-white/[0.02] p-4 transition hover:border-brand-400/20 hover:bg-white/[0.04] sm:p-5">

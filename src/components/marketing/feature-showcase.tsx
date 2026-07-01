@@ -17,218 +17,199 @@ const FEATURES: Feature[] = [
   { n: "03", key: "ai", ctaHref: "/ai-advisor", visual: "shot", badge: "Beta" },
 ]
 
+/** Two overlaid radar polygons on one field — the real "compare" gesture:
+ *  same axes, two players, the winner's shape reads instantly. */
 function CompareVisual() {
+  const AXES = ["PTS", "REB", "AST", "TS%", "PER", "STL"]
+  const A = [0.92, 0.42, 0.66, 0.86, 0.8, 0.55]
+  const B = [0.6, 0.88, 0.9, 0.64, 0.72, 0.7]
+  const cx = 160
+  const cy = 100
+  const rmax = 74
+  const pt = (vals: number[]) =>
+    vals
+      .map((v, i) => {
+        const ang = (i / AXES.length) * Math.PI * 2 - Math.PI / 2
+        return `${cx + Math.cos(ang) * rmax * v},${cy + Math.sin(ang) * rmax * v}`
+      })
+      .join(" ")
   return (
     <svg
       viewBox="0 0 320 200"
       className="h-full w-full"
       role="img"
-      aria-label="Side-by-side player comparison mockup"
+      aria-label="Two players overlaid on one radar of advanced metrics"
     >
       <defs>
         <linearGradient id="cg1" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0" stopColor="oklch(0.72 0.18 50)" />
-          <stop offset="1" stopColor="oklch(0.58 0.22 25)" />
+          <stop offset="0" stopColor="oklch(0.75 0.19 52)" />
+          <stop offset="1" stopColor="oklch(0.6 0.21 30)" />
         </linearGradient>
         <linearGradient id="cg2" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0" stopColor="oklch(0.78 0.15 220)" />
-          <stop offset="1" stopColor="oklch(0.52 0.2 260)" />
+          <stop offset="0" stopColor="oklch(0.78 0.13 220)" />
+          <stop offset="1" stopColor="oklch(0.56 0.18 262)" />
         </linearGradient>
       </defs>
-      <rect x="0" y="0" width="320" height="200" fill="transparent" />
-      <g transform="translate(80 100)">
+      {/* rings + spokes */}
+      {[0.33, 0.66, 1].map((r) => (
         <polygon
-          points="0,-60 52,-30 52,30 0,60 -52,30 -52,-30"
-          fill="url(#cg1)"
-          fillOpacity="0.2"
-          stroke="url(#cg1)"
-          strokeWidth="1.4"
+          key={r}
+          points={pt(AXES.map(() => r))}
+          fill="none"
+          stroke="var(--color-hairline)"
+          strokeWidth="0.7"
         />
-        {[0, 1, 2, 3, 4, 5].map((i) => {
-          const a = (i * Math.PI) / 3 - Math.PI / 2
-          return (
+      ))}
+      {AXES.map((ax, i) => {
+        const ang = (i / AXES.length) * Math.PI * 2 - Math.PI / 2
+        return (
+          <g key={ax}>
             <line
-              key={i}
-              x1={0}
-              y1={0}
-              x2={Math.cos(a) * 60}
-              y2={Math.sin(a) * 60}
+              x1={cx}
+              y1={cy}
+              x2={cx + Math.cos(ang) * rmax}
+              y2={cy + Math.sin(ang) * rmax}
               stroke="var(--color-hairline)"
-              strokeWidth="0.8"
+              strokeWidth="0.6"
             />
-          )
-        })}
-      </g>
-      <g transform="translate(240 100)">
-        <polygon
-          points="0,-60 52,-30 52,30 0,60 -52,30 -52,-30"
-          fill="url(#cg2)"
-          fillOpacity="0.2"
-          stroke="url(#cg2)"
-          strokeWidth="1.4"
-        />
-        {[0, 1, 2, 3, 4, 5].map((i) => {
-          const a = (i * Math.PI) / 3 - Math.PI / 2
-          return (
-            <line
-              key={i}
-              x1={0}
-              y1={0}
-              x2={Math.cos(a) * 60}
-              y2={Math.sin(a) * 60}
-              stroke="var(--color-hairline)"
-              strokeWidth="0.8"
-            />
-          )
-        })}
-      </g>
-      <line
-        x1="160"
-        y1="20"
-        x2="160"
-        y2="180"
-        stroke="var(--color-hairline)"
-        strokeDasharray="2 4"
+            <text
+              x={cx + Math.cos(ang) * (rmax + 12)}
+              y={cy + Math.sin(ang) * (rmax + 12) + 3}
+              textAnchor="middle"
+              fontSize="7.5"
+              fill="var(--color-ink-400)"
+              fontFamily="var(--font-mono), monospace"
+            >
+              {ax}
+            </text>
+          </g>
+        )
+      })}
+      {/* player B under, player A over */}
+      <polygon
+        points={pt(B)}
+        fill="url(#cg2)"
+        fillOpacity="0.22"
+        stroke="url(#cg2)"
+        strokeWidth="1.6"
+        className="animate-pulse-soft"
       />
-      <text
-        x="80"
-        y="20"
-        textAnchor="middle"
-        fill="var(--color-ink-300)"
-        fontSize="9"
-        fontFamily="monospace"
-      >
-        A · 32.4 PPG
-      </text>
-      <text
-        x="240"
-        y="20"
-        textAnchor="middle"
-        fill="var(--color-ink-300)"
-        fontSize="9"
-        fontFamily="monospace"
-      >
-        B · 18.1 PPG
-      </text>
+      <polygon
+        points={pt(A)}
+        fill="url(#cg1)"
+        fillOpacity="0.24"
+        stroke="url(#cg1)"
+        strokeWidth="1.8"
+      />
+      {/* legend */}
+      <g fontFamily="var(--font-mono), monospace" fontSize="8">
+        <circle cx="14" cy="16" r="3.5" fill="url(#cg1)" />
+        <text x="22" y="19" fill="var(--color-ink-200)">Dončić</text>
+        <circle cx="14" cy="30" r="3.5" fill="url(#cg2)" />
+        <text x="22" y="33" fill="var(--color-ink-200)">SGA</text>
+      </g>
     </svg>
   )
 }
 
+/** A cross-league leaderboard: rank chips, league-colored dots, filled bars
+ *  and a value column — the kind of table the league hubs render. */
 function RadarVisual() {
+  const ROWS = [
+    { name: "Gilgeous-Alexander", league: "oklch(0.71 0.19 50)", tag: "NBA", val: "31.4", bar: 1 },
+    { name: "Trae Young", league: "oklch(0.71 0.19 50)", tag: "NBA", val: "26.4", bar: 0.84 },
+    { name: "Markus Howard", league: "oklch(0.56 0.18 264)", tag: "EL", val: "19.2", bar: 0.62 },
+    { name: "Dzanan Musa", league: "oklch(0.6 0.21 25)", tag: "ACB", val: "14.7", bar: 0.47 },
+  ]
   return (
     <svg
       viewBox="0 0 320 200"
       className="h-full w-full"
       role="img"
-      aria-label="League leaderboard mockup"
+      aria-label="Cross-league scoring leaderboard"
     >
-      <rect width="320" height="200" fill="transparent" />
-      {[0, 1, 2].map((row) => (
-        <g key={row} transform={`translate(20 ${30 + row * 44})`}>
-          <rect
-            width="280"
-            height="32"
-            rx="6"
-            fill="var(--color-surface-1)"
-          />
-          <circle
-            cx="16"
-            cy="16"
-            r="8"
-            fill={`oklch(${0.7 - row * 0.06} 0.18 ${50 + row * 110})`}
-          />
-          <rect
-            x="34"
-            y="10"
-            width={100 - row * 16}
-            height="6"
-            rx="3"
-            fill="var(--color-ink-400)"
-          />
-          <rect
-            x="34"
-            y="20"
-            width={60 - row * 10}
-            height="4"
-            rx="2"
-            fill="var(--color-ink-500)"
-          />
-          <text
-            x="266"
-            y="20"
-            textAnchor="end"
-            fontSize="9"
-            fill="var(--color-ink-300)"
-            fontFamily="monospace"
-          >
-            {["32.4", "27.1", "30.4"][row]}
+      <text x="14" y="18" fontSize="8.5" fill="var(--color-ink-400)" fontFamily="var(--font-mono), monospace" letterSpacing="1">
+        LÍDERES · PPG
+      </text>
+      <text x="306" y="18" textAnchor="end" fontSize="8.5" fill="var(--color-brand-300)" fontFamily="var(--font-mono), monospace">
+        4 LIGAS
+      </text>
+      {ROWS.map((r, i) => (
+        <g key={r.name} transform={`translate(14 ${30 + i * 40})`}>
+          <rect width="292" height="32" rx="7" fill="var(--color-surface-1)" stroke="var(--color-hairline)" strokeWidth="0.6" />
+          <text x="14" y="21" textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--color-ink-300)" fontFamily="var(--font-mono), monospace">
+            {i + 1}
+          </text>
+          <circle cx="34" cy="16" r="5" fill={r.league} />
+          <text x="47" y="14" fontSize="8.5" fill="var(--color-ink-100)" fontFamily="var(--font-sans), system-ui" fontWeight="600">
+            {r.name}
+          </text>
+          <rect x="47" y="20" width="120" height="4" rx="2" fill="var(--color-surface-3)" />
+          <rect x="47" y="20" width={120 * r.bar} height="4" rx="2" fill={r.league} />
+          <text x="222" y="20" fontSize="7" fill="var(--color-ink-500)" fontFamily="var(--font-mono), monospace">
+            {r.tag}
+          </text>
+          <text x="286" y="21" textAnchor="end" fontSize="11" fontWeight="700" fill="var(--color-ink-50)" fontFamily="var(--font-mono), monospace">
+            {r.val}
           </text>
         </g>
       ))}
-      <text
-        x="20"
-        y="22"
-        fontSize="9"
-        fill="var(--color-ink-400)"
-        fontFamily="monospace"
-      >
-        TOP SCORERS
-      </text>
     </svg>
   )
 }
 
+/** The AI advisor as a scout: a chat exchange with a source-cited verdict —
+ *  what the /ai-advisor feature actually produces. */
 function ShotVisual() {
   return (
     <svg
       viewBox="0 0 320 200"
       className="h-full w-full"
       role="img"
-      aria-label="Shot chart mockup"
+      aria-label="AI advisor conversation with a cited scouting verdict"
     >
       <defs>
-        <linearGradient id="paint" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stopColor="oklch(0.32 0.07 55)" />
-          <stop offset="1" stopColor="oklch(0.16 0.04 50)" />
+        <linearGradient id="ai-b" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0" stopColor="oklch(0.72 0.2 50 / 0.35)" />
+          <stop offset="1" stopColor="oklch(0.6 0.21 30 / 0.18)" />
         </linearGradient>
       </defs>
-      <path
-        d="M40 180 Q40 80 160 60 Q280 80 280 180 Z"
-        fill="url(#paint)"
-        opacity="0.4"
-      />
-      <path
-        d="M140 60 a20 20 0 1 1 40 0 a20 20 0 1 1 -40 0"
-        fill="none"
-        stroke="var(--color-hairline-strong)"
-        strokeWidth="1.2"
-      />
-      <line
-        x1="160"
-        y1="60"
-        x2="160"
-        y2="180"
-        stroke="var(--color-hairline)"
-      />
-      {[
-        [120, 110, 8, 0.7],
-        [180, 95, 6, 0.6],
-        [220, 130, 10, 0.55],
-        [105, 140, 7, 0.5],
-        [195, 165, 9, 0.45],
-        [150, 90, 5, 0.4],
-        [250, 100, 6, 0.3],
-        [85, 155, 7, 0.25],
-      ].map(([x, y, r, op], i) => (
-        <circle
-          key={i}
-          cx={x as number}
-          cy={y as number}
-          r={r as number}
-          fill="oklch(0.72 0.18 50)"
-          fillOpacity={op as number}
-        />
-      ))}
+      {/* user query bubble */}
+      <g transform="translate(120 16)">
+        <rect width="186" height="30" rx="10" fill="var(--color-surface-1)" stroke="var(--color-hairline)" strokeWidth="0.6" />
+        <text x="12" y="14" fontSize="8" fill="var(--color-ink-200)" fontFamily="var(--font-sans), system-ui">¿Quién encaja mejor</text>
+        <text x="12" y="24" fontSize="8" fill="var(--color-ink-200)" fontFamily="var(--font-sans), system-ui">como base titular?</text>
+      </g>
+      {/* AI answer bubble */}
+      <g transform="translate(14 56)">
+        <rect width="220" height="72" rx="12" fill="url(#ai-b)" stroke="oklch(0.72 0.2 50 / 0.4)" strokeWidth="0.8" />
+        <circle cx="16" cy="16" r="7" fill="oklch(0.72 0.2 50 / 0.5)" />
+        <path d="M12.5 16 l2.5 2.5 l4.5 -5" stroke="oklch(0.95 0.02 60)" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <text x="30" y="15" fontSize="7.5" fill="var(--color-brand-200)" fontFamily="var(--font-mono), monospace" letterSpacing="0.5">ASESOR IA</text>
+        <rect x="12" y="28" width="196" height="4.5" rx="2.2" fill="var(--color-ink-400)" />
+        <rect x="12" y="38" width="180" height="4.5" rx="2.2" fill="var(--color-ink-500)" />
+        <rect x="12" y="48" width="150" height="4.5" rx="2.2" fill="var(--color-ink-500)" />
+        <rect x="12" y="58" width="90" height="4.5" rx="2.2" fill="var(--color-brand-400)" />
+      </g>
+      {/* cited-source chips */}
+      <g transform="translate(14 138)" fontFamily="var(--font-mono), monospace" fontSize="7">
+        <rect width="66" height="16" rx="8" fill="var(--color-surface-1)" stroke="var(--color-hairline)" strokeWidth="0.6" />
+        <text x="33" y="11" textAnchor="middle" fill="var(--color-ink-300)">TS% · 61.2</text>
+        <g transform="translate(74 0)">
+          <rect width="66" height="16" rx="8" fill="var(--color-surface-1)" stroke="var(--color-hairline)" strokeWidth="0.6" />
+          <text x="33" y="11" textAnchor="middle" fill="var(--color-ink-300)">AST% · 34</text>
+        </g>
+        <g transform="translate(148 0)">
+          <rect width="72" height="16" rx="8" fill="oklch(0.72 0.2 50 / 0.14)" stroke="oklch(0.72 0.2 50 / 0.4)" strokeWidth="0.6" />
+          <text x="36" y="11" textAnchor="middle" fill="var(--color-brand-200)">VEREDICTO</text>
+        </g>
+      </g>
+      {/* typing dots */}
+      <g transform="translate(200 172)">
+        <circle cx="0" cy="0" r="2.4" fill="var(--color-ink-500)" className="animate-pulse-soft" />
+        <circle cx="9" cy="0" r="2.4" fill="var(--color-ink-500)" className="animate-pulse-soft" style={{ animationDelay: "0.2s" }} />
+        <circle cx="18" cy="0" r="2.4" fill="var(--color-ink-500)" className="animate-pulse-soft" style={{ animationDelay: "0.4s" }} />
+      </g>
     </svg>
   )
 }

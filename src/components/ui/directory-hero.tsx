@@ -13,14 +13,18 @@ export function DirectoryHero({
   description,
   stats,
   league,
+  accents,
 }: {
   eyebrow: ReactNode
   title: ReactNode
   description: ReactNode
   stats?: Stat[]
   league?: string
+  /** Multi-league index pages: accent colours to paint an ambient spectrum. */
+  accents?: string[]
 }) {
   const accent = league ? leagueAccent(league) : null
+  const spectrum = !accent && accents && accents.length > 0 ? accents : null
 
   return (
     <header className="full-bleed relative isolate overflow-hidden pb-2 pt-10 sm:pt-14">
@@ -36,6 +40,37 @@ export function DirectoryHero({
             `,
           }}
         />
+      ) : null}
+
+      {/* Multi-league ambient: a glow per league across the top + a thin
+          spectrum rule, so the index hero carries the brand's full palette. */}
+      {spectrum ? (
+        <>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-[0.16]"
+            style={{
+              backgroundImage: spectrum
+                .map((c, i) => {
+                  const x =
+                    spectrum.length === 1
+                      ? 50
+                      : Math.round((i / (spectrum.length - 1)) * 100)
+                  return `radial-gradient(30% 46% at ${x}% -6%, ${c}, transparent 70%)`
+                })
+                .join(","),
+            }}
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-px opacity-60"
+            style={{
+              backgroundImage: `linear-gradient(to right, transparent, ${spectrum.join(
+                ",",
+              )}, transparent)`,
+            }}
+          />
+        </>
       ) : null}
 
       {/* Giant muted league badge as background typography */}
@@ -61,7 +96,7 @@ export function DirectoryHero({
           </Reveal>
           <Reveal delay={0.06}>
             <TitleRule className="mt-4">
-              <h1 className="font-display text-6xl font-bold leading-[0.84] tracking-[-0.045em] text-ink-50 sm:text-7xl md:text-8xl">
+              <h1 className="font-display text-[3.25rem] font-semibold leading-[0.96] tracking-[-0.015em] text-balance text-ink-50 sm:text-7xl md:text-8xl">
                 {title}
               </h1>
             </TitleRule>

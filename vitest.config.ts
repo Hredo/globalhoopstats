@@ -15,8 +15,8 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: false,
-    include: ["tests/**/*.test.ts"],
-    setupFiles: ["tests/setup.ts"],
+    include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
+    setupFiles: ["tests/setup.ts", "tests/setup-components.ts"],
     // bcrypt hashing at cost 12 is intentionally slow; give the suite room.
     testTimeout: 20_000,
   },

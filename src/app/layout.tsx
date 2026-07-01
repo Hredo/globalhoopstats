@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { Archivo, Geist, JetBrains_Mono } from "next/font/google"
+import { Fraunces, Hanken_Grotesk, Space_Mono } from "next/font/google"
 import { Navbar } from "@/components/layout/navbar"
 import { CourtMarkings } from "@/components/ui/court-markings"
 import { Footer } from "@/components/layout/footer"
@@ -19,20 +19,29 @@ import { ThemeToggleFab } from "@/components/layout/theme-toggle-fab"
 import { THEME_INIT_SCRIPT } from "@/lib/theme/init-script"
 import "./globals.css"
 
-const geist = Geist({
+// Body — Hanken Grotesk: a warm, humanist grotesque that reads clean at small
+// sizes and holds up in dense stat tables. Replaces Geist.
+const hanken = Hanken_Grotesk({
   subsets: ["latin"],
   variable: "--font-sans-loaded",
   display: "swap",
 })
 
-const archivo = Archivo({
+// Display — Fraunces: a variable "old-style" serif with optical sizing. Gives the
+// almanac / editorial "El Índice" voice to big headlines. High contrast, soft
+// terminals, dialed toward a sharper, more editorial cut via axis settings.
+const fraunces = Fraunces({
   subsets: ["latin"],
   variable: "--font-display-loaded",
   display: "swap",
+  axes: ["opsz", "SOFT", "WONK"],
 })
 
-const jetbrainsMono = JetBrains_Mono({
+// Mono — Space Mono: a slightly quirky, wide monospace for tickers, eyebrows and
+// tabular data cues. Reinforces the ledger/almanac feel over a neutral mono.
+const spaceMono = Space_Mono({
   subsets: ["latin"],
+  weight: ["400", "700"],
   variable: "--font-mono-loaded",
   display: "swap",
 })
@@ -132,7 +141,7 @@ export default async function RootLayout({
     <html
       lang={locale}
       data-scroll-behavior="smooth"
-      className={`${geist.variable} ${archivo.variable} ${jetbrainsMono.variable}`}
+      className={`${hanken.variable} ${fraunces.variable} ${spaceMono.variable}`}
       suppressHydrationWarning
     >
       <link rel="preconnect" href="https://cdn.nba.com" />

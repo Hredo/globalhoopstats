@@ -5,6 +5,7 @@ import { getSyncTimesBySource } from "@/lib/data/sync"
 import { GlobalStatsBand } from "@/components/leagues/global-stats-band"
 import { LeagueOverview } from "@/components/leagues/league-overview"
 import { DirectoryHero } from "@/components/ui/directory-hero"
+import { leagueAccent } from "@/components/ui/league-badge"
 import { getT } from "@/lib/i18n/server"
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -24,6 +25,7 @@ export default async function LeaguesPage() {
     getSyncTimesBySource(),
   ])
   const { t } = await getT()
+  const accents = leagues.map((lg) => leagueAccent(lg.slug).color)
 
   return (
     <div className="full-bleed relative pb-8 sm:pb-12">
@@ -38,6 +40,7 @@ export default async function LeaguesPage() {
           </>
         }
         description={t("directory.leagues.description")}
+        accents={accents}
       />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
