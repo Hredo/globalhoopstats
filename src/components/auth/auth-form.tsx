@@ -231,8 +231,7 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
       // Tell the navbar (UserMenu) the session changed so it swaps
       // "Sign in / Get started" for the account menu without a reload.
       window.dispatchEvent(new Event("auth:changed"))
-      router.refresh()
-      router.push("/")
+      router.replace(next || "/")
     } catch {
       setFormError(t("auth.networkError"))
     } finally {

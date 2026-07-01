@@ -217,8 +217,10 @@ function Figure({
   const shapes = useMemo(() => figureShapes(variant), [variant])
   const ball = useMemo(() => ballTextures(), [])
   const root = useRef<THREE.Group>(null)
-  useFrame((s) => {
-    if (root.current) root.current.position.y = Math.sin(s.clock.elapsedTime * 1.1 + phase) * 0.025
+  const timer = useMemo(() => new THREE.Timer(), [])
+  useFrame(() => {
+    timer.update()
+    if (root.current) root.current.position.y = Math.sin(timer.getElapsed() * 1.1 + phase) * 0.025
   })
   return (
     <group position={[x, 0, 0]} rotation={[0, faceRot, 0]}>
@@ -287,8 +289,10 @@ function WebGlGuard() {
 
 function Rig() {
   const g = useRef<THREE.Group>(null)
-  useFrame((state) => {
-    if (g.current) g.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.16) * 0.24
+  const timer = useMemo(() => new THREE.Timer(), [])
+  useFrame(() => {
+    timer.update()
+    if (g.current) g.current.rotation.y = Math.sin(timer.getElapsed() * 0.16) * 0.24
   })
   return (
     <group ref={g}>

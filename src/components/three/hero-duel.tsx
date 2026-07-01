@@ -37,29 +37,30 @@ const Scene = dynamic(() => import("./duel-scene"), {
 export function HeroDuel({
   fallback,
   caption,
+  prefer3d,
 }: {
   fallback: ReactNode
   caption?: string
+  prefer3d?: boolean
 }) {
   const ref = useRef<HTMLDivElement | null>(null)
-  const [state, setState] = useState<"pending" | "enabled" | "disabled">("pending")
-  // Hero sits above the fold — assume in view so the model starts immediately.
+  const [ok, setOk] = useState(!!prefer3d)
   const [inView, setInView] = useState(true)
 
   useEffect(() => {
+    if (prefer3d) return
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     const wide = window.matchMedia("(min-width: 768px)").matches
     const fine = window.matchMedia("(pointer: fine)").matches
     const nav = navigator as Navigator & { connection?: { saveData?: boolean } }
     const saveData = nav.connection?.saveData === true
-    setState(!reduce && wide && fine && !saveData ? "enabled" : "disabled")
-  }, [])
+    setOk(!reduce && wide && fine && !saveData)
+  }, [prefer3d])
 
   useEffect(() => {
+    if (!ok) return
     const el = ref.current
-    if (!el || state !== "enabled") return
-    // Only used to PAUSE (unmount) the canvas once scrolled away, and resume
-    // when it returns — the initial mount is not gated on this.
+    if (!el) return
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) setInView(e.isIntersecting)
@@ -68,11 +69,13 @@ export function HeroDuel({
     )
     io.observe(el)
     return () => io.disconnect()
-  }, [state])
+  }, [ok])
+
+  const show3d = ok && inView
 
   return (
     <div ref={ref} className="relative">
-      {state === "enabled" && inView ? (
+      {show3d ? (
         <figure className="relative m-0 mx-auto max-w-[540px] lg:max-w-none">
           <div className="relative aspect-square w-full cursor-grab active:cursor-grabbing">
             <Scene />
@@ -83,8 +86,6 @@ export function HeroDuel({
             </figcaption>
           ) : null}
         </figure>
-      ) : state === "pending" ? (
-        <SceneSkeleton />
       ) : (
         fallback
       )}
