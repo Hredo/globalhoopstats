@@ -1,6 +1,6 @@
 ﻿import { unstable_cache } from "next/cache"
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 type Callback = (...args: any[]) => Promise<unknown>
 
 export function cached<T extends Callback>(

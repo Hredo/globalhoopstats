@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, type FormEvent } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useSearchParams } from "next/navigation"
+import { safeNextPath } from "@/lib/auth/safe-redirect"
 
 function formatTime(ms: number): string {
   if (ms <= 0) return "0:00"
@@ -23,7 +24,7 @@ export function TwoFactorVerifyForm() {
   const [expiresAt, setExpiresAt] = useState(
     () => Number(searchParams.get("e")) || 0,
   )
-  const [now, setNow] = useState(Date.now())
+  const [now, setNow] = useState(() => Date.now())
   const [resending, setResending] = useState(false)
 
   useEffect(() => {
@@ -53,7 +54,8 @@ export function TwoFactorVerifyForm() {
         return
       }
       window.dispatchEvent(new Event("auth:changed"))
-      window.location.href = "/ai-advisor"
+      // Honour the middleware's post-login target when present (sanitised).
+      window.location.href = safeNextPath(searchParams.get("next"), "/ai-advisor")
     } catch {
       setError("We couldn't reach the server. Check your connection and retry.")
     } finally {

@@ -240,7 +240,9 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
         const existing = existingPlayersBySlug.get(slug)
         const fillIns: Partial<typeof players.$inferInsert> = {}
 
-        if (sp.photoUrl) fillIns.imageUrl = sp.photoUrl
+        // PHOTOS PAUSED (2026-07-03): players render typographic avatars
+        // (PersonAvatar); uncomment to resume photo ingestion.
+        // if (sp.photoUrl) fillIns.imageUrl = sp.photoUrl
         if (sp.birthdate) fillIns.birthdate = sp.birthdate
         if (sp.nationality) fillIns.nationality = sp.nationality
         if (sp.position) fillIns.position = sp.position
@@ -282,7 +284,7 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
             position: sp.position ?? null,
             heightCm: sp.heightCm ?? null,
             weightKg: sp.weightKg ?? null,
-            imageUrl: sp.photoUrl ?? null,
+            // PHOTOS PAUSED (2026-07-03): imageUrl: sp.photoUrl ?? null,
             ...fillIns,
           })
           .returning()
@@ -392,7 +394,7 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
             role: sc.role,
             nationality: sc.nationality ?? null,
             age: sc.age ?? null,
-            photoUrl: sc.photoUrl ?? null,
+            // PHOTOS PAUSED (2026-07-03): photoUrl: sc.photoUrl ?? null,
           })
           .onConflictDoUpdate({
             target: [coaches.teamId, coaches.leagueId, coaches.slug],
@@ -401,7 +403,7 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
               role: sc.role,
               nationality: sc.nationality ?? null,
               age: sc.age ?? null,
-              photoUrl: sc.photoUrl ?? null,
+              // PHOTOS PAUSED (2026-07-03): photoUrl: sc.photoUrl ?? null,
             },
           })
         totals.coaches++

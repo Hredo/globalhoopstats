@@ -10,6 +10,7 @@ import { AiAnalysisDisplay } from "@/components/market/ai-analysis-display"
 import { exportTradePdf } from "@/components/market/export-pdf"
 import { ValuationBadge } from "@/components/market/valuation-badge"
 import { SmartImage } from "@/components/ui/smart-image"
+import { PersonAvatar } from "@/components/ui/person-avatar"
 import { Eyebrow } from "@/components/ui/eyebrow"
 import { useT, useLocale } from "@/lib/i18n/provider"
 import { CURRENCIES, formatCurrency, type CurrencyCode } from "@/lib/market/currency"
@@ -469,9 +470,6 @@ export default function TradePage() {
     }
   }, [aiAnalysis])
 
-  const initials = (s: string) =>
-    s.split(" ").map((w) => w[0]).slice(0, 2).join("")
-
   // Slide direction: Proponer sits to the right of Simular.
   const direction = mode === "proponer" ? 1 : -1
 
@@ -633,8 +631,12 @@ export default function TradePage() {
                       src={result.outgoing.imageUrl}
                       alt={result.outgoing.name}
                       fit="cover"
-                      fallbackClassName="text-xs font-bold text-ink-400"
-                      fallback={initials(result.outgoing.name)}
+                      fallback={
+                        <PersonAvatar
+                          name={result.outgoing.name}
+                          leagueSlug={result.outgoing.league.slug}
+                        />
+                      }
                     />
                   </div>
                   <div>
@@ -791,8 +793,7 @@ export default function TradePage() {
                   >
                     <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md bg-court-800">
                       <SmartImage src={p.imageUrl} alt={p.fullName} fit="cover"
-                        fallbackClassName="text-[9px] font-bold text-ink-400"
-                        fallback={initials(p.fullName)} />
+                        fallback={<PersonAvatar name={p.fullName} leagueSlug={p.league.slug} />} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
@@ -883,8 +884,7 @@ export default function TradePage() {
                   >
                     <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md bg-court-800">
                       <SmartImage src={p.imageUrl} alt={p.fullName} fit="cover"
-                        fallbackClassName="text-[9px] font-bold text-ink-400"
-                        fallback={initials(p.fullName)} />
+                        fallback={<PersonAvatar name={p.fullName} leagueSlug={p.league.slug} />} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">

@@ -17,6 +17,7 @@ import { sessions } from "@/lib/db/schema"
 import { getServerEnv } from "@/lib/env"
 import { clientIp } from "@/lib/security/ai-advisor"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
+import { DEFAULT_LOCALE, localeFromCookie } from "@/lib/i18n/config"
 import { sendWelcomeEmail } from "@/lib/email"
 
 export const runtime = "nodejs"
@@ -126,7 +127,8 @@ export async function POST(request: Request) {
   })
 
   // Welcome email — best-effort, never blocks or fails the signup.
-  await sendWelcomeEmail(email, name).catch(() => {})
+  const regLocale = localeFromCookie(request.headers.get("cookie")) ?? DEFAULT_LOCALE
+  await sendWelcomeEmail(email, name, regLocale).catch(() => {})
 
   const token = signSessionToken(sessionId, id, ttlMs)
   const res = NextResponse.json({

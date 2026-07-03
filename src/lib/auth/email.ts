@@ -1,3 +1,4 @@
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config"
 import { sendEmail } from "@/lib/email/send"
 import {
   passwordResetEmail,
@@ -14,23 +15,26 @@ import {
 export async function sendPasswordResetEmail(
   to: string,
   resetUrl: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<boolean> {
-  const t = passwordResetEmail(resetUrl)
+  const t = passwordResetEmail(resetUrl, locale)
   return sendEmail({ to, subject: t.subject, html: t.html, text: t.text })
 }
 
 export async function sendTwoFactorCodeEmail(
   to: string,
   code: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<boolean> {
-  const t = twoFactorCodeEmail(code)
+  const t = twoFactorCodeEmail(code, locale)
   return sendEmail({ to, subject: t.subject, html: t.html, text: t.text })
 }
 
 export async function sendTwoFactorSetupEmail(
   to: string,
   code: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<boolean> {
-  const t = twoFactorSetupEmail(code)
+  const t = twoFactorSetupEmail(code, locale)
   return sendEmail({ to, subject: t.subject, html: t.html, text: t.text })
 }

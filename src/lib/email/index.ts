@@ -1,4 +1,5 @@
 import { SITE } from "@/lib/site"
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config"
 import { sendEmail } from "@/lib/email/send"
 import {
   contactNotificationEmail,
@@ -14,8 +15,9 @@ export { sendEmail } from "@/lib/email/send"
 export async function sendWelcomeEmail(
   to: string,
   name: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<boolean> {
-  const t = welcomeEmail(name)
+  const t = welcomeEmail(name, locale)
   return sendEmail({ to, subject: t.subject, html: t.html, text: t.text })
 }
 
@@ -24,14 +26,17 @@ export async function sendWelcomeEmail(
  * sender) and send the sender an acknowledgement. Returns whether the owner
  * notification was delivered — the auto-reply is best-effort.
  */
-export async function sendContactEmails(input: {
-  name: string
-  email: string
-  subject: string
-  message: string
-}): Promise<boolean> {
+export async function sendContactEmails(
+  input: {
+    name: string
+    email: string
+    subject: string
+    message: string
+  },
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<boolean> {
   const notify = contactNotificationEmail(input)
-  const ack = contactReceivedEmail(input.name)
+  const ack = contactReceivedEmail(input.name, locale)
 
   const [ownerOk] = await Promise.all([
     sendEmail({
@@ -56,12 +61,15 @@ export async function sendContactEmails(input: {
  * Handle a new waitlist signup: notify the owner and welcome the subscriber.
  * Best-effort — callers fire-and-forget.
  */
-export async function sendWaitlistEmails(input: {
-  email: string
-  source?: string
-}): Promise<void> {
+export async function sendWaitlistEmails(
+  input: {
+    email: string
+    source?: string
+  },
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<void> {
   const notify = waitlistNotificationEmail(input)
-  const welcome = waitlistWelcomeEmail()
+  const welcome = waitlistWelcomeEmail(locale)
 
   await Promise.all([
     sendEmail({

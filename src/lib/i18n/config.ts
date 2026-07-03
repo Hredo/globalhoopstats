@@ -41,6 +41,13 @@ export function pickFromAcceptLanguage(header: string | null | undefined): Local
   return DEFAULT_LOCALE
 }
 
+/** Parse the locale from a raw Cookie header string. Returns null if absent/invalid. */
+export function localeFromCookie(cookie: string | null | undefined): Locale | null {
+  if (!cookie) return null
+  const m = cookie.match(new RegExp(`(?:^|;)\\s*${LOCALE_COOKIE}\\s*=\\s*([^;]+)`))
+  return m && isLocale(m[1]) ? (m[1] as Locale) : null
+}
+
 /** Build the `Set-Cookie` value for the locale cookie (1 year, lax). */
 export function localeCookie(locale: Locale): string {
   const parts = [

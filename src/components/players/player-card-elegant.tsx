@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { SmartImage } from "@/components/ui/smart-image"
+import { PersonAvatar } from "@/components/ui/person-avatar"
 import { leagueAccent } from "@/components/ui/league-badge"
 import { useSpotlight } from "@/components/animations/spotlight-card"
 import { getInitials } from "@/lib/format"
@@ -50,7 +51,6 @@ function fmt(value: number | null, decimals = 1): string {
 
 export function PlayerCardElegant({ player }: Props) {
   const t = useT()
-  const initials = getInitials(player.fullName)
   const s = player.stats
   const accent = leagueAccent(player.league.slug)
   const { ref, onPointerMove } = useSpotlight<HTMLAnchorElement>()
@@ -87,12 +87,16 @@ export function PlayerCardElegant({ player }: Props) {
           className="absolute inset-0 z-[1] bg-gradient-to-t from-surface-1 via-surface-1/30 to-transparent"
         />
         <SmartImage
-            src={player.imageUrl}
+          src={player.imageUrl}
           alt={player.fullName}
           fit="cover"
           className="h-full w-full object-cover transition-transform duration-[700ms] ease-fluid group-hover:scale-[1.06]"
-          fallbackClassName="bg-gradient-to-br from-court-800 via-court-900 to-ink-900 text-4xl font-bold text-ink-300"
-          fallback={initials}
+          fallback={
+            <PersonAvatar
+              name={player.fullName}
+              leagueSlug={player.league.slug}
+            />
+          }
         />
 
         <span className="absolute right-2 top-2 z-[2] inline-flex items-center gap-1.5 rounded-full bg-ink-950/55 px-1.5 py-0.5 font-mono text-[8px] font-semibold uppercase tracking-[0.14em] text-ink-100 ring-1 ring-hairline backdrop-blur sm:right-3 sm:top-3 sm:px-2 sm:py-1 sm:text-[10px]">

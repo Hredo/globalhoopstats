@@ -2,9 +2,10 @@ import { NextResponse } from "next/server"
 import { randomInt } from "node:crypto"
 import { eq } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
-import { users, twoFactorSessions } from "@/lib/db/schema"
+import { users, userSettings, twoFactorSessions } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/auth/current-user"
 import { hashPassword } from "@/lib/auth/password"
+import { isLocale, type Locale } from "@/lib/i18n/config"
 import { sendTwoFactorSetupEmail } from "@/lib/auth/email"
 import { clientIp } from "@/lib/security/ai-advisor"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
@@ -70,7 +71,13 @@ export async function POST(request: Request) {
     )
   }
 
-  await sendTwoFactorSetupEmail(sessionUser.email, code)
+  const setupLocaleRows = await db
+    .select({ locale: userSettings.locale })
+    .from(userSettings)
+    .where(eq(userSettings.userId, sessionUser.id))
+    .limit(1)
+  const setupLocale = setupLocaleRows[0]?.locale
+  await sendTwoFactorSetupEmail(sessionUser.email, code, isLocale(setupLocale) ? setupLocale : undefined)
 
   return NextResponse.json({
     ok: true,

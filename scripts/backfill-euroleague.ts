@@ -298,7 +298,9 @@ async function main() {
       const headshot =
         api.images?.headshot || api.person.images?.headshot || null
       const fills: Record<string, string | number> = {}
-      if (!dbp.image_url && headshot) fills.image_url = headshot
+      // PHOTOS PAUSED (2026-07-03): keep bio fills, stop filling photos.
+      // if (!dbp.image_url && headshot) fills.image_url = headshot
+      void headshot
       if (!dbp.position && api.positionName) {
         fills.position = POSITION_MAP[api.positionName] ?? api.positionName
       }
@@ -413,7 +415,9 @@ async function main() {
       const headshot =
         api.images?.headshot || api.person.images?.headshot || null
       const fills: Record<string, string | number> = {}
-      if (!c.photo_url && headshot) fills.photo_url = headshot
+      // PHOTOS PAUSED (2026-07-03): keep age/nationality fills, stop photos.
+      // if (!c.photo_url && headshot) fills.photo_url = headshot
+      void headshot
       const age = ageFromBirthDate(api.person.birthDate)
       if (!c.age && age) fills.age = age
       if (!c.nationality && api.person.country?.name) {

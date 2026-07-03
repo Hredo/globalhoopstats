@@ -301,7 +301,7 @@ function renderSimular(doc: jsPDF, data: SimularData, startY: number, locale: st
     styles: { lineColor: LINE, lineWidth: 0.1, cellPadding: 2.2 },
     columnStyles: { 0: { cellWidth: 12 }, 2: { cellWidth: 12 }, 4: { cellWidth: 18 } },
   })
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   y = (doc as any).lastAutoTable.finalY + 9
 
   // Detailed scenarios + AI analyses

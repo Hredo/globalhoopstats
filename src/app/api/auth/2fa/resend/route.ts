@@ -3,8 +3,9 @@ import { z } from "zod"
 import { randomInt } from "node:crypto"
 import { eq, and, gt } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
-import { twoFactorSessions, users } from "@/lib/db/schema"
+import { twoFactorSessions, userSettings, users } from "@/lib/db/schema"
 import { hashPassword } from "@/lib/auth/password"
+import { isLocale, type Locale } from "@/lib/i18n/config"
 import { sendTwoFactorCodeEmail } from "@/lib/auth/email"
 import { clientIp } from "@/lib/security/ai-advisor"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
@@ -105,7 +106,13 @@ export async function POST(request: Request) {
 
   const email = userRows[0]?.email
   if (email) {
-    void sendTwoFactorCodeEmail(email, code)
+    const resendLocaleRows = await db
+      .select({ locale: userSettings.locale })
+      .from(userSettings)
+      .where(eq(userSettings.userId, tfa.userId))
+      .limit(1)
+    const resendLocale = resendLocaleRows[0]?.locale
+    void sendTwoFactorCodeEmail(email, code, isLocale(resendLocale) ? resendLocale : undefined)
   }
 
   return NextResponse.json({

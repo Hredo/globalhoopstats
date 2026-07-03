@@ -4,6 +4,7 @@ import { getLeagueTheme } from "@/lib/league-styles"
 import type { LeagueOverview as LeagueOverviewData } from "@/lib/data/leagues"
 import { CountUp } from "@/components/marketing/count-up"
 import { SmartImage } from "@/components/ui/smart-image"
+import { PersonAvatar } from "@/components/ui/person-avatar"
 import { UpdatedStamp } from "@/components/ui/updated-stamp"
 import { getT } from "@/lib/i18n/server"
 
@@ -185,7 +186,12 @@ export async function LeagueOverview({ data, index, lastSyncAt = null }: Props) 
         ]
           .filter((s) => s.value != null && s.playerName && s.playerSlug)
           .map((s) => (
-            <StatHighlightCard key={s.label} {...s} theme={theme} />
+            <StatHighlightCard
+              key={s.label}
+              {...s}
+              leagueSlug={data.slug}
+              theme={theme}
+            />
           ))}
       </div>
 
@@ -243,6 +249,7 @@ function StatHighlightCard({
   playerSlug,
   playerImage,
   teamName,
+  leagueSlug,
   theme,
 }: {
   label: string
@@ -251,6 +258,7 @@ function StatHighlightCard({
   playerSlug: string | null
   playerImage: string | null
   teamName: string | null
+  leagueSlug: string
   theme: ReturnType<typeof getLeagueTheme>
 }) {
   return (
@@ -273,8 +281,8 @@ function StatHighlightCard({
               unoptimized
             />
           ) : (
-            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-white/10 font-display text-[6px] font-bold text-ink-400 sm:h-[18px] sm:w-[18px]">
-              {initials(playerName)}
+            <span className="h-4 w-4 shrink-0 overflow-hidden rounded-full border border-white/10 sm:h-[18px] sm:w-[18px]">
+              <PersonAvatar name={playerName} leagueSlug={leagueSlug} />
             </span>
           )}
           <span className="min-w-0 truncate text-xs font-medium text-ink-100 transition group-hover/stat:text-white sm:text-sm">

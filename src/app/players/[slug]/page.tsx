@@ -11,6 +11,7 @@ import { PctBar } from "@/components/ui/pct-bar"
 import { FadeIn } from "@/components/animations/fade-in"
 import { LeagueTransition } from "@/components/players/league-transition"
 import { SmartImage } from "@/components/ui/smart-image"
+import { PersonAvatar } from "@/components/ui/person-avatar"
 import { BackLink } from "@/components/ui/back-link"
 import { Eyebrow } from "@/components/ui/eyebrow"
 import { leagueAccent } from "@/components/ui/league-badge"
@@ -148,12 +149,6 @@ export default async function PlayerPage({ params, searchParams }: Props) {
     selLeague.id,
     profile.id,
   )
-  const initials = profile.fullName
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-
   const season = selected.seasons[0]
   const accent = leagueAccent(selLeague.slug)
 
@@ -210,8 +205,12 @@ export default async function PlayerPage({ params, searchParams }: Props) {
                 alt={profile.fullName}
                 fit="cover"
                 eager
-                fallbackClassName="text-4xl font-bold text-ink-300 sm:text-5xl"
-                fallback={initials}
+                fallback={
+                  <PersonAvatar
+                    name={profile.fullName}
+                    leagueSlug={selLeague.slug}
+                  />
+                }
               />
             </div>
             <div className="gh-card p-4 text-sm">

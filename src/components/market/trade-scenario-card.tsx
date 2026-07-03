@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { formatCurrency, type CurrencyCode } from "@/lib/market/currency"
 import type { Valuation } from "@/lib/market/valuation"
 import { SmartImage } from "@/components/ui/smart-image"
+import { PersonAvatar } from "@/components/ui/person-avatar"
 import { ValuationBadge } from "@/components/market/valuation-badge"
 import { AiAnalysisDisplay } from "@/components/market/ai-analysis-display"
 import { useT } from "@/lib/i18n/provider"
@@ -129,12 +130,9 @@ export function TradeScenarioCard({
                   src={p.imageUrl}
                   alt={p.name}
                   fit="cover"
-                  fallbackClassName="text-xs font-bold text-ink-400"
-                  fallback={p.name
-                    .split(" ")
-                    .map((w) => w[0])
-                    .slice(0, 2)
-                    .join("")}
+                  fallback={
+                    <PersonAvatar name={p.name} leagueSlug={p.league.slug} />
+                  }
                 />
               </div>
               <div className="min-w-0 flex-1">

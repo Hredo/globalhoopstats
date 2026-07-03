@@ -3,7 +3,8 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
   core-js: false
-  better-sqlite3: set this to true or false
+  # Optional drizzle-orm peer; not installed. Keep its native build blocked.
+  better-sqlite3: false
   '@swc/core': true
 
 # Force patched versions of transitive deps flagged by `pnpm audit`.

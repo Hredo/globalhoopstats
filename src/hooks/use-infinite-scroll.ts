@@ -14,8 +14,12 @@ export function useInfiniteScroll({
   rootMargin = "0px 0px 600px 0px",
 }: Options) {
   const ref = useRef<HTMLDivElement | null>(null)
+  // Latest-callback ref, updated in an effect (not during render) so the
+  // observer always calls the current handler without re-subscribing.
   const cbRef = useRef(onIntersect)
-  cbRef.current = onIntersect
+  useEffect(() => {
+    cbRef.current = onIntersect
+  }, [onIntersect])
 
   useEffect(() => {
     if (!enabled) return

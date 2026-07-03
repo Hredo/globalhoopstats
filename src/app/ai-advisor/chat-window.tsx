@@ -38,10 +38,14 @@ export function ChatWindow({
   const containerRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const internalLastRef = useRef<HTMLDivElement | null>(null)
+  // Latest-callback ref, updated in an effect (not during render); read only
+  // inside the deferred focus timeout below, which runs after effects.
   const focusLast = useRef<((el: HTMLDivElement | null) => void) | undefined>(
     lastMessageRef,
   )
-  focusLast.current = lastMessageRef
+  useEffect(() => {
+    focusLast.current = lastMessageRef
+  }, [lastMessageRef])
 
   useEffect(() => {
     const el = containerRef.current

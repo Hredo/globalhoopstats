@@ -13,6 +13,7 @@ import { ScaleIn } from "@/components/animations/scale-in"
 import { Eyebrow } from "@/components/ui/eyebrow"
 import { TiltCard } from "@/components/ui/tilt-card"
 import { SmartImage } from "@/components/ui/smart-image"
+import { PersonAvatar } from "@/components/ui/person-avatar"
 import { leagueAccent } from "@/components/ui/league-badge"
 import { getT } from "@/lib/i18n/server"
 
@@ -163,12 +164,6 @@ async function ComparePlayerCard({
       </div>
     )
   }
-  const initials = player.fullName
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase()
   const accent = leagueAccent(player.league.slug)
   return (
     <article
@@ -191,8 +186,12 @@ async function ComparePlayerCard({
             alt={player.fullName}
             fit="cover"
             eager
-            fallbackClassName="text-sm font-bold text-ink-300"
-            fallback={initials}
+            fallback={
+              <PersonAvatar
+                name={player.fullName}
+                leagueSlug={player.league.slug}
+              />
+            }
           />
         </div>
         <div className="min-w-0 flex-1">

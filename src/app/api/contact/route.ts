@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
+import { DEFAULT_LOCALE, localeFromCookie } from "@/lib/i18n/config"
 import { sendContactEmails } from "@/lib/email"
 import { clientIp } from "@/lib/security/ai-advisor"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
@@ -63,7 +64,8 @@ export async function POST(req: Request) {
 
   const { name, email, subject, message } = parsed.data
 
-  const ownerOk = await sendContactEmails({ name, email, subject, message })
+  const contactLocale = localeFromCookie(req.headers.get("cookie")) ?? DEFAULT_LOCALE
+  const ownerOk = await sendContactEmails({ name, email, subject, message }, contactLocale)
   if (!ownerOk) {
     return NextResponse.json(
       { ok: false, error: "Could not send your message. Please try again." },
