@@ -116,7 +116,10 @@ export const getPlayerForCompare = cached(
     id: r.id,
     slug: r.slug,
     fullName: r.fullName,
-    imageUrl: r.imageUrl,
+    // PHOTOS PAUSED (2026-07-03): force null so stale cache can't serve
+    // old image_url values; re-enable with `imageUrl: r.imageUrl` when
+    // the photo pipeline is un-paused.
+    imageUrl: null,
     position: r.position,
     nationality: r.nationality,
     league: {

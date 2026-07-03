@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { sql } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
+import { DEFAULT_LOCALE, localeFromCookie } from "@/lib/i18n/config"
 import { sendWaitlistEmails } from "@/lib/email"
 import { clientIp } from "@/lib/security/ai-advisor"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
@@ -86,7 +87,8 @@ export async function POST(req: Request) {
 
   // Only email on genuinely new signups (avoid re-welcoming duplicates).
   if (inserted) {
-    await sendWaitlistEmails({ email, source }).catch(() => {})
+    const waitlistLocale = localeFromCookie(req.headers.get("cookie")) ?? DEFAULT_LOCALE
+    await sendWaitlistEmails({ email, source }, waitlistLocale).catch(() => {})
   }
 
   return NextResponse.json({ ok: true, dedup: duplicate })

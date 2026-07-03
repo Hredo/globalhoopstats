@@ -169,10 +169,11 @@ async function main() {
         continue
       }
       const fills: Record<string, string | number> = {}
-      if (!c.photo_url) {
-        const img = claims.P18?.[0]?.mainsnak?.datavalue?.value
-        if (typeof img === "string") fills.photo_url = commonsUrl(img)
-      }
+      // PHOTOS PAUSED (2026-07-03): keep filling ages, stop filling photos.
+      // if (!c.photo_url) {
+      //   const img = claims.P18?.[0]?.mainsnak?.datavalue?.value
+      //   if (typeof img === "string") fills.photo_url = commonsUrl(img)
+      // }
       if (c.age == null) {
         const dob = claims.P569?.[0]?.mainsnak?.datavalue?.value as
           | { time?: string }

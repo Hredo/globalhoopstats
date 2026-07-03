@@ -1,4 +1,7 @@
 import { SITE } from "@/lib/site"
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config"
+import { getDictionary, type Messages } from "@/lib/i18n/dictionaries"
+import { translate, type TranslationVars } from "@/lib/i18n/t"
 import {
   button,
   codeBox,
@@ -15,27 +18,33 @@ export type EmailContent = { subject: string; html: string; text: string }
 
 const SIGN = `${SITE.name} · ${SITE.url}\nQuestions? Reply here or email ${SITE.contact}`
 
+function t(dict: Messages, path: string, vars?: TranslationVars): string {
+  return translate(dict, path, vars)
+}
+
 // ── Account: welcome ───────────────────────────────────────────────────────
-export function welcomeEmail(name: string): EmailContent {
+export function welcomeEmail(name: string, locale: Locale = DEFAULT_LOCALE): EmailContent {
+  const dict = getDictionary(locale)
   const first = name.trim().split(/\s+/)[0] || "there"
   const url = `${SITE.url}/players`
   return {
-    subject: `Welcome to ${SITE.name} 🏀`,
+    subject: t(dict, "email.welcome.subject", { site: SITE.name }),
     html: renderEmail({
-      preview: "Your account is ready — start exploring the stats.",
+      preview: t(dict, "email.welcome.preview"),
       content: [
-        h1(`Welcome, ${escapeHtml(first)}!`),
-        p("Your account is ready. You now have one console for cross-league basketball intelligence — box scores, advanced splits, side-by-side comparisons and highlights across the NBA, EuroLeague, Liga ACB and Spain's FEB ladder."),
-        button("Explore players", url),
-        muted("Tip: try the side-by-side comparison tool to stack any two players across leagues."),
+        h1(t(dict, "email.welcome.heading", { name: escapeHtml(first) })),
+        p(t(dict, "email.welcome.body")),
+        button(t(dict, "email.welcome.cta"), url),
+        muted(t(dict, "email.welcome.tip")),
       ].join("\n"),
+      locale,
     }),
     text: [
-      `Welcome, ${first}!`,
+      t(dict, "email.welcome.text", { name: first }),
       "",
-      "Your account is ready. You now have one console for cross-league basketball intelligence — box scores, advanced splits, comparisons and highlights across the NBA, EuroLeague, Liga ACB and Spain's FEB ladder.",
+      t(dict, "email.welcome.textBody"),
       "",
-      `Explore players: ${url}`,
+      t(dict, "email.welcome.textUrl", { url }),
       "",
       "---",
       SIGN,
@@ -44,25 +53,27 @@ export function welcomeEmail(name: string): EmailContent {
 }
 
 // ── Auth: password reset ───────────────────────────────────────────────────
-export function passwordResetEmail(resetUrl: string): EmailContent {
+export function passwordResetEmail(resetUrl: string, locale: Locale = DEFAULT_LOCALE): EmailContent {
+  const dict = getDictionary(locale)
   return {
-    subject: `Reset your password · ${SITE.name}`,
+    subject: t(dict, "email.passwordReset.subject", { site: SITE.name }),
     html: renderEmail({
-      preview: "Reset your password — this link expires in 15 minutes.",
+      preview: t(dict, "email.passwordReset.preview"),
       content: [
-        h1("Reset your password"),
-        p(`We received a request to reset the password for your ${SITE.name} account.`),
-        button("Set a new password", resetUrl),
-        muted("This link expires in 15 minutes. If you didn't request this, you can safely ignore this email — your password won't change."),
+        h1(t(dict, "email.passwordReset.heading")),
+        p(t(dict, "email.passwordReset.body", { site: SITE.name })),
+        button(t(dict, "email.passwordReset.cta"), resetUrl),
+        muted(t(dict, "email.passwordReset.expired")),
       ].join("\n"),
+      locale,
     }),
     text: [
-      `We received a request to reset the password for your ${SITE.name} account.`,
+      t(dict, "email.passwordReset.text", { site: SITE.name }),
       "",
-      "Set a new password (link expires in 15 minutes):",
+      t(dict, "email.passwordReset.textCta"),
       resetUrl,
       "",
-      "If you didn't request this, you can safely ignore this email.",
+      t(dict, "email.passwordReset.textSafe"),
       "",
       "---",
       SIGN,
@@ -71,25 +82,27 @@ export function passwordResetEmail(resetUrl: string): EmailContent {
 }
 
 // ── Auth: 2FA login code ───────────────────────────────────────────────────
-export function twoFactorCodeEmail(code: string): EmailContent {
+export function twoFactorCodeEmail(code: string, locale: Locale = DEFAULT_LOCALE): EmailContent {
+  const dict = getDictionary(locale)
   return {
-    subject: `${code} is your verification code · ${SITE.name}`,
+    subject: t(dict, "email.twoFactorCode.subject", { code, site: SITE.name }),
     html: renderEmail({
-      preview: `Your verification code is ${code}.`,
+      preview: t(dict, "email.twoFactorCode.preview", { code }),
       content: [
-        h1("Your verification code"),
-        p("Use this code to finish signing in:"),
+        h1(t(dict, "email.twoFactorCode.heading")),
+        p(t(dict, "email.twoFactorCode.body")),
         codeBox(escapeHtml(code)),
-        muted("This code expires in 5 minutes. If you didn't try to sign in, change your password immediately."),
+        muted(t(dict, "email.twoFactorCode.expired")),
       ].join("\n"),
+      locale,
     }),
     text: [
-      "Your two-factor authentication code is:",
+      t(dict, "email.twoFactorCode.text"),
       "",
       code,
       "",
-      "This code expires in 5 minutes.",
-      "If you didn't attempt to sign in, please change your password immediately.",
+      t(dict, "email.twoFactorCode.textExpired"),
+      t(dict, "email.twoFactorCode.textWarning"),
       "",
       "---",
       SIGN,
@@ -98,25 +111,27 @@ export function twoFactorCodeEmail(code: string): EmailContent {
 }
 
 // ── Auth: 2FA setup confirmation code ──────────────────────────────────────
-export function twoFactorSetupEmail(code: string): EmailContent {
+export function twoFactorSetupEmail(code: string, locale: Locale = DEFAULT_LOCALE): EmailContent {
+  const dict = getDictionary(locale)
   return {
-    subject: `Confirm two-factor setup · ${SITE.name}`,
+    subject: t(dict, "email.twoFactorSetup.subject", { site: SITE.name }),
     html: renderEmail({
-      preview: `Your 2FA setup code is ${code}.`,
+      preview: t(dict, "email.twoFactorSetup.preview", { code }),
       content: [
-        h1("Confirm two-factor authentication"),
-        p("Enter this code to finish enabling two-factor authentication on your account:"),
+        h1(t(dict, "email.twoFactorSetup.heading")),
+        p(t(dict, "email.twoFactorSetup.body")),
         codeBox(escapeHtml(code)),
-        muted("This code expires in 10 minutes. If you didn't request this, secure your account immediately."),
+        muted(t(dict, "email.twoFactorSetup.expired")),
       ].join("\n"),
+      locale,
     }),
     text: [
-      "Use the following code to confirm enabling two-factor authentication:",
+      t(dict, "email.twoFactorSetup.text"),
       "",
       code,
       "",
-      "This code expires in 10 minutes.",
-      "If you didn't request this, please secure your account immediately.",
+      t(dict, "email.twoFactorSetup.textExpired"),
+      t(dict, "email.twoFactorSetup.textWarning"),
       "",
       "---",
       SIGN,
@@ -125,23 +140,24 @@ export function twoFactorSetupEmail(code: string): EmailContent {
 }
 
 // ── Contact: auto-reply to the sender ──────────────────────────────────────
-export function contactReceivedEmail(name: string): EmailContent {
+export function contactReceivedEmail(name: string, locale: Locale = DEFAULT_LOCALE): EmailContent {
+  const dict = getDictionary(locale)
   const first = name.trim().split(/\s+/)[0] || "there"
   return {
-    subject: `We got your message · ${SITE.name}`,
+    subject: t(dict, "email.contactReceived.subject", { site: SITE.name }),
     html: renderEmail({
-      preview: "Thanks for reaching out — we'll get back to you soon.",
+      preview: t(dict, "email.contactReceived.preview"),
       content: [
-        h1(`Thanks, ${escapeHtml(first)}!`),
-        p("We've received your message and will get back to you as soon as we can — usually within a couple of business days."),
-        p("If you need to add anything, just reply to this email."),
+        h1(t(dict, "email.contactReceived.heading", { name: escapeHtml(first) })),
+        p(t(dict, "email.contactReceived.body1")),
+        p(t(dict, "email.contactReceived.body2")),
       ].join("\n"),
+      locale,
     }),
     text: [
-      `Thanks, ${first}!`,
+      t(dict, "email.contactReceived.text", { name: first }),
       "",
-      "We've received your message and will get back to you as soon as we can — usually within a couple of business days.",
-      "If you need to add anything, just reply to this email.",
+      t(dict, "email.contactReceived.textBody"),
       "",
       "---",
       SIGN,
@@ -180,24 +196,26 @@ export function contactNotificationEmail(input: {
 }
 
 // ── Waitlist: welcome to the subscriber ────────────────────────────────────
-export function waitlistWelcomeEmail(): EmailContent {
+export function waitlistWelcomeEmail(locale: Locale = DEFAULT_LOCALE): EmailContent {
+  const dict = getDictionary(locale)
   return {
-    subject: `You're on the waitlist · ${SITE.name}`,
+    subject: t(dict, "email.waitlistWelcome.subject", { site: SITE.name }),
     html: renderEmail({
-      preview: "You're on the list — we'll email you when Pro opens.",
+      preview: t(dict, "email.waitlistWelcome.preview"),
       content: [
-        h1("You're on the list 🎉"),
-        p(`Thanks for joining the ${SITE.name} waitlist. We'll email you the moment the Pro tier opens — you'll be among the first to get in.`),
-        p("In the meantime, the full free console is live:"),
-        button("Explore the stats", `${SITE.url}/players`),
+        h1(t(dict, "email.waitlistWelcome.heading")),
+        p(t(dict, "email.waitlistWelcome.body", { site: SITE.name })),
+        p(t(dict, "email.waitlistWelcome.body2")),
+        button(t(dict, "email.waitlistWelcome.cta"), `${SITE.url}/players`),
       ].join("\n"),
+      locale,
     }),
     text: [
-      `Thanks for joining the ${SITE.name} waitlist.`,
+      t(dict, "email.waitlistWelcome.text", { site: SITE.name }),
       "",
-      "We'll email you the moment the Pro tier opens — you'll be among the first to get in.",
+      t(dict, "email.waitlistWelcome.textBody"),
       "",
-      `Explore the free console: ${SITE.url}/players`,
+      t(dict, "email.waitlistWelcome.textUrl", { url: `${SITE.url}/players` }),
       "",
       "---",
       SIGN,

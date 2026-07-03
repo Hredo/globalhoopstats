@@ -15,6 +15,7 @@ import { createPortal } from "react-dom"
 import { AnimatePresence, motion } from "framer-motion"
 import type { ComparePlayer } from "@/lib/data/compare"
 import { SmartImage } from "@/components/ui/smart-image"
+import { PersonAvatar } from "@/components/ui/person-avatar"
 import { useT } from "@/lib/i18n/provider"
 
 type LeagueInfo = { id: string; name: string; slug: string; region: string }
@@ -50,16 +51,6 @@ const SOURCE_LABEL: Record<string, string> = {
   "leb-oro": "Primera FEB",
   "leb-plata": "Segunda FEB",
   eba: "Tercera FEB",
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(/\s+/)
-    .map((p) => p[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase()
 }
 
 export function CompareSearch({ side, current, otherSlug }: Props) {
@@ -256,7 +247,16 @@ export function CompareSearch({ side, current, otherSlug }: Props) {
             fit="cover"
             fallbackClassName="text-sm font-bold text-brand-300"
             fallback={
-              current ? getInitials(current.fullName) : side === "a" ? "A" : "B"
+              current ? (
+                <PersonAvatar
+                  name={current.fullName}
+                  leagueSlug={current.league?.slug}
+                />
+              ) : side === "a" ? (
+                "A"
+              ) : (
+                "B"
+              )
             }
           />
         </div>
@@ -464,8 +464,12 @@ export function CompareSearch({ side, current, otherSlug }: Props) {
                                   src={o.imageUrl}
                                   alt={o.fullName}
                                   fit="cover"
-                                  fallbackClassName="text-[10px] font-bold text-brand-300"
-                                  fallback={getInitials(o.fullName)}
+                                  fallback={
+                                    <PersonAvatar
+                                      name={o.fullName}
+                                      leagueSlug={o.league.slug}
+                                    />
+                                  }
                                 />
                               </span>
                               <span className="min-w-0 flex-1">

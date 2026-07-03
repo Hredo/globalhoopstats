@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { useT } from "@/lib/i18n/provider"
 
 const CONSENT_COOKIE = "ghs_cookie_consent"
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365
@@ -32,6 +33,7 @@ function persist(value: Consent) {
  */
 export function CookieConsent() {
   const [visible, setVisible] = useState(false)
+  const t = useT()
 
   useEffect(() => {
     // Run after mount to avoid a hydration mismatch (document.cookie is
@@ -52,29 +54,27 @@ export function CookieConsent() {
   return (
     <div
       role="dialog"
-      aria-label="Cookie notice"
+      aria-label={t("cookies.bannerAria")}
       aria-live="polite"
       className="fixed inset-x-0 bottom-0 z-[150] px-4 pb-4 sm:px-6"
     >
       <div className="mx-auto flex max-w-4xl flex-col gap-4 rounded-2xl border border-hairline bg-surface-0/90 p-5 shadow-2xl backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <p className="text-sm leading-relaxed text-ink-200">
-          We use first-party cookies that are strictly necessary to keep you
-          signed in and remember your preferences. We do not use advertising or
-          third-party tracking cookies.           See our{" "}
+          {t("cookies.message")}
           <Link
             href="/privacy"
             className="font-semibold text-brand-400 underline-offset-2 hover:underline"
           >
-            privacy policy
+            {t("cookies.privacyLink")}
           </Link>
           .
         </p>
         <div className="flex shrink-0 gap-3">
           <Button variant="secondary" size="sm" onClick={() => decide("rejected")}>
-            Reject
+            {t("cookies.reject")}
           </Button>
           <Button variant="primary" size="sm" onClick={() => decide("accepted")}>
-            Accept
+            {t("cookies.accept")}
           </Button>
         </div>
       </div>

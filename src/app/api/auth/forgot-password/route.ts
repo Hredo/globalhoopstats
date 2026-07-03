@@ -3,8 +3,9 @@ import { z } from "zod"
 import { randomBytes } from "node:crypto"
 import { eq } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
-import { users, passwordResetTokens } from "@/lib/db/schema"
+import { users, userSettings, passwordResetTokens } from "@/lib/db/schema"
 import { hashPassword } from "@/lib/auth/password"
+import { isLocale, type Locale } from "@/lib/i18n/config"
 import { sendPasswordResetEmail } from "@/lib/auth/email"
 import { clientIp } from "@/lib/security/ai-advisor"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
@@ -92,7 +93,13 @@ export async function POST(request: Request) {
   const siteUrl = getEnv().NEXT_PUBLIC_SITE_URL
   const resetUrl = `${siteUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`
 
-  await sendPasswordResetEmail(email, resetUrl)
+  const pwdResetLocaleRows = await db
+    .select({ locale: userSettings.locale })
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
+    .limit(1)
+  const pwdResetLocale = pwdResetLocaleRows[0]?.locale
+  await sendPasswordResetEmail(email, resetUrl, isLocale(pwdResetLocale) ? pwdResetLocale : undefined)
 
   return NextResponse.json(
     { ok: true, message: "If an account exists, a reset link has been sent." },

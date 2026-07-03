@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { SmartImage } from "@/components/ui/smart-image"
+import { PersonAvatar } from "@/components/ui/person-avatar"
 import { getInitials } from "@/lib/format"
 import { useT } from "@/lib/i18n/provider"
 
@@ -52,8 +53,12 @@ export function CoachCard({ coach, index = 0 }: Props) {
             alt={coach.fullName}
             fit="cover"
             className="transition-transform duration-500 ease-out group-hover:scale-105"
-            fallbackClassName="bg-gradient-to-br from-court-800 to-ink-900 text-xs font-bold text-brand-300 sm:text-sm"
-            fallback={getInitials(coach.fullName)}
+            fallback={
+              <PersonAvatar
+                name={coach.fullName}
+                leagueSlug={coach.league.slug}
+              />
+            }
           />
         </div>
 

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react"
 import { SmartImage } from "@/components/ui/smart-image"
+import { PersonAvatar } from "@/components/ui/person-avatar"
 import { useT } from "@/lib/i18n/provider"
 
 type PlayerHit = {
@@ -23,13 +24,6 @@ type Props = {
   side: "left" | "right" | "neutral"
   excludeSlugs?: string[]
 }
-
-const initials = (s: string) =>
-  s
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
 
 /** Per-side accent so "entregas" (left/amber) and "recibes" (right/emerald)
  * read at a glance without resorting to dashed borders. */
@@ -177,8 +171,12 @@ export function PlayerSearchPopover({
               src={selected.imageUrl}
               alt={selected.fullName}
               fit="cover"
-              fallbackClassName="text-[9px] font-bold text-ink-400"
-              fallback={initials(selected.fullName)}
+              fallback={
+                <PersonAvatar
+                  name={selected.fullName}
+                  leagueSlug={selected.league.slug}
+                />
+              }
             />
           </div>
           <div className="min-w-0 flex-1">
@@ -327,8 +325,12 @@ export function PlayerSearchPopover({
                       src={p.imageUrl}
                       alt={p.fullName}
                       fit="cover"
-                      fallbackClassName="text-[9px] font-bold text-ink-400"
-                      fallback={initials(p.fullName)}
+                      fallback={
+                        <PersonAvatar
+                          name={p.fullName}
+                          leagueSlug={p.league.slug}
+                        />
+                      }
                     />
                   </div>
                   <div className="min-w-0 flex-1">

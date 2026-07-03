@@ -9,7 +9,7 @@ import {
   userSettings,
 } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
-import { isLocale, localeCookie } from "@/lib/i18n/config"
+import { isLocale, localeCookie, type Locale } from "@/lib/i18n/config"
 import { hashPassword, verifyPassword } from "@/lib/auth/password"
 import {
   buildSessionCookie,
@@ -176,7 +176,13 @@ export async function POST(request: Request) {
       )
     }
 
-    void sendTwoFactorCodeEmail(user.email, code)
+    const tfaLocaleRows = await db
+      .select({ locale: userSettings.locale })
+      .from(userSettings)
+      .where(eq(userSettings.userId, user.id))
+      .limit(1)
+    const tfaLocale = tfaLocaleRows[0]?.locale
+    void sendTwoFactorCodeEmail(user.email, code, isLocale(tfaLocale) ? tfaLocale : undefined)
 
     return NextResponse.json({
       ok: true,

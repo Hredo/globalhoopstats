@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { SmartImage } from "@/components/ui/smart-image"
+import { PersonAvatar } from "@/components/ui/person-avatar"
 import { leagueAccent } from "@/components/ui/league-badge"
 import { useSpotlight } from "@/components/animations/spotlight-card"
 import { getInitials } from "@/lib/format"
@@ -33,7 +34,6 @@ type Props = {
 
 export function CoachCardElegant({ coach }: Props) {
   const t = useT()
-  const initials = getInitials(coach.fullName)
   const label = ROLE_LABEL_KEY[coach.role]
     ? t(ROLE_LABEL_KEY[coach.role])
     : coach.role
@@ -55,8 +55,12 @@ export function CoachCardElegant({ coach }: Props) {
           alt={coach.fullName}
           fit="cover"
           className="h-full w-full transition-transform duration-700 ease-fluid group-hover:scale-[1.07]"
-          fallbackClassName="bg-gradient-to-br from-court-800 to-ink-900 text-base font-bold text-ink-300 sm:text-lg"
-          fallback={initials}
+          fallback={
+            <PersonAvatar
+              name={coach.fullName}
+              leagueSlug={coach.league.slug}
+            />
+          }
         />
       </div>
       <div className="min-w-0 w-full flex-1">

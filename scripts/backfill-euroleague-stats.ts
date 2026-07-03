@@ -203,29 +203,31 @@ async function main() {
     console.log(`[stats] updated=${updated}`)
 
     /* ---- player headshots still missing ---- */
-    const noImage = await sql<{ id: string; name: string }[]>`
-      select distinct p.id, p.first_name || ' ' || p.last_name as name
-      from players p
-      join player_season_stats pss on pss.player_id = p.id
-      join leagues l on l.id = pss.league_id
-      join seasons s on s.id = pss.season_id
-      where l.slug = 'euroleague' and s.is_current and p.image_url is null
-    `
-    console.log(`[images] ${noImage.length} players without image`)
-    let imgUpdated = 0
-    for (const p of noImage) {
-      const api = lookup(p.name)
-      const img = api?.player.imageUrl
-      if (!img) continue
-      if (DRY) {
-        console.log(`  [dry] ${p.name}: image`)
-        continue
-      }
-      await sql`update players set image_url = ${img} where id = ${p.id}`
-      imgUpdated++
-      console.log(`  ${p.name}: image`)
-    }
-    console.log(`[images] updated=${imgUpdated}`)
+    // PHOTOS PAUSED (2026-07-03): people photos were removed from the DB and
+    // the UI renders typographic avatars (PersonAvatar). Uncomment to resume.
+    // const noImage = await sql<{ id: string; name: string }[]>`
+    //   select distinct p.id, p.first_name || ' ' || p.last_name as name
+    //   from players p
+    //   join player_season_stats pss on pss.player_id = p.id
+    //   join leagues l on l.id = pss.league_id
+    //   join seasons s on s.id = pss.season_id
+    //   where l.slug = 'euroleague' and s.is_current and p.image_url is null
+    // `
+    // console.log(`[images] ${noImage.length} players without image`)
+    // let imgUpdated = 0
+    // for (const p of noImage) {
+    //   const api = lookup(p.name)
+    //   const img = api?.player.imageUrl
+    //   if (!img) continue
+    //   if (DRY) {
+    //     console.log(`  [dry] ${p.name}: image`)
+    //     continue
+    //   }
+    //   await sql`update players set image_url = ${img} where id = ${p.id}`
+    //   imgUpdated++
+    //   console.log(`  ${p.name}: image`)
+    // }
+    // console.log(`[images] updated=${imgUpdated}`)
   } finally {
     await sql.end()
   }

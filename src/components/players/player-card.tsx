@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { SmartImage } from "@/components/ui/smart-image"
+import { PersonAvatar } from "@/components/ui/person-avatar"
 import { PctBar } from "@/components/ui/pct-bar"
 import {
   formatHeight,
@@ -55,7 +56,6 @@ type Props = {
 
 export function PlayerCard({ player, index = 0 }: Props) {
   const t = useT()
-  const initials = getInitials(player.fullName)
   const s = player.stats
 
   return (
@@ -71,8 +71,12 @@ export function PlayerCard({ player, index = 0 }: Props) {
             alt={player.fullName}
             fit="cover"
             className="transition duration-500 ease-out group-hover:scale-105"
-            fallbackClassName="bg-gradient-to-br from-court-800 to-ink-900 text-sm font-bold text-brand-300 sm:text-base"
-            fallback={initials}
+            fallback={
+              <PersonAvatar
+                name={player.fullName}
+                leagueSlug={player.league.slug}
+              />
+            }
           />
           {player.team?.logoUrl ? (
             <span className="absolute -bottom-1 -right-1 h-6 w-6 overflow-hidden rounded-full bg-ink-950 ring-2 ring-ink-950">

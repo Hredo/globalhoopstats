@@ -97,6 +97,11 @@ function birthYear(extract: string): number | null {
 }
 
 async function main() {
+  // PHOTOS PAUSED (2026-07-03): people photos were removed from the DB and the
+  // UI renders typographic avatars (PersonAvatar). Delete this guard to re-run.
+  console.log("PHOTOS PAUSED: este script rellena fotos y está desactivado.")
+  if (!process.argv.includes("--force")) return
+
   loadEnv()
   const sql = postgres(process.env.DATABASE_URL!, {
     prepare: false,

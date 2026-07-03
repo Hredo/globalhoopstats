@@ -199,7 +199,9 @@ async function syncLeague(
 
       if (decision.kind === "existing") {
         const fillIns: Partial<typeof players.$inferInsert> = {}
-        if (sp.photoUrl) fillIns.imageUrl = sp.photoUrl
+        // PHOTOS PAUSED (2026-07-03): players render typographic avatars
+        // (PersonAvatar); uncomment to resume photo ingestion.
+        // if (sp.photoUrl) fillIns.imageUrl = sp.photoUrl
         if (sp.nationality) fillIns.nationality = sp.nationality
         if (sp.position) fillIns.position = sp.position
         if (sp.heightCm) fillIns.heightCm = sp.heightCm
@@ -231,7 +233,7 @@ async function syncLeague(
           position: sp.position ?? null,
           heightCm: sp.heightCm ?? null,
           weightKg: sp.weightKg ?? null,
-          imageUrl: sp.photoUrl ?? null,
+          // PHOTOS PAUSED (2026-07-03): imageUrl: sp.photoUrl ?? null,
         })
         .returning()
       matcher.register(
@@ -306,7 +308,7 @@ async function syncLeague(
           role: sc.role,
           nationality: sc.nationality ?? null,
           age: sc.age ?? null,
-          photoUrl: sc.photoUrl ?? null,
+          // PHOTOS PAUSED (2026-07-03): photoUrl: sc.photoUrl ?? null,
         })
         .onConflictDoUpdate({
           target: [coaches.teamId, coaches.leagueId, coaches.slug],
@@ -317,7 +319,8 @@ async function syncLeague(
             // has no value, instead of regressing the column to null.
             nationality: sql`coalesce(excluded.nationality, ${coaches.nationality})`,
             age: sql`coalesce(excluded.age, ${coaches.age})`,
-            photoUrl: sql`coalesce(excluded.photo_url, ${coaches.photoUrl})`,
+            // PHOTOS PAUSED (2026-07-03):
+            // photoUrl: sql`coalesce(excluded.photo_url, ${coaches.photoUrl})`,
           },
         })
       totals.coaches++

@@ -69,6 +69,11 @@ async function photoFor(name: string): Promise<string | null> {
 }
 
 async function main() {
+  // PHOTOS PAUSED (2026-07-03): people photos were removed from the DB and the
+  // UI renders typographic avatars (PersonAvatar). Delete this guard to re-run.
+  console.log("PHOTOS PAUSED: este script rellena fotos y está desactivado.")
+  if (!process.argv.includes("--force")) return
+
   if (!LEAGUE) {
     console.error("usage: tsx scripts/backfill-coach-photos.ts <league-slug> [--dry]")
     process.exit(1)

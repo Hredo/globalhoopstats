@@ -3,8 +3,9 @@
 import { useState, type FormEvent } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { AuthCourt, type AuthCourtStats } from "@/components/auth/auth-court"
+import { safeNextPath } from "@/lib/auth/safe-redirect"
 import { useT } from "@/lib/i18n/provider"
 
 type FieldProps = {
@@ -152,7 +153,11 @@ type AuthFormProps = {
 
 export function AuthForm({ variant, stats }: AuthFormProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const t = useT()
+  // Where the middleware wanted to send the user before it bounced them to
+  // /login (?next=…). Sanitised: only same-site absolute paths are followed.
+  const nextPath = safeNextPath(searchParams.get("next"), "/")
 
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -222,6 +227,7 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
       if (payload.requiresTwoFactor && payload.twoFactorSessionId) {
         const params = new URLSearchParams({ session: payload.twoFactorSessionId })
         if (payload.expiresAt) params.set("e", String(payload.expiresAt))
+        if (nextPath !== "/") params.set("next", nextPath)
         router.push(`/login/2fa?${params}`)
         return
       }
@@ -230,7 +236,8 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
       window.dispatchEvent(new Event("auth:changed"))
       // Hard redirect clears the RSC prefetch cache so protected pages
       // (trade, compare, ai-advisor) don't follow stale middleware redirects.
-      window.location.href = "/"
+      // Land on the page the user originally asked for (middleware `next`).
+      window.location.href = nextPath
     } catch {
       setFormError(t("auth.networkError"))
     } finally {

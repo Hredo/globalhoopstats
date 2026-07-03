@@ -1086,7 +1086,7 @@ export function exportToPdf(payload: ExportPayload): void {
       styles: { lineColor: LINE, lineWidth: 0.1, cellPadding: 2.2 },
       columnStyles: { 0: { cellWidth: 10 }, 4: { cellWidth: 22 } },
     })
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     y = (doc as any).lastAutoTable.finalY + 9
   }
 

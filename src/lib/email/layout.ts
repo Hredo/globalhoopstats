@@ -1,4 +1,5 @@
 import { SITE } from "@/lib/site"
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config"
 
 /**
  * Email-safe HTML building blocks. Everything uses inline styles, table
@@ -70,11 +71,14 @@ type RenderInput = {
   preview: string
   /** Assembled inner HTML (use the helpers above). */
   content: string
+  /** Language of the email content (defaults to en). */
+  locale?: Locale
 }
 
-export function renderEmail({ preview, content }: RenderInput): string {
+export function renderEmail({ preview, content, locale }: RenderInput): string {
+  const lang = locale ?? DEFAULT_LOCALE
   return `<!doctype html>
-<html lang="en">
+<html lang="${lang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

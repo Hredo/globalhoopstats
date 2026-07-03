@@ -12,6 +12,7 @@ import {
 } from "react"
 import { useRouter } from "next/navigation"
 import { SmartImage } from "@/components/ui/smart-image"
+import { PersonAvatar } from "@/components/ui/person-avatar"
 import { useT } from "@/lib/i18n/provider"
 import { LeagueSelect, SelectControl } from "@/components/ui/filter-controls"
 
@@ -542,8 +543,12 @@ function ResultCard({
             alt={player.fullName}
             fit="cover"
             className="transition duration-300 group-hover:scale-105"
-            fallbackClassName="bg-gradient-to-br from-court-800 to-ink-900 text-xs font-bold text-brand-300"
-            fallback={initials(player.fullName)}
+            fallback={
+              <PersonAvatar
+                name={player.fullName}
+                leagueSlug={player.league.slug}
+              />
+            }
           />
           {player.team?.logoUrl ? (
             <span className="absolute -bottom-1 -right-1 h-5 w-5 overflow-hidden rounded-full bg-ink-950 ring-2 ring-ink-950">
