@@ -46,9 +46,11 @@ export function PctBar({
         </span>
       ) : null}
       <div className="flex items-center gap-2">
-        <div className={`flex-1 overflow-hidden bg-white/5 ${barHeight}`}>
+        <div
+          className={`flex-1 overflow-hidden rounded-full bg-white/5 ${barHeight}`}
+        >
           <div
-            className={`${barHeight} bg-brand-500 transition-all duration-500`}
+            className={`${barHeight} rounded-full bg-gradient-to-r from-brand-500 to-brand-300 transition-all duration-500`}
             style={{ width: `${Math.min(pct, 100)}%` }}
           />
         </div>

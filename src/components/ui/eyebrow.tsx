@@ -1,10 +1,6 @@
 import type { ReactNode } from "react"
 import { cn } from "@/components/ui/cn"
 
-/**
- * Jersey-patch label: a small solid tick square + compressed caps.
- * The tick carries the color; the text stays quiet ink.
- */
 export function Eyebrow({
   children,
   className,
@@ -17,15 +13,18 @@ export function Eyebrow({
   return (
     <span
       className={cn(
-        "text-condensed inline-flex items-center gap-2.5 text-[11px] tracking-[0.15em] text-ink-500",
+        "inline-flex items-center gap-2.5 font-mono text-[11px] font-medium uppercase tracking-[0.22em]",
+        tone === "brand" ? "text-brand-300" : "text-ink-400",
         className,
       )}
     >
       <span
         aria-hidden
         className={cn(
-          "h-2 w-2 flex-none",
-          tone === "brand" ? "bg-brand-500" : "bg-ink-700",
+          "h-px w-6",
+          tone === "brand"
+            ? "bg-gradient-to-r from-brand-400 to-transparent"
+            : "bg-gradient-to-r from-ink-500 to-transparent",
         )}
       />
       {children}

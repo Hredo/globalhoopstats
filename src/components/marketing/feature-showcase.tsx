@@ -251,17 +251,20 @@ export async function FeatureShowcase() {
           return (
             <FadeIn key={f.n} delay={0.05 * (i + 1)} y={24}>
               <article className="gh-card relative grid items-stretch overflow-hidden md:grid-cols-2">
+                <span
+                  aria-hidden
+                  className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/60 to-transparent"
+                />
                 <div
                   className={`p-6 sm:p-8 md:p-10 ${reversed ? "md:order-2" : "md:order-1"}`}
                 >
                   <div className="flex items-center gap-3">
-                    <span aria-hidden className="h-2 w-2 bg-brand-500" />
-                    <span className="text-condensed text-xs tracking-[0.16em] text-ink-500">
+                    <span className="font-mono text-xs uppercase tracking-[0.18em] text-brand-300">
                       {f.n}
                     </span>
                     <span className="h-px w-8 bg-hairline-strong" />
                     {f.badge ? (
-                      <span className="text-condensed rounded-sm border border-amber-400/50 bg-amber-400/10 px-2 py-0.5 text-[9px] tracking-[0.14em] text-amber-300">
+                      <span className="rounded-full border border-amber-400/50 bg-amber-400/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-300">
                         {f.badge}
                       </span>
                     ) : null}

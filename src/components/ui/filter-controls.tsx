@@ -87,12 +87,12 @@ export function LeagueSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={t("directory.filterByLeague")}
-        className="flex h-9 min-w-[130px] items-center gap-1.5 rounded-md border border-hairline bg-surface-1/80 px-3.5 text-xs font-semibold text-ink-50 outline-none transition duration-200 hover:border-hairline-strong hover:bg-surface-2/80"
+        className="flex h-9 min-w-[130px] items-center gap-1.5 rounded-full border border-hairline bg-surface-1/80 px-3.5 text-xs font-semibold text-ink-50 outline-none transition duration-200 hover:border-hairline-strong hover:bg-surface-2/80"
       >
         {selectedAccent ? (
           <span
             aria-hidden
-            className="h-2 w-2 shrink-0 transition-colors duration-300"
+            className="h-2 w-2 shrink-0 rounded-full transition-colors duration-300"
             style={{ background: selectedAccent.color }}
           />
         ) : (
@@ -130,7 +130,7 @@ export function LeagueSelect({
         <div
           role="listbox"
           aria-label={t("directory.leaguesListAria")}
-          className="absolute left-0 top-full z-50 mt-1.5 w-56 rounded-lg border border-hairline bg-surface-2/95 p-1.5 shadow-[var(--shadow-court)] backdrop-blur-xl sm:left-auto sm:right-0"
+          className="absolute left-0 top-full z-50 mt-1.5 w-56 rounded-2xl border border-hairline bg-surface-2/95 p-1.5 shadow-[var(--shadow-court)] backdrop-blur-xl sm:left-auto sm:right-0"
         >
           <div className="relative mb-1">
             <svg
@@ -152,7 +152,7 @@ export function LeagueSelect({
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("directory.searchLeagues")}
               aria-label={t("directory.searchLeaguesAria")}
-              className="h-8 w-full rounded-md border border-hairline bg-surface-0/80 pl-8 pr-2.5 text-xs text-ink-50 outline-none placeholder:text-ink-400"
+              className="h-8 w-full rounded-xl border border-hairline bg-surface-0/80 pl-8 pr-2.5 text-xs text-ink-50 outline-none placeholder:text-ink-400"
             />
           </div>
           <div className="max-h-48 overflow-y-auto">
@@ -166,7 +166,7 @@ export function LeagueSelect({
                   onChange(opt.value)
                   close()
                 }}
-                className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] font-medium transition-colors duration-200 ${
+                className={`flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-[13px] font-medium transition-colors duration-200 ${
                   opt.value === value
                     ? "bg-brand-500/15 text-brand-200"
                     : "text-ink-200 hover:bg-white/[0.05] hover:text-ink-50"
@@ -174,9 +174,9 @@ export function LeagueSelect({
                 style={{ paddingLeft: opt.depth > 0 ? "2rem" : "0.625rem" }}
               >
                 {opt.depth === 0 && opt.value !== "" ? (
-                  <span className="h-1.5 w-1.5 shrink-0 bg-brand-500/70" />
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500/70" />
                 ) : opt.depth > 0 ? (
-                  <span className="h-1 w-1 shrink-0 bg-brand-500/50" />
+                  <span className="h-1 w-1 shrink-0 rounded-full bg-brand-500/50" />
                 ) : null}
                 <span className="truncate">{opt.label}</span>
               </button>
@@ -212,7 +212,7 @@ export function SelectControl({
         aria-label={ariaLabel}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-9 w-full appearance-none rounded-md border border-hairline bg-surface-1/80 pl-3.5 pr-8 text-xs font-semibold text-ink-50 outline-none transition duration-200 hover:border-hairline-strong hover:bg-surface-2/80 focus:border-brand-400/50"
+        className="h-9 w-full appearance-none rounded-full border border-hairline bg-surface-1/80 pl-3.5 pr-8 text-xs font-semibold text-ink-50 outline-none transition duration-200 hover:border-hairline-strong hover:bg-surface-2/80 focus:border-brand-400/50"
       >
         {children}
       </select>

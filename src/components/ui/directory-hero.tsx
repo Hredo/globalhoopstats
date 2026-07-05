@@ -77,7 +77,7 @@ export function DirectoryHero({
       {accent ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute right-0 top-0 select-none overflow-hidden font-display font-black leading-none opacity-[0.05] sm:opacity-[0.06]"
+          className="pointer-events-none absolute right-0 top-0 select-none overflow-hidden font-display font-black leading-none opacity-[0.04] sm:opacity-[0.06]"
           style={{
             fontSize: "clamp(6rem, 20vw, 16rem)",
             color: accent.color,
@@ -96,7 +96,7 @@ export function DirectoryHero({
           </Reveal>
           <Reveal delay={0.06}>
             <TitleRule className="mt-4">
-              <h1 className="text-display text-balance text-[3rem] text-ink-50 sm:text-7xl md:text-8xl">
+              <h1 className="font-display text-[3.25rem] font-semibold leading-[0.96] tracking-[-0.015em] text-balance text-ink-50 sm:text-7xl md:text-8xl">
                 {title}
               </h1>
             </TitleRule>

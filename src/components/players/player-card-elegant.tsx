@@ -72,7 +72,12 @@ export function PlayerCardElegant({ player }: Props) {
     >
       <span
         aria-hidden
-        className="absolute inset-x-0 top-0 z-10 h-[3px] opacity-70 transition-opacity duration-300 group-hover:opacity-100"
+        className="absolute inset-x-0 top-0 z-10 h-[3px] opacity-60 transition-opacity duration-500 group-hover:opacity-100"
+        style={{ background: "var(--lg)" }}
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -right-12 -top-12 z-0 h-32 w-32 rounded-full opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-40"
         style={{ background: "var(--lg)" }}
       />
 
@@ -94,10 +99,10 @@ export function PlayerCardElegant({ player }: Props) {
           }
         />
 
-        <span className="text-condensed absolute right-2 top-2 z-[2] inline-flex items-center gap-1.5 rounded-sm bg-ink-950/60 px-1.5 py-0.5 text-[8px] tracking-[0.12em] text-ink-100 ring-1 ring-hairline backdrop-blur sm:right-3 sm:top-3 sm:px-2 sm:py-1 sm:text-[10px]">
+        <span className="absolute right-2 top-2 z-[2] inline-flex items-center gap-1.5 rounded-full bg-ink-950/55 px-1.5 py-0.5 font-mono text-[8px] font-semibold uppercase tracking-[0.14em] text-ink-100 ring-1 ring-hairline backdrop-blur sm:right-3 sm:top-3 sm:px-2 sm:py-1 sm:text-[10px]">
           <span
             aria-hidden
-            className="h-1.5 w-1.5"
+            className="h-1.5 w-1.5 rounded-full"
             style={{ background: "var(--lg)" }}
           />
           {player.league.name}
@@ -106,7 +111,7 @@ export function PlayerCardElegant({ player }: Props) {
         <div className="absolute inset-x-0 bottom-0 z-[2] flex items-end justify-between gap-2 p-2.5 sm:p-4">
           <div className="min-w-0 flex-1">
             {player.position ? (
-              <p className="text-condensed mb-0.5 text-[9px] tracking-[0.16em] text-ink-400 sm:mb-1 sm:text-[10px]">
+              <p className="mb-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-400 sm:mb-1 sm:text-[10px]">
                 {player.position}
               </p>
             ) : null}
@@ -118,7 +123,7 @@ export function PlayerCardElegant({ player }: Props) {
             </p>
           </div>
           {player.team?.logoUrl ? (
-            <span className="hidden h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-ink-950/70 p-1 ring-1 ring-hairline backdrop-blur sm:flex">
+            <span className="hidden h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-ink-950/70 p-1 ring-1 ring-hairline backdrop-blur sm:flex">
               <SmartImage
                 src={player.team.logoUrl}
                 alt={player.team.name}
@@ -152,14 +157,14 @@ function Stat({
   return (
     <div className="px-0.5 py-2 text-center sm:px-3 sm:py-2.5">
       <p
-        className={`text-numeral text-xs sm:text-lg ${
+        className={`font-display text-xs font-bold tabular-nums sm:text-lg ${
           primary ? "" : "text-ink-200"
         }`}
         style={primary ? { color: "var(--lg-text)" } : undefined}
       >
         {value}
       </p>
-      <p className="text-condensed mt-0.5 text-[7px] tracking-[0.1em] text-ink-500 sm:text-[9px] sm:tracking-[0.16em]">
+      <p className="mt-0.5 font-mono text-[7px] uppercase tracking-[0.1em] text-ink-500 sm:text-[9px] sm:tracking-[0.18em]">
         {label}
       </p>
     </div>

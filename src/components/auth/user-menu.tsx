@@ -109,7 +109,7 @@ export function UserMenu() {
       <div className="flex shrink-0 items-center">
         <Link
           href="/register"
-          className="group/cta inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-md bg-brand-600 px-3 text-xs font-semibold text-ink-950 shadow-[inset_0_-1.5px_0_0_oklch(0_0_0/0.18)] transition-colors duration-200 ease-swift hover:bg-brand-500 active:translate-y-px sm:h-9 sm:px-4 sm:text-sm"
+          className="gh-sheen group/cta inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-full bg-gradient-to-r from-brand-400 to-ember-500 px-3 text-xs font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition-all duration-300 ease-swift hover:shadow-[var(--shadow-brand-glow-lg)] active:scale-[0.98] sm:h-9 sm:px-4 sm:text-sm"
         >
           {t("userMenu.getStarted")}
         </Link>
@@ -138,18 +138,18 @@ export function UserMenu() {
         ref={buttonRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="group flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] p-1 pr-3 transition hover:border-white/25 hover:bg-white/[0.08]"
+        className="group flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] p-1 pr-3 transition hover:border-white/25 hover:bg-white/[0.08]"
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <span className="flex h-7 w-7 items-center justify-center rounded-[5px] bg-brand-600 text-[10px] font-bold text-ink-950">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-[10px] font-bold text-ink-950">
           {initials(me.name)}
         </span>
         <span className="hidden text-xs font-medium text-ink-100 sm:inline">
           {me.name.split(" ")[0]}
         </span>
         <span
-          className={`hidden rounded-sm border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest sm:inline-flex ${badge.color}`}
+          className={`hidden rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest sm:inline-flex ${badge.color}`}
         >
           {t(badge.labelKey)}
         </span>
@@ -170,12 +170,12 @@ export function UserMenu() {
       {open ? (
         <div
           ref={menuRef}
-          className="absolute right-0 z-50 mt-2 w-[min(16rem,calc(100vw-1rem))] origin-top-right animate-menu-in overflow-y-auto overscroll-contain rounded-lg border border-white/10 bg-ink-900/95 shadow-2xl backdrop-blur-md sm:w-64 max-sm:max-h-[calc(100dvh-4.5rem)]"
+          className="absolute right-0 z-50 mt-2 w-[min(16rem,calc(100vw-1rem))] origin-top-right animate-menu-in overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-ink-900/95 shadow-2xl backdrop-blur-md sm:w-64 max-sm:max-h-[calc(100dvh-4.5rem)]"
           role="menu"
         >
           <div className="bg-gradient-to-b from-brand-500/[0.06] to-transparent px-4 pb-3 pt-4">
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-600 text-sm font-bold text-ink-950">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-ink-950 shadow-lg shadow-brand-500/20">
                 {initials(me.name)}
               </span>
               <div className="min-w-0">
@@ -187,7 +187,7 @@ export function UserMenu() {
             </div>
             <div className="mt-3 flex items-center gap-2">
               <span
-                className={`rounded-sm border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest ${badge.color}`}
+                className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest ${badge.color}`}
               >
                 {t(badge.labelKey)}
               </span>

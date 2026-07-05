@@ -75,6 +75,10 @@ export function MobileNav() {
           aria-label={t("nav.siteNavigation")}
           className="fixed inset-0 z-[100] flex animate-overlay-in flex-col bg-ink-950/95 xl:hidden"
         >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -left-1/4 top-0 h-[60vh] w-[150%] animate-aurora rounded-full bg-brand-500/15 blur-3xl"
+          />
           <CourtMarkings
             variant="hero"
             className="pointer-events-none absolute -right-20 top-8 h-[420px] w-[420px] -scale-x-100 opacity-80"
@@ -98,16 +102,11 @@ export function MobileNav() {
                     <Link
                       href={l.href}
                       aria-current={active ? "page" : undefined}
-                      className="group flex items-center gap-3.5"
+                      className="group flex items-baseline gap-3"
                     >
-                      <span
-                        aria-hidden
-                        className={`h-2.5 w-2.5 flex-none transition-colors duration-300 ${
-                          active
-                            ? "bg-brand-500"
-                            : "bg-ink-700 group-hover:bg-brand-500/60"
-                        }`}
-                      />
+                      <span className="font-mono text-[11px] tabular-nums text-brand-400/70">
+                        0{i + 1}
+                      </span>
                       <span
                         className={`font-display text-4xl font-bold tracking-[-0.03em] transition-colors duration-300 ${
                           active
@@ -127,7 +126,7 @@ export function MobileNav() {
               className="mt-10 animate-nav-rise"
               style={{ animationDelay: "0.5s" }}
             >
-              <p className="text-condensed text-[10px] tracking-[0.18em] text-ink-500">
+              <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-500">
                 {t("common.byLeague")}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
@@ -160,14 +159,14 @@ export function MobileNav() {
             style={{ animationDelay: "0.58s" }}
           >
             <div className="flex items-center justify-between gap-3">
-              <span className="text-condensed text-[10px] tracking-[0.18em] text-ink-500">
+              <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-500">
                 {t("language.label")}
               </span>
               <LanguageSwitcher variant="inline" />
             </div>
             <Link
               href="/compare"
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-brand-600 px-4 py-3.5 text-center text-sm font-semibold text-ink-950 shadow-[inset_0_-1.5px_0_0_oklch(0_0_0/0.18)] transition-colors duration-300 hover:bg-brand-500"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-brand-500 px-4 py-3.5 text-center text-sm font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition-colors duration-300 hover:bg-brand-400"
             >
               {t("common.openConsole")}
             </Link>

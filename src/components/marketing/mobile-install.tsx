@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
+import { useState, type CSSProperties } from "react"
 import { FadeIn } from "@/components/animations/fade-in"
 import { Eyebrow } from "@/components/ui/eyebrow"
 import { useLocale } from "@/lib/i18n/provider"
@@ -38,7 +37,6 @@ export function MobileInstall() {
   const [platform, setPlatform] = useState<Platform>("ios")
   const steps = platform === "ios" ? STEPS_IOS : STEPS_ANDROID
   const prefix = "home.mobileInstall"
-  const reduce = useReducedMotion()
 
   return (
     <section className="relative hairline-t py-32 sm:py-40">
@@ -70,23 +68,12 @@ export function MobileInstall() {
               className="relative mx-auto max-w-[280px] md:max-w-none"
               style={{ perspective: 1200 }}
             >
-              {reduce ? (
+              <div
+                key={platform}
+                className="transition-all duration-[450ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+              >
                 <PhoneFrame platform={platform} />
-              ) : (
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.div
-                    key={platform}
-                    initial={{ rotateY: 65, opacity: 0, scale: 0.94 }}
-                    animate={{ rotateY: 0, opacity: 1, scale: 1 }}
-                    exit={{ rotateY: -65, opacity: 0, scale: 0.94 }}
-                    transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                    style={{ transformStyle: "preserve-3d", transformOrigin: "center" }}
-                  >
-                    <PhoneFrame platform={platform} />
-                  </motion.div>
-                </AnimatePresence>
-              )}
-              {/* soft plate shadow that stays put while the phone flips */}
+              </div>
               <div
                 aria-hidden
                 className="absolute inset-x-8 bottom-2 -z-10 h-10 rounded-[50%] bg-black/40 blur-2xl"

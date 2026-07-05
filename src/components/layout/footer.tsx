@@ -45,7 +45,7 @@ export async function Footer() {
             >
               <Logo className="h-8 w-8" />
               <span className="font-display text-lg font-bold tracking-[-0.02em]">
-                globalhoopstats<span className="text-brand-500">.</span>
+                GLOBALHOOPSTATS<span className="text-brand-500">.</span>
               </span>
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-ink-300">
@@ -96,7 +96,7 @@ export async function Footer() {
         className="pointer-events-none select-none overflow-hidden"
       >
         <p className="text-outline mx-auto -mb-[0.16em] whitespace-nowrap text-center font-display text-[clamp(3.2rem,11vw,9.5rem)] font-bold leading-none tracking-[-0.02em] opacity-[0.14]">
-          globalhoopstats
+          GLOBALHOOPSTATS
         </p>
       </div>
     </footer>

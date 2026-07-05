@@ -68,7 +68,7 @@ export function LeagueDot({
   return (
     <span
       aria-hidden
-      className={cn("inline-block h-1.5 w-1.5 shrink-0", className)}
+      className={cn("inline-block h-1.5 w-1.5 shrink-0 rounded-full", className)}
       style={{ background: a.color }}
     />
   )
@@ -87,13 +87,13 @@ export function LeagueBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-sm border border-hairline bg-white/[0.04] px-2.5 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-ink-200 backdrop-blur",
+        "inline-flex items-center gap-1.5 rounded-full border border-hairline bg-white/[0.04] px-2.5 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-ink-200 backdrop-blur",
         className,
       )}
     >
       <span
         aria-hidden
-        className="h-1.5 w-1.5"
+        className="h-1.5 w-1.5 rounded-full"
         style={{ background: a.color }}
       />
       {name}

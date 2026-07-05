@@ -18,7 +18,7 @@ export function SearchTrigger() {
       type="button"
       onClick={open}
       aria-label="Search players"
-      className="group inline-flex items-center gap-2 rounded-md border border-hairline bg-white/[0.04] px-2 py-1.5 text-sm text-ink-200 transition hover:border-hairline-strong hover:bg-white/[0.07] hover:text-ink-50 sm:px-3 sm:py-2"
+      className="group inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1.5 text-sm text-ink-200 transition hover:border-brand-400/40 hover:bg-white/[0.07] hover:text-ink-50 sm:px-3 sm:py-2"
     >
       <svg
         aria-hidden

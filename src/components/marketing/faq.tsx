@@ -16,10 +16,10 @@ export function Faq() {
           return (
             <li key={item.question}>
               <div
-                className={`overflow-hidden rounded-lg border transition ${
+                className={`overflow-hidden rounded-xl border transition ${
                   isOpen
                     ? "border-brand-400/40 bg-white/[0.05]"
-                    : "border-hairline bg-white/[0.02] hover:border-hairline-strong hover:bg-white/[0.04]"
+                    : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]"
                 }`}
               >
                 <button
@@ -34,9 +34,9 @@ export function Faq() {
                   </span>
                   <span
                     aria-hidden
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-sm border border-hairline bg-white/5 text-ink-200 transition ${
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-ink-200 transition ${
                       isOpen
-                        ? "rotate-45 border-brand-400/40 text-brand-300"
+                        ? "rotate-45 border-brand-400/40 text-brand-200"
                         : ""
                     }`}
                   >

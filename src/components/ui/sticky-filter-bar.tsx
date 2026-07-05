@@ -39,7 +39,7 @@ export function StickyFilterBar({
     >
       <div
         className={`gh-glass px-3 py-2 sm:px-4 transition-all duration-500 ${
-          stuck ? "rounded-b-lg rounded-t-none" : "rounded-lg"
+          stuck ? "rounded-b-2xl rounded-t-none" : "rounded-2xl"
         }`}
       >
         {children}

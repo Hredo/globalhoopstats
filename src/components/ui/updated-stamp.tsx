@@ -21,12 +21,12 @@ export async function UpdatedStamp({
     >
       <span
         aria-hidden
-        className={`relative inline-flex h-1.5 w-1.5 ${
+        className={`relative inline-flex h-1.5 w-1.5 rounded-full ${
           date ? "bg-positive" : "bg-ink-600"
         }`}
       >
         {date ? (
-          <span className="absolute inline-flex h-full w-full animate-ping bg-positive opacity-60" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-positive opacity-60" />
         ) : null}
       </span>
       {date

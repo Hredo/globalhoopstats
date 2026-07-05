@@ -27,7 +27,7 @@ export function ThemeToggleFab() {
         aria-label={isLight ? t("theme.switchToDark") : t("theme.switchToLight")}
         title={isLight ? t("theme.switchToDark") : t("theme.switchToLight")}
         className={cn(
-          "group pointer-events-auto flex items-center gap-2 rounded-l-lg border border-r-0 py-3 pl-3.5 pr-3.5",
+          "group pointer-events-auto flex items-center gap-2 rounded-l-2xl border border-r-0 py-3 pl-3.5 pr-3.5",
           "gh-glass shadow-[var(--shadow-court)] backdrop-blur-xl",
           "transition-[transform,padding,box-shadow] duration-500 ease-spring",
           "hover:pr-4 hover:-translate-x-0.5 active:scale-95",
