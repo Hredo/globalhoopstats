@@ -10,7 +10,7 @@ export type LeagueOption = { slug: string; name: string }
 
 function segmentClass(active: boolean): string {
   return cn(
-    "rounded-full px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] transition duration-200",
+    "rounded-[5px] px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] transition duration-200",
     active ? "text-ink-50" : "text-ink-400 hover:text-ink-200",
   )
 }
@@ -26,7 +26,7 @@ function Shell({
     <div
       role="group"
       aria-label={ariaLabel}
-      className="inline-flex items-center gap-0.5 rounded-full border border-hairline bg-surface-1/80 p-1 backdrop-blur"
+      className="inline-flex items-center gap-0.5 rounded-md border border-hairline bg-surface-1/80 p-1 backdrop-blur"
     >
       {children}
     </div>

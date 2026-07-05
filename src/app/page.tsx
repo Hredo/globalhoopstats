@@ -3,12 +3,10 @@ import Link from "next/link"
 import { FadeIn } from "@/components/animations/fade-in"
 import { Reveal, Stagger, StaggerItem } from "@/components/animations/reveal"
 import { Parallax } from "@/components/animations/parallax"
-import { SpotlightCard } from "@/components/animations/spotlight-card"
 import { ScrollGallery } from "@/components/animations/scroll-gallery"
 import { AppMockup } from "@/components/marketing/app-mockup"
 import { HeroDuel } from "@/components/three/hero-duel"
 import { StatCounter } from "@/components/ui/stat-counter"
-import { TiltCard } from "@/components/ui/tilt-card"
 import { Marquee } from "@/components/marketing/marquee"
 import { JsonLd } from "@/components/marketing/json-ld"
 import { TrustedBy } from "@/components/marketing/trusted-by"
@@ -21,7 +19,6 @@ import { getFaqData } from "@/components/marketing/faq-data"
 // NOTE: PricingCta commented out until subscriptions are re-enabled.
 // import { PricingCta } from "@/components/marketing/pricing-cta"
 import { Eyebrow } from "@/components/ui/eyebrow"
-import { TitleRule } from "@/components/ui/title-rule"
 import { SectionHeading } from "@/components/ui/section-heading"
 import { ButtonLink } from "@/components/ui/button"
 import { SITE } from "@/lib/site"
@@ -140,7 +137,7 @@ export default async function Home() {
       <JsonLd data={[faqJsonLd, softwareJsonLd]} />
 
       {/* ── HERO ───────────────────────────────────────────────── */}
-      <section className="full-bleed relative isolate overflow-hidden pb-14 pt-12 sm:pb-24 sm:pt-20 md:pt-28">
+      <section className="full-bleed relative isolate overflow-hidden pb-14 pt-10 sm:pb-24 sm:pt-16 md:pt-24">
         {/* background handled globally by the fixed court backdrop */}
 
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
@@ -149,23 +146,21 @@ export default async function Home() {
             <FadeIn>
               <Eyebrow>
                 <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand-400" />
+                  <span className="absolute inline-flex h-full w-full animate-ping bg-brand-500 opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 bg-brand-500" />
                 </span>
                 {t("home.hero.eyebrow")}
               </Eyebrow>
             </FadeIn>
 
             <FadeIn delay={0.08} y={28}>
-              <TitleRule className="mt-6">
-                <h1 className="font-display text-[2.75rem] font-semibold leading-[0.96] tracking-[-0.012em] text-balance text-ink-50 [overflow-wrap:break-word] sm:text-[3.9rem] lg:text-[4.3rem] xl:text-[5.25rem]">
-                  {t("home.hero.titleLine1")}
-                  <br />
-                  <span className="text-gradient-shimmer italic">
-                    {t("home.hero.titleLine2")}
-                  </span>
-                </h1>
-              </TitleRule>
+              <h1 className="text-display mt-6 text-balance text-[2.75rem] text-ink-50 [overflow-wrap:break-word] sm:text-[3.9rem] lg:text-[4.3rem] xl:text-[5.25rem]">
+                {t("home.hero.titleLine1")}
+                <br />
+                <span className="text-gradient-brand italic">
+                  {t("home.hero.titleLine2")}
+                </span>
+              </h1>
             </FadeIn>
 
             <FadeIn delay={0.18} y={20}>
@@ -189,20 +184,22 @@ export default async function Home() {
             </FadeIn>
 
             <FadeIn delay={0.4}>
-              <dl className="mt-12 grid max-w-lg grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
+              {/* scoreline — the hero's box-score row, ruled and ticked */}
+              <dl className="mt-12 grid max-w-lg grid-cols-2 gap-x-6 gap-y-7 border-t-2 border-hairline-strong pt-4 sm:grid-cols-4 [&>div]:relative">
                 {stats.map((s) => (
-                  <div
-                    key={s.labelKey}
-                    className="border-l-2 border-brand-500/40 pl-4"
-                  >
-                    <dt className="font-display text-2xl font-semibold tabular-nums text-ink-50 sm:text-3xl">
+                  <div key={s.labelKey}>
+                    <span
+                      aria-hidden
+                      className="absolute -top-4 left-0 h-2 w-px bg-hairline-strong"
+                    />
+                    <dt className="text-numeral text-3xl text-ink-50 sm:text-4xl">
                       <StatCounter
                         to={s.v}
                         suffix={s.suffix}
                         decimals={"decimals" in s ? s.decimals : 0}
                       />
                     </dt>
-                    <dd className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-400 sm:text-[11px]">
+                    <dd className="text-condensed mt-2 text-[10px] tracking-[0.14em] text-ink-500 sm:text-[11px]">
                       {t(s.labelKey)}
                     </dd>
                   </div>
@@ -214,7 +211,7 @@ export default async function Home() {
           <FadeIn delay={0.2} className="relative">
             <div
               aria-hidden
-              className="absolute inset-0 -z-10 rounded-[2rem] bg-gradient-to-br from-brand-500/25 via-transparent to-league-euro-600/20 blur-2xl"
+              className="absolute inset-0 -z-10 rounded-2xl bg-brand-500/10 blur-2xl"
             />
             {/* Signature 3D centerpiece — falls back to the static editorial
                 mockup on mobile / reduced-motion / crawlers. */}
@@ -242,7 +239,7 @@ export default async function Home() {
               key={t.name}
               className="flex items-center gap-3 whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.12em] text-ink-300 sm:text-xs"
             >
-              <span className="h-1 w-1 rounded-full bg-brand-400" />
+              <span className="h-1 w-1 bg-brand-500" />
               <span className="text-ink-100">{t.name}</span>
               <span className="text-ink-500">{t.team}</span>
               <span className="text-brand-300">{t.stat}</span>
@@ -255,7 +252,7 @@ export default async function Home() {
               key={t.name}
               className="flex items-center gap-3 whitespace-nowrap font-mono text-[11px] uppercase tracking-[0.12em] text-ink-300 sm:text-xs"
             >
-              <span className="h-1 w-1 rounded-full bg-ink-400" />
+              <span className="h-1 w-1 bg-ink-400" />
               <span className="text-ink-100">{t.name}</span>
               <span className="text-ink-500">PTS · REB · AST</span>
               <span className="text-ink-200">{t.stat}</span>
@@ -268,7 +265,7 @@ export default async function Home() {
 
       <TrustedBy />
 
-      {/* ── BENTO — inside the console ─────────────────────────── */}
+      {/* ── CONSOLE GRID — inside the console ──────────────────── */}
       <section id="product" className="relative hairline-t py-20 sm:py-28">
         <Reveal>
           <SectionHeading
@@ -378,21 +375,20 @@ export default async function Home() {
       {/* ── FINAL CTA ──────────────────────────────────────────── */}
       <section className="relative my-16 sm:my-24">
         <Reveal>
-          <div className="gh-bezel gh-sheen overflow-hidden">
-            <div className="gh-bezel-inner relative overflow-hidden bg-gradient-to-br from-court-800/70 via-surface-1 to-surface-0 p-7 sm:p-12 md:p-16">
+          <div className="gh-bezel overflow-hidden">
+            <div className="gh-bezel-inner relative overflow-hidden p-7 sm:p-12 md:p-16">
               <div
                 aria-hidden
-                className="absolute -left-24 -top-24 h-72 w-72 animate-aurora rounded-full bg-brand-500/30 blur-3xl"
+                className="pointer-events-none absolute inset-0 bg-mesh"
               />
               <div
                 aria-hidden
-                className="absolute -bottom-28 right-[-6%] h-72 w-72 animate-breathe rounded-full bg-ember-500/20 blur-3xl"
+                className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-court-floor"
               />
-              <div aria-hidden className="absolute inset-0 bg-hatch opacity-50" />
               <div className="relative grid items-center gap-8 md:grid-cols-[1.1fr_1fr]">
                 <div>
                   <Eyebrow>{t("home.cta.eyebrow")}</Eyebrow>
-                  <h2 className="mt-5 font-display text-3xl font-bold leading-[0.96] tracking-[-0.03em] text-balance sm:text-4xl md:text-[3.25rem]">
+                  <h2 className="text-display mt-5 text-balance text-3xl sm:text-4xl md:text-[3.1rem]">
                     {t("home.cta.titleA")}{" "}
                     <span className="text-gradient-brand">
                       {t("home.cta.titleB")}
@@ -419,7 +415,7 @@ export default async function Home() {
   )
 }
 
-/* ── Bento card ───────────────────────────────────────────────── */
+/* ── Console card ─────────────────────────────────────────────── */
 async function BentoCard({
   kicker,
   title,
@@ -443,18 +439,12 @@ async function BentoCard({
 }) {
   const { t } = await getT()
   return (
-    <TiltCard max={5} className="group">
-    <SpotlightCard className="gh-card gh-card-interactive relative flex h-full flex-col overflow-hidden p-6 sm:p-7">
+    <div className="gh-card gh-card-interactive group relative flex h-full flex-col overflow-hidden p-6 sm:p-7">
       <div className="flex items-center justify-between gap-3">
         <span className="gh-eyebrow">{kicker}</span>
         {/* NOTE: Pro badge kept for when Pro is re-enabled. */}
-        {/* {pro ? ( */}
-        {/*   <span className="rounded-full border border-brand-500/40 bg-brand-500/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-brand-300"> */}
-        {/*     Pro */}
-        {/*   </span> */}
-        {/* ) : null} */}
         {beta ? (
-          <span className="rounded-full border border-amber-400/50 bg-amber-400/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-300">
+          <span className="text-condensed rounded-sm border border-amber-400/50 bg-amber-400/10 px-2 py-0.5 text-[9px] tracking-[0.14em] text-amber-300">
             Beta
           </span>
         ) : null}
@@ -479,10 +469,10 @@ async function BentoCard({
       </p>
       {children ? <div className="mt-auto pt-6">{children}</div> : null}
       {href ? (
-        <span className="mt-auto inline-flex items-center gap-1.5 pt-6 font-mono text-[11px] uppercase tracking-[0.16em] text-brand-300">
+        <span className="text-condensed mt-auto inline-flex items-center gap-1.5 pt-6 text-[11px] tracking-[0.14em] text-brand-400">
           {t("common.explore")}
           <svg
-            className="h-3.5 w-3.5 transition-transform duration-300 ease-fluid group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+            className="h-3.5 w-3.5 transition-transform duration-200 ease-swift group-hover:translate-x-1"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -491,19 +481,18 @@ async function BentoCard({
             strokeLinejoin="round"
             aria-hidden
           >
-            <path d="M7 17 17 7M9 7h8v8" />
+            <path d="M5 12h14M13 6l6 6-6 6" />
           </svg>
         </span>
       ) : null}
       {href ? (
         <Link href={href} className="absolute inset-0" aria-label={title} />
       ) : null}
-    </SpotlightCard>
-    </TiltCard>
+    </div>
   )
 }
 
-/* a small abstract "compare" glyph for the big bento card */
+/* a small abstract "compare" glyph for the big console card */
 function CompareGlyph() {
   const rows = [
     { l: "PPG", a: 92, b: 58 },
@@ -516,16 +505,16 @@ function CompareGlyph() {
     <div className="grid gap-2.5">
       {rows.map((r) => (
         <div key={r.l} className="flex items-center gap-3">
-          <span className="w-9 shrink-0 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
+          <span className="text-condensed w-9 shrink-0 text-[10px] tracking-[0.14em] text-ink-500">
             {r.l}
           </span>
-          <div className="flex h-2 flex-1 overflow-hidden rounded-full bg-white/[0.05]">
+          <div className="flex h-2 flex-1 gap-px overflow-hidden bg-white/[0.05]">
             <span
-              className="h-full rounded-l-full bg-brand-500/80"
+              className="h-full bg-brand-500/85"
               style={{ width: `${r.a / 2}%` }}
             />
             <span
-              className="h-full rounded-r-full bg-accent-cyan/70"
+              className="h-full bg-accent-cyan/75"
               style={{ width: `${r.b / 2}%` }}
             />
           </div>

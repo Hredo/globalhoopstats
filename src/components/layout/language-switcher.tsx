@@ -84,7 +84,7 @@ export function LanguageSwitcher({
       <div
         role="group"
         aria-label={t("language.change")}
-        className="inline-flex rounded-full border border-hairline bg-white/[0.04] p-1"
+        className="inline-flex rounded-md border border-hairline bg-white/[0.04] p-1"
       >
         {LOCALES.map((loc) => {
           const active = loc === locale
@@ -96,9 +96,9 @@ export function LanguageSwitcher({
               aria-pressed={active}
               disabled={pending !== null}
               className={cn(
-                "rounded-full px-4 py-1.5 text-sm font-medium transition-colors duration-200 disabled:opacity-60",
+                "rounded-[4px] px-4 py-1.5 text-sm font-medium transition-colors duration-200 disabled:opacity-60",
                 active
-                  ? "bg-brand-500 text-ink-950"
+                  ? "bg-brand-600 text-ink-950"
                   : "text-ink-300 hover:text-ink-50",
               )}
             >
@@ -118,7 +118,7 @@ export function LanguageSwitcher({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t("language.change")}
-        className="inline-flex h-9 items-center gap-1.5 rounded-full border border-hairline bg-white/[0.05] px-2 text-ink-200 transition-colors duration-300 hover:border-brand-400/40 hover:text-ink-50 sm:px-2.5"
+        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-hairline bg-white/[0.05] px-2 text-ink-200 transition-colors duration-300 hover:border-hairline-strong hover:text-ink-50 sm:px-2.5"
       >
         <GlobeIcon className="h-4 w-4" />
         <span className="font-mono text-[11px] font-semibold tracking-[0.08em] max-sm:hidden">
@@ -129,7 +129,7 @@ export function LanguageSwitcher({
       <div
         role="menu"
         className={cn(
-          "absolute right-0 top-full z-50 mt-2 w-40 origin-top-right rounded-2xl border border-hairline bg-surface-2/95 p-1.5 shadow-[var(--shadow-court)] backdrop-blur-xl transition-all duration-200 ease-fluid",
+          "absolute right-0 top-full z-50 mt-2 w-40 origin-top-right rounded-lg border border-hairline bg-surface-2/95 p-1.5 shadow-[var(--shadow-court)] backdrop-blur-xl transition-all duration-200 ease-fluid",
           open
             ? "pointer-events-auto translate-y-0 opacity-100"
             : "pointer-events-none -translate-y-1.5 opacity-0",
@@ -146,7 +146,7 @@ export function LanguageSwitcher({
               tabIndex={open ? undefined : -1}
               onClick={() => choose(loc)}
               className={cn(
-                "flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-[13px] font-medium transition-colors duration-200",
+                "flex w-full items-center justify-between rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors duration-200",
                 active
                   ? "bg-white/[0.06] text-ink-50"
                   : "text-ink-200 hover:bg-white/[0.05] hover:text-ink-50",

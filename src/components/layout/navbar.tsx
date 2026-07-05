@@ -74,25 +74,23 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50">
-      {/* scroll progress hairline */}
+      {/* scroll progress — a solid signal line, like a shot-clock bar */}
       <div
         ref={progressRef}
         aria-hidden
         style={{ transform: "scaleX(0)" }}
-        className="absolute inset-x-0 top-0 z-10 h-px origin-left bg-gradient-to-r from-brand-500 via-ember-400 to-brand-600"
+        className="absolute inset-x-0 top-0 z-10 h-[2px] origin-left bg-brand-500"
       />
-      <div className="mx-auto max-w-[1600px] px-2 sm:px-6 lg:px-8">
-        <div
-          className={cn(
-            "mt-2 flex items-center justify-between gap-1 rounded-full px-1.5 transition-all duration-500 ease-fluid sm:mt-3 sm:gap-3 sm:px-4",
-            scrolled
-              ? "gh-glass py-1.5 shadow-[var(--shadow-court)]"
-              : "border border-transparent py-2.5",
-          )}
-        >
+      <div
+        className={cn(
+          "border-b transition-[background-color,border-color,box-shadow] duration-300 ease-swift",
+          scrolled ? "gh-glass border-hairline" : "border-transparent",
+        )}
+      >
+        <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-2 px-3 sm:h-16 sm:gap-4 sm:px-6 lg:px-8">
           <Link
             href="/"
-            className="group flex shrink-0 items-center gap-1.5 text-ink-50 sm:gap-2.5"
+            className="group flex shrink-0 items-center gap-2 text-ink-50 sm:gap-2.5"
             aria-label={`${SITE.name} — ${t("common.home")}`}
           >
             <Logo className="h-7 w-7 transition-transform duration-700 ease-spring group-hover:rotate-[18deg] sm:h-8 sm:w-8" />
@@ -102,10 +100,10 @@ export function Navbar() {
           </Link>
 
           <nav
-            className="hidden items-center xl:flex"
+            className="hidden h-full items-center xl:flex"
             aria-label={t("nav.primary")}
           >
-            <ul className="flex items-center gap-0.5 text-sm font-medium text-ink-300">
+            <ul className="flex h-full items-stretch gap-0.5 text-sm font-medium text-ink-300">
               {LINKS.map((l) => (
                 <NavItem
                   key={l.href}
@@ -188,7 +186,7 @@ function NavItem({
   return (
     <li
       ref={itemRef}
-      className="relative"
+      className="relative flex h-full items-stretch"
       onMouseEnter={hoverable ? enter : undefined}
       onMouseLeave={hoverable ? leave : undefined}
       onFocus={hoverable ? enter : undefined}
@@ -196,28 +194,29 @@ function NavItem({
     >
       <div
         className={cn(
-          "relative flex items-center rounded-full transition-colors duration-300",
+          "relative flex items-center transition-colors duration-200",
           active && "text-ink-50",
         )}
       >
+        {/* current-page tick — a solid bar registered to the header rule */}
         {active && (
           <span
             aria-hidden
-            className="absolute inset-0 -z-10 rounded-full bg-white/[0.07] ring-1 ring-hairline"
+            className="absolute inset-x-2 bottom-0 h-[2px] bg-brand-500"
           />
         )}
         <Link
           href={href}
           aria-current={active ? "page" : undefined}
           className={cn(
-            "flex items-center gap-1.5 py-2 transition-colors duration-300",
+            "flex items-center gap-1.5 py-2 transition-colors duration-200",
             withLeagues ? "pl-2.5 pr-1 lg:pl-3" : "px-2.5 lg:px-3",
             !active && "hover:text-ink-50",
           )}
         >
           {label}
           {pro && (
-            <span className="rounded-full border border-brand-500/40 bg-brand-500/10 px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-brand-300">
+            <span className="text-condensed rounded-sm border border-brand-500/40 bg-brand-500/10 px-1.5 py-0.5 text-[9px] tracking-[0.14em] text-brand-300">
               {t("common.pro")}
             </span>
           )}
@@ -230,7 +229,7 @@ function NavItem({
             aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
             className={cn(
-              "flex self-stretch items-center rounded-full pl-0.5 pr-2.5 transition-colors duration-300 lg:pr-3",
+              "flex items-center self-stretch pl-0.5 pr-2.5 transition-colors duration-200 lg:pr-3",
               !active && "hover:text-ink-50",
             )}
           >
@@ -259,13 +258,13 @@ function NavItem({
         <div
           role="menu"
           className={cn(
-            "absolute left-1/2 top-full z-50 mt-2 w-56 -translate-x-1/2 origin-top rounded-2xl border border-hairline bg-surface-2/95 p-1.5 shadow-[var(--shadow-court)] backdrop-blur-xl transition-all duration-300 ease-fluid",
+            "absolute left-1/2 top-full z-50 mt-1 w-56 origin-top -translate-x-1/2 rounded-lg border border-hairline bg-surface-2/95 p-1.5 shadow-[var(--shadow-court)] backdrop-blur-xl transition-all duration-200 ease-swift",
             open
               ? "pointer-events-auto translate-y-0 opacity-100"
-              : "pointer-events-none -translate-y-1.5 opacity-0",
+              : "pointer-events-none -translate-y-1 opacity-0",
           )}
         >
-          <p className="px-2.5 pb-1.5 pt-1 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-500">
+          <p className="text-condensed px-2.5 pb-1.5 pt-1 text-[10px] tracking-[0.18em] text-ink-500">
             {t("common.byLeague")}
           </p>
           <Link
@@ -273,7 +272,7 @@ function NavItem({
             role="menuitem"
             tabIndex={open ? undefined : -1}
             onClick={() => setOpen(false)}
-            className="block rounded-xl px-2.5 py-2 text-[13px] font-medium text-ink-200 transition-colors duration-200 hover:bg-white/[0.05] hover:text-ink-50"
+            className="block rounded-md px-2.5 py-2 text-[13px] font-medium text-ink-200 transition-colors duration-150 hover:bg-white/[0.05] hover:text-ink-50"
           >
             {t("common.allLeagues")}
           </Link>
@@ -284,9 +283,9 @@ function NavItem({
                 role="menuitem"
                 tabIndex={open ? undefined : -1}
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-[13px] font-medium text-ink-200 transition-colors duration-200 hover:bg-white/[0.05] hover:text-ink-50"
+                className="flex items-center gap-2 rounded-md px-2.5 py-2 text-[13px] font-medium text-ink-200 transition-colors duration-150 hover:bg-white/[0.05] hover:text-ink-50"
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-500/70" />
+                <span aria-hidden className="h-1.5 w-1.5 bg-brand-500/80" />
                 {node.label}
               </Link>
               {node.children?.map((child) => (
@@ -296,9 +295,9 @@ function NavItem({
                   role="menuitem"
                   tabIndex={open ? undefined : -1}
                   onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 rounded-xl py-1.5 pl-7 pr-2.5 text-[12px] font-medium text-ink-300 transition-colors duration-200 hover:bg-white/[0.05] hover:text-ink-50"
+                  className="flex items-center gap-2 rounded-md py-1.5 pl-7 pr-2.5 text-[12px] font-medium text-ink-300 transition-colors duration-150 hover:bg-white/[0.05] hover:text-ink-50"
                 >
-                  <span className="h-1 w-1 rounded-full bg-brand-500/50" />
+                  <span aria-hidden className="h-1 w-1 bg-brand-500/60" />
                   {child.label}
                 </Link>
               ))}

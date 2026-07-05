@@ -27,8 +27,8 @@ const hanken = Hanken_Grotesk({
   display: "swap",
 })
 
-// Display — Fraunces: a variable "old-style" serif with optical sizing. Gives the
-// almanac / editorial "El Índice" voice to big headlines. High contrast, soft
+// Display — Fraunces: a variable "old-style" serif with optical sizing. Gives
+// the almanac / editorial voice to big headlines. High contrast, soft
 // terminals, dialed toward a sharper, more editorial cut via axis settings.
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -37,8 +37,8 @@ const fraunces = Fraunces({
   axes: ["opsz", "SOFT", "WONK"],
 })
 
-// Mono — Space Mono: a slightly quirky, wide monospace for tickers, eyebrows and
-// tabular data cues. Reinforces the ledger/almanac feel over a neutral mono.
+// Mono — Space Mono: a slightly quirky, wide monospace for tickers, eyebrows
+// and tabular data cues. Reinforces the ledger/almanac feel.
 const spaceMono = Space_Mono({
   subsets: ["latin"],
   weight: ["400", "700"],
@@ -124,8 +124,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#1a1612" },
-    { media: "(prefers-color-scheme: light)", color: "#1a1612" },
+    { media: "(prefers-color-scheme: dark)", color: "#1c1610" },
+    { media: "(prefers-color-scheme: light)", color: "#f5f2eb" },
   ],
 }
 

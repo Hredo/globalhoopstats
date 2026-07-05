@@ -580,10 +580,6 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
                     </motion.span>
                   )}
                 </AnimatePresence>
-                <span
-                  className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full"
-                  aria-hidden
-                />
               </button>
 
               <p className="text-center text-xs text-ink-500">

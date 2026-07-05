@@ -36,7 +36,7 @@ export function DirectoryControls({ basePath, kind, total, showing }: Props) {
   return (
     <Suspense
       fallback={
-        <div className="h-9 w-full animate-pulse rounded-full bg-white/[0.03]" />
+        <div className="h-9 w-full animate-pulse rounded-md bg-white/[0.03]" />
       }
     >
       <DirectoryControlsInner
@@ -149,14 +149,14 @@ function DirectoryControlsInner({ basePath, kind, total, showing }: Props) {
           aria-label={t("directory.searchAria")}
           autoComplete="off"
           spellCheck={false}
-          className="h-9 w-full rounded-full border border-hairline bg-surface-1/60 pl-10 pr-9 text-sm text-ink-50 outline-none transition duration-200 placeholder:text-ink-400 focus:border-brand-400/50 focus:bg-surface-2/60 focus:ring-2 focus:ring-brand-500/20"
+          className="h-9 w-full rounded-md border border-hairline bg-surface-1/60 pl-10 pr-9 text-sm text-ink-50 outline-none transition duration-200 placeholder:text-ink-400 focus:border-brand-400/50 focus:bg-surface-2/60 focus:ring-2 focus:ring-brand-500/20"
         />
         {text ? (
           <button
             type="button"
             onClick={clearSearch}
             aria-label={t("directory.clearSearch")}
-            className="absolute right-2.5 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-ink-400 transition hover:bg-white/10 hover:text-ink-50"
+            className="absolute right-2.5 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-sm text-ink-400 transition hover:bg-white/10 hover:text-ink-50"
           >
             <svg
               aria-hidden
@@ -218,7 +218,7 @@ function DirectoryControlsInner({ basePath, kind, total, showing }: Props) {
                 ? t("directory.sortDescending")
                 : t("directory.sortAscending")
             }
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-hairline bg-surface-1/60 text-ink-200 transition-colors duration-200 hover:border-hairline-strong hover:bg-surface-2/60 hover:text-ink-50"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-hairline bg-surface-1/60 text-ink-200 transition-colors duration-200 hover:border-hairline-strong hover:bg-surface-2/60 hover:text-ink-50"
           >
             <svg
               aria-hidden

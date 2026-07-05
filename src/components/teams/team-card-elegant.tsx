@@ -45,10 +45,6 @@ export function TeamCardElegant({ team }: Props) {
           backgroundImage: `radial-gradient(ellipse at 50% 30%, color-mix(in oklch, ${accent} 22%, transparent) 0%, transparent 68%)`,
         }}
       >
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-[radial-gradient(circle_at_50%_125%,_oklch(0.09_0.022_48/0.7),_transparent_60%)]"
-        />
         {team.logoUrl ? (
           <SmartImage
             src={team.logoUrl}
@@ -63,10 +59,10 @@ export function TeamCardElegant({ team }: Props) {
             {initials}
           </div>
         )}
-        <span className="absolute right-1.5 top-1.5 inline-flex items-center gap-1 rounded-full bg-ink-950/55 px-1.5 py-0.5 font-mono text-[8px] font-semibold uppercase tracking-[0.1em] text-ink-100 ring-1 ring-hairline backdrop-blur sm:right-3 sm:top-3 sm:gap-1.5 sm:px-2 sm:py-1 sm:text-[10px] sm:tracking-[0.14em]">
+        <span className="text-condensed absolute right-1.5 top-1.5 inline-flex items-center gap-1 rounded-sm bg-ink-950/60 px-1.5 py-0.5 text-[8px] tracking-[0.1em] text-ink-100 ring-1 ring-hairline backdrop-blur sm:right-3 sm:top-3 sm:gap-1.5 sm:px-2 sm:py-1 sm:text-[10px] sm:tracking-[0.12em]">
           <span
             aria-hidden
-            className="h-1.5 w-1.5 rounded-full"
+            className="h-1.5 w-1.5"
             style={{ background: "var(--lg)" }}
           />
           {team.league.name}
@@ -87,10 +83,10 @@ export function TeamCardElegant({ team }: Props) {
 
         <div className="mt-auto flex items-end justify-between gap-1">
           <div className="min-w-0">
-            <p className="font-mono text-[8px] uppercase tracking-[0.14em] text-ink-500 sm:text-[9px] sm:tracking-[0.18em]">
+            <p className="text-condensed text-[8px] tracking-[0.14em] text-ink-500 sm:text-[9px] sm:tracking-[0.16em]">
               {t("directory.rosterLabel")}
             </p>
-            <p className="truncate font-display text-base font-bold tabular-nums text-ink-50 sm:text-lg">
+            <p className="text-numeral truncate text-base text-ink-50 sm:text-lg">
               {team.playerCount}{" "}
               <span className="text-xs font-medium text-ink-400 sm:text-sm">
                 {team.playerCount === 1
@@ -101,7 +97,7 @@ export function TeamCardElegant({ team }: Props) {
           </div>
           <span
             aria-hidden
-            className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/[0.04] text-ink-400 ring-1 ring-hairline transition-all duration-300 ease-fluid group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-ink-50 sm:inline-flex"
+            className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white/[0.04] text-ink-400 ring-1 ring-hairline transition-all duration-300 ease-fluid group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-ink-50 sm:inline-flex"
           >
             <svg
               className="h-3.5 w-3.5"

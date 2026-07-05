@@ -52,7 +52,7 @@ export function MobileInstall() {
             <Eyebrow className="justify-center">
               {t(`${prefix}.eyebrow`)}
             </Eyebrow>
-            <h2 className="mt-5 font-display text-3xl font-bold leading-[0.96] tracking-[-0.03em] text-balance sm:text-4xl md:text-[3.25rem]">
+            <h2 className="text-display mt-5 text-balance text-3xl text-ink-50 sm:text-4xl md:text-[3.1rem]">
               {t(`${prefix}.titleA`)}{" "}
               <span className="text-gradient-brand">
                 {t(`${prefix}.titleB`)}
@@ -96,13 +96,13 @@ export function MobileInstall() {
 
           <div>
             <FadeIn delay={0.15} y={20}>
-              <div className="mb-8 flex gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] p-1.5">
+              <div className="mb-8 flex gap-1.5 rounded-md border border-hairline bg-white/[0.03] p-1.5">
                 <button
                   type="button"
                   onClick={() => setPlatform("ios")}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] transition-all ${
+                  className={`text-condensed flex flex-1 items-center justify-center gap-2 rounded-[5px] px-4 py-2.5 text-[11px] tracking-[0.14em] transition-all ${
                     platform === "ios"
-                      ? "bg-brand-500/20 text-brand-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                      ? "bg-brand-500/15 text-brand-300"
                       : "text-ink-400 hover:text-ink-200"
                   }`}
                 >
@@ -112,9 +112,9 @@ export function MobileInstall() {
                 <button
                   type="button"
                   onClick={() => setPlatform("android")}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] transition-all ${
+                  className={`text-condensed flex flex-1 items-center justify-center gap-2 rounded-[5px] px-4 py-2.5 text-[11px] tracking-[0.14em] transition-all ${
                     platform === "android"
-                      ? "bg-brand-500/20 text-brand-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                      ? "bg-brand-500/15 text-brand-300"
                       : "text-ink-400 hover:text-ink-200"
                   }`}
                 >
@@ -127,12 +127,12 @@ export function MobileInstall() {
             <ol key={platform} className="space-y-4 sm:space-y-5">
               {steps.map((step, i) => (
                 <FadeIn key={step.titleKey} delay={0.08 * (i + 3)} y={16}>
-                  <li className="group flex items-start gap-4 rounded-xl border border-white/[0.04] bg-white/[0.02] p-4 transition hover:border-brand-400/20 hover:bg-white/[0.04] sm:p-5">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-brand-300 transition group-hover:bg-brand-500/20">
+                  <li className="group flex items-start gap-4 rounded-md border border-hairline bg-white/[0.02] p-4 transition hover:border-hairline-strong hover:bg-white/[0.04] sm:p-5">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-500/10 text-brand-400 transition group-hover:bg-brand-500/20">
                       <step.icon />
                     </span>
                     <div className="min-w-0">
-                      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-500">
+                      <span className="text-condensed text-[10px] tracking-[0.16em] text-ink-500">
                         Step {i + 1}
                       </span>
                       <h3 className="mt-0.5 font-display text-sm font-semibold text-ink-50 sm:text-base">
@@ -164,9 +164,9 @@ function PhoneFrame({ platform }: { platform: Platform }) {
       >
         <defs>
           <linearGradient id="phone-bg" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#1a1a2e" />
-            <stop offset="50%" stopColor="#0f0f1a" />
-            <stop offset="100%" stopColor="#0a0a0f" />
+            <stop offset="0%" stopColor="#241d15" />
+            <stop offset="50%" stopColor="#171209" />
+            <stop offset="100%" stopColor="#0f0b06" />
           </linearGradient>
           <linearGradient id="screen-glow" x1="0" x2="1" y1="0" y2="1">
             <stop offset="0%" stopColor="oklch(0.6 0.2 50 / 0.15)" />

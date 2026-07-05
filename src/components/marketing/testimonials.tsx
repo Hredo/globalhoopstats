@@ -60,7 +60,7 @@ export async function Testimonials() {
                   &ldquo;{q.quote}&rdquo;
                 </p>
                 <div className="mt-6 flex items-center gap-3 border-t border-hairline pt-4">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500/20 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-300">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-500/15 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-400">
                     {q.name.split(" ").map((n) => n[0]).join("")}
                   </span>
                   <div>

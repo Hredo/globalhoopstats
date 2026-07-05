@@ -31,7 +31,7 @@ describe("Button", () => {
   it("applies variant class for ghost", () => {
     render(<Button variant="ghost">Ghost</Button>)
     const btn = screen.getByRole("button")
-    expect(btn.className).toContain("text-ink-200")
+    expect(btn.className).toContain("text-ink-300")
   })
 
   it("applies size class for sm", () => {

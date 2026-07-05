@@ -22,7 +22,7 @@ export async function TrustedBy() {
         <FadeIn>
           <div className="grid items-center gap-8 md:grid-cols-[1fr_2fr]">
             <div>
-              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-ink-400">
+              <p className="text-condensed text-[11px] tracking-[0.16em] text-ink-500">
                 {t("home.trustedBy.eyebrow")}
               </p>
               <h2 className="mt-3 font-display text-2xl font-bold leading-tight tracking-[-0.02em] text-ink-50 sm:text-3xl">
@@ -41,12 +41,12 @@ export async function TrustedBy() {
                 return (
                   <li
                     key={l.name}
-                    className="flex items-center justify-between gap-2 rounded-xl border border-hairline bg-white/[0.02] px-4 py-3 transition-colors duration-200 hover:border-hairline-strong"
+                    className="flex items-center justify-between gap-2 rounded-md border border-hairline bg-white/[0.02] px-4 py-3 transition-colors duration-200 hover:border-hairline-strong"
                   >
                     <span className="flex items-center gap-2 font-display text-sm font-bold text-ink-100 sm:text-base">
                       <span
                         aria-hidden
-                        className="h-1.5 w-1.5 rounded-full"
+                        className="h-1.5 w-1.5"
                         style={{ background: a.color }}
                       />
                       {l.name}

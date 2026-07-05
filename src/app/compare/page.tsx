@@ -11,7 +11,6 @@ import { getMarketPlayerBySlug } from "@/lib/market/pool"
 import { Reveal } from "@/components/animations/reveal"
 import { ScaleIn } from "@/components/animations/scale-in"
 import { Eyebrow } from "@/components/ui/eyebrow"
-import { TiltCard } from "@/components/ui/tilt-card"
 import { SmartImage } from "@/components/ui/smart-image"
 import { PersonAvatar } from "@/components/ui/person-avatar"
 import { leagueAccent } from "@/components/ui/league-badge"
@@ -72,17 +71,13 @@ export default async function ComparePage(props: {
 
       <div className="mt-6 grid grid-cols-1 items-stretch gap-4 sm:mt-8 sm:gap-5 md:grid-cols-[1fr_auto_1fr]">
         <Reveal direction="right" amount={0.1}>
-          <TiltCard max={5}>
-            <ComparePlayerCard side="a" player={playerA} requested={aSlug} />
-          </TiltCard>
+          <ComparePlayerCard side="a" player={playerA} requested={aSlug} />
         </Reveal>
         <ScaleIn delay={0.25} amount={0.5}>
           <CompareVsDivider label={t("compare.vs")} />
         </ScaleIn>
         <Reveal direction="left" amount={0.1}>
-          <TiltCard max={5}>
-            <ComparePlayerCard side="b" player={playerB} requested={bSlug} />
-          </TiltCard>
+          <ComparePlayerCard side="b" player={playerB} requested={bSlug} />
         </Reveal>
       </div>
 

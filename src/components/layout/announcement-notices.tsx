@@ -116,13 +116,13 @@ export function AnnouncementNotices() {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden border-b border-brand-500/30 bg-gradient-to-r from-brand-500/20 via-brand-500/10 to-ember-500/10"
+            className="overflow-hidden border-b border-brand-500/30 bg-brand-500/10"
             role="status"
           >
             <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5 sm:px-6">
               <span className="relative flex h-2 w-2 shrink-0">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-70" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-brand-400" />
+                <span className="absolute inline-flex h-full w-full animate-ping bg-brand-400 opacity-70" />
+                <span className="relative inline-flex h-2 w-2 bg-brand-400" />
               </span>
               <p className="flex min-w-0 flex-1 items-center gap-2 text-sm font-medium text-ink-50">
                 <span className="truncate">{a.title}</span>

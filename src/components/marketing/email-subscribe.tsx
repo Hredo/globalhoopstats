@@ -67,7 +67,7 @@ export function EmailSubscribe() {
             <Eyebrow className="justify-center">
               {t(`${prefix}.eyebrow`)}
             </Eyebrow>
-            <h2 className="mt-5 font-display text-3xl font-bold leading-[0.96] tracking-[-0.03em] text-balance sm:text-4xl md:text-[3.25rem]">
+            <h2 className="text-display mt-5 text-balance text-3xl text-ink-50 sm:text-4xl md:text-[3.1rem]">
               {t(`${prefix}.title`)}
             </h2>
             <p className="mt-4 text-pretty text-base leading-relaxed text-ink-200 sm:text-lg">
@@ -106,7 +106,7 @@ export function EmailSubscribe() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={status.kind === "submitting"}
-                className="w-full flex-1 rounded-md border border-white/10 bg-ink-900/80 px-4 py-3 text-sm text-ink-50 placeholder:text-ink-500 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 sm:text-base"
+                className="gh-input flex-1 py-3 sm:text-base"
               />
               <input
                 type="text"
@@ -121,7 +121,7 @@ export function EmailSubscribe() {
               <button
                 type="submit"
                 disabled={status.kind === "submitting" || email.length === 0}
-                className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-500 px-5 py-3 text-sm font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60 sm:text-base"
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-600 px-5 py-3 text-sm font-semibold text-ink-950 shadow-[inset_0_-1.5px_0_0_oklch(0_0_0/0.18)] transition-colors hover:bg-brand-500 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 sm:text-base"
               >
                 {status.kind === "submitting" ? "…" : t(`${prefix}.button`)}
               </button>

@@ -49,7 +49,7 @@ export function CoachCardElegant({ coach }: Props) {
       className="gh-card gh-card-interactive gh-spotlight group relative flex h-full flex-col items-center gap-2 overflow-hidden p-2.5 text-center sm:flex-row sm:items-center sm:gap-4 sm:p-4 sm:text-left"
       style={{ ["--lg" as string]: accent.color }}
     >
-      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-court-900 ring-1 ring-hairline sm:h-[72px] sm:w-[72px]">
+      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-surface-3 ring-1 ring-hairline sm:h-[72px] sm:w-[72px]">
         <SmartImage
           src={coach.photoUrl}
           alt={coach.fullName}
@@ -65,8 +65,8 @@ export function CoachCardElegant({ coach }: Props) {
       </div>
       <div className="min-w-0 w-full flex-1">
         <div className="flex items-center justify-center gap-1.5 sm:justify-start sm:gap-2">
-          <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
-          <span className="truncate font-mono text-[8px] uppercase tracking-[0.14em] text-ink-400 sm:text-[9px] sm:tracking-[0.18em]">
+          <span aria-hidden className={`h-1.5 w-1.5 shrink-0 ${dot}`} />
+          <span className="text-condensed truncate text-[8px] tracking-[0.14em] text-ink-400 sm:text-[9px] sm:tracking-[0.16em]">
             {label}
           </span>
         </div>
@@ -75,7 +75,7 @@ export function CoachCardElegant({ coach }: Props) {
         </h3>
         <div className="mt-1 flex items-center justify-center gap-1.5 sm:justify-start sm:gap-2">
           {coach.team.logoUrl ? (
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded bg-court-900 p-0.5 ring-1 ring-hairline">
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded bg-surface-3 p-0.5 ring-1 ring-hairline">
               <SmartImage
                 src={coach.team.logoUrl}
                 alt={coach.team.name}

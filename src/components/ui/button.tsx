@@ -6,26 +6,23 @@ type Variant = "primary" | "secondary" | "ghost"
 type Size = "sm" | "md" | "lg"
 
 const BASE =
-  "group/btn gh-sheen relative inline-flex items-center justify-center gap-2 font-semibold rounded-full transition-all duration-300 ease-swift active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0"
+  "group/btn relative inline-flex items-center justify-center gap-2 rounded-md border font-semibold transition-[background-color,border-color,color,transform] duration-200 ease-swift active:translate-y-px disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0"
 
 const VARIANTS: Record<Variant, string> = {
+  // ink-950 flips per theme: near-white text on deep orange in light,
+  // near-black on hot orange in dark. The inset edge grounds the press.
   primary:
-    "bg-brand-500 text-ink-950 shadow-[var(--shadow-brand-glow)] hover:bg-brand-400 hover:shadow-[var(--shadow-brand-glow-lg)]",
+    "border-transparent bg-brand-600 text-ink-950 shadow-[inset_0_-1.5px_0_0_oklch(0_0_0/0.18)] hover:bg-brand-500",
   secondary:
-    "border border-hairline bg-white/[0.04] text-ink-50 hover:border-hairline-strong hover:bg-white/[0.07]",
-  ghost: "text-ink-200 hover:text-ink-50 hover:bg-white/[0.04]",
+    "border-hairline-strong bg-surface-1 text-ink-100 hover:border-ink-600 hover:text-ink-50",
+  ghost:
+    "border-transparent text-ink-300 hover:bg-white/[0.05] hover:text-ink-50",
 }
 
 const SIZES: Record<Size, string> = {
   sm: "h-9 px-4 text-sm",
   md: "h-11 px-5 text-sm sm:text-[15px]",
   lg: "h-12 px-6 text-[15px] sm:text-base",
-}
-
-const ICON_WRAP: Record<Size, string> = {
-  sm: "h-5 w-5",
-  md: "h-6 w-6",
-  lg: "h-7 w-7",
 }
 
 function Arrow() {
@@ -37,10 +34,10 @@ function Arrow() {
       strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="h-3.5 w-3.5 transition-transform duration-300 ease-fluid group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5"
+      className="h-3.5 w-3.5 transition-transform duration-200 ease-swift group-hover/btn:translate-x-1"
       aria-hidden
     >
-      <path d="M7 17 17 7M9 7h8v8" />
+      <path d="M5 12h14M13 6l6 6-6 6" />
     </svg>
   )
 }
@@ -53,31 +50,11 @@ type CommonProps = {
   className?: string
 }
 
-function Inner({
-  children,
-  arrow,
-  size,
-  variant,
-}: {
-  children: ReactNode
-  arrow?: boolean
-  size: Size
-  variant: Variant
-}) {
+function Inner({ children, arrow }: { children: ReactNode; arrow?: boolean }) {
   return (
     <>
       {children}
-      {arrow ? (
-        <span
-          className={cn(
-            "flex items-center justify-center rounded-full transition-all duration-300 ease-swift group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-px group-hover/btn:scale-105",
-            ICON_WRAP[size],
-            variant === "primary" ? "bg-ink-950/15" : "bg-white/[0.08]",
-          )}
-        >
-          <Arrow />
-        </span>
-      ) : null}
+      {arrow ? <Arrow /> : null}
     </>
   )
 }
@@ -97,18 +74,10 @@ export function ButtonLink({
   return (
     <Link
       href={href}
-      className={cn(
-        BASE,
-        VARIANTS[variant],
-        SIZES[size],
-        arrow && "pr-2",
-        className,
-      )}
+      className={cn(BASE, VARIANTS[variant], SIZES[size], className)}
       {...rest}
     >
-      <Inner arrow={arrow} size={size} variant={variant}>
-        {children}
-      </Inner>
+      <Inner arrow={arrow}>{children}</Inner>
     </Link>
   )
 }
@@ -123,18 +92,10 @@ export function Button({
 }: CommonProps & ComponentProps<"button">) {
   return (
     <button
-      className={cn(
-        BASE,
-        VARIANTS[variant],
-        SIZES[size],
-        arrow && "pr-2",
-        className,
-      )}
+      className={cn(BASE, VARIANTS[variant], SIZES[size], className)}
       {...rest}
     >
-      <Inner arrow={arrow} size={size} variant={variant}>
-        {children}
-      </Inner>
+      <Inner arrow={arrow}>{children}</Inner>
     </button>
   )
 }
