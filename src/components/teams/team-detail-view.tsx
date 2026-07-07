@@ -61,7 +61,7 @@ export async function TeamDetailView({ team }: Props) {
 
   return (
     <TeamThemeScope palette={palette}>
-      <div className="team-detail-page py-8">
+      <div className="team-detail-page relative py-8">
         <FadeIn>
           <TeamHero
             name={team.name}
@@ -83,7 +83,7 @@ export async function TeamDetailView({ team }: Props) {
                     className="bg-clip-text text-transparent"
                     style={{
                       backgroundImage:
-                        "linear-gradient(120deg, var(--team-300), var(--team-500))",
+                        "linear-gradient(120deg, var(--team-500), var(--team-700))",
                     }}
                   >
                     {t("teamProfile.roster")}
@@ -98,9 +98,11 @@ export async function TeamDetailView({ team }: Props) {
             </section>
           </FadeIn>
 
-          <FadeIn delay={0.1}>
-            <TeamStaffList staff={team.staff} />
-          </FadeIn>
+          <div className="space-y-6">
+            <FadeIn delay={0.1}>
+              <TeamStaffList staff={team.staff} />
+            </FadeIn>
+          </div>
         </div>
       </div>
     </TeamThemeScope>

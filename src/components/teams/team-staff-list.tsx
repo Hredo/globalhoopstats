@@ -50,7 +50,7 @@ export async function TeamStaffList({ staff }: Props) {
       }}
     >
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-[var(--team-200)]">
+        <h2 className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-[var(--team-600)]">
           {t("teamProfile.coachingStaff")}
         </h2>
         <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-ink-300">

@@ -23,7 +23,7 @@ const QUOTES = [
 export async function Testimonials() {
   const { t } = await getT()
   return (
-    <section className="relative hairline-t py-20 sm:py-28">
+    <section className="full-bleed relative py-20 sm:py-28">
       <div
         aria-hidden
         className="absolute inset-0 -z-10 bg-gradient-to-b from-surface-0 via-transparent to-surface-0"

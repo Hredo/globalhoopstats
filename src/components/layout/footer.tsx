@@ -45,7 +45,7 @@ export async function Footer() {
             >
               <Logo className="h-8 w-8" />
               <span className="font-display text-lg font-bold tracking-[-0.02em]">
-                GLOBALHOOPSTATS<span className="text-brand-500">.</span>
+                globalhoopstats<span className="text-brand-500">.</span>
               </span>
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-ink-300">
@@ -77,7 +77,7 @@ export async function Footer() {
           <p>
             {t("footer.rights", { year: new Date().getFullYear(), name: SITE.name })}
             <span className="ml-3 font-mono text-[10px] tracking-[0.12em] text-ink-500">
-              {t("footer.version", { version: "0.1.0" })}
+              {t("footer.version", { version: "1.0.0" })}
             </span>
           </p>
           <p className="font-mono uppercase tracking-[0.16em]">

@@ -39,7 +39,7 @@ export function MobileInstall() {
   const prefix = "home.mobileInstall"
 
   return (
-    <section className="relative hairline-t py-32 sm:py-40">
+    <section className="full-bleed relative py-20 sm:py-28">
       <div
         aria-hidden
         className="absolute inset-0 -z-10 bg-gradient-to-b from-surface-0 via-transparent to-surface-0"
@@ -66,13 +66,28 @@ export function MobileInstall() {
           <FadeIn delay={0.1}>
             <div
               className="relative mx-auto max-w-[280px] md:max-w-none"
-              style={{ perspective: 1200 }}
+              style={{ perspective: 1600 }}
             >
+              {/* 3D flip: the phone spins on its Y axis to reveal the other
+                  platform's screen on its back face. Both faces are always
+                  mounted (backface-hidden), so switching truly animates —
+                  unlike a keyed remount, which would snap with no transition. */}
               <div
-                key={platform}
-                className="transition-all duration-[450ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+                className="preserve-3d relative transition-transform duration-[750ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform motion-reduce:transition-none"
+                style={{
+                  transform:
+                    platform === "android" ? "rotateY(180deg)" : "rotateY(0deg)",
+                }}
               >
-                <PhoneFrame platform={platform} />
+                <div className="backface-hidden">
+                  <PhoneFrame platform="ios" />
+                </div>
+                <div
+                  className="backface-hidden absolute inset-0"
+                  style={{ transform: "rotateY(180deg)" }}
+                >
+                  <PhoneFrame platform="android" />
+                </div>
               </div>
               <div
                 aria-hidden
