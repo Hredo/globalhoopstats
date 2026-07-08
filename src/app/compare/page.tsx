@@ -46,6 +46,19 @@ export default async function ComparePage(props: {
 
   return (
     <div className="relative pb-12 pt-10 sm:pt-14">
+      {/* Ambient orbs */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="animate-float absolute -left-48 -top-48 h-96 w-96 rounded-full bg-brand-500/5 blur-[128px]" />
+        <div
+          className="animate-aurora-slow absolute -bottom-48 -right-48 h-96 w-96 rounded-full bg-accent-cyan/5 blur-[128px]"
+          style={{ animationDelay: "-8s" }}
+        />
+        <div
+          className="animate-drift absolute left-1/3 top-1/4 h-64 w-64 rounded-full bg-amber-500/4 blur-[96px]"
+          style={{ animationDelay: "-4s" }}
+        />
+      </div>
+
       <Reveal>
         <header className="mb-8">
           <Eyebrow>{t("compare.eyebrow")}</Eyebrow>
@@ -167,13 +180,20 @@ async function ComparePlayerCard({
   const accent = leagueAccent(player.league.slug)
   return (
     <article
-      className="gh-card relative overflow-hidden p-5"
+      className="gh-card group relative overflow-hidden p-5"
       style={{ ["--lg" as string]: accent.color }}
     >
       <span
         aria-hidden
-        className="absolute inset-x-0 top-0 h-[3px] opacity-70"
+        className="absolute inset-x-0 top-0 h-[3px] opacity-70 transition-opacity duration-500 group-hover:opacity-100"
         style={{ background: "var(--lg)" }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -inset-1 opacity-0 transition-opacity duration-700 group-hover:opacity-100"
+        style={{
+          background: `radial-gradient(600px circle at 50% -20%, color-mix(in oklch, ${accent.color} 12%, transparent), transparent 70%)`,
+        }}
       />
       <div
         className={`flex items-center gap-4 ${

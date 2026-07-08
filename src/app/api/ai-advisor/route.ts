@@ -10,12 +10,11 @@ import {
   type Recruit,
 } from "@/lib/ai/local-advisor"
 import { generateAdvisorResponse, lastLlmError } from "@/lib/ai/llm"
-import { supportsNativeWebSearch } from "@/lib/ai/chat"
 import { detectIntent, detectOperation } from "@/lib/ai/intent"
 import { findCandidates, type Candidate } from "@/lib/market/candidates"
 import { getMarketPlayerBySlug } from "@/lib/market/pool"
 import { buildTradeScenarios } from "@/lib/market/trade"
-import { researchMarket, webResearchEnabled } from "@/lib/market/web-research"
+import { buildSearchQuery, researchMarket, webResearchEnabled } from "@/lib/market/web-research"
 import { formatEur } from "@/lib/market/league-strength"
 import { valuationTierLabel } from "@/lib/market/valuation"
 import { estimateClubBudget, singleSigningCap } from "@/lib/market/club-budgets"
@@ -372,9 +371,22 @@ export async function POST(request: Request) {
     }
   }
 
-  // Web context is fetched later, ONLY if the resolved LLM provider can't search
-  // natively (Anthropic/Gemini do it themselves with the user's key — see below).
+  // Web context — always fetched when Tavily is available, regardless of provider.
+  // The system prompt tells the AI to cite source URLs inline for attribution.
   let web = null
+  if (webResearchEnabled()) {
+    try {
+      const searchQuery = buildSearchQuery(userMessage, {
+        teamName: team.name,
+        leagueName: team.league.name,
+        playerName: playerProfile?.fullName ?? null,
+        playerSlug: playerProfile?.slug ?? null,
+      })
+      web = await researchMarket(searchQuery)
+    } catch (err) {
+      audit("web-research-error", { ip, err: String(err) })
+    }
+  }
 
   // 12. LLM call. Use the engine the user configured for the advisor (a cloud
   // provider with their own key, or a local Ollama), falling back to the
@@ -400,17 +412,6 @@ export async function POST(request: Request) {
 
   let aiReason: string | null = engine.ok ? null : engine.reason
   if (engine.ok) {
-    // Tavily fallback only when the provider can't search with its own key.
-    if (webResearchEnabled() && !supportsNativeWebSearch(engine.provider)) {
-      try {
-        const q = playerProfile
-          ? `${playerProfile.fullName} baloncesto sueldo contrato fichaje ${team.league.name}`
-          : `${team.name} fichajes mercado baloncesto sueldos presupuesto ${team.league.name}`
-        web = await researchMarket(q.trim())
-      } catch (err) {
-        audit("web-research-error", { ip, err: String(err) })
-      }
-    }
     try {
       const llm = await generateAdvisorResponse(
         {

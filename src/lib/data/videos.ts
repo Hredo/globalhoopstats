@@ -45,13 +45,20 @@ export async function getPlayerVideo(
 
   try {
     await db.delete(videos).where(eq(videos.playerId, playerId))
-    await db.insert(videos).values({
-      playerId,
-      youtubeId: found.videoId,
-      title: found.title,
-      thumbnailUrl: found.thumbnailUrl,
-      publishedAt: null,
-    })
+    // youtube_id is globally unique, but one highlight clip can be the top match
+    // for several players (e.g. a "Campazzo & Hezonja" reel). Skip on conflict so
+    // the shared clip stays cached under whichever player claimed it first — the
+    // found video is still returned below, it just isn't re-cached here.
+    await db
+      .insert(videos)
+      .values({
+        playerId,
+        youtubeId: found.videoId,
+        title: found.title,
+        thumbnailUrl: found.thumbnailUrl,
+        publishedAt: null,
+      })
+      .onConflictDoNothing()
   } catch (err) {
     console.error("[videos] failed to cache highlight:", err)
   }

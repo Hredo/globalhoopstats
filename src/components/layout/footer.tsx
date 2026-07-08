@@ -16,6 +16,7 @@ const TOOLS = [
   { href: "/leagues", labelKey: "nav.leagues" },
   { href: "/ai-advisor", labelKey: "nav.aiAdvisor" },
   { href: "/market/trade", labelKey: "nav.trade" },
+  { href: "/install", labelKey: "footer.installApp" },
 ]
 
 const LEGAL = [
@@ -32,16 +33,10 @@ export async function Footer() {
     arr.map((l) => ({ href: l.href, label: t(l.labelKey) }))
 
   return (
-    <footer className="relative mt-20 bg-surface-1/80 sm:mt-28">
-      <div
-        aria-hidden
-        className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/40 to-transparent"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-grid-fade opacity-30"
-      />
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16">
+    <footer className="relative mt-20 border-t-2 border-hairline-strong bg-surface-1/80 sm:mt-28">
+      {/* measurement ticks hanging from the top rule — the closing baseline */}
+      <div aria-hidden className="gh-ticks h-1.5 w-full -scale-y-100" />
+      <div className="mx-auto max-w-7xl px-4 pb-8 pt-10 sm:px-6 sm:pt-14">
         <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div className="flex flex-col gap-4">
             <Link
@@ -60,12 +55,12 @@ export async function Footer() {
             <p className="mt-1 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-400">
               <span
                 aria-hidden
-                className={`relative inline-flex h-1.5 w-1.5 rounded-full ${
+                className={`relative inline-flex h-1.5 w-1.5 ${
                   lastSync ? "bg-positive" : "bg-ink-600"
                 }`}
               >
                 {lastSync ? (
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-positive opacity-60" />
+                  <span className="absolute inline-flex h-full w-full animate-ping bg-positive opacity-60" />
                 ) : null}
               </span>
               {lastSync
@@ -83,7 +78,7 @@ export async function Footer() {
           <p>
             {t("footer.rights", { year: new Date().getFullYear(), name: SITE.name })}
             <span className="ml-3 font-mono text-[10px] tracking-[0.12em] text-ink-500">
-              {t("footer.version", { version: "0.1.0" })}
+              {t("footer.version", { version: "1.0.0" })}
             </span>
           </p>
           <p className="font-mono uppercase tracking-[0.16em]">
@@ -93,6 +88,16 @@ export async function Footer() {
 
         <p className="mt-6 max-w-4xl text-[11px] leading-relaxed text-ink-500">
           {t("footer.disclaimer")}
+        </p>
+      </div>
+
+      {/* jersey-letter watermark — the nameplate, set like arena flooring */}
+      <div
+        aria-hidden
+        className="pointer-events-none select-none overflow-hidden"
+      >
+        <p className="text-outline mx-auto -mb-[0.16em] whitespace-nowrap text-center font-display text-[clamp(3.2rem,11vw,9.5rem)] font-bold leading-none tracking-[-0.02em] opacity-[0.14]">
+          GLOBALHOOPSTATS
         </p>
       </div>
     </footer>
@@ -108,7 +113,7 @@ function FooterColumn({
 }) {
   return (
     <div className="flex flex-col gap-3">
-      <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-400">
+      <p className="text-condensed text-[10px] tracking-[0.18em] text-ink-500">
         {title}
       </p>
       <nav className="flex flex-col gap-2.5 text-sm text-ink-200" aria-label={title}>
@@ -116,7 +121,7 @@ function FooterColumn({
           <Link
             key={l.href}
             href={l.href}
-            className="w-fit transition-colors duration-200 hover:text-brand-300"
+            className="w-fit transition-colors duration-200 hover:text-brand-400"
           >
             {l.label}
           </Link>

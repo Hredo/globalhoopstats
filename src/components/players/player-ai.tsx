@@ -4,6 +4,7 @@ import { useCallback, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { useT } from "@/lib/i18n/provider"
+import { AiAnalysisDisplay } from "@/components/market/ai-analysis-display"
 
 type Props = {
   slug: string
@@ -48,7 +49,7 @@ export function PlayerAi({ slug, name }: Props) {
   }, [slug, t])
 
   return (
-    <section className="rounded-2xl border border-white/5 bg-gradient-to-br from-brand-500/5 via-white/[0.02] to-accent-cyan/5 p-4 sm:p-6">
+    <section id="player-ai" className="rounded-2xl border border-white/5 bg-gradient-to-br from-brand-500/5 via-white/[0.02] to-accent-cyan/5 p-4 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 ring-1 ring-brand-500/30">
@@ -148,8 +149,8 @@ export function PlayerAi({ slug, name }: Props) {
             className="mt-5 space-y-4"
           >
             {analysis ? (
-              <div className="rounded-xl border border-brand-500/30 bg-gradient-to-br from-brand-500/10 to-transparent px-4 py-3.5">
-                <p className="mb-1.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-brand-300">
+              <div className="space-y-1.5">
+                <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-brand-300">
                   <svg
                     className="h-3.5 w-3.5"
                     viewBox="0 0 24 24"
@@ -166,9 +167,9 @@ export function PlayerAi({ slug, name }: Props) {
                   </svg>
                   {name} · {aiProvider ?? t("playerAi.aiFallback")}
                 </p>
-                <p className="text-sm leading-relaxed text-ink-100">
-                  {analysis}
-                </p>
+                <div className="rounded-xl border border-brand-500/20 bg-gradient-to-br from-brand-500/[0.07] to-transparent px-4 py-3.5">
+                  <AiAnalysisDisplay text={analysis} />
+                </div>
               </div>
             ) : (
               <AiNudge />

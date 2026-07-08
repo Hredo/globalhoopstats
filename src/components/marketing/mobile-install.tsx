@@ -1,7 +1,8 @@
 "use client"
 
+"use client"
+
 import { useState } from "react"
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
 import { FadeIn } from "@/components/animations/fade-in"
 import { Eyebrow } from "@/components/ui/eyebrow"
 import { useLocale } from "@/lib/i18n/provider"
@@ -38,10 +39,9 @@ export function MobileInstall() {
   const [platform, setPlatform] = useState<Platform>("ios")
   const steps = platform === "ios" ? STEPS_IOS : STEPS_ANDROID
   const prefix = "home.mobileInstall"
-  const reduce = useReducedMotion()
 
   return (
-    <section className="relative hairline-t py-32 sm:py-40">
+    <section className="full-bleed relative py-20 sm:py-28">
       <div
         aria-hidden
         className="absolute inset-0 -z-10 bg-gradient-to-b from-surface-0 via-transparent to-surface-0"
@@ -52,7 +52,7 @@ export function MobileInstall() {
             <Eyebrow className="justify-center">
               {t(`${prefix}.eyebrow`)}
             </Eyebrow>
-            <h2 className="mt-5 font-display text-3xl font-bold leading-[0.96] tracking-[-0.03em] text-balance sm:text-4xl md:text-[3.25rem]">
+            <h2 className="text-display mt-5 text-balance text-3xl text-ink-50 sm:text-4xl md:text-[3.1rem]">
               {t(`${prefix}.titleA`)}{" "}
               <span className="text-gradient-brand">
                 {t(`${prefix}.titleB`)}
@@ -68,25 +68,25 @@ export function MobileInstall() {
           <FadeIn delay={0.1}>
             <div
               className="relative mx-auto max-w-[280px] md:max-w-none"
-              style={{ perspective: 1200 }}
+              style={{ perspective: 1600 }}
             >
-              {reduce ? (
-                <PhoneFrame platform={platform} />
-              ) : (
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.div
-                    key={platform}
-                    initial={{ rotateY: 65, opacity: 0, scale: 0.94 }}
-                    animate={{ rotateY: 0, opacity: 1, scale: 1 }}
-                    exit={{ rotateY: -65, opacity: 0, scale: 0.94 }}
-                    transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                    style={{ transformStyle: "preserve-3d", transformOrigin: "center" }}
-                  >
-                    <PhoneFrame platform={platform} />
-                  </motion.div>
-                </AnimatePresence>
-              )}
-              {/* soft plate shadow that stays put while the phone flips */}
+              <div
+                className="preserve-3d relative transition-transform duration-[750ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform motion-reduce:transition-none"
+                style={{
+                  transform:
+                    platform === "android" ? "rotateY(180deg)" : "rotateY(0deg)",
+                }}
+              >
+                <div className="backface-hidden">
+                  <PhoneFrame platform="ios" />
+                </div>
+                <div
+                  className="backface-hidden absolute inset-0"
+                  style={{ transform: "rotateY(180deg)" }}
+                >
+                  <PhoneFrame platform="android" />
+                </div>
+              </div>
               <div
                 aria-hidden
                 className="absolute inset-x-8 bottom-2 -z-10 h-10 rounded-[50%] bg-black/40 blur-2xl"
@@ -96,13 +96,13 @@ export function MobileInstall() {
 
           <div>
             <FadeIn delay={0.15} y={20}>
-              <div className="mb-8 flex gap-1.5 rounded-xl border border-white/10 bg-white/[0.03] p-1.5">
+              <div className="mb-8 flex gap-1.5 rounded-md border border-hairline bg-white/[0.03] p-1.5">
                 <button
                   type="button"
                   onClick={() => setPlatform("ios")}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] transition-all ${
+                  className={`text-condensed flex flex-1 items-center justify-center gap-2 rounded-[5px] px-4 py-2.5 text-[11px] tracking-[0.14em] transition-all ${
                     platform === "ios"
-                      ? "bg-brand-500/20 text-brand-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                      ? "bg-brand-500/15 text-brand-300"
                       : "text-ink-400 hover:text-ink-200"
                   }`}
                 >
@@ -112,9 +112,9 @@ export function MobileInstall() {
                 <button
                   type="button"
                   onClick={() => setPlatform("android")}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] transition-all ${
+                  className={`text-condensed flex flex-1 items-center justify-center gap-2 rounded-[5px] px-4 py-2.5 text-[11px] tracking-[0.14em] transition-all ${
                     platform === "android"
-                      ? "bg-brand-500/20 text-brand-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                      ? "bg-brand-500/15 text-brand-300"
                       : "text-ink-400 hover:text-ink-200"
                   }`}
                 >
@@ -127,13 +127,13 @@ export function MobileInstall() {
             <ol key={platform} className="space-y-4 sm:space-y-5">
               {steps.map((step, i) => (
                 <FadeIn key={step.titleKey} delay={0.08 * (i + 3)} y={16}>
-                  <li className="group flex items-start gap-4 rounded-xl border border-white/[0.04] bg-white/[0.02] p-4 transition hover:border-brand-400/20 hover:bg-white/[0.04] sm:p-5">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-brand-300 transition group-hover:bg-brand-500/20">
+                  <li className="group flex items-start gap-4 rounded-md border border-hairline bg-white/[0.02] p-4 transition hover:border-hairline-strong hover:bg-white/[0.04] sm:p-5">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-500/10 text-brand-400 transition group-hover:bg-brand-500/20">
                       <step.icon />
                     </span>
                     <div className="min-w-0">
-                      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-500">
-                        Step {i + 1}
+                      <span className="text-condensed text-[10px] tracking-[0.16em] text-ink-500">
+                        {i === 0 ? "Step 1" : `Step ${i + 1}`}
                       </span>
                       <h3 className="mt-0.5 font-display text-sm font-semibold text-ink-50 sm:text-base">
                         {t(`${prefix}.${step.titleKey}`)}
@@ -164,9 +164,9 @@ function PhoneFrame({ platform }: { platform: Platform }) {
       >
         <defs>
           <linearGradient id="phone-bg" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#1a1a2e" />
-            <stop offset="50%" stopColor="#0f0f1a" />
-            <stop offset="100%" stopColor="#0a0a0f" />
+            <stop offset="0%" stopColor="#241d15" />
+            <stop offset="50%" stopColor="#171209" />
+            <stop offset="100%" stopColor="#0f0b06" />
           </linearGradient>
           <linearGradient id="screen-glow" x1="0" x2="1" y1="0" y2="1">
             <stop offset="0%" stopColor="oklch(0.6 0.2 50 / 0.15)" />
@@ -183,21 +183,16 @@ function PhoneFrame({ platform }: { platform: Platform }) {
           stroke="oklch(0.4 0.03 30)"
           strokeWidth="2"
         />
-
         <rect
           x="10" y="38" width="220" height="408" rx="18"
           fill="url(#phone-bg)"
         />
-
         <rect
           x="10" y="38" width="220" height="408" rx="18"
           fill="url(#screen-glow)"
         />
-
         {platform === "ios" ? <IOSScreenContent /> : <AndroidScreenContent />}
-
         <rect x="90" y="4" width="60" height="6" rx="3" fill="oklch(0.35 0.02 30)" />
-
         <rect
           x="12" y="40" width="216" height="404" rx="16"
           fill="none"
@@ -205,7 +200,6 @@ function PhoneFrame({ platform }: { platform: Platform }) {
           strokeWidth="0.5"
         />
       </svg>
-
       <div
         aria-hidden
         className="absolute -inset-4 -z-10 rounded-[3rem] bg-brand-500/[0.03] blur-3xl"
@@ -218,41 +212,28 @@ function IOSScreenContent() {
   return (
     <g clipPath="url(#screen-clip)">
       <rect x="0" y="0" width="240" height="480" fill="oklch(0.12 0.01 30)" />
-
       <rect x="16" y="8" width="208" height="44" rx="12" fill="oklch(0.18 0.01 30)" />
-
       <text x="36" y="20" fontSize="7" fill="oklch(0.6 0 0)" fontFamily="monospace">9:41</text>
-
       <rect x="36" y="28" width="60" height="10" rx="5" fill="oklch(0.5 0.15 150 / 0.3)" />
-
       <g transform="translate(16 60)">
         <text x="100" y="10" textAnchor="middle" fontSize="9" fill="oklch(0.8 0 0)" fontFamily="system-ui" fontWeight="600">
           globalhoopstats.es
         </text>
-
         <rect x="0" y="24" width="208" height="200" rx="10" fill="oklch(0.15 0.01 30)" stroke="oklch(0.25 0.01 30)" strokeWidth="0.5" />
-
         <rect x="12" y="36" width="120" height="12" rx="4" fill="oklch(0.6 0.2 50 / 0.5)" />
         <rect x="12" y="52" width="80" height="8" rx="3" fill="oklch(0.3 0 0)" />
         <rect x="12" y="66" width="100" height="8" rx="3" fill="oklch(0.25 0 0)" />
-
         <rect x="12" y="88" width="184" height="120" rx="8" fill="oklch(0.12 0.01 30)" />
-
         <rect x="20" y="96" width="168" height="6" rx="3" fill="oklch(0.35 0.02 30)" />
         <rect x="20" y="108" width="120" height="6" rx="3" fill="oklch(0.3 0.02 30)" />
-
         <rect x="20" y="126" width="168" height="6" rx="3" fill="oklch(0.35 0.02 30)" />
         <rect x="20" y="138" width="140" height="6" rx="3" fill="oklch(0.3 0.02 30)" />
-
         <rect x="20" y="156" width="168" height="6" rx="3" fill="oklch(0.35 0.02 30)" />
         <rect x="20" y="168" width="100" height="6" rx="3" fill="oklch(0.3 0.02 30)" />
-
         <rect x="20" y="186" width="168" height="6" rx="3" fill="oklch(0.25 0.01 30)" />
       </g>
-
       <g transform="translate(16 280)">
         <rect x="0" y="0" width="208" height="36" rx="10" fill="oklch(0.22 0.01 30)" />
-
         <rect x="12" y="8" width="20" height="20" rx="6" fill="oklch(0.5 0.2 50 / 0.4)" />
         <text x="40" y="22" fontSize="9" fill="oklch(0.7 0 0)" fontFamily="system-ui" fontWeight="500">
           globalhoopstats
@@ -261,18 +242,15 @@ function IOSScreenContent() {
           Add
         </text>
       </g>
-
       <text x="16" y="340" fontSize="8" fill="oklch(0.4 0 0)" fontFamily="system-ui" fontWeight="500">
         Add to Home Screen
       </text>
-
       <text x="16" y="358" fontSize="7" fill="oklch(0.35 0 0)" fontFamily="system-ui">
         Install this web app on your device. The app will
       </text>
       <text x="16" y="370" fontSize="7" fill="oklch(0.35 0 0)" fontFamily="system-ui">
         appear on your home screen and in the app drawer.
       </text>
-
       <g transform="translate(16 388)">
         <rect x="0" y="0" width="208" height="1" fill="oklch(0.25 0.01 30)" />
       </g>
@@ -290,7 +268,6 @@ function AndroidScreenContent() {
   return (
     <g clipPath="url(#screen-clip)">
       <rect x="0" y="0" width="240" height="480" fill="oklch(0.12 0.01 30)" />
-
       <g transform="translate(0 4)">
         <g transform="translate(8 0)">
           <text x="36" y="10" fontSize="6" fill="oklch(0.5 0 0)" fontFamily="monospace">9:41</text>
@@ -298,27 +275,20 @@ function AndroidScreenContent() {
           <rect x="110" y="3" width="40" height="6" rx="2" fill="oklch(0.35 0 0)" />
         </g>
       </g>
-
       <g transform="translate(16 24)">
         <rect x="0" y="0" width="208" height="36" rx="10" fill="oklch(0.18 0.01 30)" />
-
         <text x="104" y="14" textAnchor="middle" fontSize="8" fill="oklch(0.6 0 0)" fontFamily="system-ui">
           globalhoopstats.es
         </text>
-
         <g transform="translate(180 8)">
           <circle cx="8" cy="8" r="8" fill="oklch(0.35 0 0)" />
           <circle cx="8" cy="8" r="2" fill="oklch(0.25 0 0)" />
         </g>
-
         <rect x="0" y="36" width="208" height="200" rx="10" fill="oklch(0.15 0.01 30)" stroke="oklch(0.25 0.01 30)" strokeWidth="0.5" />
-
         <rect x="12" y="48" width="120" height="12" rx="4" fill="oklch(0.6 0.2 50 / 0.5)" />
         <rect x="12" y="64" width="80" height="8" rx="3" fill="oklch(0.3 0 0)" />
         <rect x="12" y="78" width="100" height="8" rx="3" fill="oklch(0.25 0 0)" />
-
         <rect x="12" y="100" width="184" height="120" rx="8" fill="oklch(0.12 0.01 30)" />
-
         <rect x="20" y="108" width="168" height="6" rx="3" fill="oklch(0.35 0.02 30)" />
         <rect x="20" y="120" width="120" height="6" rx="3" fill="oklch(0.3 0.02 30)" />
         <rect x="20" y="138" width="168" height="6" rx="3" fill="oklch(0.35 0.02 30)" />
@@ -327,28 +297,22 @@ function AndroidScreenContent() {
         <rect x="20" y="180" width="100" height="6" rx="3" fill="oklch(0.3 0.02 30)" />
         <rect x="20" y="198" width="168" height="6" rx="3" fill="oklch(0.25 0.01 30)" />
       </g>
-
       <g transform="translate(16 282)">
         <rect x="0" y="0" width="208" height="1" fill="oklch(0.25 0.01 30)" />
       </g>
-
       <g transform="translate(16 296)">
         <rect x="0" y="0" width="208" height="120" rx="12" fill="oklch(0.18 0.01 30)" />
-
         <text x="104" y="16" textAnchor="middle" fontSize="9" fill="oklch(0.7 0 0)" fontFamily="system-ui" fontWeight="600">
           Add to Home screen
         </text>
-
         <text x="104" y="34" textAnchor="middle" fontSize="7" fill="oklch(0.4 0 0)" fontFamily="system-ui">
           Install as a standalone app for
         </text>
         <text x="104" y="46" textAnchor="middle" fontSize="7" fill="oklch(0.4 0 0)" fontFamily="system-ui">
           a faster, full-screen experience.
         </text>
-
         <rect x="16" y="90" width="80" height="14" rx="7" fill="oklch(0.25 0.01 30)" />
         <text x="56" y="100" textAnchor="middle" fontSize="8" fill="oklch(0.5 0 0)" fontFamily="system-ui">Cancel</text>
-
         <rect x="112" y="90" width="80" height="14" rx="7" fill="oklch(0.6 0.2 50 / 0.4)" />
         <text x="152" y="100" textAnchor="middle" fontSize="8" fill="oklch(0.9 0 0)" fontFamily="system-ui" fontWeight="600">Install</text>
       </g>
@@ -360,14 +324,10 @@ function SafariIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="9" />
-      <path d="M12 2v4" />
-      <path d="M12 18v4" />
-      <path d="M2 12h4" />
-      <path d="M18 12h4" />
-      <path d="m4.93 4.93 2.83 2.83" />
-      <path d="m16.24 16.24 2.83 2.83" />
-      <path d="m4.93 19.07 2.83-2.83" />
-      <path d="m16.24 7.76 2.83-2.83" />
+      <path d="M12 2v4" /><path d="M12 18v4" />
+      <path d="M2 12h4" /><path d="M18 12h4" />
+      <path d="m4.93 4.93 2.83 2.83" /><path d="m16.24 16.24 2.83 2.83" />
+      <path d="m4.93 19.07 2.83-2.83" /><path d="m16.24 7.76 2.83-2.83" />
     </svg>
   )
 }
@@ -379,8 +339,7 @@ function ChromeIcon() {
       <circle cx="12" cy="12" r="3" />
       <path d="M12 2a9 9 0 0 0-7.8 4.5" />
       <path d="M12 2a9 9 0 0 1 7.8 4.5" />
-      <path d="M4.2 6.5 12 12" />
-      <path d="M19.8 6.5 12 12" />
+      <path d="M4.2 6.5 12 12" /><path d="M19.8 6.5 12 12" />
     </svg>
   )
 }
@@ -408,8 +367,7 @@ function DotsIcon() {
 function PlusIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 5v14" />
-      <path d="M5 12h14" />
+      <path d="M12 5v14" /><path d="M5 12h14" />
     </svg>
   )
 }

@@ -114,8 +114,16 @@ export async function generateMetadata(): Promise<Metadata> {
       { url: "/icon-192", type: "image/png", sizes: "192x192" },
       { url: "/icon-512", type: "image/png", sizes: "512x512" },
     ],
+    apple: [
+      { url: "/icon-192", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512", sizes: "512x512", type: "image/png" },
+    ],
   },
   manifest: "/manifest.webmanifest",
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "black-translucent",
+  },
   }
 }
 

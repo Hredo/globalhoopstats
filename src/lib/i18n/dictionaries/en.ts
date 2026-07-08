@@ -60,6 +60,7 @@ export const en = {
     syncPending: "Sync pending",
     rights: "© {year} {name}. All rights reserved.",
     version: "v{version}",
+    installApp: "Install the app",
     disclaimer:
       "Not affiliated with, endorsed by or sponsored by the NBA, EuroLeague, Liga ACB, FEB or any club. Team names, logos and player names and images are the property of their respective owners and are used here for informational purposes only. To request removal of any content, contact us.",
     time: {
@@ -87,76 +88,103 @@ export const en = {
       comparePlayers: "Compare players",
       aiAdvisor: "AI Advisor",
     },
-    stats: {
-      leaguesLive: "Leagues live",
-      playersIndexed: "Players indexed",
-      advancedMetrics: "Advanced metrics",
-      toCompare: "To compare any two",
+    film: {
+      kicker: "globalhoopstats — six leagues, one engine",
+      title: "All of basketball,",
+      accent: "inside one ball.",
+      scrollHint: "scroll",
+      introAlt:
+        "A basketball alone at center court under a single spotlight at night",
+      side: [
+        {
+          hook: "All the basketball in the world.",
+          sub: "Every league, one place.",
+        },
+        {
+          hook: "Who's better?",
+          sub: "Stop arguing. Compare them, prove it.",
+        },
+        {
+          hook: "No borders.",
+          sub: "Compare players from any league, head to head.",
+        },
+        {
+          hook: "Play GM.",
+          sub: "Build the perfect trade in seconds.",
+        },
+        {
+          hook: "Ask anything.",
+          sub: "A basketball-smart AI answers instantly.",
+        },
+        { hook: "It's all in the ball.", sub: "" },
+      ],
     },
-    ticker: { topPerformers: "Top performers" },
-    mockup: {
-      compare: "Compare",
-      verdict: "AI Verdict",
-      verdictText: "Luka Dončić wins the statistical comparison with higher PER and rebounding, while Shai Gilgeous-Alexander keeps pace in playmaking. Both elite — Dončić edges it on volume.",
-    },
-    gallery: {
-      aria: "From box score to verdict",
-      eyebrow: "How it works",
-      titleA: "From box score to",
-      titleB: "verdict.",
-      p1Title: "Six leagues, one feed.",
-      p1Body:
-        "NBA, EuroLeague, ACB and Spain's full FEB ladder land in the same pipeline, refreshed the moment each buzzer sounds.",
-      p2Title: "Every number, normalized.",
-      p2Body:
-        "Spanish minutes, American possessions, EuroLeague pace — reduced to one model so a 20 here means a 20 there.",
-      p3Title: "Compare in two seconds.",
-      p3Body:
-        "Drop two names and the bars, radar and shooting splits draw themselves — the leader flagged on every line.",
-      pValTitle: "Priced like the market.",
-      pValBody:
-        "Every player gets a transparent market value and salary estimate, then a trade simulator builds balanced scenarios across adjacent leagues.",
-      p4Title: "Ask in plain language.",
-      p4Body:
-        "The AI advisor reads the same numbers you do and hands back a sourced verdict, not a vibe.",
-      p5Title: "Export, boardroom-ready.",
-      p5Body:
-        "Send any profile or matchup to PDF, Excel or Word with the formatting already done.",
-      askQuestion: "Who's the better playmaker?",
-      askAnswer: "Higher AST% and lower TOV — the read is clear.",
-      raw: "raw",
-      oneScale: "one scale",
-    },
-    bento: {
-      eyebrow: "What you can do",
-      titleA: "Everything a scout opens",
-      titleB: "before tip-off.",
+    ticker: { topPerformers: "Top performers", illustrative: "illustrative sample" },
+    showcase: {
+      eyebrow: "Live · no mockups",
+      titleA: "This is not a render.",
+      titleB: "It's the real thing, recorded.",
       description:
-        "One workspace for six leagues — compare, measure, ask and export without ever leaving the page.",
-      compareKicker: "01 · Compare",
-      compareTitle: "Two players, one scale.",
-      compareBody:
-        "Drop Dončić next to Campazzo. Same per-game scale, same possessions, the leader flagged in green. The argument ends in two seconds.",
-      metricsKicker: "02 · Metrics",
-      metricsTitle: "24 advanced metrics.",
-      metricsBody:
-        "PER, TS%, ORtg, DRtg, NetRtg, usage — computed from box scores, not copy-pasted.",
-      aiKicker: "03 · AI advisor",
-      aiTitle: "Ask in plain language.",
-      aiBody:
-        "Type a scouting question, get a sourced read with the numbers behind it.",
-      coverageKicker: "04 · Coverage",
-      coverageTitle: "Six leagues, one feed.",
-      coverageBody:
-        "NBA · EuroLeague · ACB · Primera FEB · Segunda FEB · Tercera FEB — refreshed after every tip-off.",
-      exportKicker: "05 · Export",
-      exportTitle: "Boardroom-ready in a click.",
-      exportBody:
-        "Send any comparison or profile to PDF, Excel or Word with the formatting intact.",
-      tradeKicker: "06 · Market",
-      tradeTitle: "Value players, simulate trades.",
-      tradeBody:
-        "Every player priced by a transparent model — then build balanced trade scenarios across adjacent leagues.",
+        "Actual screen captures of the console in motion — what you see here is exactly what you open.",
+      live: "recorded live",
+      soon: "soon",
+      items: {
+        player: {
+          name: "Player profile",
+          title: "One player, fully X-rayed.",
+          body:
+            "Season stats, advanced metrics, video highlights and an AI scouting report — the complete profile of any player, without ten open tabs.",
+          cta: "Open a profile",
+        },
+        compare: {
+          name: "Compare",
+          title: "Who's better? Let the numbers settle it.",
+          body:
+            "Put two players from any league head to head: radar, shooting splits and every per-game stat, with the leader flagged on each line. The argument is over.",
+          cta: "Open the comparator",
+        },
+        "ai-advisor": {
+          name: "AI advisor",
+          title: "Ask an AI that actually knows hoops.",
+          body:
+            "Type what you need — “a guard who scores without turning it over” — and the advisor answers instantly with names, numbers and the reason behind each pick.",
+          cta: "Try the advisor",
+        },
+        trade: {
+          name: "Trades",
+          title: "Play GM for a minute.",
+          body:
+            "Build a trade between any teams and see instantly whether it's balanced: market value, salaries and the verdict, all computed live as you test signings.",
+          cta: "Simulate a trade",
+        },
+      },
+      freeBeta: "Free in beta",
+      before: "Before",
+      beforeText: "Three open tabs and a half-built spreadsheet.",
+      after: "Now",
+      afterText: "One console.",
+      counts: {
+        leagues: "leagues live",
+        players: "players indexed",
+        coaches: "coaches",
+        updated: "Updated",
+      },
+      coverage: "Coverage today",
+    },
+    provenance: {
+      eyebrow: "Where the data comes from",
+      title: "Numbers you can trace back to the source.",
+      description:
+        "Nothing here is a rough guess. Every stat comes from each league's official data, normalized to one common scale and re-synced after every round.",
+      p1Title: "Official sources",
+      p1Body:
+        "We pull the box scores each competition publishes — not rumors or unverified third parties.",
+      p2Title: "One single scale",
+      p2Body:
+        "Pace, possessions and minutes are normalized so a 20 here means the same as a 20 there.",
+      p3Title: "Always current",
+      p3Body:
+        "We re-sync after every round, and each profile carries its own last-updated stamp.",
     },
     faq: {
       eyebrow: "FAQ",
@@ -172,72 +200,10 @@ export const en = {
         "Every player, every stat, every highlight — open to everyone. Open the console, drop two names, run the math.",
       tryAi: "Try the AI Advisor",
       browsePlayers: "Browse players",
-    },
-    trustBar: {
-      eyebrow: "Data sources",
-      titleA: "Public feeds.",
-      titleB: "Honest math.",
-      description:
-        "Every stat, every split, every box score comes from the leagues' own public feeds. We don't fabricate anything and we don't sell your data.",
-      publicFeed: "Public feed",
-      footnote:
-        "Public feeds · No paid placements · No sponsor boosts in rankings",
+      emailTitle: "Or get a weekly dose of stats",
     },
     trustedBy: {
-      aria: "Coverage and early access",
-      eyebrow: "Coverage today",
-      titleA: "Six leagues live.",
-      titleB: "More on the way.",
-      description:
-        "The NBA, EuroLeague, ACB and Spain's full FEB ladder are in today. The WNBA, FIBA windows and the Australian NBL are next.",
       live: "live",
-      earlyAccess: "Early access users",
-      pilots: {
-        scouting: "Pro scouting dept.",
-        ncaa: "NCAA programs",
-        agencies: "Player agencies",
-        journalism: "Journalism desks",
-        academies: "High-school academies",
-        fantasy: "Fantasy leagues",
-      },
-    },
-    features: {
-      eyebrow: "Three ways to scout",
-      titleA: "One console.",
-      titleB: "Three workflows.",
-      description:
-        "Whether you're scouting a target, comparing cross-league prospects or just looking up a box score — same data, same math.",
-      compare: {
-        title: "Cross-league compare",
-        body: "Drop two names from any combination of NBA, EuroLeague or ACB and get radar, splits and per-game lines on the same scale.",
-        b1: "Pace and possession normalized",
-        b2: "Radar overlays with color-coded deltas",
-        b3: "Shooting splits, advanced metrics and per-game",
-        cta: "Open the console",
-      },
-      leagues: {
-        title: "League hubs with leaders",
-        body: "Six leagues, one shelf. Current-season scoring leaders, roster and staff counts, and direct jumps into every directory.",
-        b1: "Top scorers per league, current season",
-        b2: "Roster and coaching-staff counts at a glance",
-        b3: "Quick links to the player and team directories",
-        cta: "Browse leagues",
-      },
-      ai: {
-        title: "AI advisor, trained on basketball",
-        body: "Tell the advisor the role and the budget and it surfaces a shortlist with reasoning, not just a name dump.",
-        b1: "Role-based filters (defender, shooter, organizer)",
-        b2: "Transparent reasoning on every recommendation",
-        b3: "Export to PDF, Excel and Word",
-        cta: "Try the advisor",
-        badge: "Beta",
-      },
-    },
-    liveScout: {
-      live: "Live scout",
-      axes: "radar · 6 axes",
-      playerA: "Player A",
-      playerB: "Player B",
     },
     mobileInstall: {
       eyebrow: "Take it with you",
@@ -551,6 +517,26 @@ export const en = {
     compareWith: "Compare with",
     highlights: "Highlights",
     switchLeague: "Switch league",
+    shotChart: "Shot chart",
+    shotPaint: "Paint",
+    shotLeftCorner2: "Left corner 2PT",
+    shotLeftCorner3: "Left corner 3PT",
+    shotRightCorner2: "Right corner 2PT",
+    shotRightCorner3: "Right corner 3PT",
+    shotLeftWing2: "Left wing 2PT",
+    shotLeftWing3: "Left wing 3PT",
+    shotRightWing2: "Right wing 2PT",
+    shotRightWing3: "Right wing 3PT",
+    shotFrontal2: "Frontal 2PT",
+    shotFrontal3: "Frontal 3PT",
+    shotVolume: "{count} field-goal attempts",
+    shotNoData: "No shot-location data",
+    shotNoDataHint:
+      "Zone splits come from EuroLeague's official shot feed. This player's league doesn't publish shot coordinates yet.",
+    shotCold: "Cold",
+    shotHot: "Hot",
+    shotLegendNote:
+      "Each zone is shaded against a realistic range for that shot type; more solid tiles mean more attempts.",
   },
   teamProfile: {
     notFound: "Team not found",
@@ -569,19 +555,19 @@ export const en = {
     technicalStaff: "Technical staff",
   },
   playerAi: {
-    title: "AI scout",
-    description: "Get a detailed AI-generated scouting report on this player.",
-    scouting: "Scouting…",
-    rerun: "Re-run scout",
-    scout: "Scout player",
+    title: "Full scout",
+    description: "AI analyzes stats, advanced metrics, market value, shot chart, team impact and more.",
+    scouting: "Analyzing everything…",
+    rerun: "Re-run full scout",
+    scout: "Full scout with AI",
     failed: "Analysis failed.",
     errorStatus: "Error {status}",
     aiFallback: "AI",
     hintPre: "Hit",
     hintPost:
-      "and the AI generates a full breakdown of this player's game — strengths, weaknesses, and team fit.",
+      "and the AI generates a complete report — stats, value, shot zones, team contribution, public perception and character assessment.",
     nudgeText:
-      "This runs without AI. Connect your own model for an AI take —",
+      "This runs without AI. Connect your own model for a full scouting report —",
     addProvider: "add a provider",
     seeGuide: "see the guide",
   },

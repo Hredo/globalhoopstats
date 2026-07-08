@@ -1,6 +1,11 @@
 "use client"
 
-import { motion, useReducedMotion } from "framer-motion"
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react"
 
 export function AnimatedBar({
   value,
@@ -19,26 +24,48 @@ export function AnimatedBar({
   className?: string
   style?: React.CSSProperties
 }) {
-  const reduce = useReducedMotion()
+  const ref = useRef<HTMLDivElement | null>(null)
+  const [shown, setShown] = useState(false)
+  const [reduce, setReduce] = useState(false)
   const pct = Math.min(100, (value / max) * 100)
 
-  if (reduce) {
-    return (
-      <div
-        className={`h-full rounded-full ${color ?? "bg-brand-500"} ${className ?? ""}`}
-        style={{ width: `${pct}%`, ...style }}
-      />
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    setReduce(mq.matches)
+  }, [])
+
+  useEffect(() => {
+    if (reduce) return
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setShown(true)
+            io.unobserve(entry.target)
+          }
+        }
+      },
+      { rootMargin: "0px 0px -8% 0px", threshold: 0.3 },
     )
-  }
+    io.observe(el)
+    return () => io.disconnect()
+  }, [reduce])
+
+  const actualStyle: CSSProperties = reduce
+    ? { width: `${pct}%`, ...style }
+    : {
+        width: shown ? `${pct}%` : "0%",
+        transition: `width ${duration}s cubic-bezier(0.19,1,0.22,1) ${delay}s`,
+        ...style,
+      }
 
   return (
-    <motion.div
+    <div
+      ref={ref}
       className={`h-full rounded-full ${color ?? "bg-brand-500"} ${className ?? ""}`}
-      initial={{ width: "0%" }}
-      whileInView={{ width: `${pct}%` }}
-      viewport={{ once: true, amount: 0.3 }}
-      transition={{ duration, delay, ease: [0.19, 1, 0.22, 1] }}
-      style={style}
+      style={actualStyle}
     />
   )
 }

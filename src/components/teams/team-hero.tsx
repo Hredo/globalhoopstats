@@ -40,7 +40,7 @@ export function TeamHero({
       <div className="relative grid grid-cols-1 items-center gap-10 md:grid-cols-[minmax(240px,320px)_1fr]">
         <TeamLogoHero src={logoUrl} name={name} shortName={null} />
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--team-300)]">
+          <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--team-500)]">
             <span
               aria-hidden
               className="h-1.5 w-1.5 rounded-full"
@@ -56,7 +56,7 @@ export function TeamHero({
           </div>
           <h1
             className="mt-3 break-words font-display text-4xl font-bold leading-[0.9] tracking-[-0.04em] sm:text-5xl md:text-6xl"
-            style={{ color: "var(--team-200)" }}
+            style={{ color: "var(--team-600)" }}
           >
             {name}
           </h1>

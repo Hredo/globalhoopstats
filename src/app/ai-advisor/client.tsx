@@ -466,6 +466,13 @@ export default function AIAdvisorClient() {
 
   return (
     <div className="mx-auto max-w-7xl pb-8 pt-4 lg:pt-6">
+      {/* Ambient atmosphere */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -left-40 -top-40 h-[60vh] w-[60vw] rounded-full bg-brand-500/4 blur-[160px] animate-aurora-slow" />
+        <div className="absolute -bottom-40 -right-40 h-[55vh] w-[55vw] rounded-full bg-brand-400/3 blur-[140px] animate-aurora" style={{ animationDelay: '-6s' }} />
+        <div className="absolute left-1/4 top-1/3 h-80 w-80 rounded-full bg-brand-300/2 blur-[120px] animate-drift" />
+        <div className="absolute right-1/4 top-2/3 h-60 w-60 rounded-full bg-ember-500/2 blur-[100px] animate-drift" style={{ animationDelay: '-10s', animationDuration: '24s' }} />
+      </div>
       <AnimatePresence>
         {sidebarOpen ? (
           <motion.div
@@ -484,7 +491,7 @@ export default function AIAdvisorClient() {
         {/* ── Conversations sidebar ───────────────────────────────── */}
         <aside
           aria-label="Conversations"
-          className={`fixed left-0 z-[60] flex w-[min(20rem,85vw)] flex-col border-r border-white/10 bg-ink-950/95 backdrop-blur-md transition-transform duration-300 max-lg:top-[57px] max-lg:bottom-0 lg:sticky lg:inset-y-auto lg:top-[76px] lg:z-10 lg:h-[calc(100dvh-92px)] lg:w-64 lg:translate-x-0 lg:self-start lg:rounded-2xl lg:border lg:border-white/10 lg:bg-ink-950/40 lg:backdrop-blur-none xl:w-72 ${
+          className={`fixed left-0 z-[60] flex w-[min(20rem,85vw)] flex-col border-r border-white/10 bg-ink-950/95 backdrop-blur-md transition-transform duration-300 max-lg:top-[57px] max-lg:bottom-0 lg:sticky lg:inset-y-auto lg:top-[76px] lg:z-10 lg:h-[calc(100dvh-92px)] lg:w-64 lg:translate-x-0 lg:self-start lg:rounded-2xl lg:border lg:border-white/10 lg:bg-ink-950/60 lg:backdrop-blur-sm xl:w-72 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
@@ -626,19 +633,22 @@ export default function AIAdvisorClient() {
         {/* ── Console ─────────────────────────────────────────────── */}
         <section
           aria-label="Scouting Advisor console"
-          className="relative flex min-h-[calc(100dvh-120px)] w-full min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-ink-950/40 lg:h-[calc(100dvh-92px)] lg:min-h-0"
+          className="relative z-10 flex min-h-[calc(100dvh-120px)] w-full min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-ink-950/60 backdrop-blur-sm lg:h-[calc(100dvh-92px)] lg:min-h-0"
         >
           <span
             aria-hidden
             className="pointer-events-none absolute inset-x-0 top-0 z-20 h-px bg-gradient-to-r from-transparent via-brand-500/70 to-transparent"
           />
-          <header className="flex items-center justify-between gap-2 border-b border-white/10 bg-ink-950/50 px-3 py-3 backdrop-blur-sm sm:gap-3 sm:px-5">
-            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          {/* Gradient corner accents */}
+          <span aria-hidden className="pointer-events-none absolute -left-20 -top-20 h-40 w-40 rounded-full bg-brand-500/8 blur-[80px]" />
+          <span aria-hidden className="pointer-events-none absolute -right-20 -bottom-20 h-40 w-40 rounded-full bg-brand-400/6 blur-[80px]" />
+          <header className="flex items-center justify-between gap-1 border-b border-white/10 bg-ink-950/50 px-2 py-2 backdrop-blur-sm sm:gap-2 sm:px-4 sm:py-3">
+            <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
               <button
                 type="button"
                 onClick={() => setSidebarOpen(true)}
                 aria-label="Open conversations"
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-ink-200 transition hover:border-white/25 hover:text-ink-50 lg:hidden"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-ink-200 transition hover:border-white/25 hover:text-ink-50 lg:hidden"
               >
                 <svg
                   className="h-4 w-4"
@@ -657,10 +667,10 @@ export default function AIAdvisorClient() {
               </button>
               <div
                 aria-hidden
-                className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 ring-1 ring-brand-500/25 sm:flex"
+                className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-500/15 ring-1 ring-brand-500/25 sm:flex"
               >
                 <svg
-                  className="h-4.5 w-4.5 text-brand-400"
+                  className="h-4 w-4 text-brand-400"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -673,25 +683,25 @@ export default function AIAdvisorClient() {
                   />
                 </svg>
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h1 className="truncate font-display text-base font-bold tracking-[-0.01em] text-ink-50 sm:text-xl">
+              <div className="min-w-0 max-w-[40%] sm:max-w-none">
+                <div className="flex items-center gap-1.5">
+                  <h1 className="truncate font-display text-sm font-bold tracking-[-0.01em] text-ink-50 sm:text-base md:text-xl">
                     {t("aiAdvisor.title")}
                   </h1>
-                  <span className="shrink-0 rounded-full border border-amber-400/50 bg-amber-400/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-300">
+                  <span className="shrink-0 rounded-full border border-amber-400/50 bg-amber-400/10 px-1.5 py-0.5 font-mono text-[8px] font-semibold uppercase tracking-[0.16em] text-amber-300 sm:text-[9px]">
                     Beta
                   </span>
                 </div>
-                <p className="hidden truncate text-[11px] text-ink-400 sm:block sm:text-xs">
+                <p className="hidden truncate text-[10px] text-ink-400 sm:block sm:text-xs">
                   {t("aiAdvisor.subtitle")}
                 </p>
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               {loadingConversation ? (
                 <span
                   role="status"
-                  className="hidden font-mono text-[10px] uppercase tracking-widest text-ink-500 sm:inline"
+                  className="hidden font-mono text-[9px] uppercase tracking-widest text-ink-500 sm:inline"
                 >
                   {t("aiAdvisor.loading")}
                 </span>
@@ -704,10 +714,10 @@ export default function AIAdvisorClient() {
               <button
                 type="button"
                 onClick={() => window.dispatchEvent(new Event(TOUR_EVENT))}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-ink-200 transition hover:border-brand-400/40 hover:bg-white/[0.07] hover:text-ink-50"
+                className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-medium text-ink-200 transition hover:border-brand-400/40 hover:bg-white/[0.07] hover:text-ink-50 sm:px-3 sm:py-1.5 sm:text-xs"
               >
                 <svg
-                  className="h-3.5 w-3.5 text-brand-300"
+                  className="h-3 w-3 text-brand-300 sm:h-3.5 sm:w-3.5"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -724,10 +734,10 @@ export default function AIAdvisorClient() {
               </button>
               <Link
                 href="/account/ai-keys"
-                className="inline-flex items-center gap-1.5 rounded-full border border-brand-500/40 bg-brand-500/10 px-3 py-1.5 text-xs font-semibold text-brand-200 transition hover:bg-brand-500/20"
+                className="inline-flex items-center gap-1 rounded-full border border-brand-500/40 bg-brand-500/10 px-2 py-1 text-[10px] font-semibold text-brand-200 transition hover:bg-brand-500/20 sm:px-3 sm:py-1.5 sm:text-xs"
               >
                 <svg
-                  className="h-3.5 w-3.5"
+                  className="h-3 w-3 sm:h-3.5 sm:w-3.5"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"

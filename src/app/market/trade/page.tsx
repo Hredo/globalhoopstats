@@ -475,6 +475,13 @@ export default function TradePage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+      {/* Ambient atmosphere */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -left-32 -top-32 h-[50vh] w-[50vw] rounded-full bg-brand-500/5 blur-[140px] animate-aurora-slow" />
+        <div className="absolute -bottom-32 -right-32 h-[45vh] w-[45vw] rounded-full bg-ember-500/5 blur-[120px] animate-aurora" />
+        <div className="absolute left-1/3 top-1/3 h-64 w-64 rounded-full bg-brand-400/3 blur-[100px] animate-drift" />
+        <div className="absolute left-2/3 top-2/3 h-48 w-48 rounded-full bg-cyan-500/2 blur-[80px] animate-drift" style={{ animationDelay: '-8s', animationDuration: '20s' }} />
+      </div>
       <Reveal>
       <div className="mb-8">
         <Eyebrow>{t("trade.page.eyebrow")}</Eyebrow>
@@ -623,8 +630,14 @@ export default function TradePage() {
           ) : null}
 
           {result ? (
-            <div className="mt-8">
-              <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-hairline bg-surface-1 p-4">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.19, 1, 0.22, 1] }}
+              className="mt-8"
+            >
+              <div className="gh-card relative mb-6 flex flex-wrap items-center gap-4 overflow-hidden p-4">
+                <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-br from-brand-500/5 to-transparent" />
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-court-800">
                     <SmartImage
@@ -690,42 +703,44 @@ export default function TradePage() {
                   {t("trade.results.noScenarios")}
                 </div>
               ) : (
-                <motion.div
-                  className="grid gap-4 sm:grid-cols-2"
-                  initial="hidden"
-                  animate="visible"
-                  variants={{
-                    hidden: {},
-                    visible: { transition: { staggerChildren: 0.08 } },
-                  }}
-                >
-                  {result.scenarios.map((s, i) => (
-                    <motion.div
-                      key={i}
-                      variants={{
-                        hidden: { opacity: 0, y: 20 },
-                        visible: {
-                          opacity: 1,
-                          y: 0,
-                          transition: { duration: 0.5, ease: [0.19, 1, 0.22, 1] },
-                        },
-                      }}
-                    >
-                      <TradeScenarioCard
-                        scenario={s}
-                        outgoingName={result.outgoing.name}
-                        outgoingValue={result.outgoing.valuation.eur}
-                        currency={currency}
-                        onAnalyze={() => runScenarioAi(i)}
-                        aiLoading={scenarioAi[i]?.loading ?? false}
-                        aiAnalysis={scenarioAi[i]?.analysis ?? null}
-                        aiError={scenarioAi[i]?.error ?? null}
-                      />
+              <motion.div
+                className="grid gap-5 sm:grid-cols-2"
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  hidden: {},
+                  visible: { transition: { staggerChildren: 0.1 } },
+                }}
+              >
+                {result.scenarios.map((s, i) => (
+                  <motion.div
+                    key={i}
+                    variants={{
+                      hidden: { opacity: 0, y: 24, scale: 0.97, filter: "blur(4px)" },
+                      visible: {
+                        opacity: 1,
+                        y: 0,
+                        scale: 1,
+                        filter: "blur(0px)",
+                        transition: { duration: 0.6, ease: [0.19, 1, 0.22, 1] },
+                      },
+                    }}
+                  >
+                    <TradeScenarioCard
+                      scenario={s}
+                      outgoingName={result.outgoing.name}
+                      outgoingValue={result.outgoing.valuation.eur}
+                      currency={currency}
+                      onAnalyze={() => runScenarioAi(i)}
+                      aiLoading={scenarioAi[i]?.loading ?? false}
+                      aiAnalysis={scenarioAi[i]?.analysis ?? null}
+                      aiError={scenarioAi[i]?.error ?? null}
+                    />
                     </motion.div>
                   ))}
                 </motion.div>
               )}
-            </div>
+            </motion.div>
           ) : null}
         </>
       ) : null}
@@ -734,44 +749,117 @@ export default function TradePage() {
       {mode === "proponer" ? (
         <>
           {(outgoing.length > 0 || incoming.length > 0) ? (
-            <div className="mb-6 rounded-xl border border-hairline bg-surface-1 p-4 text-center">
-              <p className="gh-eyebrow mb-1">{proponerTitle}</p>
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-4 text-sm">
-                <span className="text-ink-300">
-                  {CURRENCIES[currency].symbol} {t("trade.propose.youGive")}:{" "}
-                  <strong className="text-ink-100">{formatCurrency(outValEur, currency)}</strong>
-                </span>
-                <span className="font-display text-xl text-ink-500">→</span>
-                <span className="text-ink-300">
-                  {CURRENCIES[currency].symbol} {t("trade.propose.youReceive")}:{" "}
-                  <strong className="text-ink-100">{formatCurrency(inValEur, currency)}</strong>
-                </span>
-                <span className="h-6 w-px bg-hairline" />
-                <span className={`font-semibold ${balanceColor}`}>
-                  {t("trade.propose.balance")}: {balance.toFixed(2)}
-                </span>
-                <span className="text-xs text-ink-400">
-                  {balanced ? t("trade.propose.balanced") : balance < 0.95 ? t("trade.propose.giveMoreValue") : t("trade.propose.receiveMoreValue")}
-                </span>
-              </div>
-              <div className="mx-auto mt-3 h-2 w-full max-w-md overflow-hidden rounded-full bg-white/10">
-                <motion.div
-                  className={`h-full rounded-full ${balanced ? "bg-emerald-500" : "bg-amber-500"}`}
-                  initial={{ width: "0%" }}
-                  animate={{ width: `${Math.min(balance, 1.5) * 66}%` }}
-                  transition={{ duration: 0.7, ease: [0.19, 1, 0.22, 1] }}
+            <div className="relative mb-6 overflow-hidden rounded-2xl border border-hairline bg-surface-1 p-4 sm:p-5">
+              {/* Animated gradient beam */}
+              <motion.div
+                aria-hidden
+                className="pointer-events-none absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6 }}
+              >
+                <div
+                  className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-amber-500/0 via-brand-400/60 to-emerald-500/0"
+                  style={{ animation: "sheen 3s linear infinite" }}
                 />
+              </motion.div>
+              <p className="gh-eyebrow mb-2">{proponerTitle}</p>
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-3 text-sm">
+                <motion.div
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2"
+                >
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-amber-400/70">{t("trade.propose.youGive")}</span>
+                  <strong className="ml-2 font-display text-lg font-bold text-ink-50">{formatCurrency(outValEur, currency)}</strong>
+                </motion.div>
+                {/* Animated arrow */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 12 }}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-500/20"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="text-brand-300">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2"
+                >
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-emerald-400/70">{t("trade.propose.youReceive")}</span>
+                  <strong className="ml-2 font-display text-lg font-bold text-ink-50">{formatCurrency(inValEur, currency)}</strong>
+                </motion.div>
+                <span className="h-8 w-px bg-hairline" />
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.35 }}
+                  className="flex flex-col items-center"
+                >
+                  <span className={`font-semibold ${balanceColor}`}>
+                    {t("trade.propose.balance")}: {balance.toFixed(2)}
+                  </span>
+                  <span className="text-[10px] text-ink-500">
+                    {balanced ? t("trade.propose.balanced") : balance < 0.95 ? t("trade.propose.giveMoreValue") : t("trade.propose.receiveMoreValue")}
+                  </span>
+                </motion.div>
+              </div>
+              {/* Glowing balance bar */}
+              <div className="relative mx-auto mt-4 h-3 w-full max-w-lg overflow-hidden rounded-full bg-white/5 ring-1 ring-white/5">
+                <motion.div
+                  className={`h-full rounded-full ${balanced ? "bg-gradient-to-r from-emerald-400 to-emerald-500" : "bg-gradient-to-r from-amber-400 to-amber-500"}`}
+                  initial={{ width: "0%" }}
+                  animate={{ width: `${Math.min(balance / 1.5, 1) * 100}%` }}
+                  transition={{ duration: 0.9, ease: [0.19, 1, 0.22, 1] }}
+                />
+                {balanced && (
+                  <motion.div
+                    aria-hidden
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: [0, 0.6, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                  />
+                )}
+              </div>
+              <div className="mx-auto mt-1 flex w-full max-w-lg justify-between px-1 font-mono text-[9px] text-ink-500">
+                <span>0%</span>
+                <span className={balanced ? "text-emerald-400" : "text-amber-400"}>{Math.round(balance * 100)}%</span>
+                <span>150%</span>
               </div>
             </div>
           ) : (
-            <div className="mb-6 rounded-xl border border-dashed border-white/20 bg-surface-0 p-6 text-center text-sm text-ink-400">
-              {t("trade.propose.addPlayersHint")}
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 rounded-xl border border-dashed border-white/20 bg-surface-0 p-8 text-center"
+            >
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-ink-800/60">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="text-ink-400">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              </div>
+              <p className="text-sm text-ink-400">{t("trade.propose.addPlayersHint")}</p>
+            </motion.div>
           )}
 
-          <div className="grid gap-6 sm:grid-cols-2">
+          <div className="relative grid gap-6 sm:grid-cols-2">
+            {/* Animated value flow connector */}
+            {outgoing.length > 0 && incoming.length > 0 && (
+              <motion.div
+                aria-hidden
+                initial={{ opacity: 0, scaleX: 0 }}
+                animate={{ opacity: 1, scaleX: 1 }}
+                transition={{ duration: 0.8, delay: 0.4, ease: [0.19, 1, 0.22, 1] }}
+                className="pointer-events-none absolute left-1/2 top-1/2 z-10 hidden h-px w-12 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-amber-500/40 via-brand-400/60 to-emerald-500/40 sm:block"
+                style={{ filter: "blur(3px)" }}
+              />
+            )}
             {/* Left: Outgoing */}
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.04] p-4">
+            <div className="relative rounded-xl border border-amber-500/30 bg-amber-500/[0.04] p-4">
               <div className="mb-3 flex items-center gap-2 border-b border-amber-500/20 pb-3">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/25 font-mono text-[11px] font-bold text-amber-300">T</span>
                 <h3 className="font-semibold text-ink-50">{t("trade.propose.sectionGive")}</h3>
@@ -785,11 +873,12 @@ export default function TradePage() {
                   <motion.div
                     key={p.slug}
                     layout
-                    initial={{ opacity: 0, x: -20, scale: 0.95 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: -20, scale: 0.95 }}
-                    transition={{ duration: 0.25, ease: [0.19, 1, 0.22, 1] }}
-                    className="flex items-start gap-3 rounded-lg border border-amber-500/20 bg-surface-0 p-3"
+                    initial={{ opacity: 0, x: -20, scale: 0.95, filter: "blur(4px)" }}
+                    animate={{ opacity: 1, x: 0, scale: 1, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, x: -20, scale: 0.95, filter: "blur(4px)" }}
+                    transition={{ duration: 0.35, ease: [0.19, 1, 0.22, 1] }}
+                    whileHover={{ y: -2, transition: { duration: 0.2 } }}
+                    className="group flex items-start gap-3 rounded-lg border border-amber-500/20 bg-surface-0 p-3 transition-shadow hover:shadow-[0_0_24px_-8px_rgba(245,158,11,0.15)]"
                   >
                     <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md bg-court-800">
                       <SmartImage src={p.imageUrl} alt={p.fullName} fit="cover"
@@ -876,11 +965,12 @@ export default function TradePage() {
                   <motion.div
                     key={p.slug}
                     layout
-                    initial={{ opacity: 0, x: 20, scale: 0.95 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{ opacity: 0, x: 20, scale: 0.95 }}
-                    transition={{ duration: 0.25, ease: [0.19, 1, 0.22, 1] }}
-                    className="flex items-start gap-3 rounded-lg border border-emerald-500/20 bg-surface-0 p-3"
+                    initial={{ opacity: 0, x: 20, scale: 0.95, filter: "blur(4px)" }}
+                    animate={{ opacity: 1, x: 0, scale: 1, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, x: 20, scale: 0.95, filter: "blur(4px)" }}
+                    transition={{ duration: 0.35, ease: [0.19, 1, 0.22, 1] }}
+                    whileHover={{ y: -2, transition: { duration: 0.2 } }}
+                    className="group flex items-start gap-3 rounded-lg border border-emerald-500/20 bg-surface-0 p-3 transition-shadow hover:shadow-[0_0_24px_-8px_rgba(16,185,129,0.15)]"
                   >
                     <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md bg-court-800">
                       <SmartImage src={p.imageUrl} alt={p.fullName} fit="cover"

@@ -6,6 +6,7 @@ import {
   players,
   seasons,
   teams,
+  type ShotZonesJson,
 } from "@/lib/db/schema"
 import { cached } from "@/lib/data/cache"
 import { leagueSlugsFor } from "@/lib/league-groups"
@@ -346,6 +347,8 @@ export type PlayerSeasonLine = {
   threePct: number | null
   ftPct: number | null
   per: number | null
+  /** Real per-zone made/attempted (EuroLeague only); null elsewhere. */
+  shotZones: ShotZonesJson | null
 }
 
 export type PlayerLeagueStats = {
@@ -418,6 +421,7 @@ export const getPlayerBySlug = cached(
       ftMade: playerSeasonStats.ftMade,
       ftAttempted: playerSeasonStats.ftAttempted,
       per: playerSeasonStats.per,
+      shotZones: playerSeasonStats.shotZones,
     })
     .from(playerSeasonStats)
     .innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
@@ -488,6 +492,7 @@ export const getPlayerBySlug = cached(
       threePct: row.threeMade != null && row.threeAttempted != null && row.threeAttempted > 0 ? row.threeMade / row.threeAttempted : null,
       ftPct: row.ftMade != null && row.ftAttempted != null && row.ftAttempted > 0 ? row.ftMade / row.ftAttempted : null,
       per: row.per,
+      shotZones: (row.shotZones as ShotZonesJson | null) ?? null,
     })
   }
   if (byLeague.size === 0) return null

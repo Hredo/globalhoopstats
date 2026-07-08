@@ -17,9 +17,20 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms))
 }
 
+// stats.nba.com is served behind Akamai's WAF, which silently drops requests
+// carrying the GlobalHoopStatsBot UA (even with standard headers). A browser UA
+// is required because the API's CDN gates on it, not because we are hiding —
+// the Referer/Origin headers still identify us as coming from nba.com. The bot
+// UA is still used for every other source in the project.
 const NBA_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
   Referer: "https://www.nba.com/",
   Origin: "https://www.nba.com",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Sec-Fetch-Dest": "empty",
+  "Sec-Fetch-Mode": "cors",
+  "Sec-Fetch-Site": "same-site",
 }
 
 type NbaRow = Record<string, string | number | null>

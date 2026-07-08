@@ -16,7 +16,7 @@ export async function TrustedBy() {
   return (
     <section
       aria-label={t("home.trustedBy.aria")}
-      className="relative hairline-t hairline-b bg-surface-0/40 py-12 sm:py-16"
+      className="full-bleed relative py-14 sm:py-20"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <FadeIn>
