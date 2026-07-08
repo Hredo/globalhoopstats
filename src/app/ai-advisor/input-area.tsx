@@ -45,33 +45,40 @@ export function InputArea({
   return (
     <form
       onSubmit={handleSubmit}
-      className="border-t border-white/5 bg-ink-950/40 px-4 py-3 backdrop-blur-sm"
+      className="group relative border-t border-white/5 bg-ink-950/40 px-4 py-3 backdrop-blur-sm"
     >
+      {/* Focus glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-8 -top-px h-px bg-gradient-to-r from-transparent via-brand-400/0 to-transparent transition-all duration-500 group-focus-within:via-brand-400/60"
+      />
       <div className="flex items-center gap-2">
-        <input
-          ref={inputRef}
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value.slice(0, 2000))}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          disabled={disabled || loading}
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck={false}
-          maxLength={2000}
-          aria-label="Ask the advisor"
-          aria-describedby={helpId}
-          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-base text-ink-50 outline-none transition placeholder:text-ink-400 hover:border-white/20 focus:border-brand-400/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-brand-500/25 disabled:opacity-40 sm:text-[15px]"
-        />
+        <div className="relative flex-1">
+          <input
+            ref={inputRef}
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value.slice(0, 2000))}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            disabled={disabled || loading}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            maxLength={2000}
+            aria-label="Ask the advisor"
+            aria-describedby={helpId}
+            className="min-w-0 w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-base text-ink-50 outline-none transition placeholder:text-ink-400 hover:border-white/20 focus:border-brand-400/60 focus:bg-white/[0.06] focus:ring-2 focus:ring-brand-500/25 disabled:opacity-40 sm:text-[15px]"
+          />
+        </div>
         <button
           type="submit"
           disabled={disabled || loading || !input.trim()}
           aria-label="Send message"
           aria-keyshortcuts="Control+Enter"
           title="Send (Ctrl+Enter)"
-          className="shrink-0 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-ink-950 transition hover:bg-brand-400 active:scale-95 disabled:opacity-40 disabled:active:scale-100"
+          className="shrink-0 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition-all hover:bg-brand-400 hover:shadow-lg active:scale-90 disabled:opacity-40 disabled:shadow-none disabled:active:scale-100"
         >
           {loading ? (
             <svg

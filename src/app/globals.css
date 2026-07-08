@@ -166,13 +166,6 @@
   --animate-drift: drift 16s var(--ease-fluid) infinite;
 }
 
-/* ── Registered properties for animatable custom props ──────────── */
-@property --lg {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: oklch(0.72 0.205 50);
-}
-
 @keyframes float {
   0%,
   100% {
@@ -398,6 +391,7 @@
     scroll-behavior: smooth;
     scroll-padding-top: 6rem;
     -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.45s var(--ease-fluid);
   }
   body {
     background-color: oklch(0.175 0.015 54);
@@ -436,6 +430,9 @@
     overflow-x: clip;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    transition:
+      background-color 0.45s var(--ease-fluid),
+      color 0.3s var(--ease-fluid);
   }
   /* global film grain — breaks digital flatness; fixed + non-interactive */
   body::after {
@@ -446,6 +443,7 @@
     pointer-events: none;
     opacity: 0.035;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    transition: opacity 0.45s var(--ease-fluid);
   }
   ::selection {
     background: var(--color-brand-500);
@@ -807,7 +805,8 @@ html[data-theme="light"] .court-backdrop {
     transition:
       transform 0.45s var(--ease-fluid),
       box-shadow 0.45s var(--ease-fluid),
-      border-color 0.45s var(--ease-fluid);
+      border-color 0.45s var(--ease-fluid),
+      background-color 0.45s var(--ease-fluid);
   }
   .gh-card-interactive:hover {
     transform: translateY(-5px);
@@ -823,6 +822,10 @@ html[data-theme="light"] .court-backdrop {
     box-shadow:
       inset 0 1px 0 0 oklch(1 0 0 / 0.08),
       0 16px 40px -22px oklch(0.04 0.02 50 / 0.8);
+    transition:
+      background-color 0.45s var(--ease-fluid),
+      border-color 0.35s var(--ease-fluid),
+      box-shadow 0.45s var(--ease-fluid);
   }
 
   /* ── Double-bezel (machined hardware) wrapper ─────────────────── */
@@ -916,11 +919,6 @@ html[data-theme="light"] .court-backdrop {
   }
 
   /* ── Eyebrow rule ───────────────────────────────────────────── */
-  /* smooth league accent colour transitions (used via @property --lg) */
-  .transition-lg {
-    transition: --lg 0.55s var(--ease-fluid);
-  }
-
   .gh-eyebrow {
     display: inline-flex;
     align-items: center;
@@ -1081,21 +1079,6 @@ html[data-theme="light"] .court-backdrop {
   .draw-path {
     stroke-dasharray: var(--len, 1);
     stroke-dashoffset: var(--len, 1);
-  }
-
-  @keyframes star-pop {
-    0% { transform: scale(1) rotate(0deg); }
-    30% { transform: scale(1.4) rotate(15deg); }
-    60% { transform: scale(0.9) rotate(-8deg); }
-    100% { transform: scale(1) rotate(0deg); }
-  }
-
-  @keyframes star-fill {
-    0% { transform: scale(1) rotate(0deg); }
-    25% { transform: scale(0.8) rotate(-10deg); }
-    50% { transform: scale(1.35) rotate(12deg); }
-    75% { transform: scale(0.95) rotate(-5deg); }
-    100% { transform: scale(1) rotate(0deg); }
   }
 
   /* ── 3D / perspective helpers (CSS pseudo-3D, no WebGL) ───────── */

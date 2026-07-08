@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef, useState } from "react"
 import { motion } from "framer-motion"
 import type { AdvisorOutput, Recruit } from "@/lib/ai/local-advisor"
 import { renderInline } from "./inline-markdown"
@@ -21,18 +22,31 @@ export function AdvisorResponse({ data }: { data: AdvisorOutput }) {
     <div className="space-y-4 w-full">
       {/* Header card */}
       <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="relative overflow-hidden rounded-2xl border border-ink-700/50 bg-gradient-to-br from-ink-800/80 to-ink-900/80 p-4 backdrop-blur"
+        initial={{ opacity: 0, y: 12, scale: 0.97, filter: "blur(4px)" }}
+        animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+        transition={{ duration: 0.4, ease: [0.19, 1, 0.22, 1] }}
+        className="group relative overflow-hidden rounded-2xl border border-ink-700/50 bg-gradient-to-br from-ink-800/80 to-ink-900/80 p-4 backdrop-blur-sm"
       >
         <div
           className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${LEAGUE_COLORS[data.team.leagueBadge] || "from-brand-500 to-brand-300"}`}
         />
-        <div className="flex items-start justify-between gap-3">
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
+          style={{
+            background: "linear-gradient(105deg, transparent 30%, rgba(251,146,60,0.04) 40%, rgba(251,146,60,0.08) 50%, rgba(251,146,60,0.04) 60%, transparent 70%)",
+            backgroundSize: "200% 100%",
+            animation: "sheen 3s ease-in-out infinite",
+          }}
+        />
+        <div className="flex items-start justify-between gap-3 relative z-10">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-2xl">{data.intentEmoji}</span>
+              <motion.span
+                className="text-2xl"
+                animate={{ scale: [1, 1.15, 1] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              >
+                {data.intentEmoji}
+              </motion.span>
               <span className="text-[10px] uppercase tracking-widest text-ink-400">
                 Analysis for
               </span>
@@ -45,7 +59,7 @@ export function AdvisorResponse({ data }: { data: AdvisorOutput }) {
             {data.team.leagueBadge}
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap gap-2 text-xs text-ink-300">
+        <div className="mt-3 flex flex-wrap gap-2 text-xs text-ink-300 relative z-10">
           <span className="rounded-md bg-ink-700/40 px-2 py-1">
             <span className="text-ink-500">Roster</span> ·{" "}
             <span className="font-mono font-semibold text-ink-100">
@@ -57,10 +71,10 @@ export function AdvisorResponse({ data }: { data: AdvisorOutput }) {
 
       {/* Team analysis */}
       <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.05 }}
-        className="rounded-xl border border-ink-700/40 bg-ink-800/40 p-4"
+        initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        transition={{ duration: 0.4, ease: [0.19, 1, 0.22, 1], delay: 0.08 }}
+        className="rounded-xl border border-ink-700/40 bg-ink-800/40 p-4 backdrop-blur-sm"
       >
         <div className="mb-2 flex items-center gap-2">
           <svg
@@ -109,22 +123,24 @@ export function AdvisorResponse({ data }: { data: AdvisorOutput }) {
         <motion.div
           initial={{ opacity: 0, x: -8 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
+          transition={{ duration: 0.4, delay: 0.15, ease: [0.19, 1, 0.22, 1] }}
           className="flex items-center gap-2 px-1"
         >
-          <svg
+          <motion.svg
             className="h-4 w-4 text-brand-400"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
             strokeWidth={2}
+            animate={{ rotate: [0, 5, 0, -5, 0] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
               d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
             />
-          </svg>
+          </motion.svg>
           <h3 className="text-sm font-semibold text-ink-100">
             Recommended candidates
           </h3>
@@ -137,10 +153,10 @@ export function AdvisorResponse({ data }: { data: AdvisorOutput }) {
 
       {/* Considerations */}
       <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.3 }}
-        className="rounded-xl border border-ink-700/40 bg-ink-800/30 p-4"
+        initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        transition={{ duration: 0.4, ease: [0.19, 1, 0.22, 1], delay: 0.3 }}
+        className="rounded-xl border border-ink-700/40 bg-ink-800/30 p-4 backdrop-blur-sm"
       >
         <div className="mb-2 flex items-center gap-2">
           <svg
@@ -180,17 +196,42 @@ function RecruitCard({
   rec: Recruit & { priority: string; priorityColor: string }
   index: number
 }) {
+  const [mx, setMx] = useState(0)
+  const [my, setMy] = useState(0)
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return
+    const rect = cardRef.current.getBoundingClientRect()
+    setMx(((e.clientX - rect.left) / rect.width) * 100)
+    setMy(((e.clientY - rect.top) / rect.height) * 100)
+  }
+
+  const handlePointerLeave = () => { setMx(50); setMy(50) }
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay: 0.15 + index * 0.08 }}
-      whileHover={{ y: -2 }}
-      className="group relative overflow-hidden rounded-xl border border-ink-700/50 bg-gradient-to-br from-ink-800/70 to-ink-900/70 p-4 backdrop-blur transition-colors hover:border-brand-500/40"
+      ref={cardRef}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
+      initial={{ opacity: 0, y: 16, scale: 0.97, filter: "blur(4px)" }}
+      animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+      transition={{ duration: 0.45, ease: [0.19, 1, 0.22, 1], delay: 0.15 + index * 0.1 }}
+      whileHover={{ y: -3, transition: { duration: 0.2 } }}
+      className="group relative overflow-hidden rounded-xl border border-ink-700/50 bg-gradient-to-br from-ink-800/70 to-ink-900/70 p-4 backdrop-blur-sm transition-all duration-300 hover:border-brand-500/40"
+      style={{ perspective: "600px" }}
     >
+      {/* Spotlight glow */}
+      <motion.div
+        aria-hidden
+        className="pointer-events-none absolute -inset-32 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+        style={{
+          background: `radial-gradient(500px circle at ${mx}% ${my}%, var(--color-brand-500/12), transparent 60%)`,
+        }}
+      />
       <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-brand-400 to-brand-600" />
 
-      <div className="flex items-start justify-between gap-3 pl-2">
+      <div className="flex items-start justify-between gap-3 pl-2 relative z-10">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[10px] font-mono text-ink-500">

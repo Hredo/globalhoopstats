@@ -1,4 +1,3 @@
-import { Suspense } from "react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
@@ -22,6 +21,7 @@ import { breadcrumbJsonLd, playerJsonLd } from "@/lib/seo/structured-data"
 import { SITE } from "@/lib/site"
 import { HighlightsSection } from "./highlights"
 import { PlayerAi } from "@/components/players/player-ai"
+import { ShotChart } from "@/components/players/shot-chart"
 import { getT } from "@/lib/i18n/server"
 
 type Props = {
@@ -282,6 +282,34 @@ export default async function PlayerPage({ params, searchParams }: Props) {
                   </p>
                 ) : null}
               </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <a
+                  href="#player-ai"
+                  className="inline-flex items-center gap-2 rounded-lg border border-brand-500/30 bg-brand-500/10 px-3.5 py-2 text-xs font-semibold text-brand-200 transition hover:bg-brand-500/20 hover:text-brand-100"
+                >
+                  <svg
+                    className="h-3.5 w-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                    aria-hidden
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z"
+                    />
+                  </svg>
+                  {t("playerAi.scout")}
+                </a>
+                <HighlightsSection
+                  playerId={profile.id}
+                  playerName={profile.fullName}
+                  teamName={selTeam?.name ?? null}
+                  leagueName={selLeague.name}
+                />
+              </div>
             </header>
           </FadeIn>
 
@@ -321,6 +349,12 @@ export default async function PlayerPage({ params, searchParams }: Props) {
                   <ShootingTile label={t("playerProfile.threePoint")} value={season.threePct} />
                   <ShootingTile label={t("playerProfile.freeThrow")} value={season.ftPct} />
                 </div>
+
+                {selLeague.slug === "euroleague" || selLeague.slug === "nba" ? (
+                  <div className="mt-5">
+                    <ShotChart zones={season.shotZones ?? null} />
+                  </div>
+                ) : null}
               </section>
             ) : (
               <div className="rounded-xl border border-dashed border-white/10 p-6 text-center text-sm text-ink-300">
@@ -354,22 +388,6 @@ export default async function PlayerPage({ params, searchParams }: Props) {
               </section>
             </LeagueTransition>
           ) : null}
-
-          <FadeIn>
-            <section>
-              <h2 className="gh-eyebrow mb-4">
-                {t("playerProfile.highlights")}
-              </h2>
-              <Suspense fallback={<HighlightsSkeleton />}>
-                <HighlightsSection
-                  playerId={profile.id}
-                  playerName={profile.fullName}
-                  teamName={selTeam?.name ?? null}
-                  leagueName={selLeague.name}
-                />
-              </Suspense>
-            </section>
-          </FadeIn>
 
           <PlayerAi slug={profile.slug} name={profile.fullName} />
         </div>
@@ -450,8 +468,4 @@ function ShootingTile({
   )
 }
 
-function HighlightsSkeleton() {
-  return (
-    <div className="h-[84px] w-full animate-pulse rounded-lg border border-white/5 bg-white/[0.03]" />
-  )
-}
+

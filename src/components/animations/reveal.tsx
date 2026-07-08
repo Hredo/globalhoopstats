@@ -1,7 +1,13 @@
 "use client"
 
-import { motion, useReducedMotion, type Variants } from "framer-motion"
-import type { ComponentProps, ReactNode } from "react"
+import {
+  createElement,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react"
 
 type Direction = "up" | "down" | "left" | "right" | "none"
 
@@ -13,10 +19,15 @@ const OFFSET: Record<Direction, { x: number; y: number }> = {
   none: { x: 0, y: 0 },
 }
 
-/**
- * Heavy, cinematic in-view reveal — fade + blur-up + translate, spring-eased.
- * GPU-safe (transform/opacity/filter only). Honors reduced-motion.
- */
+function useReduceMotion() {
+  const [reduce, setReduce] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    setReduce(mq.matches)
+  }, [])
+  return reduce
+}
+
 export function Reveal({
   children,
   delay = 0,
@@ -25,7 +36,6 @@ export function Reveal({
   once = true,
   amount = 0.25,
   className,
-  ...rest
 }: {
   children: ReactNode
   delay?: number
@@ -34,54 +44,52 @@ export function Reveal({
   once?: boolean
   amount?: number
   className?: string
-} & Omit<ComponentProps<typeof motion.div>, "children">) {
-  const reduce = useReducedMotion()
-  const { x, y } = OFFSET[direction]
+}) {
+  const ref = useRef<HTMLDivElement | null>(null)
+  const [shown, setShown] = useState(false)
+  const reduce = useReduceMotion()
 
-  if (reduce) {
-    return (
-      <div className={className} {...(rest as ComponentProps<"div">)}>
-        {children}
-      </div>
+  useEffect(() => {
+    if (reduce) return
+    const el = ref.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
+      setShown(true)
+      return
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setShown(true)
+            if (once) io.unobserve(entry.target)
+          } else if (!once) {
+            setShown(false)
+          }
+        }
+      },
+      { rootMargin: "0px 0px -8% 0px", threshold: amount },
     )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [reduce, once, amount])
+
+  if (reduce) return <div className={className}>{children}</div>
+
+  const { x, y } = OFFSET[direction]
+  const style: CSSProperties = {
+    opacity: shown ? 1 : 0,
+    transform: shown
+      ? "translate3d(0,0,0)"
+      : `translate3d(${x}px,${y}px,0)`,
+    filter: blur ? (shown ? "blur(0px)" : "blur(10px)") : undefined,
+    transition: `opacity 0.85s cubic-bezier(0.19,1,0.22,1) ${delay}s, transform 0.85s cubic-bezier(0.19,1,0.22,1) ${delay}s, filter 0.85s cubic-bezier(0.19,1,0.22,1) ${delay}s`,
   }
 
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, x, y, filter: blur ? "blur(10px)" : "blur(0px)" }}
-      whileInView={{ opacity: 1, x: 0, y: 0, filter: "blur(0px)" }}
-      viewport={{ once, amount, margin: "0px 0px -8% 0px" }}
-      transition={{
-        duration: 0.85,
-        delay,
-        ease: [0.19, 1, 0.22, 1],
-      }}
-      {...rest}
-    >
-      {children}
-    </motion.div>
-  )
+  return createElement("div", { ref, className, style }, children)
 }
 
-const containerVariants: Variants = {
-  hidden: {},
-  show: {
-    transition: { staggerChildren: 0.08, delayChildren: 0.05 },
-  },
-}
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 26, filter: "blur(10px)" },
-  show: {
-    opacity: 1,
-    y: 0,
-    filter: "blur(0px)",
-    transition: { duration: 0.8, ease: [0.19, 1, 0.22, 1] },
-  },
-}
-
-/** Stagger container — children should be <StaggerItem>. */
 export function Stagger({
   children,
   className,
@@ -93,33 +101,92 @@ export function Stagger({
   amount?: number
   once?: boolean
 }) {
-  const reduce = useReducedMotion()
+  const ref = useRef<HTMLDivElement | null>(null)
+  const [shown, setShown] = useState(false)
+  const reduce = useReduceMotion()
+
+  useEffect(() => {
+    if (reduce) return
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setShown(true)
+            if (once) io.unobserve(entry.target)
+          } else if (!once) {
+            setShown(false)
+          }
+        }
+      },
+      { rootMargin: "0px 0px -8% 0px", threshold: amount },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [reduce, once, amount])
+
   if (reduce) return <div className={className}>{children}</div>
+
   return (
-    <motion.div
+    <div
+      ref={ref}
       className={className}
-      variants={containerVariants}
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once, amount }}
+      data-stagger-shown={shown ? "true" : "false"}
     >
       {children}
-    </motion.div>
+    </div>
   )
 }
 
 export function StaggerItem({
   children,
   className,
+  delay,
 }: {
   children: ReactNode
   className?: string
+  delay?: number
 }) {
-  const reduce = useReducedMotion()
+  const ref = useRef<HTMLDivElement | null>(null)
+  const [shown, setShown] = useState(false)
+  const reduce = useReduceMotion()
+
+  useEffect(() => {
+    if (reduce) return
+    const el = ref.current
+    if (!el) return
+    const parent = el.closest("[data-stagger-shown]")
+    const parentShown = parent?.getAttribute("data-stagger-shown") === "true"
+
+    if (parentShown) {
+      setShown(true)
+      return
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setShown(true)
+            io.unobserve(entry.target)
+          }
+        }
+      },
+      { rootMargin: "0px 0px -8% 0px", threshold: 0.1 },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [reduce])
+
   if (reduce) return <div className={className}>{children}</div>
-  return (
-    <motion.div className={className} variants={itemVariants}>
-      {children}
-    </motion.div>
-  )
+
+  const style: CSSProperties = {
+    opacity: shown ? 1 : 0,
+    transform: shown ? "translate3d(0,0,0)" : "translate3d(0,26px,0)",
+    filter: shown ? "blur(0px)" : "blur(10px)",
+    transition: `opacity 0.8s cubic-bezier(0.19,1,0.22,1) ${delay ?? 0}s, transform 0.8s cubic-bezier(0.19,1,0.22,1) ${delay ?? 0}s, filter 0.8s cubic-bezier(0.19,1,0.22,1) ${delay ?? 0}s`,
+  }
+
+  return createElement("div", { ref, className, style }, children)
 }

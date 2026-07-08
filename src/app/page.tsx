@@ -1,33 +1,27 @@
+import { existsSync } from "node:fs"
+import { join } from "node:path"
 import type { Metadata } from "next"
-import Link from "next/link"
-import { FadeIn } from "@/components/animations/fade-in"
-import { Reveal, Stagger, StaggerItem } from "@/components/animations/reveal"
-import { Parallax } from "@/components/animations/parallax"
-import { SpotlightCard } from "@/components/animations/spotlight-card"
-import { ScrollGallery } from "@/components/animations/scroll-gallery"
-import { AppMockup } from "@/components/marketing/app-mockup"
-import { HeroDuel } from "@/components/three/hero-duel"
-import { StatCounter } from "@/components/ui/stat-counter"
-import { TiltCard } from "@/components/ui/tilt-card"
+import { Reveal } from "@/components/animations/reveal"
+import { ScrollFilm } from "@/components/marketing/scroll-film"
+import { LiveShowcase } from "@/components/marketing/live-showcase"
 import { Marquee } from "@/components/marketing/marquee"
 import { JsonLd } from "@/components/marketing/json-ld"
-import { TrustedBy } from "@/components/marketing/trusted-by"
-import { FeatureShowcase } from "@/components/marketing/feature-showcase"
+import { DataProvenance } from "@/components/marketing/data-provenance"
 import { Testimonials } from "@/components/marketing/testimonials"
 import { EmailSubscribe } from "@/components/marketing/email-subscribe"
 import { Faq } from "@/components/marketing/faq"
-import { MobileInstall } from "@/components/marketing/mobile-install"
 import { getFaqData } from "@/components/marketing/faq-data"
 // NOTE: PricingCta commented out until subscriptions are re-enabled.
 // import { PricingCta } from "@/components/marketing/pricing-cta"
 import { Eyebrow } from "@/components/ui/eyebrow"
-import { TitleRule } from "@/components/ui/title-rule"
 import { SectionHeading } from "@/components/ui/section-heading"
 import { ButtonLink } from "@/components/ui/button"
 import { SITE } from "@/lib/site"
-import { getGlobalLeagueCounts } from "@/lib/data/leagues"
 import { getLocale, getT } from "@/lib/i18n/server"
 import { getDictionary } from "@/lib/i18n/dictionaries"
+import { getGlobalLeagueCounts, listLeagueOverviews } from "@/lib/data/leagues"
+import { getLatestSyncTime } from "@/lib/data/sync"
+import { formatRelativeAgo } from "@/lib/format-time"
 
 const TICKER_LEFT = [
   { name: "Shai Gilgeous-Alexander", team: "OKC · NBA", stat: "31.4 PPG" },
@@ -51,12 +45,21 @@ const TICKER_RIGHT = [
   { name: "Tavares", stat: "10.8 / 6.9 / 1.9" },
 ]
 
-const STATS = [
-  { v: 0, suffix: "", labelKey: "home.stats.leaguesLive", dynamic: "leagues" as const },
-  { v: 0, suffix: "+", labelKey: "home.stats.playersIndexed", dynamic: "players" as const },
-  { v: 24, suffix: "", labelKey: "home.stats.advancedMetrics" },
-  { v: 2, suffix: "s", labelKey: "home.stats.toCompare", decimals: 0 },
-]
+// Frame count of each extracted hero film sequence (dark/light), full 24fps.
+const FILM_FRAMES = 240
+
+// Product-demo scenes whose recorded clip already exists on disk. Resolved at
+// render time so a card in <LiveShowcase> flips from placeholder to live video
+// automatically the moment its capture lands in public/media/previews — no code
+// change needed (the auth-gated ai-advisor/trade clips are captured separately).
+const SHOWCASE_KEYS = ["player", "compare", "ai-advisor", "trade"] as const
+function readyShowcaseKeys(): string[] {
+  return SHOWCASE_KEYS.filter((k) =>
+    existsSync(
+      join(process.cwd(), "public", "media", "previews", `${k}-dark.mp4`),
+    ),
+  )
+}
 
 export const revalidate = 3600
 
@@ -86,15 +89,14 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Home() {
-  const counts = await getGlobalLeagueCounts()
   const { t, locale } = await getT()
-  const stats = STATS.map((s) => {
-    if ("dynamic" in s && s.dynamic === "players")
-      return { ...s, v: counts.players }
-    if ("dynamic" in s && s.dynamic === "leagues")
-      return { ...s, v: counts.leagues }
-    return s
-  })
+  const dict = getDictionary(locale)
+  const [globalCounts, leagues, lastSync] = await Promise.all([
+    getGlobalLeagueCounts(),
+    listLeagueOverviews(),
+    getLatestSyncTime(),
+  ])
+  const updated = lastSync ? formatRelativeAgo(lastSync, t) : ""
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -139,103 +141,52 @@ export default async function Home() {
     <div className="relative">
       <JsonLd data={[faqJsonLd, softwareJsonLd]} />
 
-      {/* ── HERO ───────────────────────────────────────────────── */}
-      <section className="full-bleed relative isolate overflow-hidden pb-14 pt-12 sm:pb-24 sm:pt-20 md:pt-28">
-        {/* background handled globally by the fixed court backdrop */}
+      {/* ── HERO — full-bleed scroll film: the camera pushes in on a ball
+             (dark low-lit court in dark mode, bright seaside street court in
+             light mode) while marketing lines fly in from the sides, then the
+             ball is thrown at the lens and the impact hands off to the page.
+             Frames extracted from the two Veo clips (dark court / seaside
+             street court) live in /media/film/{dark,light}. */}
+      <ScrollFilm
+        dark={{
+          intro: "/media/film/dark/f000.webp",
+          framePath: "/media/film/dark",
+          frames: FILM_FRAMES,
+        }}
+        light={{
+          intro: "/media/film/light/f000.webp",
+          framePath: "/media/film/light",
+          frames: FILM_FRAMES,
+        }}
+        introAlt={t("home.film.introAlt")}
+        texts={dict.home.film.side}
+        headline={{
+          kicker: t("home.film.kicker"),
+          title: t("home.film.title"),
+          accent: t("home.film.accent"),
+        }}
+        ctaPrimary={{ href: "/ai-advisor", label: t("home.hero.aiAdvisor") }}
+        ctaSecondary={{
+          href: "/compare",
+          label: t("home.hero.comparePlayers"),
+        }}
+        scrollHint={t("home.film.scrollHint")}
+      />
 
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
-          <div>
-            <FadeIn>
-              <Eyebrow>
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand-400" />
-                </span>
-                {t("home.hero.eyebrow")}
-              </Eyebrow>
-            </FadeIn>
-
-            <FadeIn delay={0.08} y={28}>
-              <TitleRule className="mt-6">
-                <h1 className="font-display text-[2.75rem] font-semibold leading-[0.96] tracking-[-0.012em] text-balance text-ink-50 [overflow-wrap:break-word] sm:text-[3.9rem] lg:text-[4.3rem] xl:text-[5.25rem]">
-                  {t("home.hero.titleLine1")}
-                  <br />
-                  <span className="text-gradient-shimmer italic">
-                    {t("home.hero.titleLine2")}
-                  </span>
-                </h1>
-              </TitleRule>
-            </FadeIn>
-
-            <FadeIn delay={0.18} y={20}>
-              <p className="mt-6 max-w-xl text-pretty text-base leading-relaxed text-ink-200 sm:text-lg">
-                {t("home.hero.description")}
-              </p>
-            </FadeIn>
-
-            <FadeIn delay={0.28} y={16}>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <ButtonLink href="/ai-advisor" size="lg" arrow>
-                  {t("home.hero.aiAdvisor")}
-                </ButtonLink>
-                <ButtonLink href="/compare" size="lg" variant="secondary">
-                  {t("home.hero.comparePlayers")}
-                </ButtonLink>
-                <ButtonLink href="/players" size="lg" variant="ghost">
-                  {t("home.hero.browseDatabase")}
-                </ButtonLink>
-              </div>
-            </FadeIn>
-
-            <FadeIn delay={0.4}>
-              <dl className="mt-12 grid max-w-lg grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
-                {stats.map((s) => (
-                  <div
-                    key={s.labelKey}
-                    className="border-l-2 border-brand-500/40 pl-4"
-                  >
-                    <dt className="font-display text-2xl font-semibold tabular-nums text-ink-50 sm:text-3xl">
-                      <StatCounter
-                        to={s.v}
-                        suffix={s.suffix}
-                        decimals={"decimals" in s ? s.decimals : 0}
-                      />
-                    </dt>
-                    <dd className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-400 sm:text-[11px]">
-                      {t(s.labelKey)}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </FadeIn>
-          </div>
-
-          <FadeIn delay={0.2} className="relative">
-            <div
-              aria-hidden
-              className="absolute inset-0 -z-10 rounded-[2rem] bg-gradient-to-br from-brand-500/25 via-transparent to-league-euro-600/20 blur-2xl"
-            />
-            {/* Signature 3D centerpiece — falls back to the static editorial
-                mockup on mobile / reduced-motion / crawlers. */}
-            <HeroDuel
-              prefer3d
-              fallback={
-                <Parallax speed={24}>
-                  <AppMockup />
-                </Parallax>
-              }
-            />
-          </FadeIn>
-        </div>
-        </div>
-      </section>
-
-      {/* ── TICKER ─────────────────────────────────────────────── */}
+      {/* ── TICKER — first beat after the impact; borderless so it reads as
+             part of the film's landing, not a separate block. Stats are
+             illustrative (frozen sample of real cross-league data) — the live
+             counters are in the showcase below. */}
       <section
         aria-label={t("home.ticker.topPerformers")}
-        className="full-bleed relative hairline-t hairline-b bg-surface-0/40 py-3.5"
+        className="full-bleed relative py-3.5"
       >
+        <p
+          aria-hidden
+          className="absolute left-4 top-1 z-10 font-mono text-[9px] uppercase tracking-[0.16em] text-ink-600 sm:left-6"
+        >
+          {t("home.ticker.illustrative")}
+        </p>
         <Marquee duration={55} className="text-sm">
           {TICKER_LEFT.map((t) => (
             <div
@@ -264,273 +215,84 @@ export default async function Home() {
         </Marquee>
       </section>
 
-      <MobileInstall />
+      {/* ── LIVE SHOWCASE — real screen recordings of the product ── */}
+      <LiveShowcase
+        ready={readyShowcaseKeys()}
+        counts={{
+          leagues: globalCounts.leagues,
+          players: globalCounts.players,
+          coaches: globalCounts.coaches,
+        }}
+        updated={updated}
+        leagues={leagues.map((l) => ({ name: l.name, slug: l.slug }))}
+      />
 
-      <TrustedBy />
-
-      {/* ── BENTO — inside the console ─────────────────────────── */}
-      <section id="product" className="relative hairline-t py-20 sm:py-28">
-        <Reveal>
-          <SectionHeading
-            eyebrow={t("home.bento.eyebrow")}
-            title={
-              <>
-                {t("home.bento.titleA")}{" "}
-                <span className="text-gradient-brand">
-                  {t("home.bento.titleB")}
-                </span>
-              </>
-            }
-            description={t("home.bento.description")}
-          />
-        </Reveal>
-
-        <Stagger className="mt-12 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-6 md:auto-rows-[minmax(170px,1fr)]">
-          <StaggerItem className="md:col-span-4 md:row-span-2">
-            <BentoCard
-              href="/compare"
-              kicker={t("home.bento.compareKicker")}
-              title={t("home.bento.compareTitle")}
-              body={t("home.bento.compareBody")}
-              big
-            >
-              <CompareGlyph />
-            </BentoCard>
-          </StaggerItem>
-
-          <StaggerItem className="md:col-span-2">
-            <BentoCard
-              kicker={t("home.bento.metricsKicker")}
-              title={t("home.bento.metricsTitle")}
-              body={t("home.bento.metricsBody")}
-            />
-          </StaggerItem>
-
-          <StaggerItem className="md:col-span-2">
-            <BentoCard
-              href="/ai-advisor"
-              kicker={t("home.bento.aiKicker")}
-              title={t("home.bento.aiTitle")}
-              body={t("home.bento.aiBody")}
-              beta
-            />
-          </StaggerItem>
-
-          <StaggerItem className="md:col-span-2">
-            <BentoCard
-              href="/leagues"
-              kicker={t("home.bento.coverageKicker")}
-              title={t("home.bento.coverageTitle")}
-              body={t("home.bento.coverageBody")}
-            />
-          </StaggerItem>
-
-          <StaggerItem className="md:col-span-2">
-            <BentoCard
-              kicker={t("home.bento.exportKicker")}
-              title={t("home.bento.exportTitle")}
-              body={t("home.bento.exportBody")}
-            />
-          </StaggerItem>
-
-          <StaggerItem className="md:col-span-2">
-            <BentoCard
-              href="/market/trade"
-              kicker={t("home.bento.tradeKicker")}
-              title={t("home.bento.tradeTitle")}
-              body={t("home.bento.tradeBody")}
-            />
-          </StaggerItem>
-        </Stagger>
-      </section>
-
-      {/* ── PINNED HORIZONTAL SCROLL GALLERY ──────────────────── */}
-      <section aria-label={t("home.gallery.aria")} className="relative">
-        <ScrollGallery />
-      </section>
-
-      <FeatureShowcase />
+      <DataProvenance />
 
       <Testimonials />
 
-      <EmailSubscribe />
-
       <section
         aria-labelledby="faq-heading"
-        className="relative hairline-t py-20 sm:py-28"
+        className="full-bleed relative py-14 sm:py-20"
       >
-        <Reveal>
-          <SectionHeading
-            align="center"
-            eyebrow={t("home.faq.eyebrow")}
-            title={t("home.faq.title")}
-            description={t("home.faq.description")}
-          />
-        </Reveal>
-        <div id="faq-heading" className="mt-12">
-          <Faq />
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <Reveal>
+            <SectionHeading
+              align="center"
+              eyebrow={t("home.faq.eyebrow")}
+              title={t("home.faq.title")}
+              description={t("home.faq.description")}
+            />
+          </Reveal>
+          <div id="faq-heading" className="mt-12">
+            <Faq />
+          </div>
         </div>
       </section>
 
-      {/* NOTE: PricingCta commented out until subscriptions are re-enabled. */}
-      {/* <PricingCta /> */}
+      {/* ── EMAIL + CTA (merged block) ───────────────────────── */}
+      <section className="full-bleed relative overflow-hidden py-20 sm:py-28">
+        <div
+          aria-hidden
+          className="absolute inset-0 -z-10 bg-gradient-to-b from-court-900/30 via-transparent to-surface-0"
+        />
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <EmailSubscribe compact />
 
-      {/* ── FINAL CTA ──────────────────────────────────────────── */}
-      <section className="relative my-16 sm:my-24">
-        <Reveal>
-          <div className="gh-bezel gh-sheen overflow-hidden">
-            <div className="gh-bezel-inner relative overflow-hidden bg-gradient-to-br from-court-800/70 via-surface-1 to-surface-0 p-7 sm:p-12 md:p-16">
-              <div
-                aria-hidden
-                className="absolute -left-24 -top-24 h-72 w-72 animate-aurora rounded-full bg-brand-500/30 blur-3xl"
-              />
-              <div
-                aria-hidden
-                className="absolute -bottom-28 right-[-6%] h-72 w-72 animate-breathe rounded-full bg-ember-500/20 blur-3xl"
-              />
-              <div aria-hidden className="absolute inset-0 bg-hatch opacity-50" />
-              <div className="relative grid items-center gap-8 md:grid-cols-[1.1fr_1fr]">
-                <div>
-                  <Eyebrow>{t("home.cta.eyebrow")}</Eyebrow>
-                  <h2 className="mt-5 font-display text-3xl font-bold leading-[0.96] tracking-[-0.03em] text-balance sm:text-4xl md:text-[3.25rem]">
-                    {t("home.cta.titleA")}{" "}
-                    <span className="text-gradient-brand">
-                      {t("home.cta.titleB")}
-                    </span>
-                  </h2>
-                  <p className="mt-4 max-w-md text-pretty text-base text-ink-200 sm:text-lg">
-                    {t("home.cta.description")}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-3 sm:flex-row md:justify-end">
-                  <ButtonLink href="/compare" size="lg" arrow>
-                    {t("home.hero.comparePlayers")}
-                  </ButtonLink>
-                  <ButtonLink href="/players" size="lg" variant="secondary">
-                    {t("home.hero.browseDatabase")}
-                  </ButtonLink>
+          <div className="mt-8 border-t border-hairline pt-10 sm:mt-12 sm:pt-14">
+            <Reveal>
+              <div className="gh-bezel gh-sheen overflow-hidden">
+                <div className="gh-bezel-inner relative overflow-hidden bg-gradient-to-br from-court-800/70 via-surface-1 to-surface-0 p-7 sm:p-12 md:p-16">
+                  <div aria-hidden className="absolute inset-0 bg-hatch opacity-50" />
+                  <div className="relative grid items-center gap-8 md:grid-cols-[1.1fr_1fr]">
+                    <div>
+                      <Eyebrow>{t("home.cta.eyebrow")}</Eyebrow>
+                      <h2 className="mt-5 font-display text-3xl font-bold leading-[0.96] tracking-[-0.03em] text-balance sm:text-4xl md:text-[3.25rem]">
+                        {t("home.cta.titleA")}{" "}
+                        <span className="text-gradient-brand">
+                          {t("home.cta.titleB")}
+                        </span>
+                      </h2>
+                      <p className="mt-4 max-w-md text-pretty text-base text-ink-200 sm:text-lg">
+                        {t("home.cta.description")}
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-3 sm:flex-row md:justify-end">
+                      <ButtonLink href="/compare" size="lg" arrow>
+                        {t("home.hero.comparePlayers")}
+                      </ButtonLink>
+                      <ButtonLink href="/players" size="lg" variant="secondary">
+                        {t("home.hero.browseDatabase")}
+                      </ButtonLink>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            </Reveal>
           </div>
-        </Reveal>
+        </div>
       </section>
     </div>
   )
 }
 
-/* ── Bento card ───────────────────────────────────────────────── */
-async function BentoCard({
-  kicker,
-  title,
-  body,
-  href,
-  // NOTE: pro prop kept for when Pro badge is re-enabled.
-  // pro,
-  beta,
-  big,
-  children,
-}: {
-  kicker: string
-  title: string
-  body: string
-  href?: string
-  // NOTE: pro prop kept for when Pro badge is re-enabled.
-  // pro?: boolean
-  beta?: boolean
-  big?: boolean
-  children?: React.ReactNode
-}) {
-  const { t } = await getT()
-  return (
-    <TiltCard max={5} className="group">
-    <SpotlightCard className="gh-card gh-card-interactive relative flex h-full flex-col overflow-hidden p-6 sm:p-7">
-      <div className="flex items-center justify-between gap-3">
-        <span className="gh-eyebrow">{kicker}</span>
-        {/* NOTE: Pro badge kept for when Pro is re-enabled. */}
-        {/* {pro ? ( */}
-        {/*   <span className="rounded-full border border-brand-500/40 bg-brand-500/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-brand-300"> */}
-        {/*     Pro */}
-        {/*   </span> */}
-        {/* ) : null} */}
-        {beta ? (
-          <span className="rounded-full border border-amber-400/50 bg-amber-400/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-300">
-            Beta
-          </span>
-        ) : null}
-      </div>
-      <h3
-        className={
-          big
-            ? "mt-5 font-display text-2xl font-bold tracking-[-0.02em] text-ink-50 sm:text-3xl md:text-4xl"
-            : "mt-5 font-display text-xl font-bold tracking-[-0.01em] text-ink-50 sm:text-2xl"
-        }
-      >
-        {title}
-      </h3>
-      <p
-        className={
-          big
-            ? "mt-3 max-w-md text-pretty text-sm leading-relaxed text-ink-200 sm:text-base"
-            : "mt-2 text-pretty text-sm leading-relaxed text-ink-200"
-        }
-      >
-        {body}
-      </p>
-      {children ? <div className="mt-auto pt-6">{children}</div> : null}
-      {href ? (
-        <span className="mt-auto inline-flex items-center gap-1.5 pt-6 font-mono text-[11px] uppercase tracking-[0.16em] text-brand-300">
-          {t("common.explore")}
-          <svg
-            className="h-3.5 w-3.5 transition-transform duration-300 ease-fluid group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-          >
-            <path d="M7 17 17 7M9 7h8v8" />
-          </svg>
-        </span>
-      ) : null}
-      {href ? (
-        <Link href={href} className="absolute inset-0" aria-label={title} />
-      ) : null}
-    </SpotlightCard>
-    </TiltCard>
-  )
-}
-
-/* a small abstract "compare" glyph for the big bento card */
-function CompareGlyph() {
-  const rows = [
-    { l: "PPG", a: 92, b: 58 },
-    { l: "RPG", a: 38, b: 82 },
-    { l: "APG", a: 62, b: 94 },
-    { l: "TS%", a: 84, b: 60 },
-    { l: "PER", a: 76, b: 68 },
-  ]
-  return (
-    <div className="grid gap-2.5">
-      {rows.map((r) => (
-        <div key={r.l} className="flex items-center gap-3">
-          <span className="w-9 shrink-0 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-            {r.l}
-          </span>
-          <div className="flex h-2 flex-1 overflow-hidden rounded-full bg-white/[0.05]">
-            <span
-              className="h-full rounded-l-full bg-brand-500/80"
-              style={{ width: `${r.a / 2}%` }}
-            />
-            <span
-              className="h-full rounded-r-full bg-accent-cyan/70"
-              style={{ width: `${r.b / 2}%` }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}

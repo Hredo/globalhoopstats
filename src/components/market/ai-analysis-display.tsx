@@ -54,7 +54,7 @@ export function AiAnalysisDisplay({ text }: { text: string }) {
     if (line.startsWith("### ")) {
       flushList(`fl-${i}`)
       blocks.push(
-        <p key={i} className="pt-1 text-sm font-semibold text-ink-50">
+        <p key={i} className="pt-2 text-sm font-semibold text-ink-50">
           {renderInline(line.slice(4))}
         </p>,
       )
@@ -63,7 +63,7 @@ export function AiAnalysisDisplay({ text }: { text: string }) {
     if (line.startsWith("## ")) {
       flushList(`fl-${i}`)
       blocks.push(
-        <p key={i} className="pt-1 text-[15px] font-bold text-ink-50">
+        <p key={i} className="pt-2 text-[15px] font-bold text-ink-50">
           {renderInline(line.slice(3))}
         </p>,
       )
@@ -74,18 +74,46 @@ export function AiAnalysisDisplay({ text }: { text: string }) {
       return
     }
     // A line that is entirely bold acts as a sub-heading.
-    if (/^\*\*[^*]+\*\*:?$/.test(line)) {
+    if (/^\*\*[^*]+\*\*\s*[:.]?\s*$/.test(line)) {
       flushList(`fl-${i}`)
       blocks.push(
-        <p key={i} className="pt-1 font-semibold text-ink-50">
-          {line.replace(/\*\*/g, "").replace(/:$/, "")}
+        <p key={i} className="pt-2 font-semibold text-ink-50">
+          {line.replace(/\*\*/g, "").replace(/[:.]$/, "").trim()}
         </p>,
+      )
+      return
+    }
+    // Line starting with **Label.** followed by content text.
+    // Accepts **Label.** text, **Label:** text, **Label** text, with any punctuation after.
+    if (/^\*\*[^*]+\*\*\s*[:.]?\s/.test(line)) {
+      flushList(`fl-${i}`)
+      const labelEnd = line.indexOf("**") + 2
+      const afterBold = line.slice(labelEnd).trimStart()
+      const punctMatch = afterBold.match(/^[:.]?\s*|^[—–-]\s*/)
+      let rest = afterBold
+      if (punctMatch) {
+        rest = afterBold.slice(punctMatch[0].length)
+      }
+      const label = line.slice(0, labelEnd).replace(/\*\*/g, "")
+      blocks.push(
+        <div key={i} className="flex gap-2 pt-1.5 first:pt-0">
+          <span
+            aria-hidden
+            className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500/60"
+          />
+          <div>
+            <span className="text-sm font-semibold text-ink-50">{label}.</span>
+            {rest ? (
+              <span className="text-sm text-ink-200"> {renderInline(rest)}</span>
+            ) : null}
+          </div>
+        </div>,
       )
       return
     }
     flushList(`fl-${i}`)
     blocks.push(
-      <p key={i} className="text-ink-200">
+      <p key={i} className="text-sm text-ink-200">
         {renderInline(line)}
       </p>,
     )

@@ -1,11 +1,14 @@
 import type { ReactNode } from "react"
 
-const INLINE_PATTERN = /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`)/g
+const INLINE_PATTERN = /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[[^\]]+\]\([^)]+\))/g
+
+const LINK_PATTERN = /^\[([^\]]+)\]\(([^)]+)\)$/
 
 /**
  * Render a single span of text with inline markdown support: `**bold**`,
- * `*italic*` and `` `code` ``. Plain text passes through unchanged, so this is
- * safe to call on strings that may or may not contain markdown.
+ * `*italic*`, `` `code` `` and `[text](url)` links. Plain text passes through
+ * unchanged, so this is safe to call on strings that may or may not contain
+ * markdown.
  *
  * Block-level markdown (headings, lists, tables) is intentionally not handled
  * here — see `parseMarkdown` in message-bubble.tsx for that.
@@ -28,6 +31,21 @@ export function renderInline(text: string): ReactNode[] {
         >
           {part.slice(1, -1)}
         </code>
+      )
+    }
+    const linkMatch = part.match(LINK_PATTERN)
+    if (linkMatch) {
+      const [, linkText, linkUrl] = linkMatch
+      return (
+        <a
+          key={i}
+          href={linkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-brand-300 underline decoration-brand-500/30 underline-offset-2 transition hover:text-brand-200 hover:decoration-brand-500/60"
+        >
+          {linkText}
+        </a>
       )
     }
     return <span key={i}>{part}</span>

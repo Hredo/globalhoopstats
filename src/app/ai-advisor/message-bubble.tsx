@@ -454,12 +454,12 @@ export function MessageBubble({
   if (isUser) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 12, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.25, ease: "easeOut" }}
+        initial={{ opacity: 0, y: 16, scale: 0.94, filter: "blur(4px)" }}
+        animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+        transition={{ duration: 0.35, ease: [0.19, 1, 0.22, 1] }}
         className="flex justify-end"
       >
-        <div className="max-w-[80%] rounded-2xl rounded-br-md bg-brand-500 px-4 py-2.5 text-[15px] leading-relaxed text-ink-950 shadow-md whitespace-pre-wrap">
+        <div className="max-w-[80%] rounded-2xl rounded-br-md bg-gradient-to-br from-brand-500 to-brand-600 px-4 py-2.5 text-[15px] leading-relaxed text-ink-950 shadow-lg whitespace-pre-wrap">
           {content}
         </div>
       </motion.div>
@@ -468,13 +468,13 @@ export function MessageBubble({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
+      initial={{ opacity: 0, y: 16, filter: "blur(4px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: 0.4, ease: [0.19, 1, 0.22, 1] }}
       className="flex justify-start"
     >
       <div className="w-full max-w-3xl">
-        <div className="px-0.5 py-1">
+        <div className="rounded-2xl border border-white/[0.06] bg-ink-800/30 backdrop-blur-sm px-3 py-2 sm:px-4">
           <MarkdownBlock text={content} />
           <MessageActions
             content={content}

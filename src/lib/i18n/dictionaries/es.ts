@@ -61,6 +61,7 @@ export const es: Messages = {
     syncPending: "Sincronización pendiente",
     rights: "© {year} {name}. Todos los derechos reservados.",
     version: "v{version}",
+    installApp: "Instala la app",
     disclaimer:
       "Sitio no afiliado, respaldado ni patrocinado por la NBA, EuroLeague, Liga ACB, FEB ni ningún club. Los nombres y logos de los equipos, así como los nombres e imágenes de los jugadores, son propiedad de sus respectivos titulares y se utilizan aquí con fines exclusivamente informativos. Para solicitar la retirada de cualquier contenido, contacta con nosotros.",
     time: {
@@ -89,76 +90,103 @@ export const es: Messages = {
       comparePlayers: "Compara jugadores",
       aiAdvisor: "Asesor IA",
     },
-    stats: {
-      leaguesLive: "Ligas en vivo",
-      playersIndexed: "Jugadores indexados",
-      advancedMetrics: "Métricas avanzadas",
-      toCompare: "Para comparar a dos",
+    film: {
+      kicker: "globalhoopstats — seis ligas, un motor",
+      title: "Todo el baloncesto,",
+      accent: "dentro de un balón.",
+      scrollHint: "desliza",
+      introAlt:
+        "Un balón de baloncesto solo en el centro de la pista bajo un único foco nocturno",
+      side: [
+        {
+          hook: "Todo el baloncesto del mundo.",
+          sub: "Todas las ligas, en un solo sitio.",
+        },
+        {
+          hook: "¿Quién es mejor?",
+          sub: "Deja de discutir. Compáralos y demuéstralo.",
+        },
+        {
+          hook: "Sin fronteras.",
+          sub: "Compara jugadores de cualquier liga, cara a cara.",
+        },
+        {
+          hook: "Juega a ser el mánager.",
+          sub: "Monta el fichaje perfecto en segundos.",
+        },
+        {
+          hook: "Pregunta lo que quieras.",
+          sub: "Una IA que sabe de básket te responde al instante.",
+        },
+        { hook: "Todo está en el balón.", sub: "" },
+      ],
     },
-    ticker: { topPerformers: "Mejores actuaciones" },
-    mockup: {
-      compare: "Comparador",
-      verdict: "Veredicto IA",
-      verdictText: "Luka Dončić gana la comparación estadística con un PER más alto y más rebotes, mientras Shai Gilgeous-Alexandra se mantiene cerca en creación de juego. Ambos de élite — Dončić se impone en volumen.",
-    },
-    gallery: {
-      aria: "Del box score al veredicto",
-      eyebrow: "Cómo funciona",
-      titleA: "Del box score al",
-      titleB: "veredicto.",
-      p1Title: "Seis ligas, un solo feed.",
-      p1Body:
-        "La NBA, EuroLeague, ACB y todo el escalafón FEB de España entran en la misma tubería, actualizada en cuanto suena cada bocina.",
-      p2Title: "Cada número, normalizado.",
-      p2Body:
-        "Minutos españoles, posesiones americanas, ritmo de EuroLeague — reducidos a un solo modelo para que un 20 aquí signifique un 20 allá.",
-      p3Title: "Compara en dos segundos.",
-      p3Body:
-        "Pon dos nombres y las barras, el radar y los splits de tiro se dibujan solos — con el líder marcado en cada línea.",
-      pValTitle: "Valorado como el mercado.",
-      pValBody:
-        "Cada jugador recibe un valor de mercado y un salario estimado transparentes, y un simulador de traspasos monta escenarios equilibrados entre ligas adyacentes.",
-      p4Title: "Pregunta en lenguaje natural.",
-      p4Body:
-        "El asesor IA lee los mismos números que tú y devuelve un veredicto fundamentado, no una corazonada.",
-      p5Title: "Exporta, listo para la sala de juntas.",
-      p5Body:
-        "Envía cualquier perfil o enfrentamiento a PDF, Excel o Word con el formato ya hecho.",
-      askQuestion: "¿Quién genera mejor el juego?",
-      askAnswer: "Mayor AST% y menor TOV — la lectura es clara.",
-      raw: "bruto",
-      oneScale: "una escala",
-    },
-    bento: {
-      eyebrow: "Qué puedes hacer",
-      titleA: "Todo lo que un ojeador abre",
-      titleB: "antes del salto inicial.",
+    ticker: { topPerformers: "Mejores actuaciones", illustrative: "muestra ilustrativa" },
+    showcase: {
+      eyebrow: "En vivo · sin maquetas",
+      titleA: "Esto no es un render.",
+      titleB: "Es la web real, grabada.",
       description:
-        "Un único espacio para seis ligas — compara, mide, pregunta y exporta sin salir de la página.",
-      compareKicker: "01 · Comparar",
-      compareTitle: "Dos jugadores, una escala.",
-      compareBody:
-        "Pon a Dončić al lado de Campazzo. Misma escala por partido, mismas posesiones, el líder marcado en verde. La discusión termina en dos segundos.",
-      metricsKicker: "02 · Métricas",
-      metricsTitle: "24 métricas avanzadas.",
-      metricsBody:
-        "PER, TS%, ORtg, DRtg, NetRtg, uso — calculadas desde los box scores, no copiadas.",
-      aiKicker: "03 · Asesor IA",
-      aiTitle: "Pregunta en lenguaje natural.",
-      aiBody:
-        "Escribe una pregunta de scouting y recibe una lectura fundamentada con los números detrás.",
-      coverageKicker: "04 · Cobertura",
-      coverageTitle: "Seis ligas, un solo feed.",
-      coverageBody:
-        "NBA · EuroLeague · ACB · Primera FEB · Segunda FEB · Tercera FEB — actualizado tras cada partido.",
-      exportKicker: "05 · Exportar",
-      exportTitle: "Listo para la sala de juntas en un clic.",
-      exportBody:
-        "Envía cualquier comparación o perfil a PDF, Excel o Word con el formato intacto.",
-      tradeKicker: "06 · Mercado",
-      tradeTitle: "Valora jugadores, simula traspasos.",
-      tradeBody:
-        "Cada jugador con un valor de un modelo transparente — y monta escenarios de traspaso equilibrados entre ligas adyacentes.",
+        "Capturas de pantalla reales de la consola en movimiento — lo que ves aquí es exactamente lo que abres.",
+      live: "grabado en vivo",
+      soon: "próximamente",
+      items: {
+        player: {
+          name: "Ficha de jugador",
+          title: "Un jugador, radiografiado entero.",
+          body:
+            "Estadísticas de la temporada, métricas avanzadas, highlights en vídeo y un informe de scouting con IA — la ficha completa de cualquier jugador, sin abrir diez pestañas.",
+          cta: "Abrir una ficha",
+        },
+        compare: {
+          name: "Comparador",
+          title: "¿Quién es mejor? Que lo decidan los números.",
+          body:
+            "Pon dos jugadores de cualquier liga cara a cara: radar, splits de tiro y cada estadística por partido, con el líder marcado en cada línea. Se acabó discutir.",
+          cta: "Abrir el comparador",
+        },
+        "ai-advisor": {
+          name: "Asesor IA",
+          title: "Pregúntale a una IA que sabe de básket.",
+          body:
+            "Escribe lo que buscas —«un base que anote y no pierda balones»— y el asesor responde al instante con nombres, datos y el porqué de cada elección.",
+          cta: "Probar el asesor",
+        },
+        trade: {
+          name: "Traspasos",
+          title: "Juega a ser el mánager.",
+          body:
+            "Monta un traspaso entre cualquier equipo y comprueba al momento si está equilibrado: valor de mercado, salarios y veredicto, calculados solos mientras pruebas fichajes.",
+          cta: "Simular un traspaso",
+        },
+      },
+      freeBeta: "Gratis en beta",
+      before: "Antes",
+      beforeText: "Tres pestañas y un Excel a medias.",
+      after: "Ahora",
+      afterText: "Una sola consola.",
+      counts: {
+        leagues: "ligas en vivo",
+        players: "jugadores indexados",
+        coaches: "entrenadores",
+        updated: "Actualizado",
+      },
+      coverage: "Cobertura hoy",
+    },
+    provenance: {
+      eyebrow: "De dónde salen los datos",
+      title: "Números que puedes rastrear hasta su fuente.",
+      description:
+        "Nada aquí es una estimación a ojo. Cada estadística sale de los datos oficiales de cada liga, se normaliza a una sola vara de medir y se re-sincroniza tras cada jornada.",
+      p1Title: "Fuentes oficiales",
+      p1Body:
+        "Tomamos los box scores publicados por cada competición — no rumores ni terceros sin verificar.",
+      p2Title: "Una sola escala",
+      p2Body:
+        "Ritmo, posesiones y minutos se normalizan para que un 20 aquí signifique lo mismo que un 20 allá.",
+      p3Title: "Siempre al día",
+      p3Body:
+        "Re-sincronizamos tras cada jornada y cada ficha lleva su sello de última actualización.",
     },
     faq: {
       eyebrow: "FAQ",
@@ -174,72 +202,10 @@ export const es: Messages = {
         "Cada jugador, cada estadística, cada highlight — abierto para todos. Abre la consola, pon dos nombres y echa cuentas.",
       tryAi: "Prueba el Asesor IA",
       browsePlayers: "Explora jugadores",
-    },
-    trustBar: {
-      eyebrow: "Fuentes de datos",
-      titleA: "Feeds públicos.",
-      titleB: "Cuentas honestas.",
-      description:
-        "Cada estadística, cada split y cada box score viene de los feeds públicos de las propias ligas. No inventamos nada y no vendemos tus datos.",
-      publicFeed: "Feed público",
-      footnote:
-        "Feeds públicos · Sin posiciones pagadas · Sin impulsos de patrocinadores en los rankings",
+      emailTitle: "O recibe una dosis semanal de stats",
     },
     trustedBy: {
-      aria: "Cobertura y acceso anticipado",
-      eyebrow: "Cobertura hoy",
-      titleA: "Seis ligas en vivo.",
-      titleB: "Y vienen más.",
-      description:
-        "La NBA, EuroLeague, ACB y todo el escalafón FEB de España ya están. La WNBA, las ventanas FIBA y la NBL australiana son lo siguiente.",
       live: "en vivo",
-      earlyAccess: "Usuarios de acceso anticipado",
-      pilots: {
-        scouting: "Departamentos de scouting",
-        ncaa: "Programas NCAA",
-        agencies: "Agencias de jugadores",
-        journalism: "Redacciones deportivas",
-        academies: "Academias de instituto",
-        fantasy: "Ligas fantasy",
-      },
-    },
-    features: {
-      eyebrow: "Tres formas de scoutear",
-      titleA: "Una consola.",
-      titleB: "Tres flujos.",
-      description:
-        "Tanto si estás ojeando a un objetivo, comparando prospectos entre ligas o solo consultando un box score — mismos datos, mismas cuentas.",
-      compare: {
-        title: "Comparación entre ligas",
-        body: "Pon dos nombres de cualquier combinación de NBA, EuroLeague o ACB y obtén radar, splits y líneas por partido en la misma escala.",
-        b1: "Ritmo y posesiones normalizados",
-        b2: "Radares superpuestos con diferencias por color",
-        b3: "Splits de tiro, métricas avanzadas y por partido",
-        cta: "Abrir la consola",
-      },
-      leagues: {
-        title: "Hubs de ligas con líderes",
-        body: "Seis ligas, un solo estante. Líderes de anotación de la temporada actual, recuentos de plantilla y cuerpo técnico, y accesos directos a cada directorio.",
-        b1: "Máximos anotadores por liga, temporada actual",
-        b2: "Recuentos de plantilla y cuerpo técnico de un vistazo",
-        b3: "Enlaces rápidos a los directorios de jugadores y equipos",
-        cta: "Explorar ligas",
-      },
-      ai: {
-        title: "Asesor IA, entrenado en baloncesto",
-        body: "Dile al asesor el rol y el presupuesto y te muestra una lista corta con razonamiento, no solo un volcado de nombres.",
-        b1: "Filtros por rol (defensor, tirador, organizador)",
-        b2: "Razonamiento transparente en cada recomendación",
-        b3: "Exporta a PDF, Excel y Word",
-        cta: "Prueba el asesor",
-        badge: "Beta",
-      },
-    },
-    liveScout: {
-      live: "Scout en vivo",
-      axes: "radar · 6 ejes",
-      playerA: "Jugador A",
-      playerB: "Jugador B",
     },
     mobileInstall: {
       eyebrow: "Llévalo contigo",
@@ -556,6 +522,26 @@ export const es: Messages = {
     compareWith: "Comparar con",
     highlights: "Highlights",
     switchLeague: "Cambiar de liga",
+    shotChart: "Gráfico de tiro",
+    shotPaint: "Zona",
+    shotLeftCorner2: "Esquina izq 2PT",
+    shotLeftCorner3: "Esquina izq 3PT",
+    shotRightCorner2: "Esquina der 2PT",
+    shotRightCorner3: "Esquina der 3PT",
+    shotLeftWing2: "45º izq 2PT",
+    shotLeftWing3: "45º izq 3PT",
+    shotRightWing2: "45º der 2PT",
+    shotRightWing3: "45º der 3PT",
+    shotFrontal2: "Frontal 2PT",
+    shotFrontal3: "Frontal 3PT",
+    shotVolume: "{count} tiros de campo",
+    shotNoData: "Sin datos de localización de tiro",
+    shotNoDataHint:
+      "El desglose por zonas proviene del feed oficial de tiros de la EuroLeague. La liga de este jugador aún no publica coordenadas de tiro.",
+    shotCold: "Frío",
+    shotHot: "Caliente",
+    shotLegendNote:
+      "Cada zona se colorea según un rango realista para ese tipo de tiro; las zonas más sólidas indican más intentos.",
   },
   teamProfile: {
     notFound: "Equipo no encontrado",
@@ -575,20 +561,20 @@ export const es: Messages = {
     technicalStaff: "Cuerpo técnico",
   },
   playerAi: {
-    title: "Scout IA",
+    title: "Scout completo",
     description:
-      "Obtén un informe de scouting detallado generado por IA de este jugador.",
-    scouting: "Analizando…",
+      "La IA analiza estadísticas, métricas avanzadas, valor de mercado, gráfico de tiro, impacto en el equipo y más.",
+    scouting: "Analizando todo…",
     rerun: "Volver a analizar",
-    scout: "Analizar jugador",
+    scout: "Scout completo con IA",
     failed: "El análisis falló.",
     errorStatus: "Error {status}",
     aiFallback: "IA",
     hintPre: "Pulsa",
     hintPost:
-      "y la IA genera un desglose completo del juego de este jugador — fortalezas, debilidades y encaje en el equipo.",
+      "y la IA genera un informe completo — estadísticas, valor, zonas de tiro, contribución al equipo, percepción pública y comportamiento.",
     nudgeText:
-      "Esto funciona sin IA. Conecta tu propio modelo para una opinión de la IA —",
+      "Esto funciona sin IA. Conecta tu propio modelo para un informe completo —",
     addProvider: "añade un proveedor",
     seeGuide: "ver la guía",
   },

@@ -61,7 +61,7 @@ export function PlayerCard({ player, index = 0 }: Props) {
   return (
     <Link
       href={`/players/${player.slug}`}
-      className="group relative block overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 ring-1 ring-transparent transition-all duration-200 hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/[0.05] hover:ring-brand-500/40 sm:p-4"
+      className="group relative block animate-rise overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 ring-1 ring-transparent transition-all duration-200 hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/[0.05] hover:ring-brand-500/40 sm:p-4"
       style={{ animationDelay: `${Math.min(index, 12) * 25}ms` }}
     >
       <div className="flex items-start gap-3">

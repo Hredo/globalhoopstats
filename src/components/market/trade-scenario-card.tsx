@@ -109,7 +109,10 @@ export function TradeScenarioCard({
   return (
     <motion.div
       className={`gh-card overflow-hidden border-l-2 ${color}`}
-      whileHover={{ y: -4, transition: { duration: 0.3, ease: [0.19, 1, 0.22, 1] } }}
+      initial={{ opacity: 0, y: 20, scale: 0.97 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, amount: 0.3 }}
+      transition={{ duration: 0.5, ease: [0.19, 1, 0.22, 1] }}
     >
       <div className="p-4 sm:p-5">
         <div className="mb-3 flex items-center justify-between gap-3">
