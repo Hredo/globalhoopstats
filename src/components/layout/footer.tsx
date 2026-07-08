@@ -16,6 +16,7 @@ const TOOLS = [
   { href: "/leagues", labelKey: "nav.leagues" },
   { href: "/ai-advisor", labelKey: "nav.aiAdvisor" },
   { href: "/market/trade", labelKey: "nav.trade" },
+  { href: "/install", labelKey: "footer.installApp" },
 ]
 
 const LEGAL = [

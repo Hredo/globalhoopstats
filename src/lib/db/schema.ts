@@ -7,9 +7,31 @@ import {
   doublePrecision,
   boolean,
   timestamp,
+  jsonb,
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core"
+
+/** The eleven half-court buckets we split shots into. */
+export type ShotZoneKey =
+  | "paint"
+  | "leftCorner2"
+  | "rightCorner2"
+  | "leftWing2"
+  | "rightWing2"
+  | "frontal2"
+  | "leftCorner3"
+  | "rightCorner3"
+  | "leftWing3"
+  | "rightWing3"
+  | "frontal3"
+
+/**
+ * Real per-zone shooting, aggregated from shot-by-shot coordinates
+ * (EuroLeague official feed). `m` = made, `a` = attempted. A null column means
+ * no shot-location data exists for that league (ACB / FEB publish none).
+ */
+export type ShotZonesJson = Partial<Record<ShotZoneKey, { m: number; a: number }>>
 
 export const leagues = pgTable("leagues", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -104,6 +126,9 @@ export const playerSeasonStats = pgTable(
     trueShootingPct: doublePrecision("true_shooting_pct"),
     winShares: doublePrecision("win_shares"),
     bpm: doublePrecision("bpm"),
+    // Real per-zone made/attempted from shot-by-shot coordinates. Null when the
+    // league publishes no shot locations. See backfill-euroleague-shot-zones.ts.
+    shotZones: jsonb("shot_zones").$type<ShotZonesJson>(),
   },
   (t) => [
     uniqueIndex("player_season_stats_unique_idx").on(

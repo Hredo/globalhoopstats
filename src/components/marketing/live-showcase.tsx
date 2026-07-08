@@ -3,7 +3,6 @@
 import Image from "next/image"
 import { useEffect, useRef, useState } from "react"
 import { Reveal } from "@/components/animations/reveal"
-import { TiltCard } from "@/components/ui/tilt-card"
 import { StatCounter } from "@/components/ui/stat-counter"
 import { ButtonLink } from "@/components/ui/button"
 import { leagueAccent } from "@/components/ui/league-badge"
@@ -274,7 +273,6 @@ function SceneRow({
             "transform 1s var(--ease-fluid), opacity 0.8s var(--ease-fluid)",
         }}
       >
-        <TiltCard max={5}>
           <div className="relative overflow-hidden rounded-2xl border border-hairline bg-surface-1 shadow-[var(--shadow-elev-2)]">
             <span
               aria-hidden
@@ -327,7 +325,6 @@ function SceneRow({
               </span>
             </div>
           </div>
-        </TiltCard>
       </div>
     </div>
   )

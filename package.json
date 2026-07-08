@@ -35,9 +35,12 @@
     "backfill:team-identity": "tsx scripts/backfill-team-identity.ts",
     "backfill:coach-wikidata": "tsx scripts/backfill-coach-wikidata.ts",
     "backfill:coach-photos": "tsx scripts/backfill-coach-photos.ts",
+    "backfill:shot-zones": "tsx scripts/backfill-euroleague-shot-zones.ts",
+    "backfill:shot-zones-nba": "tsx scripts/backfill-nba-shot-zones.ts",
     "db:dedupe-players": "tsx scripts/dedupe-players.ts",
     "db:cleanup-syncs": "tsx scripts/cleanup-stale-syncs.ts",
-    "migrate:league-names": "tsx scripts/migrate-league-names.ts"
+    "migrate:league-names": "tsx scripts/migrate-league-names.ts",
+    "capture:trade": "tsx scripts/record-trade-video.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
@@ -83,6 +86,7 @@
     "eslint-config-next": "^16.2.9",
     "jpeg-js": "^0.4.4",
     "jsdom": "^29.1.1",
+    "playwright": "^1.61.1",
     "pngjs": "^7.0.0",
     "postcss": "^8.5.15",
     "prettier": "^3.8.3",

@@ -10,7 +10,6 @@ import { DataProvenance } from "@/components/marketing/data-provenance"
 import { Testimonials } from "@/components/marketing/testimonials"
 import { EmailSubscribe } from "@/components/marketing/email-subscribe"
 import { Faq } from "@/components/marketing/faq"
-import { MobileInstall } from "@/components/marketing/mobile-install"
 import { getFaqData } from "@/components/marketing/faq-data"
 // NOTE: PricingCta commented out until subscriptions are re-enabled.
 // import { PricingCta } from "@/components/marketing/pricing-cta"
@@ -232,7 +231,24 @@ export default async function Home() {
 
       <Testimonials />
 
-      <MobileInstall />
+      <section
+        aria-labelledby="faq-heading"
+        className="full-bleed relative py-14 sm:py-20"
+      >
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <Reveal>
+            <SectionHeading
+              align="center"
+              eyebrow={t("home.faq.eyebrow")}
+              title={t("home.faq.title")}
+              description={t("home.faq.description")}
+            />
+          </Reveal>
+          <div id="faq-heading" className="mt-12">
+            <Faq />
+          </div>
+        </div>
+      </section>
 
       {/* ── EMAIL + CTA (merged block) ───────────────────────── */}
       <section className="full-bleed relative overflow-hidden py-20 sm:py-28">
@@ -247,14 +263,6 @@ export default async function Home() {
             <Reveal>
               <div className="gh-bezel gh-sheen overflow-hidden">
                 <div className="gh-bezel-inner relative overflow-hidden bg-gradient-to-br from-court-800/70 via-surface-1 to-surface-0 p-7 sm:p-12 md:p-16">
-                  <div
-                    aria-hidden
-                    className="absolute -left-24 -top-24 h-72 w-72 animate-aurora rounded-full bg-brand-500/30 blur-3xl"
-                  />
-                  <div
-                    aria-hidden
-                    className="absolute -bottom-28 right-[-6%] h-72 w-72 animate-breathe rounded-full bg-ember-500/20 blur-3xl"
-                  />
                   <div aria-hidden className="absolute inset-0 bg-hatch opacity-50" />
                   <div className="relative grid items-center gap-8 md:grid-cols-[1.1fr_1fr]">
                     <div>
@@ -281,25 +289,6 @@ export default async function Home() {
                 </div>
               </div>
             </Reveal>
-          </div>
-        </div>
-      </section>
-
-      <section
-        aria-labelledby="faq-heading"
-        className="full-bleed relative py-20 sm:py-28"
-      >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <Reveal>
-            <SectionHeading
-              align="center"
-              eyebrow={t("home.faq.eyebrow")}
-              title={t("home.faq.title")}
-              description={t("home.faq.description")}
-            />
-          </Reveal>
-          <div id="faq-heading" className="mt-12">
-            <Faq />
           </div>
         </div>
       </section>

@@ -28,7 +28,12 @@ const SEASON_START_YEAR = (() => {
   return m ? Number(m[1]) : 2024
 })()
 
-const BR_SEASON_SUFFIX = String(SEASON_START_YEAR)
+// Basketball-Reference labels a EuroLeague season by its END year, so the page
+// for the 2025-26 season (start year 2025, code E2025) lives at `/2026.html`.
+// Fetching the start year returns the PREVIOUS season — the bug that left the DB
+// a year behind. Always request the end year.
+const BR_YEAR = SEASON_START_YEAR + 1
+const BR_SEASON_SUFFIX = String(BR_YEAR)
 
 async function fetchHtml(url: string): Promise<string> {
   // Shared polite fetcher — note EuroLeague pulls from basketball-reference.com,
@@ -125,7 +130,7 @@ export const euroleagueAdapter: SourceAdapter = {
   seasonCode: SEASON,
 
   async fetchTeams(): Promise<SourceTeam[]> {
-    const url = `${BR_BASE}${BR_LEAGUE_PATH}/${SEASON_START_YEAR}.html`
+    const url = `${BR_BASE}${BR_LEAGUE_PATH}/${BR_YEAR}.html`
     const html = await fetchHtml(url)
     const standingsHtml = extractTableById(html, "elg_standings")
     const rows = rowsFromTable(standingsHtml)
@@ -152,7 +157,7 @@ export const euroleagueAdapter: SourceAdapter = {
   },
 
   async fetchPlayers(): Promise<SourcePlayer[]> {
-    const url = `${BR_BASE}${BR_LEAGUE_PATH}/${SEASON_START_YEAR}_totals.html`
+    const url = `${BR_BASE}${BR_LEAGUE_PATH}/${BR_YEAR}_totals.html`
     const html = await fetchHtml(url)
     const tableHtml = extractTableById(html, `totals-stats-${BR_SEASON_SUFFIX}`)
     const rows = rowsFromTable(tableHtml)
@@ -192,7 +197,7 @@ export const euroleagueAdapter: SourceAdapter = {
   },
 
   async fetchStats(): Promise<ExtractedPlayerStat[]> {
-    const url = `${BR_BASE}${BR_LEAGUE_PATH}/${SEASON_START_YEAR}_totals.html`
+    const url = `${BR_BASE}${BR_LEAGUE_PATH}/${BR_YEAR}_totals.html`
     const html = await fetchHtml(url)
     const tableHtml = extractTableById(html, `totals-stats-${BR_SEASON_SUFFIX}`)
     const rows = rowsFromTable(tableHtml)
@@ -250,7 +255,7 @@ export const euroleagueAdapter: SourceAdapter = {
   },
 
   async fetchCoaches(): Promise<SourceCoach[]> {
-    const url = `${BR_BASE}${BR_LEAGUE_PATH}/${SEASON_START_YEAR}.html`
+    const url = `${BR_BASE}${BR_LEAGUE_PATH}/${BR_YEAR}.html`
     const html = await fetchHtml(url)
     const tableHtml = extractTableById(html, "coaches")
     const rows = rowsFromTable(tableHtml)
@@ -299,7 +304,7 @@ export const euroleagueAdapter: SourceAdapter = {
   },
 
   async fetchTeamStats(): Promise<SourceTeamStats[]> {
-    const url = `${BR_BASE}${BR_LEAGUE_PATH}/${SEASON_START_YEAR}.html`
+    const url = `${BR_BASE}${BR_LEAGUE_PATH}/${BR_YEAR}.html`
     const html = await fetchHtml(url)
 
     const standingsHtml = extractTableById(html, "elg_standings")

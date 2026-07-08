@@ -61,6 +61,7 @@ export const es: Messages = {
     syncPending: "Sincronización pendiente",
     rights: "© {year} {name}. Todos los derechos reservados.",
     version: "v{version}",
+    installApp: "Instala la app",
     disclaimer:
       "Sitio no afiliado, respaldado ni patrocinado por la NBA, EuroLeague, Liga ACB, FEB ni ningún club. Los nombres y logos de los equipos, así como los nombres e imágenes de los jugadores, son propiedad de sus respectivos titulares y se utilizan aquí con fines exclusivamente informativos. Para solicitar la retirada de cualquier contenido, contacta con nosotros.",
     time: {
@@ -521,6 +522,26 @@ export const es: Messages = {
     compareWith: "Comparar con",
     highlights: "Highlights",
     switchLeague: "Cambiar de liga",
+    shotChart: "Gráfico de tiro",
+    shotPaint: "Zona",
+    shotLeftCorner2: "Esquina izq 2PT",
+    shotLeftCorner3: "Esquina izq 3PT",
+    shotRightCorner2: "Esquina der 2PT",
+    shotRightCorner3: "Esquina der 3PT",
+    shotLeftWing2: "45º izq 2PT",
+    shotLeftWing3: "45º izq 3PT",
+    shotRightWing2: "45º der 2PT",
+    shotRightWing3: "45º der 3PT",
+    shotFrontal2: "Frontal 2PT",
+    shotFrontal3: "Frontal 3PT",
+    shotVolume: "{count} tiros de campo",
+    shotNoData: "Sin datos de localización de tiro",
+    shotNoDataHint:
+      "El desglose por zonas proviene del feed oficial de tiros de la EuroLeague. La liga de este jugador aún no publica coordenadas de tiro.",
+    shotCold: "Frío",
+    shotHot: "Caliente",
+    shotLegendNote:
+      "Cada zona se colorea según un rango realista para ese tipo de tiro; las zonas más sólidas indican más intentos.",
   },
   teamProfile: {
     notFound: "Equipo no encontrado",
@@ -540,20 +561,20 @@ export const es: Messages = {
     technicalStaff: "Cuerpo técnico",
   },
   playerAi: {
-    title: "Scout IA",
+    title: "Scout completo",
     description:
-      "Obtén un informe de scouting detallado generado por IA de este jugador.",
-    scouting: "Analizando…",
+      "La IA analiza estadísticas, métricas avanzadas, valor de mercado, gráfico de tiro, impacto en el equipo y más.",
+    scouting: "Analizando todo…",
     rerun: "Volver a analizar",
-    scout: "Analizar jugador",
+    scout: "Scout completo con IA",
     failed: "El análisis falló.",
     errorStatus: "Error {status}",
     aiFallback: "IA",
     hintPre: "Pulsa",
     hintPost:
-      "y la IA genera un desglose completo del juego de este jugador — fortalezas, debilidades y encaje en el equipo.",
+      "y la IA genera un informe completo — estadísticas, valor, zonas de tiro, contribución al equipo, percepción pública y comportamiento.",
     nudgeText:
-      "Esto funciona sin IA. Conecta tu propio modelo para una opinión de la IA —",
+      "Esto funciona sin IA. Conecta tu propio modelo para un informe completo —",
     addProvider: "añade un proveedor",
     seeGuide: "ver la guía",
   },
