@@ -133,8 +133,18 @@ function buildQuery(spec: RangeSpec): string {
 export async function getCloudflareTraffic(
   range: TrafficRange,
 ): Promise<TrafficResult> {
-  const token = process.env.CLOUDFLARE_API_TOKEN
-  const zone = process.env.CLOUDFLARE_ZONE_ID
+  // Defensive sanitisation: hosting panels often store the value with wrapping
+  // quotes, a stray "Bearer " prefix, or trailing whitespace/newlines — any of
+  // which makes Cloudflare reject the token with a 401. Strip them here.
+  const clean = (v: string | undefined): string | undefined =>
+    v
+      ?.trim()
+      .replace(/^["']|["']$/g, "")
+      .replace(/^Bearer\s+/i, "")
+      .trim()
+
+  const token = clean(process.env.CLOUDFLARE_API_TOKEN)
+  const zone = clean(process.env.CLOUDFLARE_ZONE_ID)
   if (!token || !zone) {
     return {
       configured: false,
@@ -168,16 +178,35 @@ export async function getCloudflareTraffic(
     }
   }
 
-  if (!res.ok) {
-    return {
-      configured: false,
-      reason: `Cloudflare respondió ${res.status}. Revisa que el token tenga el permiso Analytics:Read y que el Zone ID sea correcto.`,
-    }
-  }
-
-  const json = (await res.json()) as {
+  // Read the body once as text so we can surface Cloudflare's real error
+  // message whether the response is OK or not.
+  const rawBody = await res.text()
+  let json: {
     data?: { viewer?: { zones?: { [k: string]: GroupRow[] }[] } }
     errors?: { message: string }[] | null
+    success?: boolean
+  } = {}
+  try {
+    json = JSON.parse(rawBody)
+  } catch {
+    /* non-JSON error page */
+  }
+
+  if (!res.ok) {
+    // 401 = the token itself was rejected (invalid / malformed / wrong value) —
+    // NOT a permissions problem. 403 = authenticated but missing the scope.
+    const cfMsg =
+      json.errors?.map((e) => e.message).join("; ") || rawBody.slice(0, 200)
+    const hint =
+      res.status === 401
+        ? "Token rechazado (401): el valor no es válido. Comprueba que en Hostinger esté SIN comillas ni espacios y que sea el token completo (no el Zone ID)."
+        : res.status === 403
+          ? "Sin permiso (403): al token le falta 'Zone → Analytics → Read' sobre esta zona."
+          : "Revisa el token y el Zone ID."
+    return {
+      configured: false,
+      reason: `Cloudflare respondió ${res.status}. ${hint}${cfMsg ? ` — ${cfMsg}` : ""}`,
+    }
   }
 
   if (json.errors && json.errors.length > 0) {
