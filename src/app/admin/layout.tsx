@@ -25,10 +25,10 @@ export default async function AdminLayout({
         {/* background handled globally by the fixed court backdrop */}
         <div className="relative">
           <h1 className="font-display text-2xl font-bold text-ink-50 sm:text-3xl">
-            Admin
+            Panel de administración
           </h1>
           <p className="mt-1 text-sm text-ink-400">
-            Database, sync, users, and cache management
+            Tráfico, contenido, base de datos y sincronización — todo en un sitio
           </p>
         </div>
       </header>

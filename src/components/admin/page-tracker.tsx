@@ -38,7 +38,12 @@ export function PageTracker() {
     fetch("/api/track/page-view", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pageType, pageSlug, leagueSlug }),
+      body: JSON.stringify({
+        pageType,
+        pageSlug,
+        leagueSlug,
+        referrer: typeof document !== "undefined" ? document.referrer : "",
+      }),
       keepalive: true,
     }).catch(() => {})
   }, [pathname])

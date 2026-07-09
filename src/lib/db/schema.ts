@@ -438,6 +438,16 @@ export const pageViews = pgTable("page_views", {
   pageType: text("page_type").notNull(),
   pageSlug: text("page_slug"),
   leagueSlug: text("league_slug"),
+  // Where the visit came from (host of document.referrer, or "direct").
+  referrer: text("referrer"),
+  // Coarse device class derived from the User-Agent: mobile | tablet | desktop.
+  device: text("device"),
+  // ISO country code from Cloudflare's CF-IPCountry header (e.g. "ES").
+  country: text("country"),
+  // Anonymous per-day visitor fingerprint: sha256(secret + ip + ua + date),
+  // truncated. Irreversible and rotates daily, so it counts approximate unique
+  // visitors without storing or exposing any personal data.
+  visitorHash: text("visitor_hash"),
   viewedAt: timestamp("viewed_at").notNull().defaultNow(),
 })
 
