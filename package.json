@@ -39,6 +39,7 @@
     "backfill:shot-zones-nba": "tsx scripts/backfill-nba-shot-zones.ts",
     "db:dedupe-players": "tsx scripts/dedupe-players.ts",
     "db:cleanup-syncs": "tsx scripts/cleanup-stale-syncs.ts",
+    "seed:announcements": "tsx scripts/seed-announcements.ts",
     "migrate:league-names": "tsx scripts/migrate-league-names.ts",
     "capture:trade": "tsx scripts/record-trade-video.ts"
   },

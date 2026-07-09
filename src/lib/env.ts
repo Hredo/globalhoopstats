@@ -37,6 +37,11 @@ const serverSchema = z.object({
     z.string().min(1).optional(),
   ),
   CRON_SECRET: z.preprocess(emptyToUndefined, z.string().min(16).optional()),
+  // Cloudflare Analytics — read-only API token (scope: Analytics:Read) + the
+  // zone id of globalhoopstats.es. Powers the admin "Tráfico" panel. Both are
+  // optional; when unset the panel shows a "not configured" notice instead.
+  CLOUDFLARE_API_TOKEN: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  CLOUDFLARE_ZONE_ID: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   RESEND_API_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   GMAIL_APP_PASSWORD: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   // Sender for all transactional email. With Resend this MUST be an address on

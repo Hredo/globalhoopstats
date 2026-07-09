@@ -13,6 +13,21 @@ function toArray(raw: unknown): Record<string, unknown>[] {
   return []
 }
 
+type Db = ReturnType<typeof getDb>
+
+/**
+ * Run a query that depends on the newer page_views columns (referrer / device /
+ * country / visitor_hash). If the migration that adds them hasn't been applied
+ * yet, degrade gracefully to an empty result instead of 500-ing the whole page.
+ */
+async function safeQuery(db: Db, query: string): Promise<Record<string, unknown>[]> {
+  try {
+    return toArray(await db.execute(sql.raw(query)))
+  } catch {
+    return []
+  }
+}
+
 export async function GET(request: Request) {
   const user = await getCurrentUser(request.headers.get("cookie"))
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -75,11 +90,72 @@ export async function GET(request: Request) {
     `)).then(toArray),
   ])
 
+  // ── Newer, column-dependent aggregations (guarded) ────────────────────────
+  const [overview, dailyTrend, topReferrers, deviceBreakdown, countryBreakdown] = await Promise.all([
+    safeQuery(db, `
+      SELECT
+        count(*)::int AS total_views,
+        count(*) FILTER (WHERE viewed_at >= now() - interval '30 days')::int AS views_30d,
+        count(*) FILTER (WHERE viewed_at >= now() - interval '24 hours')::int AS views_24h,
+        count(DISTINCT visitor_hash) FILTER (WHERE viewed_at >= now() - interval '30 days')::int AS visitors_30d,
+        count(DISTINCT visitor_hash) FILTER (WHERE viewed_at >= now() - interval '24 hours')::int AS visitors_24h
+      FROM page_views
+    `),
+
+    safeQuery(db, `
+      SELECT
+        to_char(viewed_at, 'YYYY-MM-DD') AS day,
+        count(*)::int AS views,
+        count(DISTINCT visitor_hash)::int AS visitors
+      FROM page_views
+      WHERE viewed_at >= now() - interval '30 days'
+      GROUP BY day
+      ORDER BY day ASC
+    `),
+
+    safeQuery(db, `
+      SELECT coalesce(referrer, 'direct') AS referrer, count(*)::int AS views
+      FROM page_views
+      WHERE viewed_at >= now() - interval '30 days'
+      GROUP BY referrer
+      ORDER BY count(*) DESC
+      LIMIT 12
+    `),
+
+    safeQuery(db, `
+      SELECT coalesce(device, 'desconocido') AS device, count(*)::int AS views
+      FROM page_views
+      WHERE viewed_at >= now() - interval '30 days'
+      GROUP BY device
+      ORDER BY count(*) DESC
+    `),
+
+    safeQuery(db, `
+      SELECT coalesce(country, '??') AS country, count(*)::int AS views
+      FROM page_views
+      WHERE viewed_at >= now() - interval '30 days' AND country IS NOT NULL
+      GROUP BY country
+      ORDER BY count(*) DESC
+      LIMIT 12
+    `),
+  ])
+
   return NextResponse.json({
     playersMostViewed,
     teamsMostViewed,
     topSearches,
     userGrowth,
     leagueTrends,
+    overview: overview[0] ?? {
+      total_views: 0,
+      views_30d: 0,
+      views_24h: 0,
+      visitors_30d: 0,
+      visitors_24h: 0,
+    },
+    dailyTrend,
+    topReferrers,
+    deviceBreakdown,
+    countryBreakdown,
   })
 }
