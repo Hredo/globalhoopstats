@@ -121,6 +121,9 @@ export async function generateMetadata(): Promise<Metadata> {
   },
   manifest: "/manifest.webmanifest",
   other: {
+    // Standard key (Chrome/Android). Silences the "apple-… is deprecated" console warning.
+    "mobile-web-app-capable": "yes",
+    // Kept for older iOS Safari, which only honours the apple-prefixed key.
     "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-status-bar-style": "black-translucent",
   },

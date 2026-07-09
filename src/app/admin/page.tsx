@@ -385,6 +385,30 @@ export default function AdminPage() {
     fetchAnnouncements()
   }
 
+  async function updateAnnouncement(
+    id: string,
+    data: { type: string; title: string; content: string; priority: number },
+  ): Promise<boolean> {
+    const res = await fetch("/api/admin/announcements", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id,
+        type: data.type,
+        title: data.title,
+        content: data.content.trim() === "" ? null : data.content,
+        priority: data.priority,
+      }),
+    })
+    if (res.ok) {
+      showToast("Aviso actualizado", "success")
+      fetchAnnouncements()
+      return true
+    }
+    showToast("No se pudo actualizar el aviso", "error")
+    return false
+  }
+
   async function deleteAnnouncement(id: string) {
     await fetch(`/api/admin/announcements?id=${id}`, { method: "DELETE" })
     showToast("Aviso eliminado", "success")
@@ -775,26 +799,13 @@ export default function AdminPage() {
                   </thead>
                   <tbody>
                     {announcements.map((a) => (
-                      <tr key={a.id} className="border-b border-white/[0.03] text-ink-200">
-                        <td className="py-2 pr-3"><AnnouncementBadge type={a.type} /></td>
-                        <td className="py-2 pr-3 font-medium text-ink-50">{a.title}</td>
-                        <td className="py-2 pr-3">
-                          <button
-                            type="button"
-                            onClick={() => toggleAnnouncement(a.id, !a.active)}
-                            className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${a.active ? "bg-positive/15 text-positive border-positive/30" : "bg-ember-500/15 text-ember-300 border-ember-500/30"}`}
-                          >
-                            {a.active ? "ON" : "OFF"}
-                          </button>
-                        </td>
-                        <td className="py-2 pr-3 font-mono">{a.priority}</td>
-                        <td className="py-2 pr-3 text-xs">{formatDate(a.createdAt)}</td>
-                        <td className="py-2">
-                          <button type="button" onClick={() => deleteAnnouncement(a.id)} className="text-xs text-ember-400 transition hover:text-ember-300">
-                            Eliminar
-                          </button>
-                        </td>
-                      </tr>
+                      <EditableAnnouncementRow
+                        key={a.id}
+                        a={a}
+                        onToggle={toggleAnnouncement}
+                        onDelete={deleteAnnouncement}
+                        onSave={updateAnnouncement}
+                      />
                     ))}
                   </tbody>
                 </table>
@@ -856,6 +867,104 @@ function DailyTrend({ data }: { data: { day: string; views: number; visitors: nu
         )
       })}
     </div>
+  )
+}
+
+function EditableAnnouncementRow({
+  a,
+  onToggle,
+  onDelete,
+  onSave,
+}: {
+  a: AnnouncementRow
+  onToggle: (id: string, active: boolean) => void
+  onDelete: (id: string) => void
+  onSave: (id: string, data: { type: string; title: string; content: string; priority: number }) => Promise<boolean>
+}) {
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [type, setType] = useState(a.type)
+  const [title, setTitle] = useState(a.title)
+  const [content, setContent] = useState(a.content ?? "")
+  const [priority, setPriority] = useState(a.priority)
+
+  function startEditing() {
+    setType(a.type)
+    setTitle(a.title)
+    setContent(a.content ?? "")
+    setPriority(a.priority)
+    setEditing(true)
+  }
+
+  async function handleSave() {
+    if (title.trim() === "") return
+    setSaving(true)
+    const ok = await onSave(a.id, { type, title: title.trim(), content, priority })
+    setSaving(false)
+    if (ok) setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <tr className="border-b border-white/[0.03]">
+        <td colSpan={6} className="py-3">
+          <div className="space-y-3 rounded-lg border border-brand-500/20 bg-white/[0.02] p-4">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <select value={type} onChange={(e) => setType(e.target.value)} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-ink-200">
+                <option value="banner">Banner / Aviso</option>
+                <option value="faq">FAQ</option>
+                <option value="changelog">Changelog</option>
+              </select>
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título" className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-ink-200 placeholder:text-ink-500" />
+              <select value={priority} onChange={(e) => setPriority(Number(e.target.value))} className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-ink-200">
+                <option value={1}>Prioridad 1 — Baja</option>
+                <option value={2}>Prioridad 2 — Normal</option>
+                <option value={3}>Prioridad 3 — Elevada</option>
+                <option value={4}>Prioridad 4 — Alta</option>
+                <option value={5}>Prioridad 5 — Crítica</option>
+              </select>
+            </div>
+            <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={2} placeholder="Contenido / descripción (opcional) — si se rellena, el aviso se abre como ventana centrada" className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-sm text-ink-200 placeholder:text-ink-500" />
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={handleSave} disabled={saving || title.trim() === ""} className="gh-sheen rounded-lg border border-positive/30 bg-positive/15 px-4 py-1.5 text-sm font-medium text-positive transition hover:bg-positive/25 disabled:cursor-not-allowed disabled:opacity-50">
+                {saving ? "Guardando…" : "Guardar"}
+              </button>
+              <button type="button" onClick={() => setEditing(false)} className="rounded-lg border border-white/10 bg-white/[0.04] px-4 py-1.5 text-sm font-medium text-ink-300 transition hover:border-white/25 hover:text-ink-50">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </td>
+      </tr>
+    )
+  }
+
+  return (
+    <tr className="border-b border-white/[0.03] text-ink-200">
+      <td className="py-2 pr-3"><AnnouncementBadge type={a.type} /></td>
+      <td className="py-2 pr-3 font-medium text-ink-50">{a.title}</td>
+      <td className="py-2 pr-3">
+        <button
+          type="button"
+          onClick={() => onToggle(a.id, !a.active)}
+          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${a.active ? "bg-positive/15 text-positive border-positive/30" : "bg-ember-500/15 text-ember-300 border-ember-500/30"}`}
+        >
+          {a.active ? "ON" : "OFF"}
+        </button>
+      </td>
+      <td className="py-2 pr-3 font-mono">{a.priority}</td>
+      <td className="py-2 pr-3 text-xs">{formatDate(a.createdAt)}</td>
+      <td className="py-2">
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={startEditing} className="text-xs text-ink-400 transition hover:text-ink-50">
+            Editar
+          </button>
+          <button type="button" onClick={() => onDelete(a.id)} className="text-xs text-ember-400 transition hover:text-ember-300">
+            Eliminar
+          </button>
+        </div>
+      </td>
+    </tr>
   )
 }
 
