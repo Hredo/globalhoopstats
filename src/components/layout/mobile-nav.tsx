@@ -18,6 +18,7 @@ const PRIMARY_LINKS = [
   { href: "/leagues", labelKey: "nav.leagues" },
   { href: "/ai-advisor", labelKey: "nav.aiAdvisor" },
   { href: "/market/trade", labelKey: "nav.trade" },
+  { href: "/playbook", labelKey: "nav.playbook" },
 ] as const
 
 export function MobileNav() {

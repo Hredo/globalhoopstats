@@ -458,6 +458,23 @@ export const searchLog = pgTable("search_log", {
   searchedAt: timestamp("searched_at").notNull().defaultNow(),
 })
 
+export const playbookPlays = pgTable(
+  "playbook_plays",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    // Full frame-by-frame play document (elements, positions, actions).
+    // Validated against playSchema (src/lib/playbook/types.ts) on write.
+    data: jsonb("data").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [index("playbook_plays_user_idx").on(t.userId, t.updatedAt)],
+)
+
 export const rateLimits = pgTable("rate_limits", {
   // Composite identifier, e.g. "login:1.2.3.4" or "ai-advisor:1.2.3.4".
   key: text("key").primaryKey(),
@@ -499,5 +516,6 @@ export type Announcement = typeof announcements.$inferSelect
 export type NewAnnouncement = typeof announcements.$inferInsert
 export type AppConfig = typeof appConfig.$inferSelect
 export type PageView = typeof pageViews.$inferSelect
+export type PlaybookPlayRow = typeof playbookPlays.$inferSelect
 export type SearchLogEntry = typeof searchLog.$inferSelect
 export type RateLimit = typeof rateLimits.$inferSelect
