@@ -17,6 +17,7 @@ export const es: Messages = {
     back: "Volver",
     dataUpdated: "Datos actualizados {ago}",
     updatePending: "Actualización pendiente",
+    dismiss: "Descartar",
   },
   language: {
     label: "Idioma",
@@ -76,7 +77,7 @@ export const es: Messages = {
   metadata: {
     tagline: "Baloncesto, descifrado.",
     description:
-      "Inteligencia global de baloncesto en la NBA, EuroLeague, Liga ACB y las ligas FEB de España (Primera FEB, Segunda FEB, Tercera FEB): estadísticas, splits avanzados, comparaciones lado a lado, valoraciones de mercado, un simulador de traspasos y un asesor de scouting con IA — todo en una consola.",
+      "Inteligencia de baloncesto entre ligas: NBA, EuroLeague, Liga ACB y la pirámide FEB española (Primera, Segunda, Tercera). Estadísticas, splits avanzados, comparativas, valoraciones de mercado, simulador de traspasos y asesor de scouting con IA — todo en una consola.",
   },
   home: {
     metaTitle:
@@ -157,8 +158,15 @@ export const es: Messages = {
           name: "Traspasos",
           title: "Juega a ser el mánager.",
           body:
-            "Monta un traspaso entre cualquier equipo y comprueba al momento si está equilibrado: valor de mercado, salarios y veredicto, calculados solos mientras pruebas fichajes.",
+            "Monta un traspaso entre cualquier equipo y comprueba al instante si está equilibrado: valor de mercado, salarios y veredicto, calculados solos mientras pruebas fichajes.",
           cta: "Simular un traspaso",
+        },
+        playbook: {
+          name: "Playbook",
+          title: "Deja de explicar jugadas. Enséñalas.",
+          body:
+            "Arranca con uno de los más de 100 sistemas profesionales — o fotografía la pizarra del vestuario y la IA te la devuelve editable. Pon tu plantilla real sobre la cancha, anímala fotograma a fotograma y deja que la IA la desmonte como un scout rival: fortalezas, timings y por dónde te la van a romper.",
+          cta: "Abrir el playbook",
         },
       },
       freeBeta: "Gratis en beta",
@@ -898,14 +906,14 @@ export const es: Messages = {
     },
   },
   playbook: {
-    metaTitle: "Playbook de baloncesto — diseñador de jugadas animado",
+    metaTitle: "Playbook de baloncesto — diseñador de jugadas animado con IA",
     metaDescription:
-      "Dibuja, anima y comparte jugadas de baloncesto con la notación estándar de entrenadores, plantillas reales de seis ligas y análisis táctico profundo con IA. Gratis durante la beta.",
+      "Dibuja y anima jugadas de baloncesto con notación estándar de pizarra: más de 100 sistemas profesionales, plantillas reales de seis ligas, análisis táctico con IA, importación desde una foto de tu pizarra y exportación PNG/JSON. Gratis durante la beta.",
     page: {
       eyebrow: "Herramientas de entrenador",
       title: "Playbook.",
       description:
-        "Dibuja jugadas con la notación estándar de pizarra, anímalas fotograma a fotograma, añade tu plantilla real y deja que la IA desmonte la jugada como un scout profesional.",
+        "Dibuja jugadas con la notación estándar de pizarra, anímalas fotograma a fotograma, parte de más de 100 sistemas profesionales o de una foto de tu pizarra, añade tu plantilla real y deja que la IA desmonte la jugada como un scout profesional.",
     },
     tools: {
       select: "Seleccionar / mover",
@@ -931,7 +939,10 @@ export const es: Messages = {
       speed: "Velocidad de reproducción",
       addFrame: "Añadir fotograma",
       removeFrame: "Eliminar fotograma",
+      loop: "Reproducir en bucle",
       notePlaceholder: "Nota del fotograma {n} (p. ej. \"el 5 continúa fuerte al aro\")",
+      vertical: "Cambiar a vista enfocada",
+      horizontal: "Cambiar a vista ancha",
     },
     tabs: {
       roster: "Plantilla",
@@ -950,6 +961,7 @@ export const es: Messages = {
       onCourt: "En pista",
     },
     ai: {
+      outputTitle: "Análisis táctico IA",
       hint: "La IA lee tu jugada fotograma a fotograma — zonas, cortes, bloqueos y pases — y la desmonta como un scout profesional: fortalezas, contramedidas, timing y perfiles ideales.",
       questionPlaceholder: "Opcional: pregunta algo concreto (p. ej. \"¿cómo funciona contra zona 2-3?\")",
       analyze: "Analizar jugada",
@@ -969,11 +981,17 @@ export const es: Messages = {
       saveError: "No se pudo guardar. Inténtalo de nuevo.",
       new: "Nueva",
       duplicate: "Duplicar",
-      exportPlay: "Exportar jugada",
-      exportAll: "Exportar todo",
+      exportPdf: "Exportar PDF",
+      exportPdfHint: "Informe completo con tu marca: todos los fotogramas, notas, personal y el análisis de IA",
+      exportPdfError: "No se pudo generar el PDF. Inténtalo de nuevo.",
+      exportJson: "Exportar JSON",
+      exportJsonHint: "Descarga esta jugada como archivo JSON portable para reimportar o compartir",
+      exportAll: "Exportar todas las jugadas (JSON)",
       import: "Importar",
       imported: "{n} jugada(s) importada(s)",
       importError: "Ese archivo no es una exportación de playbook válida.",
+      importTooLarge: "Archivo demasiado grande (máx. 5 MB).",
+      dropToImport: "Suelta un JSON de playbook o una foto del diagrama para importar",
       localMode: "Modo invitado — las jugadas se guardan en este navegador. Inicia sesión para sincronizarlas.",
       unsaved: "Cambios sin guardar",
       discardConfirm: "Tienes cambios sin guardar. ¿Descartarlos?",
@@ -982,6 +1000,21 @@ export const es: Messages = {
       untitled: "Jugada sin título",
       frames: "{n} fotogramas",
       empty: "Aún no hay jugadas guardadas. Dibuja una y pulsa Guardar.",
+      templates: "Plantillas",
+      searchPlh: "Buscar…",
+      allCategories: "Todas",
+      importPhoto: "Importar foto",
+      importPhotoHint: "Fotografía una jugada en una pizarra o cuaderno y la IA la convierte en una jugada editable",
+      importingPhoto: "Leyendo la jugada con IA…",
+      importPhotoError: "No se pudo importar la jugada desde la foto. Prueba con una imagen más nítida.",
+      importPhotoNoAi: "No hay motor de IA configurado — configura uno para importar jugadas desde fotos.",
+    },
+    templateCats: {
+      offense: "Ataque",
+      defense: "Defensa",
+      transition: "Transición",
+      sideline: "Banda",
+      baseline: "Fondo",
     },
     details: {
       description: "Descripción de la jugada",
@@ -996,6 +1029,11 @@ export const es: Messages = {
       screen: "Bloqueo — terminación en T",
       handoff: "Mano a mano — doble barra",
     },
+  },
+  pwa: {
+    installTitle: "Instalar GlobalHoopStats",
+    installDescription: "Obtén la experiencia de app completa con soporte offline.",
+    installAction: "Instalar",
   },
   cookies: {
     bannerAria: "Aviso de cookies",

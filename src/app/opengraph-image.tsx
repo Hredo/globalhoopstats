@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og"
 import { SITE } from "@/lib/site"
 import { BallMark } from "@/lib/brand-mark"
 
-export const alt = "globalhoopstats — Hoops, decoded."
+export const alt = "globalhoopstats — Cross-league basketball intelligence"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 export const runtime = "nodejs"
@@ -16,7 +16,7 @@ export default async function OpengraphImage() {
         display: "flex",
         flexDirection: "column",
         background: "#0a0a0a",
-        padding: 72,
+        padding: "72px 72px 56px",
         color: "#ffffff",
         fontFamily: "system-ui",
         position: "relative",
@@ -25,15 +25,23 @@ export default async function OpengraphImage() {
       <div
         style={{
           position: "absolute",
+          top: 200,
+          right: -80,
+          width: 520,
+          height: 520,
+          borderRadius: "50%",
+          background: "linear-gradient(135deg, rgba(255,115,0,0.10) 0%, rgba(187,57,0,0.03) 70%, transparent 100%)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
           top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          display: "flex",
-          opacity: 0.18,
-          backgroundImage:
-            "linear-gradient(to right, rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.15) 1px, transparent 1px)",
-          backgroundSize: "56px 56px",
+          left: 72,
+          right: 72,
+          height: 4,
+          background: "linear-gradient(90deg, #ff7300 0%, #bb3900 100%)",
+          borderRadius: 2,
         }}
       />
       <div
@@ -42,16 +50,11 @@ export default async function OpengraphImage() {
           display: "flex",
           alignItems: "center",
           gap: 18,
+          marginTop: 4,
         }}
       >
-        <BallMark size={64} />
-        <div
-          style={{
-            fontSize: 30,
-            fontWeight: 700,
-            letterSpacing: -1,
-          }}
-        >
+        <BallMark size={56} />
+        <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: -0.5 }}>
           {SITE.name}
         </div>
       </div>
@@ -62,70 +65,119 @@ export default async function OpengraphImage() {
           flex: 1,
           flexDirection: "column",
           justifyContent: "center",
+          paddingTop: 8,
         }}
       >
         <div
           style={{
-            fontSize: 96,
-            fontWeight: 800,
-            lineHeight: 0.95,
-            letterSpacing: -3,
             display: "flex",
+            flexDirection: "column",
+            fontSize: 78,
+            fontWeight: 800,
+            lineHeight: 1,
+            letterSpacing: -3,
+            color: "#ffffff",
           }}
         >
-          Hoops, decoded.
+          <span>Cross-league basketball</span>
+          <span
+            style={{
+              background: "linear-gradient(135deg, #ff7300, #ffa75f)",
+              color: "transparent",
+              marginTop: 4,
+            }}
+          >
+            intelligence
+          </span>
         </div>
         <div
           style={{
-            marginTop: 24,
-            fontSize: 28,
-            color: "#f8c98a",
-            maxWidth: 900,
-            display: "flex",
+            marginTop: 28,
+            fontSize: 26,
+            color: "#a3a3a3",
+            maxWidth: 720,
+            lineHeight: 1.3,
           }}
         >
-          {SITE.taglineShort}
+          Box scores, advanced splits, player comparison, market valuations, trade simulator and AI scouting — all in one console.
         </div>
       </div>
       <div
         style={{
           position: "relative",
           display: "flex",
-          gap: 14,
-          fontSize: 24,
+          gap: 10,
+          fontSize: 19,
           color: "#e5e5e5",
-          alignItems: "center",
+          flexWrap: "wrap",
         }}
       >
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 10,
-            padding: "10px 18px",
-            border: "1px solid rgba(255,255,255,0.18)",
+            gap: 8,
+            padding: "8px 16px",
             borderRadius: 999,
-            background: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(255,115,0,0.25)",
+            background: "rgba(255,115,0,0.08)",
           }}
         >
-          2400+ players indexed
+          NBA · EuroLeague · ACB · FEB
         </div>
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 10,
-            padding: "10px 18px",
-            border: "1px solid rgba(255,255,255,0.18)",
+            gap: 8,
+            padding: "8px 16px",
             borderRadius: 999,
-            background: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(255,255,255,0.10)",
+            background: "rgba(255,255,255,0.04)",
           }}
         >
-          NBA · EuroLeague · ACB
+          Player comparisons
         </div>
-        <div style={{ marginLeft: "auto", fontSize: 22, color: "#a3a3a3" }}>
-          {SITE.url.replace("https://", "")}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 16px",
+            borderRadius: 999,
+            border: "1px solid rgba(255,255,255,0.10)",
+            background: "rgba(255,255,255,0.04)",
+          }}
+        >
+          Trade simulator
         </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 16px",
+            borderRadius: 999,
+            border: "1px solid rgba(255,255,255,0.10)",
+            background: "rgba(255,255,255,0.04)",
+          }}
+        >
+          AI scouting advisor
+        </div>
+      </div>
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginTop: 22,
+          fontSize: 17,
+          color: "#666666",
+        }}
+      >
+        <span>{SITE.url.replace("https://", "")}</span>
+        <span style={{ color: "#ff7300" }}>Hoops, decoded.</span>
       </div>
     </div>,
     { ...size },

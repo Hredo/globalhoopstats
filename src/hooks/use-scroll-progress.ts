@@ -1,18 +1,18 @@
 "use client"
 
 import { useEffect, useRef, useState, type RefObject } from "react"
+import { useReducedMotion } from "@/hooks/use-reduced-motion"
 
 export function useScrollProgress(ref: RefObject<HTMLElement | null>): number {
   const [progress, setProgress] = useState(0)
   const rafRef = useRef<number | null>(null)
   const latestProgress = useRef(0)
 
+  const reduce = useReducedMotion()
+
   useEffect(() => {
-    const reduce =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
     if (reduce) {
-      setProgress(1)
+      setProgress(1) // eslint-disable-line react-hooks/set-state-in-effect
       return
     }
 
@@ -45,7 +45,7 @@ export function useScrollProgress(ref: RefObject<HTMLElement | null>): number {
       window.removeEventListener("resize", onScroll)
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
     }
-  }, [ref])
+  }, [ref, reduce])
 
   return progress
 }

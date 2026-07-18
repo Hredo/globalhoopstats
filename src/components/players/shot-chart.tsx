@@ -109,12 +109,10 @@ export function ShotChart({ zones }: Props) {
 
   const { cells, maxAtt, totalAtt } = useMemo(() => {
     const maxAtt = Math.max(1, ...ZONES.map((z) => zones?.[z.key]?.a ?? 0))
-    let totalAtt = 0
     const cells: Cell[] = ZONES.map((def) => {
       const z = zones?.[def.key]
       const att = z?.a ?? 0
       const made = z?.m ?? 0
-      totalAtt += att
       const pct = att > 0 ? made / att : null
       return {
         def,
@@ -126,6 +124,7 @@ export function ShotChart({ zones }: Props) {
         label: pt(def.labelDeg, def.labelR),
       }
     })
+    const totalAtt = cells.reduce((sum, c) => sum + c.att, 0)
     return { cells, maxAtt, totalAtt }
   }, [zones])
 

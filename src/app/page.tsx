@@ -52,7 +52,7 @@ const FILM_FRAMES = 240
 // render time so a card in <LiveShowcase> flips from placeholder to live video
 // automatically the moment its capture lands in public/media/previews — no code
 // change needed (the auth-gated ai-advisor/trade clips are captured separately).
-const SHOWCASE_KEYS = ["player", "compare", "ai-advisor", "trade"] as const
+const SHOWCASE_KEYS = ["player", "compare", "ai-advisor", "trade", "playbook"] as const
 function readyShowcaseKeys(): string[] {
   return SHOWCASE_KEYS.filter((k) =>
     existsSync(

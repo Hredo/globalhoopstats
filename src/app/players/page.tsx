@@ -5,6 +5,7 @@ import { PlayersInfiniteView } from "@/components/players/players-infinite-view"
 import { DirectoryHero } from "@/components/ui/directory-hero"
 import { StickyFilterBar } from "@/components/ui/sticky-filter-bar"
 import { getT } from "@/lib/i18n/server"
+import { pageSeo } from "@/lib/seo/metadata"
 
 type SearchParams = Partial<
   Record<keyof ListPlayersInput | "q" | "page", string>
@@ -14,10 +15,11 @@ export const revalidate = 300
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getT()
-  return {
+  return pageSeo({
+    path: "/players",
     title: t("directory.players.metaTitle"),
     description: t("directory.players.metaDescription"),
-  }
+  })
 }
 
 const SORT_VALUES = new Set(["points", "rebounds", "assists", "name"])

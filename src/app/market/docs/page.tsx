@@ -2,12 +2,15 @@ import Link from "next/link"
 import { BackLink } from "@/components/ui/back-link"
 import { FadeIn } from "@/components/animations/fade-in"
 import { getLocale } from "@/lib/i18n/server"
+import { pageSeo } from "@/lib/seo/metadata"
 
-export const metadata = {
-  title: "Market valuation & Trade simulator — Global Hoop Stats",
+export const metadata = pageSeo({
+  path: "/market/docs",
+  title: "Market valuation & Trade simulator",
   description:
     "How our market valuation engine and trade simulator work: algorithm, data sources, league ceilings and practical usage.",
-}
+  type: "article",
+})
 
 // Numeric ceilings are language-agnostic, so the table data is shared. Only the
 // human-readable labels (tier names, descriptions) differ per locale.

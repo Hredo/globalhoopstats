@@ -113,6 +113,8 @@ export function AdvisorTour() {
     setRect(null)
   }, [])
 
+  const [ttH, setTtH] = useState(190)
+
   // Track the active target's rect; follow scroll and resize.
   useEffect(() => {
     if (phase !== "tour") return
@@ -120,11 +122,11 @@ export function AdvisorTour() {
     if (!step) return
     const el = targetFor(step.id)
     if (!el) {
-      // Target disappeared (e.g. responsive change) — advance or finish.
-      if (idx < steps.length - 1) setIdx((i) => i + 1)
+      if (idx < steps.length - 1) setIdx((i) => i + 1) // eslint-disable-line react-hooks/set-state-in-effect
       else endTour()
       return
     }
+    setTtH(tooltipRef.current?.offsetHeight ?? 190)
 
     el.scrollIntoView({ behavior: "smooth", block: "center" })
 
@@ -280,7 +282,6 @@ export function AdvisorTour() {
   const vw = typeof window !== "undefined" ? window.innerWidth : 1280
   const vh = typeof window !== "undefined" ? window.innerHeight : 800
   const ttW = Math.min(340, vw - 24)
-  const ttH = tooltipRef.current?.offsetHeight ?? 190
   const below = rect.top + rect.height + pad + 12 + ttH < vh
   const ttTop = below
     ? rect.top + rect.height + pad + 12

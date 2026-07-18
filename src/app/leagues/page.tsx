@@ -7,13 +7,15 @@ import { LeagueOverview } from "@/components/leagues/league-overview"
 import { DirectoryHero } from "@/components/ui/directory-hero"
 import { leagueAccent } from "@/components/ui/league-badge"
 import { getT } from "@/lib/i18n/server"
+import { pageSeo } from "@/lib/seo/metadata"
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getT()
-  return {
+  return pageSeo({
+    path: "/leagues",
     title: t("directory.leagues.metaTitle"),
     description: t("directory.leagues.metaDescription"),
-  }
+  })
 }
 
 export const revalidate = 600

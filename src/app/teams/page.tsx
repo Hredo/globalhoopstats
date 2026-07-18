@@ -6,6 +6,7 @@ import { DirectoryHero } from "@/components/ui/directory-hero"
 import { StickyFilterBar } from "@/components/ui/sticky-filter-bar"
 import { PageTransition } from "@/components/ui/page-transition"
 import { getT } from "@/lib/i18n/server"
+import { pageSeo } from "@/lib/seo/metadata"
 
 type SearchParams = Partial<Record<keyof ListTeamsInput | "q" | "page", string>>
 
@@ -13,10 +14,11 @@ export const revalidate = 300
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getT()
-  return {
+  return pageSeo({
+    path: "/teams",
     title: t("directory.teams.metaTitle"),
     description: t("directory.teams.metaDescription"),
-  }
+  })
 }
 
 const SORT_VALUES = new Set(["name", "players"])

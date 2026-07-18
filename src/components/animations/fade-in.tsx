@@ -1,13 +1,13 @@
 "use client"
 
 import {
-  createElement,
   useEffect,
   useRef,
   useState,
   type CSSProperties,
   type ReactNode,
 } from "react"
+import { useReducedMotion } from "@/hooks/use-reduced-motion"
 
 type FadeInProps = {
   children: ReactNode
@@ -40,14 +40,12 @@ export function FadeIn({
 }: FadeInProps) {
   const ref = useRef<HTMLElement | null>(null)
   const [shown, setShown] = useState(true)
-  const [reduce, setReduce] = useState(false)
+  const reduce = useReducedMotion()
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
-    setReduce(mq.matches)
-    if (mq.matches) {
-      setReady(true)
+    if (reduce) {
+      setReady(true) // eslint-disable-line react-hooks/set-state-in-effect
       return
     }
     const el = ref.current
@@ -73,7 +71,7 @@ export function FadeIn({
     )
     io.observe(el)
     return () => io.disconnect()
-  }, [])
+  }, [reduce])
 
   const style: CSSProperties =
     reduce || !ready
@@ -88,7 +86,8 @@ export function FadeIn({
           willChange: shown ? "auto" : "opacity, transform, filter",
         }
 
-  return createElement(as, { ref, className, style }, children)
+  const Tag = as
+  return <Tag ref={ref as any} className={className} style={style}>{children}</Tag>
 }
 
 export default FadeIn

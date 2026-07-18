@@ -128,7 +128,7 @@ async function syncLeague(
   const [run] = await db
     .insert(syncRuns)
     .values({ source: adapter.id, status: "running", rowsWritten: 0 })
-    .returning()
+    .returning({ id: syncRuns.id })
 
   try {
     console.log(`${tag} sync started (season ${adapter.seasonCode})`)
@@ -145,7 +145,7 @@ async function syncLeague(
         target: leagues.slug,
         set: { name: adapter.displayName, region: adapter.country },
       })
-      .returning()
+      .returning({ id: leagues.id })
     const leagueId = league.id
     const seasonId = await ctx.ensureSeason(adapter.seasonCode)
 
@@ -235,7 +235,7 @@ async function syncLeague(
           weightKg: sp.weightKg ?? null,
           // PHOTOS PAUSED (2026-07-03): imageUrl: sp.photoUrl ?? null,
         })
-        .returning()
+        .returning({ id: players.id })
       matcher.register(
         {
           id: row.id,
@@ -410,7 +410,17 @@ export async function startGlobalSync(
   )
 
   /* ---- Shared state: identity registry, slugs, team & season caches ---- */
-  const existingPlayers = await db.select().from(players)
+  const existingPlayers = await db
+    .select({
+      id: players.id,
+      firstName: players.firstName,
+      lastName: players.lastName,
+      slug: players.slug,
+      nationality: players.nationality,
+      position: players.position,
+      heightCm: players.heightCm,
+    })
+    .from(players)
   // Each player's current league tiers, so the matcher never fuses a FEB
   // namesake into a top-tier professional (or vice versa) on a name collision.
   const tierRows = (await db.execute(
@@ -501,7 +511,7 @@ export async function startGlobalSync(
           const [inserted] = await db
             .insert(seasons)
             .values({ name: code, isCurrent: true })
-            .returning()
+            .returning({ id: seasons.id })
           return inserted.id
         })()
         seasonPromises.set(code, pending)
@@ -532,7 +542,16 @@ export async function startGlobalSync(
               target: teams.slug,
               set: { name: team.name },
             })
-            .returning()
+            .returning({
+              id: teams.id,
+              city: teams.city,
+              logoUrl: teams.logoUrl,
+              foundedYear: teams.foundedYear,
+              website: teams.website,
+              arena: teams.arena,
+              primaryColor: teams.primaryColor,
+              secondaryColor: teams.secondaryColor,
+            })
           teamStateBySlug.set(slug, {
             id: row.id,
             city: row.city,

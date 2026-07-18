@@ -58,3 +58,6 @@ public/swe-worker*
 
 # internal deployment notes
 /DEPLOY-HOSTINGER.md
+
+# Cached browser session used by the capture scripts
+.auth

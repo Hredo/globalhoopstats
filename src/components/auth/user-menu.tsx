@@ -63,7 +63,7 @@ export function UserMenu() {
   }, [])
 
   useEffect(() => {
-    refreshMe()
+    refreshMe() // eslint-disable-line react-hooks/set-state-in-effect
     // Re-check the session when auth changes elsewhere (login / register /
     // logout in this tab, or another tab) without a full page reload.
     const onAuthChanged = () => refreshMe()
@@ -100,7 +100,7 @@ export function UserMenu() {
 
   if (loading) {
     return (
-      <div className="hidden h-9 w-24 animate-pulse rounded-md bg-white/[0.04] md:block" />
+      <div className="h-8 w-8 animate-pulse rounded-full bg-white/[0.04]" />
     )
   }
 
@@ -109,7 +109,7 @@ export function UserMenu() {
       <div className="flex shrink-0 items-center">
         <Link
           href="/register"
-          className="gh-sheen group/cta inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-full bg-gradient-to-r from-brand-400 to-ember-500 px-3 text-xs font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition-all duration-300 ease-swift hover:shadow-[var(--shadow-brand-glow-lg)] active:scale-[0.98] sm:h-9 sm:px-4 sm:text-sm"
+          className="inline-flex h-8 items-center whitespace-nowrap rounded-full px-2.5 text-[11px] font-semibold text-brand-400 transition hover:text-brand-300"
         >
           {t("userMenu.getStarted")}
         </Link>
@@ -138,33 +138,14 @@ export function UserMenu() {
         ref={buttonRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="group flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] p-1 pr-3 transition hover:border-white/25 hover:bg-white/[0.08]"
+        aria-label={me.name}
+        title={me.name}
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-[10px] font-bold text-ink-950">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-[11px] font-bold text-ink-950">
           {initials(me.name)}
         </span>
-        <span className="hidden text-xs font-medium text-ink-100 sm:inline">
-          {me.name.split(" ")[0]}
-        </span>
-        <span
-          className={`hidden rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest sm:inline-flex ${badge.color}`}
-        >
-          {t(badge.labelKey)}
-        </span>
-        <svg
-          className={`h-3 w-3 text-ink-400 transition-transform ${
-            open ? "rotate-180" : ""
-          }`}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          aria-hidden
-        >
-          <path strokeLinecap="round" d="M6 9l6 6 6-6" />
-        </svg>
       </button>
 
       {open ? (

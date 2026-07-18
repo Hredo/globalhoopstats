@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import { useEffect, useRef, useState } from "react"
+import { useReducedMotion } from "@/hooks/use-reduced-motion"
 import { useTheme } from "@/lib/theme/provider"
 import { ButtonLink } from "@/components/ui/button"
 
@@ -80,15 +81,29 @@ export function ScrollFilm({
   const hintRef = useRef<HTMLParagraphElement | null>(null)
   const flashRef = useRef<HTMLDivElement | null>(null)
   const settleRef = useRef<HTMLDivElement | null>(null)
-  const [compact, setCompact] = useState(false)
+  const reduce = useReducedMotion()
+
+  const [saveData, setSaveData] = useState(false)
+  useEffect(() => {
+    const nav = navigator as Navigator & { connection?: { saveData?: boolean } }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSaveData(nav.connection?.saveData === true)
+  }, [])
+
+  /**
+   * Derived, never latched.
+   *
+   * This used to be a `compact` state that the effect below only ever set to
+   * `true`. useReducedMotion() reports `true` during hydration (its server
+   * snapshot is the content-safe guess), so the first effect pass flipped the
+   * latch on for *every* visitor; when the real preference came back `false`
+   * nothing switched it off, the component kept returning the static hero, the
+   * canvas never mounted and the scroll film was dead in production.
+   */
+  const compact = reduce || saveData
 
   useEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    const nav = navigator as Navigator & { connection?: { saveData?: boolean } }
-    if (reduce || nav.connection?.saveData === true) {
-      setCompact(true)
-      return
-    }
+    if (compact) return
 
     const root = rootRef.current
     const canvas = canvasRef.current
@@ -300,7 +315,9 @@ export function ScrollFilm({
       window.removeEventListener("scroll", onScroll)
       window.removeEventListener("resize", onResize)
     }
-  }, [reel, texts])
+    // `compact` is in the deps on purpose: when it flips false the film markup
+    // mounts, and this effect has to run again to pick up the now-real canvas.
+  }, [reel, texts, compact])
 
   /* Compact static hero for reduced-motion / data-saver visitors. */
   if (compact) {

@@ -17,6 +17,7 @@ export const en = {
     back: "Back",
     dataUpdated: "Data updated {ago}",
     updatePending: "Update pending",
+    dismiss: "Dismiss",
   },
   language: {
     label: "Language",
@@ -75,7 +76,7 @@ export const en = {
   metadata: {
     tagline: "Hoops, decoded.",
     description:
-      "Global basketball intelligence across the NBA, EuroLeague, Liga ACB and Spain's FEB leagues (Primera FEB, Segunda FEB, Tercera FEB): box scores, advanced splits, side-by-side comparisons, player market valuations, a trade simulator and an AI scouting advisor — all in one console.",
+      "Cross-league basketball intelligence across the NBA, EuroLeague, Liga ACB and Spain's FEB pyramid (Primera, Segunda, Tercera): box scores, advanced splits, side-by-side comparisons, player market valuations, trade simulator and AI scouting advisor — all in one console.",
   },
   home: {
     metaTitle: "globalhoopstats — NBA, EuroLeague & ACB basketball stats",
@@ -157,6 +158,13 @@ export const en = {
           body:
             "Build a trade between any teams and see instantly whether it's balanced: market value, salaries and the verdict, all computed live as you test signings.",
           cta: "Simulate a trade",
+        },
+        playbook: {
+          name: "Playbook",
+          title: "Stop explaining plays. Show them.",
+          body:
+            "Start from one of 100+ pro sets — or photograph the locker-room whiteboard and the AI hands it back editable. Put your real roster on the court, animate it frame by frame, then let the AI take it apart like an opposing scout: strengths, timing and exactly where it breaks.",
+          cta: "Open the playbook",
         },
       },
       freeBeta: "Free in beta",
@@ -890,14 +898,14 @@ export const en = {
     },
   },
   playbook: {
-    metaTitle: "Basketball Playbook — animated play designer",
+    metaTitle: "Basketball Playbook — animated play designer with AI",
     metaDescription:
-      "Draw, animate and share basketball plays with standard coaching notation, real rosters from six leagues and deep AI tactical analysis. Free while in beta.",
+      "Draw and animate basketball plays with standard coaching notation: 100+ pro set templates, real rosters from six leagues, AI tactical breakdowns, photo import from your whiteboard and PNG/JSON export. Free while in beta.",
     page: {
       eyebrow: "Coaching tools",
       title: "Playbook.",
       description:
-        "Draw plays with standard coaching notation, animate them frame by frame, add your real roster and let the AI break the play down like an advance scout.",
+        "Draw plays with standard coaching notation, animate them frame by frame, start from 100+ pro templates or a photo of your whiteboard, add your real roster and let the AI break the play down like an advance scout.",
     },
     tools: {
       select: "Select / move",
@@ -923,7 +931,10 @@ export const en = {
       speed: "Playback speed",
       addFrame: "Add frame",
       removeFrame: "Delete frame",
+      loop: "Loop playback",
       notePlaceholder: "Note for frame {n} (e.g. \"5 rolls hard to the rim\")",
+      vertical: "Switch to focus layout",
+      horizontal: "Switch to wide layout",
     },
     tabs: {
       roster: "Roster",
@@ -942,6 +953,7 @@ export const en = {
       onCourt: "On court",
     },
     ai: {
+      outputTitle: "AI tactical analysis",
       hint: "The AI reads your play frame by frame — zones, cuts, screens and passes — and breaks it down like an advance scout: strengths, counters, timing and personnel fit.",
       questionPlaceholder: "Optional: ask something specific (e.g. \"how does this work vs a 2-3 zone?\")",
       analyze: "Analyze play",
@@ -961,11 +973,17 @@ export const en = {
       saveError: "Could not save. Try again.",
       new: "New",
       duplicate: "Duplicate",
-      exportPlay: "Export play",
-      exportAll: "Export all",
+      exportPdf: "Export PDF",
+      exportPdfHint: "Full branded report: every frame, notes, personnel and the AI analysis",
+      exportPdfError: "Could not generate the PDF. Try again.",
+      exportJson: "Export JSON",
+      exportJsonHint: "Download this play as a portable JSON file you can re-import or share",
+      exportAll: "Export all plays (JSON)",
       import: "Import",
       imported: "{n} play(s) imported",
       importError: "That file is not a valid playbook export.",
+      importTooLarge: "File too large (max 5 MB).",
+      dropToImport: "Drop a playbook JSON or a diagram photo to import",
       localMode: "Guest mode — plays are stored in this browser. Sign in to sync.",
       unsaved: "Unsaved changes",
       discardConfirm: "You have unsaved changes. Discard them?",
@@ -974,6 +992,21 @@ export const en = {
       untitled: "Untitled play",
       frames: "{n} frames",
       empty: "No saved plays yet. Draw one and hit Save.",
+      templates: "Templates",
+      searchPlh: "Search…",
+      allCategories: "All",
+      importPhoto: "Import photo",
+      importPhotoHint: "Photograph a play on a whiteboard or notebook and the AI turns it into an editable play",
+      importingPhoto: "Reading the play with AI…",
+      importPhotoError: "Could not import the play from the photo. Try a clearer image.",
+      importPhotoNoAi: "No AI engine is configured — set one up to import plays from photos.",
+    },
+    templateCats: {
+      offense: "Offense",
+      defense: "Defense",
+      transition: "Transition",
+      sideline: "Sideline",
+      baseline: "Baseline",
     },
     details: {
       description: "Play description",
@@ -988,6 +1021,11 @@ export const en = {
       screen: "Screen — T-bar end",
       handoff: "Handoff — double bar",
     },
+  },
+  pwa: {
+    installTitle: "Install GlobalHoopStats",
+    installDescription: "Get the full-screen app experience with offline support.",
+    installAction: "Install",
   },
   cookies: {
     bannerAria: "Cookie notice",

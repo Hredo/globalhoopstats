@@ -168,7 +168,7 @@ export const PlayerSearch = forwardRef<PlayerSearchHandle, PlayerSearchProps>(
 
     useEffect(() => {
       if (typeof window === "undefined") return
-      setIsMac(/Mac|iPhone|iPad/.test(navigator.platform))
+      setIsMac(/Mac|iPhone|iPad/.test(navigator.platform)) // eslint-disable-line react-hooks/set-state-in-effect
     }, [])
 
     useEffect(() => {
@@ -178,7 +178,7 @@ export const PlayerSearch = forwardRef<PlayerSearchHandle, PlayerSearchProps>(
       // No early-out for the default (empty query / all leagues) state: the
       // API returns this season's leaders for an empty query, so the palette
       // opens with content and the "All leagues" chip behaves like the rest.
-      setLoading(true)
+      setLoading(true) // eslint-disable-line react-hooks/set-state-in-effect
       debounceRef.current = setTimeout(() => {
         abortRef.current?.abort()
         const ctl = new AbortController()

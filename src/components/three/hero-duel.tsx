@@ -1,7 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react"
 
 /** Neutral, on-brand placeholder shown only while the three.js chunk loads.
  *  Deliberately NOT the marketing mockup, so capable devices go straight from
@@ -54,7 +54,7 @@ export function HeroDuel({
     const fine = window.matchMedia("(pointer: fine)").matches
     const nav = navigator as Navigator & { connection?: { saveData?: boolean } }
     const saveData = nav.connection?.saveData === true
-    setOk(!reduce && wide && fine && !saveData)
+    setOk(!reduce && wide && fine && !saveData) // eslint-disable-line react-hooks/set-state-in-effect
   }, [prefer3d])
 
   useEffect(() => {

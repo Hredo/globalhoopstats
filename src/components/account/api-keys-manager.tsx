@@ -80,7 +80,7 @@ export function ApiKeysManager() {
 
   useEffect(() => {
     void load()
-    void checkOllama()
+    void checkOllama() // eslint-disable-line react-hooks/set-state-in-effect
   }, [load, checkOllama])
 
   const readiness = useMemo(() => {
@@ -165,7 +165,7 @@ function EngineSelectors({
   const [saving, setSaving] = useState(false)
   const [note, setNote] = useState<Note | null>(null)
 
-  useEffect(() => setDraft(settings), [settings])
+  useEffect(() => setDraft(settings), [settings]) // eslint-disable-line react-hooks/set-state-in-effect
 
   const dirty =
     draft.advisorProvider !== settings.advisorProvider ||

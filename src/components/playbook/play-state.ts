@@ -49,6 +49,7 @@ type Action =
   | { type: "begin-gesture" }
   | { type: "move-live"; elementId: string; point: Point }
   | { type: "via-live"; actionId: string; via: Point }
+  | { type: "move-next-live"; elementId: string; point: Point }
   | { type: "add-element"; kind: ElementKind; at: Point; player?: LinkedPlayer | null }
   | { type: "remove-element"; elementId: string }
   | { type: "assign-player"; elementId: string; player: LinkedPlayer | null }
@@ -105,6 +106,7 @@ function findBall(play: Play): PlayElement | undefined {
 
 /** The attacker currently holding the ball in a frame, if any. */
 export function ballHolderId(play: Play, frame: PlayFrame): string | null {
+  if (!frame) return null
   const ball = findBall(play)
   if (!ball) return null
   const ballPos = frame.positions[ball.id]
@@ -163,6 +165,19 @@ function reducer(state: EditorState, action: Action): EditorState {
           actions: f.actions.map((a) =>
             a.id === action.actionId ? { ...a, via: action.via } : a,
           ),
+        })),
+      )
+    }
+
+    case "move-next-live": {
+      const nextFrameIdx = frameIdx + 1
+      if (nextFrameIdx >= play.frames.length) return state
+      const point = clampToCourt(action.point, play.courtType)
+      return liveUpdate(
+        state,
+        updateFrame(play, nextFrameIdx, (f) => ({
+          ...f,
+          positions: { ...f.positions, [action.elementId]: point },
         })),
       )
     }

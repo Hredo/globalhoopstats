@@ -5,6 +5,7 @@ import { DirectoryHero } from "@/components/ui/directory-hero"
 import { StickyFilterBar } from "@/components/ui/sticky-filter-bar"
 import { listCoaches, type ListCoachesInput } from "@/lib/data/staff"
 import { getT } from "@/lib/i18n/server"
+import { pageSeo } from "@/lib/seo/metadata"
 
 type SearchParams = Partial<
   Record<keyof ListCoachesInput | "q" | "page", string>
@@ -14,10 +15,11 @@ export const revalidate = 300
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getT()
-  return {
+  return pageSeo({
+    path: "/coaches",
     title: t("directory.coaches.metaTitle"),
     description: t("directory.coaches.metaDescription"),
-  }
+  })
 }
 
 const LEAGUE_VALUES = new Set([

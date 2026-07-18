@@ -77,7 +77,7 @@ export function CompareSearch({ side, current, otherSlug }: Props) {
   const listboxId = useId()
 
   useEffect(() => {
-    setMounted(true)
+    setMounted(true) // eslint-disable-line react-hooks/set-state-in-effect
   }, [])
 
   const updateAnchor = useCallback(() => {

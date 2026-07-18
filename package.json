@@ -41,7 +41,8 @@
     "db:cleanup-syncs": "tsx scripts/cleanup-stale-syncs.ts",
     "seed:announcements": "tsx scripts/seed-announcements.ts",
     "migrate:league-names": "tsx scripts/migrate-league-names.ts",
-    "capture:trade": "tsx scripts/record-trade-video.ts"
+    "capture:trade": "tsx scripts/record-trade-video.ts",
+    "capture:playbook": "tsx scripts/record-playbook-video.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

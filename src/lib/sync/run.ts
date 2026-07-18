@@ -64,7 +64,7 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
       status: "running",
       rowsWritten: 0,
     })
-    .returning()
+    .returning({ id: syncRuns.id })
 
   const totals = { teams: 0, players: 0, stats: 0, coaches: 0, teamStats: 0 }
 
@@ -82,12 +82,12 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
         target: leagues.slug,
         set: { name: adapter.displayName, region: adapter.country },
       })
-      .returning()
+      .returning({ id: leagues.id })
     const leagueId = league.id
 
     /* ---- Season ---- */
     const [existingSeason] = await db
-      .select()
+      .select({ id: seasons.id })
       .from(seasons)
       .where(eq(seasons.name, adapter.seasonCode))
       .limit(1)
@@ -98,7 +98,7 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
       const [inserted] = await db
         .insert(seasons)
         .values({ name: adapter.seasonCode, isCurrent: true })
-        .returning()
+        .returning({ id: seasons.id })
       seasonId = inserted.id
     }
 
@@ -176,7 +176,19 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
       }
 
       /* ---- Players ---- */
-      const existingPlayerRows = await db.select().from(players)
+      const existingPlayerRows = await db
+        .select({
+          id: players.id,
+          slug: players.slug,
+          firstName: players.firstName,
+          lastName: players.lastName,
+          imageUrl: players.imageUrl,
+          nationality: players.nationality,
+          position: players.position,
+          heightCm: players.heightCm,
+          weightKg: players.weightKg,
+        })
+        .from(players)
       const existingPlayersBySlug = new Map(
         existingPlayerRows.map((p) => [p.slug, p]),
       )
@@ -287,11 +299,21 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
             // PHOTOS PAUSED (2026-07-03): imageUrl: sp.photoUrl ?? null,
             ...fillIns,
           })
-          .returning()
+          .returning({ id: players.id })
         playerIdBySourceId.set(sp.sourceId, row.id)
         usedPlayerSlugs.add(slug)
         // Make this fresh record matchable by later players in the same run.
-        byNameTier.set(tierKey(nameKey, incomingTier), row)
+        byNameTier.set(tierKey(nameKey, incomingTier), {
+          id: row.id,
+          slug,
+          firstName,
+          lastName,
+          imageUrl: null,
+          nationality: sp.nationality ?? null,
+          position: sp.position ?? null,
+          heightCm: sp.heightCm ?? null,
+          weightKg: sp.weightKg ?? null,
+        })
         totals.players++
       }
 

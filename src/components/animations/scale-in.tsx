@@ -1,13 +1,13 @@
 "use client"
 
 import {
-  createElement,
   useEffect,
   useRef,
   useState,
   type CSSProperties,
   type ReactNode,
 } from "react"
+import { useReducedMotion } from "@/hooks/use-reduced-motion"
 
 export function ScaleIn({
   children,
@@ -28,12 +28,7 @@ export function ScaleIn({
 }) {
   const ref = useRef<HTMLDivElement | null>(null)
   const [shown, setShown] = useState(false)
-  const [reduce, setReduce] = useState(false)
-
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
-    setReduce(mq.matches)
-  }, [])
+  const reduce = useReducedMotion()
 
   useEffect(() => {
     if (reduce) return
@@ -68,5 +63,5 @@ export function ScaleIn({
     ...style,
   }
 
-  return createElement("div", { ref, className, style: cssStyle }, children)
+  return <div ref={ref} className={className} style={cssStyle}>{children}</div>
 }

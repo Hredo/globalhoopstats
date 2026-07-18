@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { Logo } from "@/components/svg/logo"
 import { SearchTrigger } from "@/components/players/search-trigger"
 import { UserMenu } from "@/components/auth/user-menu"
@@ -160,7 +160,11 @@ function NavItem({
   const itemRef = useRef<HTMLLIElement | null>(null)
 
   useEffect(() => {
-    setCanHover(window.matchMedia("(hover: hover) and (pointer: fine)").matches)
+    const mq = window.matchMedia("(hover: hover) and (pointer: fine)")
+    setCanHover(mq.matches) // eslint-disable-line react-hooks/set-state-in-effect
+    const onChange = () => setCanHover(mq.matches)
+    mq.addEventListener("change", onChange)
+    return () => mq.removeEventListener("change", onChange)
   }, [])
 
   useEffect(() => {

@@ -7,17 +7,19 @@ import { FIBA, courtLength, threeBreakY } from "@/lib/playbook/geometry"
  * to PNG without resolving CSS variables.
  */
 export const BOARD = {
-  floor: "#f7f2e9",
-  key: "#efe6d8",
-  lines: "#a2937f",
-  action: "#332f2a",
-  attacker: "#c2410c",
-  defender: "#41506b",
-  ball: "#e8930c",
-  cone: "#d33131",
-  coach: "#6d5f8f",
+  floor: "#f2ede2",
+  floorGrain: "#ece6d8",
+  key: "#e6dcc8",
+  lines: "#6f5f4a",
+  linesFaded: "#8a7b68",
+  action: "#141414",
+  attacker: "#b93a08",
+  defender: "#33425c",
+  ball: "#d97706",
+  cone: "#dc2626",
+  coach: "#5f5185",
   selected: "#0d9488",
-  note: "#7d7264",
+  note: "#6b6154",
 }
 
 /**
@@ -38,11 +40,18 @@ export function PlaybookCourt({ courtType }: { courtType: CourtType }) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      {/* floor */}
+      {/* floor — subtle wood grain lines */}
       <rect x={0} y={0} width={W} height={L} fill={BOARD.floor} stroke="none" rx={0.1} />
-      {/* boundary */}
+      {Array.from({ length: Math.ceil(L / 0.5) }).map((_, i) => (
+        <line key={i} x1={0} y1={i * 0.5 + 0.15} x2={W} y2={i * 0.5 + 0.15}
+          stroke={BOARD.floorGrain} strokeWidth={0.015} opacity={0.4} />
+      ))}
+      {/* boundary with inner highlight */}
       <rect x={0} y={0} width={W} height={L} strokeWidth={0.1} rx={0.1} />
+      <rect x={0.06} y={0.06} width={W - 0.12} height={L - 0.12} stroke={BOARD.linesFaded} strokeWidth={0.02} rx={0.08} opacity={0.5} />
       <NearHalf breakY={breakY} />
+      {/* subtle court shadow — bottom edge */}
+      <rect x={0.04} y={L - 0.04} width={W - 0.08} height={0.08} fill="#000" opacity={0.04} rx={0.02} />
       {courtType === "full" ? (
         <>
           {/* half-court line + centre circle */}

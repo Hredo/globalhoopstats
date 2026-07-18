@@ -26,7 +26,7 @@ export function BackLink({
 
   useEffect(() => {
     // More than one history entry means there's a previous page to return to.
-    setCanGoBack(window.history.length > 1)
+    setCanGoBack(window.history.length > 1) // eslint-disable-line react-hooks/set-state-in-effect
   }, [])
 
   function handleClick(e: MouseEvent<HTMLAnchorElement>) {
