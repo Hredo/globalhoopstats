@@ -7,7 +7,7 @@
  */
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import postgres from "postgres"
+import { createSql } from "./lib/sql"
 
 function loadEnv() {
   for (const file of [".env", ".env.local"]) {
@@ -103,10 +103,7 @@ async function main() {
   if (!process.argv.includes("--force")) return
 
   loadEnv()
-  const sql = postgres(process.env.DATABASE_URL!, {
-    prepare: false,
-    connect_timeout: 20,
-  })
+  const sql = createSql()
   try {
     /* ---- the lone player image ---- */
     const players = await sql<{ id: string; name: string }[]>`

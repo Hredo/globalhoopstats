@@ -12,7 +12,7 @@ import {
 
 export const dynamic = "force-dynamic"
 
-/** Hard cap on a single play document (jsonb) to keep rows small. */
+/** Hard cap on a single play document (json) to keep rows small. */
 export const MAX_PLAY_BYTES = 250_000
 const MAX_PLAYS_PER_USER = 200
 

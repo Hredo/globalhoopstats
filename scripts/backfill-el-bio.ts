@@ -12,7 +12,7 @@
  */
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import postgres from "postgres"
+import { createSql } from "./lib/sql"
 
 function loadEnv() {
   const raw = readFileSync(resolve(process.cwd(), ".env"), "utf8")
@@ -139,10 +139,7 @@ function titleCase(s: string): string {
 
 async function main() {
   loadEnv()
-  const sql = postgres(process.env.DATABASE_URL!, {
-    prepare: false,
-    connect_timeout: 20,
-  })
+  const sql = createSql()
   try {
     const fetchPeople = async (season: string): Promise<ApiPerson[]> => {
       const out: ApiPerson[] = []

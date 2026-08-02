@@ -7,7 +7,7 @@
  */
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import postgres from "postgres"
+import { createSql } from "./lib/sql"
 
 function loadEnv() {
   const raw = readFileSync(resolve(process.cwd(), ".env"), "utf8")
@@ -148,10 +148,7 @@ async function main() {
   const { EUROLEAGUE_BR_TO_CODE } = await import(
     "../src/lib/sources/euroleague-teams"
   )
-  const sql = postgres(process.env.DATABASE_URL!, {
-    prepare: false,
-    connect_timeout: 20,
-  })
+  const sql = createSql()
   try {
     /* ---------- fetch API data ---------- */
     const fetchPeople = async (season: string): Promise<ApiPerson[]> => {

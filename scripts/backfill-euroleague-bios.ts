@@ -8,7 +8,7 @@
  */
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import postgres from "postgres"
+import { createSql } from "./lib/sql"
 
 function loadEnv() {
   for (const file of [".env", ".env.local"]) {
@@ -133,10 +133,7 @@ function templateBio(p: {
 
 async function main() {
   loadEnv()
-  const sql = postgres(process.env.DATABASE_URL!, {
-    prepare: false,
-    connect_timeout: 20,
-  })
+  const sql = createSql()
   try {
     const players = await sql<
       {
@@ -147,16 +144,25 @@ async function main() {
         team: string | null
       }[]
     >`
-      select distinct on (p.id) p.id,
-        concat(p.first_name, ' ', p.last_name) as name,
-        p.nationality, p.position, t.name as team
-      from players p
-      join player_season_stats pss on pss.player_id = p.id
-      join leagues l on l.id = pss.league_id
-      join seasons s on s.id = pss.season_id
-      left join teams t on t.id = pss.team_id
-      where l.slug = 'euroleague' and s.is_current and p.bio is null
-      order by p.id, pss.games_played desc
+      -- Postgres' DISTINCT ON (p.id) ... ORDER BY p.id, games_played DESC keeps
+      -- one row per player: the one with most games. MySQL has no DISTINCT ON,
+      -- so the same thing is expressed with a window function.
+      select id, name, nationality, position, team from (
+        select p.id,
+          concat(p.first_name, ' ', p.last_name) as name,
+          p.nationality, p.position, t.name as team,
+          row_number() over (
+            partition by p.id order by pss.games_played desc
+          ) as rn
+        from players p
+        join player_season_stats pss on pss.player_id = p.id
+        join leagues l on l.id = pss.league_id
+        join seasons s on s.id = pss.season_id
+        left join teams t on t.id = pss.team_id
+        where l.slug = 'euroleague' and s.is_current and p.bio is null
+      ) ranked
+      where rn = 1
+      order by id
     `
     console.log(`[bios] ${players.length} players with null bio`)
     let wiki = 0

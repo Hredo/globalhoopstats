@@ -12,7 +12,7 @@
  */
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import postgres from "postgres"
+import { createSql } from "./lib/sql"
 
 function loadEnv() {
   for (const file of [".env", ".env.local"]) {
@@ -44,7 +44,7 @@ const MERGES: { keeper: string; dup: string }[] = [
 
 async function main() {
   loadEnv()
-  const sql = postgres(process.env.DATABASE_URL!, { prepare: false, connect_timeout: 20 })
+  const sql = createSql()
   try {
     for (const { keeper: keeperSlug, dup: dupSlug } of MERGES) {
       const keep = (await sql<{ id: string; name: string }[]>`select id, name from teams where slug = ${keeperSlug}`)[0]

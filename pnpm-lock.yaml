@@ -69,9 +69,6 @@ importers:
       p-limit:
         specifier: ^7.3.0
         version: 7.3.0
-      postgres:
-        specifier: ^3.4.9
-        version: 3.4.9
       react:
         specifier: ^19.0.0
         version: 19.2.6
@@ -8177,7 +8174,8 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  postgres@3.4.9: {}
+  postgres@3.4.9:
+    optional: true
 
   postprocessing@6.39.2(three@0.185.0):
     dependencies:

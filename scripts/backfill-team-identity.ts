@@ -7,7 +7,7 @@
  */
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import postgres from "postgres"
+import { createSql } from "./lib/sql"
 import { PNG } from "pngjs"
 import jpeg from "jpeg-js"
 
@@ -200,7 +200,7 @@ async function main() {
     process.exit(1)
   }
   loadEnv()
-  const sql = postgres(process.env.DATABASE_URL!, { prepare: false, connect_timeout: 20 })
+  const sql = createSql()
   try {
     const teams = await sql<
       {

@@ -17,7 +17,7 @@
  */
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import postgres from "postgres"
+import { createSql } from "./lib/sql"
 
 function loadEnv() {
   for (const file of [".env", ".env.local"]) {
@@ -49,7 +49,7 @@ const ZERO_COLS = [
 
 async function main() {
   loadEnv()
-  const sql = postgres(process.env.DATABASE_URL!, { prepare: false, connect_timeout: 20 })
+  const sql = createSql()
   const scope = sql`
     from player_season_stats pss
     where pss.season_id in (select id from seasons where is_current)
@@ -59,16 +59,16 @@ async function main() {
     // Pre-count nulls so we can report the reduction.
     const before = await sql<Record<string, number>[]>`
       select
-        count(*) filter (where three_made is null) three_made,
-        count(*) filter (where ft_made is null) ft_made,
-        count(*) filter (where blocks_total is null) blocks_total,
-        count(*) filter (where steals_total is null) steals_total,
-        count(*) filter (where assists_total is null) assists_total,
-        count(*) filter (where offensive_rebounds is null) offensive_rebounds,
-        count(*) filter (where defensive_rebounds is null) defensive_rebounds,
-        count(*) filter (where fouls_total is null) fouls_total,
-        count(*) filter (where fg_made is null) fg_made,
-        count(*) filter (where true_shooting_pct is null) true_shooting_pct
+        count(case when three_made is null then 1 end) three_made,
+        count(case when ft_made is null then 1 end) ft_made,
+        count(case when blocks_total is null then 1 end) blocks_total,
+        count(case when steals_total is null then 1 end) steals_total,
+        count(case when assists_total is null then 1 end) assists_total,
+        count(case when offensive_rebounds is null then 1 end) offensive_rebounds,
+        count(case when defensive_rebounds is null then 1 end) defensive_rebounds,
+        count(case when fouls_total is null then 1 end) fouls_total,
+        count(case when fg_made is null then 1 end) fg_made,
+        count(case when true_shooting_pct is null then 1 end) true_shooting_pct
       ${scope}`
     console.log("[before]", before[0])
 
@@ -122,12 +122,12 @@ async function main() {
 
     const after = await sql<Record<string, number>[]>`
       select
-        count(*) filter (where three_made is null) three_made,
-        count(*) filter (where ft_made is null) ft_made,
-        count(*) filter (where blocks_total is null) blocks_total,
-        count(*) filter (where fg_made is null) fg_made,
-        count(*) filter (where defensive_rebounds is null) defensive_rebounds,
-        count(*) filter (where true_shooting_pct is null) true_shooting_pct
+        count(case when three_made is null then 1 end) three_made,
+        count(case when ft_made is null then 1 end) ft_made,
+        count(case when blocks_total is null then 1 end) blocks_total,
+        count(case when fg_made is null then 1 end) fg_made,
+        count(case when defensive_rebounds is null then 1 end) defensive_rebounds,
+        count(case when true_shooting_pct is null then 1 end) true_shooting_pct
       ${scope}`
     console.log("[after]", after[0])
   } finally {
