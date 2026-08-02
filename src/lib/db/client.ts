@@ -23,8 +23,13 @@ export function getDb(): DrizzleDb {
     timezone: "Z",
     // Return DECIMAL/BIGINT as JS numbers rather than strings, matching what
     // postgres-js used to hand back so downstream arithmetic is unchanged.
+    // decimalNumbers matters more than it looks: every average computed in SQL
+    // (`sum(points)/nullif(sum(games),0)`, `round(x, 1)`) comes back as DECIMAL,
+    // and mysql2 hands those over as STRINGS by default — so `.toFixed()` and
+    // any arithmetic on them would fail at runtime, not at compile time.
     supportBigNumbers: true,
     bigNumberStrings: false,
+    decimalNumbers: true,
     // Shared hosting caps concurrent connections hard; stay well under it.
     connectionLimit: 5,
     enableKeepAlive: true,

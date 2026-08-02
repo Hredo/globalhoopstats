@@ -210,8 +210,12 @@ export function createSql(): Sql {
     // Match the application pool: datetimes are stored and read as UTC.
     timezone: "Z",
     connectionLimit: 4,
+    // Same reasoning as the application pool: DECIMAL columns and SQL averages
+    // arrive as strings unless asked for otherwise, which silently breaks any
+    // arithmetic these scripts do on them.
     supportBigNumbers: true,
     bigNumberStrings: false,
+    decimalNumbers: true,
   })
 
   const exec: Executor = async (text, params) => {
