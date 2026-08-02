@@ -299,7 +299,7 @@ function EnglishDocs() {
             Data sources
           </h3>
           <p className="text-sm text-ink-300">
-            The engine is fed exclusively from current season data stored in our PostgreSQL database.
+            The engine is fed exclusively from current season data stored in our MySQL database.
             Statistics come from official sources for each league (NBA, EuroLeague, ACB, FEB). No
             external salary APIs are used — all figures are heuristic estimates based on the
             player&apos;s production and the economic ceilings defined per league.
@@ -640,7 +640,7 @@ function SpanishDocs() {
           </h3>
           <p className="text-sm text-ink-300">
             El motor se alimenta exclusivamente de datos de la temporada actual almacenados en
-            nuestra base de datos PostgreSQL. Las estadísticas provienen de fuentes oficiales de
+            nuestra base de datos MySQL. Las estadísticas provienen de fuentes oficiales de
             cada liga (NBA, EuroLeague, ACB, FEB). No se utilizan APIs externas de salarios — todas
             las cifras son estimaciones heurísticas basadas en la producción del jugador y los
             techos económicos definidos por liga.

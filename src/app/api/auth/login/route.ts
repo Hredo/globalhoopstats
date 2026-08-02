@@ -34,7 +34,7 @@ const loginSchema = z.object({
   website: z.string().max(0).optional(),
 })
 
-// Per-IP brute-force guard. Persistent (Postgres-backed) so it holds across
+// Per-IP brute-force guard. Persistent (MySQL-backed) so it holds across
 // serverless invocations, unlike an in-memory counter.
 const ATTEMPT_WINDOW_MS = 10 * 60 * 1000
 const MAX_ATTEMPTS = 12

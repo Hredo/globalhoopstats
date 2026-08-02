@@ -104,9 +104,10 @@ async function findComparisonCandidates(
       id: players.id,
       slug: players.slug,
       fullName:
-        sql<string>`${players.firstName} || ' ' || ${players.lastName}`,
+        sql<string>`concat(${players.firstName}, ' ', ${players.lastName})`,
+      // No ::float8 cast: MySQL's `/` already yields a decimal result.
       points:
-        sql<number | null>`(coalesce(sum(${playerSeasonStats.pointsTotal}), 0) / nullif(sum(${playerSeasonStats.gamesPlayed}), 0))::float8`,
+        sql<number | null>`coalesce(sum(${playerSeasonStats.pointsTotal}), 0) / nullif(sum(${playerSeasonStats.gamesPlayed}), 0)`,
     })
     .from(players)
     .innerJoin(playerSeasonStats, eq(playerSeasonStats.playerId, players.id))
@@ -120,7 +121,7 @@ async function findComparisonCandidates(
     )
     .groupBy(players.id)
     .orderBy(
-      sql`(coalesce(sum(${playerSeasonStats.pointsTotal}), 0) / nullif(sum(${playerSeasonStats.gamesPlayed}), 0))::float8 desc`,
+      sql`coalesce(sum(${playerSeasonStats.pointsTotal}), 0) / nullif(sum(${playerSeasonStats.gamesPlayed}), 0) desc`,
     )
     .limit(6)
   return rows as Array<{

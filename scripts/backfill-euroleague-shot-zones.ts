@@ -1,6 +1,6 @@
 /*
  * Builds REAL per-zone shooting splits for EuroLeague players from the official
- * shot-by-shot feed and stores them on player_season_stats.shot_zones (jsonb).
+ * shot-by-shot feed and stores them on player_season_stats.shot_zones (json).
  *
  * Source: live.euroleague.net/api/Points?gamecode=N&seasoncode=EYYYY returns
  * every field-goal attempt with COORD_X / COORD_Y (centimetres from the basket)
@@ -17,7 +17,7 @@
  */
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import postgres from "postgres"
+import { createSql } from "./lib/sql"
 
 function loadEnv() {
   const raw = readFileSync(resolve(process.cwd(), ".env"), "utf8")
@@ -244,12 +244,11 @@ async function main() {
   }
 
   /* ---- 3. write onto the current EuroLeague season rows ---- */
-  const sql = postgres(process.env.DATABASE_URL!, {
-    prepare: false,
-    connect_timeout: 20,
-  })
+  const sql = createSql()
   try {
-    await sql`alter table player_season_stats add column if not exists shot_zones jsonb`
+    // The shot_zones column is declared in src/lib/db/schema.ts and created by
+    // `pnpm db:push`; this script no longer tries to add it. The old statement
+    // used `jsonb` and `ADD COLUMN IF NOT EXISTS`, neither of which MySQL has.
 
     const rows = await sql<{ stat_id: string; name: string }[]>`
       select pss.id as stat_id, concat(p.first_name, ' ', p.last_name) as name

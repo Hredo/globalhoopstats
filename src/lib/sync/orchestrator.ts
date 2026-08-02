@@ -318,10 +318,12 @@ async function syncLeague(
             role: sc.role,
             // Keep whatever a previous sync already filled when this source
             // has no value, instead of regressing the column to null.
-            nationality: sql`coalesce(excluded.nationality, ${coaches.nationality})`,
-            age: sql`coalesce(excluded.age, ${coaches.age})`,
+            // Postgres names the proposed row `excluded`; MySQL reaches it with
+            // values(column).
+            nationality: sql`coalesce(values(${coaches.nationality}), ${coaches.nationality})`,
+            age: sql`coalesce(values(${coaches.age}), ${coaches.age})`,
             // PHOTOS PAUSED (2026-07-03):
-            // photoUrl: sql`coalesce(excluded.photo_url, ${coaches.photoUrl})`,
+            // photoUrl: sql`coalesce(values(${coaches.photoUrl}), ${coaches.photoUrl})`,
           },
         })
       totals.coaches++

@@ -339,8 +339,10 @@ export const getTeamBySlug = cached(
       .where(
         or(
           eq(playerSeasonStats.teamId, r.id),
-          sql`${teams.name} ILIKE ${"%" + r.name + "%"}`,
-          sql`${r.name} ILIKE ${"%" + teams.name + "%"}`,
+          // Was ILIKE, which MySQL does not have: LIKE is already
+          // case-insensitive under the default _ci collation.
+          sql`${teams.name} LIKE ${"%" + r.name + "%"}`,
+          sql`${r.name} LIKE ${"%" + teams.name + "%"}`,
         ),
       )
       .orderBy(asc(leagues.name)),

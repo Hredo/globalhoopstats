@@ -25,9 +25,10 @@
  *   pnpm exec tsx scripts/split-feb-namesakes.ts --dry
  *   pnpm exec tsx scripts/split-feb-namesakes.ts
  */
+import { randomUUID } from "node:crypto"
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import postgres from "postgres"
+import { createSql } from "./lib/sql"
 import { FEB_LEAGUE_SLUGS } from "@/lib/leagues-tier"
 import { slugify } from "@/lib/sync/slug"
 
@@ -62,7 +63,7 @@ type StatRow = {
 
 async function main() {
   loadEnv()
-  const sql = postgres(process.env.DATABASE_URL!, { prepare: false, connect_timeout: 20 })
+  const sql = createSql()
   try {
     const players = await sql<
       { id: string; slug: string; first_name: string; last_name: string }[]
@@ -136,14 +137,16 @@ async function main() {
       if (DRY) { split++; movedRows += s.feb.length; continue }
 
       await sql.begin(async (tx) => {
-        const [namesake] = await tx<{ id: string }[]>`
-          insert into players (first_name, last_name, slug)
-          values (${p.first_name}, ${p.last_name}, ${newSlug})
-          returning id
+        // MySQL has no RETURNING and no server-side uuid default, so the id is
+        // minted here and inserted explicitly.
+        const namesakeId = randomUUID()
+        await tx`
+          insert into players (id, first_name, last_name, slug)
+          values (${namesakeId}, ${p.first_name}, ${p.last_name}, ${newSlug})
         `
         const febStatIds = s.feb.map((r) => r.stat_id)
         await tx`
-          update player_season_stats set player_id = ${namesake!.id}
+          update player_season_stats set player_id = ${namesakeId}
           where id in ${tx(febStatIds)}
         `
       })

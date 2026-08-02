@@ -1,5 +1,5 @@
 /**
- * Persistent, atomic rate limiter backed by Postgres.
+ * Persistent, atomic rate limiter backed by MySQL.
  *
  * The in-memory token buckets in `ai-advisor.ts` reset on every cold start and
  * are not shared across serverless instances, so on a platform like Netlify

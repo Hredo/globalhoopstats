@@ -10,7 +10,7 @@
  */
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import postgres from "postgres"
+import { createSql } from "./lib/sql"
 
 function loadEnv() {
   const raw = readFileSync(resolve(process.cwd(), ".env"), "utf8")
@@ -157,10 +157,7 @@ type DbPlayer = {
 
 async function main() {
   loadEnv()
-  const sql = postgres(process.env.DATABASE_URL!, {
-    prepare: false,
-    connect_timeout: 20,
-  })
+  const sql = createSql()
   try {
     /* ---- ACB players with any null bio field (current season) ---- */
     const targets = await sql<DbPlayer[]>`

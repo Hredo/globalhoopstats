@@ -5,7 +5,7 @@
  */
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import postgres from "postgres"
+import { createSql } from "./lib/sql"
 
 function loadEnv() {
   for (const file of [".env", ".env.local"]) {
@@ -28,16 +28,17 @@ function loadEnv() {
 
 async function main() {
   loadEnv()
-  const sql = postgres(process.env.DATABASE_URL!, {
-    prepare: false,
-    connect_timeout: 20,
-  })
+  const sql = createSql()
   try {
     // Discover real columns (schema.ts may lag behind migrations).
     const colsFor = async (table: string): Promise<string[]> => {
+      // MySQL returns information_schema column names in UPPER CASE, so the
+      // alias is explicit. It also exposes every database from this view, hence
+      // the table_schema filter — without it this counts other schemas' columns.
       const rows = await sql<{ column_name: string }[]>`
-        select column_name from information_schema.columns
-        where table_name = ${table} order by ordinal_position
+        select COLUMN_NAME as column_name from information_schema.columns
+        where table_name = ${table} and table_schema = database()
+        order by ordinal_position
       `
       return rows.map((r) => r.column_name)
     }
