@@ -157,12 +157,8 @@ export default async function PrivacyPage() {
               : "The globalhoopstats application is hosted by "}
             <strong>Hostinger</strong>
             {es
-              ? ", con servidores ubicados en la Unión Europea. Tus datos personales se almacenan en una base de datos PostgreSQL proporcionada por "
-              : ", with servers located in the European Union. Your personal data is stored in a PostgreSQL database provided by "}
-            <strong>Neon</strong>{" "}
-            {es
-              ? "(un proveedor independiente de PostgreSQL serverless) en una región de la Unión Europea. Las copias de seguridad son gestionadas por estos proveedores de alojamiento."
-              : "(an independent serverless Postgres provider) in a European Union region. Database backups are managed by these hosting providers."}
+              ? ", con servidores ubicados en la Unión Europea. Tus datos personales se almacenan en una base de datos MySQL proporcionada por el mismo alojamiento, en la Unión Europea. Las copias de seguridad son gestionadas por Hostinger."
+              : ", with servers located in the European Union. Your personal data is stored in a MySQL database provided by the same host, within the European Union. Database backups are managed by Hostinger."}
           </p>
           <p>
             <strong>{es ? "Correo electrónico:" : "Email data:"}</strong>{" "}

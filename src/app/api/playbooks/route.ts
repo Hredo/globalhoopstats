@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { desc, eq, sql } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
-import { playbookPlays } from "@/lib/db/schema"
+import { newId, playbookPlays } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/auth/current-user"
 import { parsePlay } from "@/lib/playbook/types"
 import {
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
 
   const db = getDb()
   const [{ count }] = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({ count: sql<number>`count(*)` })
     .from(playbookPlays)
     .where(eq(playbookPlays.userId, user.id))
   if (count >= MAX_PLAYS_PER_USER) {
@@ -86,13 +86,18 @@ export async function POST(request: Request) {
     )
   }
 
-  const [row] = await db
-    .insert(playbookPlays)
-    .values({ userId: user.id, name: play.name, data: play })
-    .returning({ id: playbookPlays.id, updatedAt: playbookPlays.updatedAt })
-
-  return NextResponse.json({
-    id: row.id,
-    updatedAt: row.updatedAt.toISOString(),
+  // MySQL has no RETURNING: mint the id and the timestamp here so the response
+  // can be built without a follow-up read.
+  const id = newId()
+  const updatedAt = new Date()
+  await db.insert(playbookPlays).values({
+    id,
+    userId: user.id,
+    name: play.name,
+    data: play,
+    createdAt: updatedAt,
+    updatedAt,
   })
+
+  return NextResponse.json({ id, updatedAt: updatedAt.toISOString() })
 }

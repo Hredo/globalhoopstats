@@ -3,6 +3,7 @@ import { getDb, closeDb } from "@/lib/db/client"
 import {
   coaches,
   leagues,
+  newId,
   playerSeasonStats,
   players,
   seasons,
@@ -56,6 +57,7 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
   const db = getDb()
   const startedAt = new Date()
   const started = Date.now()
+  // sync_runs.id is AUTO_INCREMENT; $returningId reads back the insertId.
   const [run] = await db
     .insert(syncRuns)
     .values({
@@ -64,25 +66,32 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
       status: "running",
       rowsWritten: 0,
     })
-    .returning({ id: syncRuns.id })
+    .$returningId()
 
   const totals = { teams: 0, players: 0, stats: 0, coaches: 0, teamStats: 0 }
 
   try {
     /* ---- League ---- */
     const leagueSlug = adapter.id
-    const [league] = await db
+    // Upsert, then read the id back: on a duplicate slug MySQL keeps the
+    // existing row's id, so the generated one below may not be the winner.
+    await db
       .insert(leagues)
       .values({
+        id: newId(),
         name: adapter.displayName,
         slug: leagueSlug,
         region: adapter.country,
       })
-      .onConflictDoUpdate({
-        target: leagues.slug,
+      .onDuplicateKeyUpdate({
         set: { name: adapter.displayName, region: adapter.country },
       })
-      .returning({ id: leagues.id })
+    const [league] = await db
+      .select({ id: leagues.id })
+      .from(leagues)
+      .where(eq(leagues.slug, leagueSlug))
+      .limit(1)
+    if (!league) throw new Error(`league ${leagueSlug} vanished after upsert`)
     const leagueId = league.id
 
     /* ---- Season ---- */
@@ -95,11 +104,10 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
     if (existingSeason) {
       seasonId = existingSeason.id
     } else {
-      const [inserted] = await db
+      seasonId = newId()
+      await db
         .insert(seasons)
-        .values({ name: adapter.seasonCode, isCurrent: true })
-        .returning({ id: seasons.id })
-      seasonId = inserted.id
+        .values({ id: seasonId, name: adapter.seasonCode, isCurrent: true })
     }
 
     /* ---- Fetch the full batch before writing anything ---- */
@@ -156,16 +164,23 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
         if (st.secondaryColor) fillIns.secondaryColor = st.secondaryColor
         if (!row) {
           const slug = uniqueSlug(baseSlug, usedTeamSlugs)
+          const teamId = newId()
+          await db.insert(teams).values({
+            id: teamId,
+            name: st.name,
+            slug,
+            city: st.city ?? null,
+            logoUrl: st.logoUrl ?? null,
+            ...fillIns,
+          })
+          // Read the row back rather than assembling it by hand, so column
+          // defaults stay the database's business.
           const [inserted] = await db
-            .insert(teams)
-            .values({
-              name: st.name,
-              slug,
-              city: st.city ?? null,
-              logoUrl: st.logoUrl ?? null,
-              ...fillIns,
-            })
-            .returning()
+            .select()
+            .from(teams)
+            .where(eq(teams.id, teamId))
+            .limit(1)
+          if (!inserted) throw new Error(`team ${slug} vanished after insert`)
           row = inserted
           teamBySlug.set(slug, row)
         } else if (Object.keys(fillIns).length > 0) {
@@ -285,26 +300,25 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
           continue
         }
 
-        const [row] = await db
-          .insert(players)
-          .values({
-            firstName,
-            lastName,
-            slug,
-            birthdate: sp.birthdate ?? null,
-            nationality: sp.nationality ?? null,
-            position: sp.position ?? null,
-            heightCm: sp.heightCm ?? null,
-            weightKg: sp.weightKg ?? null,
-            // PHOTOS PAUSED (2026-07-03): imageUrl: sp.photoUrl ?? null,
-            ...fillIns,
-          })
-          .returning({ id: players.id })
-        playerIdBySourceId.set(sp.sourceId, row.id)
+        const playerId = newId()
+        await db.insert(players).values({
+          id: playerId,
+          firstName,
+          lastName,
+          slug,
+          birthdate: sp.birthdate ?? null,
+          nationality: sp.nationality ?? null,
+          position: sp.position ?? null,
+          heightCm: sp.heightCm ?? null,
+          weightKg: sp.weightKg ?? null,
+          // PHOTOS PAUSED (2026-07-03): imageUrl: sp.photoUrl ?? null,
+          ...fillIns,
+        })
+        playerIdBySourceId.set(sp.sourceId, playerId)
         usedPlayerSlugs.add(slug)
         // Make this fresh record matchable by later players in the same run.
         byNameTier.set(tierKey(nameKey, incomingTier), {
-          id: row.id,
+          id: playerId,
           slug,
           firstName,
           lastName,
@@ -354,13 +368,7 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
             winShares: s.winShares,
             bpm: s.bpm,
           })
-          .onConflictDoUpdate({
-            target: [
-              playerSeasonStats.playerId,
-              playerSeasonStats.teamId,
-              playerSeasonStats.leagueId,
-              playerSeasonStats.seasonId,
-            ],
+          .onDuplicateKeyUpdate({
             set: {
               gamesPlayed: s.gamesPlayed,
               minutesTotal: s.minutesTotal,
@@ -418,8 +426,7 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
             age: sc.age ?? null,
             // PHOTOS PAUSED (2026-07-03): photoUrl: sc.photoUrl ?? null,
           })
-          .onConflictDoUpdate({
-            target: [coaches.teamId, coaches.leagueId, coaches.slug],
+          .onDuplicateKeyUpdate({
             set: {
               fullName: sc.fullName,
               role: sc.role,
@@ -454,12 +461,7 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
             netRtg: ts.netRtg ?? null,
             sos: ts.sos ?? null,
           })
-          .onConflictDoUpdate({
-            target: [
-              teamSeasonStats.teamId,
-              teamSeasonStats.seasonId,
-              teamSeasonStats.leagueId,
-            ],
+          .onDuplicateKeyUpdate({
             set: {
               gamesPlayed: ts.gamesPlayed,
               wins: ts.wins,

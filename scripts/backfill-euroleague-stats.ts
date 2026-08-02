@@ -145,7 +145,7 @@ async function main() {
       }[]
     >`
       select pss.id as stat_id, p.id as player_id,
-        p.first_name || ' ' || p.last_name as name,
+        concat(p.first_name, ' ', p.last_name) as name,
         pss.games_played, pss.minutes_total,
         pss.fg_made, pss.fg_attempted, pss.three_made, pss.three_attempted,
         pss.ft_made, pss.ft_attempted, pss.offensive_rebounds, pss.defensive_rebounds,
@@ -206,7 +206,7 @@ async function main() {
     // PHOTOS PAUSED (2026-07-03): people photos were removed from the DB and
     // the UI renders typographic avatars (PersonAvatar). Uncomment to resume.
     // const noImage = await sql<{ id: string; name: string }[]>`
-    //   select distinct p.id, p.first_name || ' ' || p.last_name as name
+    //   select distinct p.id, concat(p.first_name, ' ', p.last_name) as name
     //   from players p
     //   join player_season_stats pss on pss.player_id = p.id
     //   join leagues l on l.id = pss.league_id

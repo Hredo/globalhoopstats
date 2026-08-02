@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { sql } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
+import { newId } from "@/lib/db/schema"
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}))
@@ -18,8 +19,8 @@ export async function POST(request: Request) {
   const db = getDb()
   // Parameterised query — values are bound, immune to SQL injection.
   await db.execute(
-    sql`INSERT INTO search_log (query, result_count)
-        VALUES (${query.slice(0, 200)}, ${count})`,
+    sql`INSERT INTO search_log (id, \`query\`, result_count)
+        VALUES (${newId()}, ${query.slice(0, 200)}, ${count})`,
   )
 
   return NextResponse.json({ ok: true })

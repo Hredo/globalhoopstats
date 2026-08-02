@@ -27,7 +27,8 @@ export async function POST(request: Request) {
   await requestCancelDb()
 
   const db = getDb()
-  const closed = await db
+  // MySQL has no UPDATE ... RETURNING; affectedRows is the row count we need.
+  const [closed] = await db
     .update(syncRuns)
     .set({
       status: "failed",
@@ -35,12 +36,11 @@ export async function POST(request: Request) {
       error: "cancelled by operator",
     })
     .where(eq(syncRuns.status, "running"))
-    .returning({ id: syncRuns.id })
 
   return NextResponse.json({
     ok: true,
     inProcessCancelled: inProcess,
-    runsClosed: closed.length,
+    runsClosed: closed.affectedRows,
     state: syncSnapshot(),
   })
 }

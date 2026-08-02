@@ -48,19 +48,18 @@ export async function PUT(request: Request, { params }: Params) {
   }
 
   const db = getDb()
-  const rows = await db
+  // MySQL has no UPDATE ... RETURNING. affectedRows tells us whether the
+  // ownership-scoped WHERE matched, which is all the 404 check needs.
+  const updatedAt = new Date()
+  const [res] = await db
     .update(playbookPlays)
-    .set({ name: play.name, data: play, updatedAt: new Date() })
+    .set({ name: play.name, data: play, updatedAt })
     .where(and(eq(playbookPlays.id, id), eq(playbookPlays.userId, user.id)))
-    .returning({ id: playbookPlays.id, updatedAt: playbookPlays.updatedAt })
 
-  if (!rows[0]) {
+  if (res.affectedRows === 0) {
     return NextResponse.json({ error: "Play not found." }, { status: 404 })
   }
-  return NextResponse.json({
-    id: rows[0].id,
-    updatedAt: rows[0].updatedAt.toISOString(),
-  })
+  return NextResponse.json({ id, updatedAt: updatedAt.toISOString() })
 }
 
 export async function DELETE(request: Request, { params }: Params) {
@@ -79,12 +78,11 @@ export async function DELETE(request: Request, { params }: Params) {
   }
 
   const db = getDb()
-  const rows = await db
+  const [res] = await db
     .delete(playbookPlays)
     .where(and(eq(playbookPlays.id, id), eq(playbookPlays.userId, user.id)))
-    .returning({ id: playbookPlays.id })
 
-  if (!rows[0]) {
+  if (res.affectedRows === 0) {
     return NextResponse.json({ error: "Play not found." }, { status: 404 })
   }
   return NextResponse.json({ ok: true })

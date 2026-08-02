@@ -132,10 +132,10 @@ async function fetchTopScorers(
   const rows = await db
     .select({
       playerId: players.id,
-      fullName: sql<string>`${players.firstName} || ' ' || ${players.lastName}`,
+      fullName: sql<string>`concat(${players.firstName}, ' ', ${players.lastName})`,
       slug: players.slug,
       imageUrl: players.imageUrl,
-      ppg: sql<number>`round(${playerSeasonStats.pointsTotal}::numeric / nullif(${playerSeasonStats.gamesPlayed}, 0), 1)`,
+      ppg: sql<number>`round(${playerSeasonStats.pointsTotal} / nullif(${playerSeasonStats.gamesPlayed}, 0), 1)`,
       teamId: teams.id,
       teamName: teams.name,
       teamSlug: teams.slug,
@@ -153,7 +153,7 @@ async function fetchTopScorers(
       ),
     )
     .orderBy(
-      sql`${playerSeasonStats.pointsTotal}::numeric / nullif(${playerSeasonStats.gamesPlayed}, 0) desc nulls last`,
+      sql`${playerSeasonStats.pointsTotal} / nullif(${playerSeasonStats.gamesPlayed}, 0) desc`,
     )
     .limit(limit * 4)
   // A player can carry duplicate rows in one season (duplicated team entities
@@ -205,16 +205,16 @@ async function fetchTopPlayer(
 ): Promise<LeagueStatHighlight | null> {
   const valueExpr = isTotal
     ? sql<number>`round(${column} / nullif(${playerSeasonStats.gamesPlayed}, 0), 1)`
-    : sql<number>`round(${column}::numeric, 1)`
+    : sql<number>`round(${column}, 1)`
 
   const orderExpr = isTotal
-    ? sql`${column} / nullif(${playerSeasonStats.gamesPlayed}, 0) desc nulls last`
-    : sql`${column} desc nulls last`
+    ? sql`${column} / nullif(${playerSeasonStats.gamesPlayed}, 0) desc`
+    : sql`${column} desc`
 
   const rows = await db
     .select({
       playerId: players.id,
-      fullName: sql<string>`${players.firstName} || ' ' || ${players.lastName}`,
+      fullName: sql<string>`concat(${players.firstName}, ' ', ${players.lastName})`,
       slug: players.slug,
       imageUrl: players.imageUrl,
       value: valueExpr,
@@ -280,7 +280,7 @@ export const listLeagueOverviews = cached(
               fetchTopScorers(db, row.id, season.id, 3),
               fetchTopPlayer(db, row.id, season.id, sql`${playerSeasonStats.assistsTotal}`, true),
               fetchTopPlayer(db, row.id, season.id, sql`${playerSeasonStats.reboundsTotal}`, true),
-              fetchTopPlayer(db, row.id, season.id, sql`coalesce(${playerSeasonStats.threeMade}, 0)::numeric / nullif(${playerSeasonStats.threeAttempted}, 0) * 100`, false),
+              fetchTopPlayer(db, row.id, season.id, sql`coalesce(${playerSeasonStats.threeMade}, 0) / nullif(${playerSeasonStats.threeAttempted}, 0) * 100`, false),
             ])
           : [[], null, null, null] as [LeagueScorer[], LeagueStatHighlight | null, LeagueStatHighlight | null, LeagueStatHighlight | null]
         return {

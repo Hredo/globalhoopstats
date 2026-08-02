@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { eq, asc } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
-import { announcements } from "@/lib/db/schema"
+import { announcements, newId } from "@/lib/db/schema"
 import { getCurrentUser, isAdmin } from "@/lib/auth/current-user"
 
 const createSchema = z.object({
@@ -41,18 +41,25 @@ export async function POST(request: Request) {
   }
 
   const db = getDb()
+  const id = newId()
+  await db.insert(announcements).values({
+    id,
+    type: parsed.data.type,
+    title: parsed.data.title,
+    content: parsed.data.content ?? null,
+    active: parsed.data.active,
+    priority: parsed.data.priority,
+    startsAt: parsed.data.startsAt ? new Date(parsed.data.startsAt) : null,
+    expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
+  })
+
+  // MySQL has no RETURNING, so the created row is read back to keep the 201
+  // response identical to what the client received before.
   const [inserted] = await db
-    .insert(announcements)
-    .values({
-      type: parsed.data.type,
-      title: parsed.data.title,
-      content: parsed.data.content ?? null,
-      active: parsed.data.active,
-      priority: parsed.data.priority,
-      startsAt: parsed.data.startsAt ? new Date(parsed.data.startsAt) : null,
-      expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
-    })
-    .returning()
+    .select()
+    .from(announcements)
+    .where(eq(announcements.id, id))
+    .limit(1)
 
   return NextResponse.json(inserted, { status: 201 })
 }

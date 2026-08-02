@@ -42,7 +42,9 @@
     "seed:announcements": "tsx scripts/seed-announcements.ts",
     "migrate:league-names": "tsx scripts/migrate-league-names.ts",
     "capture:trade": "tsx scripts/record-trade-video.ts",
-    "capture:playbook": "tsx scripts/record-playbook-video.ts"
+    "capture:playbook": "tsx scripts/record-playbook-video.ts",
+    "db:migrate-from-neon": "tsx scripts/migrate-neon-to-mysql.ts",
+    "db:verify-mysql": "tsx scripts/verify-mysql-parity.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
@@ -57,6 +59,7 @@
     "framer-motion": "^12.40.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
+    "mysql2": "^3.23.2",
     "next": "^15.2.0",
     "nodemailer": "^9.0.1",
     "p-limit": "^7.3.0",

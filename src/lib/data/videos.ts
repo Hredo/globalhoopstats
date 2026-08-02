@@ -51,6 +51,7 @@ export async function getPlayerVideo(
     // found video is still returned below, it just isn't re-cached here.
     await db
       .insert(videos)
+      .ignore()
       .values({
         playerId,
         youtubeId: found.videoId,
@@ -58,7 +59,6 @@ export async function getPlayerVideo(
         thumbnailUrl: found.thumbnailUrl,
         publishedAt: null,
       })
-      .onConflictDoNothing()
   } catch (err) {
     console.error("[videos] failed to cache highlight:", err)
   }

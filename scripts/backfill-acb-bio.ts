@@ -164,7 +164,7 @@ async function main() {
   try {
     /* ---- ACB players with any null bio field (current season) ---- */
     const targets = await sql<DbPlayer[]>`
-      select distinct p.id, p.first_name || ' ' || p.last_name as name,
+      select distinct p.id, concat(p.first_name, ' ', p.last_name) as name,
         p.position, p.height_cm, p.weight_kg, p.nationality, p.birthdate, p.image_url
       from players p
       join player_season_stats pss on pss.player_id = p.id

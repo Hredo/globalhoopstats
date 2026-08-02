@@ -45,7 +45,7 @@ async function main() {
     /* ---- players (current EL season) ---- */
     const playerCols = await colsFor("players")
     const [{ total: playerTotal }] = await sql<{ total: number }[]>`
-      select count(distinct p.id)::int as total
+      select count(distinct p.id) as total
       from players p
       join player_season_stats pss on pss.player_id = p.id
       join leagues l on l.id = pss.league_id
@@ -55,7 +55,7 @@ async function main() {
     console.log(`\n=== PLAYERS (EL current season): ${playerTotal} ===`)
     for (const col of playerCols) {
       const [{ n }] = await sql<{ n: number }[]>`
-        select count(distinct p.id)::int as n
+        select count(distinct p.id) as n
         from players p
         join player_season_stats pss on pss.player_id = p.id
         join leagues l on l.id = pss.league_id
@@ -69,7 +69,7 @@ async function main() {
     /* ---- player_season_stats (current EL season) ---- */
     const statCols = await colsFor("player_season_stats")
     const [{ total: statTotal }] = await sql<{ total: number }[]>`
-      select count(*)::int as total
+      select count(*) as total
       from player_season_stats pss
       join leagues l on l.id = pss.league_id
       join seasons s on s.id = pss.season_id
@@ -78,7 +78,7 @@ async function main() {
     console.log(`\n=== PLAYER_SEASON_STATS (EL current season): ${statTotal} rows ===`)
     for (const col of statCols) {
       const [{ n }] = await sql<{ n: number }[]>`
-        select count(*)::int as n
+        select count(*) as n
         from player_season_stats pss
         join leagues l on l.id = pss.league_id
         join seasons s on s.id = pss.season_id
@@ -91,7 +91,7 @@ async function main() {
     /* ---- teams (any EL team) ---- */
     const teamCols = await colsFor("teams")
     const [{ total: teamTotal }] = await sql<{ total: number }[]>`
-      select count(distinct t.id)::int as total
+      select count(distinct t.id) as total
       from teams t
       join player_season_stats pss on pss.team_id = t.id
       join leagues l on l.id = pss.league_id
@@ -101,7 +101,7 @@ async function main() {
     console.log(`\n=== TEAMS (EL current season): ${teamTotal} ===`)
     for (const col of teamCols) {
       const [{ n }] = await sql<{ n: number }[]>`
-        select count(distinct t.id)::int as n
+        select count(distinct t.id) as n
         from teams t
         join player_season_stats pss on pss.team_id = t.id
         join leagues l on l.id = pss.league_id
@@ -115,7 +115,7 @@ async function main() {
     /* ---- coaches (EL) ---- */
     const coachCols = await colsFor("coaches")
     const [{ total: coachTotal }] = await sql<{ total: number }[]>`
-      select count(*)::int as total
+      select count(*) as total
       from coaches c
       join leagues l on l.id = c.league_id
       where l.slug = 'euroleague'
@@ -123,7 +123,7 @@ async function main() {
     console.log(`\n=== COACHES (EL): ${coachTotal} ===`)
     for (const col of coachCols) {
       const [{ n }] = await sql<{ n: number }[]>`
-        select count(*)::int as n
+        select count(*) as n
         from coaches c
         join leagues l on l.id = c.league_id
         where l.slug = 'euroleague' and ${sql(`c.${col}`)} is null
@@ -134,7 +134,7 @@ async function main() {
     /* ---- team_season_stats (EL current season) ---- */
     const tssCols = await colsFor("team_season_stats")
     const [{ total: tssTotal }] = await sql<{ total: number }[]>`
-      select count(*)::int as total
+      select count(*) as total
       from team_season_stats tss
       join leagues l on l.id = tss.league_id
       join seasons s on s.id = tss.season_id
@@ -143,7 +143,7 @@ async function main() {
     console.log(`\n=== TEAM_SEASON_STATS (EL current season): ${tssTotal} rows ===`)
     for (const col of tssCols) {
       const [{ n }] = await sql<{ n: number }[]>`
-        select count(*)::int as n
+        select count(*) as n
         from team_season_stats tss
         join leagues l on l.id = tss.league_id
         join seasons s on s.id = tss.season_id

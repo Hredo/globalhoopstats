@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db/client"
 import {
   coaches,
   leagues,
+  newId,
   playerSeasonStats,
   players,
   seasons,
@@ -33,7 +34,7 @@ import { isSyncCancelled } from "@/lib/sync/controller"
  * ACB and the three FEB competitions) through the same pipeline —
  * scrape → entity-match players via Ollama → ensure teams → upsert stats.
  *
- * Concurrency is capped at 2 leagues so the Neon connection pool stays calm
+ * Concurrency is capped at 2 leagues so the MySQL connection pool stays calm
  * and no source sees a burst of parallel traffic. Seasons, teams and the
  * player identity registry are shared across the parallel jobs, which is what
  * keeps a multi-league player (e.g. Edy Tavares) on a single players row.
@@ -125,27 +126,35 @@ async function syncLeague(
   const started = Date.now()
   const totals = emptyTotals()
 
+  // sync_runs.id is AUTO_INCREMENT; $returningId reads back the insertId.
   const [run] = await db
     .insert(syncRuns)
     .values({ source: adapter.id, status: "running", rowsWritten: 0 })
-    .returning({ id: syncRuns.id })
+    .$returningId()
 
   try {
     console.log(`${tag} sync started (season ${adapter.seasonCode})`)
 
     /* ---- League & season ---- */
-    const [league] = await db
+    // Upsert, then read the id back: on a duplicate slug MySQL keeps the
+    // existing row's id, so the generated one may not be the winner.
+    await db
       .insert(leagues)
       .values({
+        id: newId(),
         name: adapter.displayName,
         slug: adapter.id,
         region: adapter.country,
       })
-      .onConflictDoUpdate({
-        target: leagues.slug,
+      .onDuplicateKeyUpdate({
         set: { name: adapter.displayName, region: adapter.country },
       })
-      .returning({ id: leagues.id })
+    const [league] = await db
+      .select({ id: leagues.id })
+      .from(leagues)
+      .where(eq(leagues.slug, adapter.id))
+      .limit(1)
+    if (!league) throw new Error(`league ${adapter.id} vanished after upsert`)
     const leagueId = league.id
     const seasonId = await ctx.ensureSeason(adapter.seasonCode)
 
@@ -223,22 +232,21 @@ async function syncLeague(
       const baseSlug = slugify(sp.fullName) || `player-${sp.sourceId}`
       const slug = uniqueSlug(baseSlug, ctx.usedPlayerSlugs)
 
-      const [row] = await db
-        .insert(players)
-        .values({
-          firstName,
-          lastName,
-          slug,
-          nationality: sp.nationality ?? null,
-          position: sp.position ?? null,
-          heightCm: sp.heightCm ?? null,
-          weightKg: sp.weightKg ?? null,
-          // PHOTOS PAUSED (2026-07-03): imageUrl: sp.photoUrl ?? null,
-        })
-        .returning({ id: players.id })
+      const playerId = newId()
+      await db.insert(players).values({
+        id: playerId,
+        firstName,
+        lastName,
+        slug,
+        nationality: sp.nationality ?? null,
+        position: sp.position ?? null,
+        heightCm: sp.heightCm ?? null,
+        weightKg: sp.weightKg ?? null,
+        // PHOTOS PAUSED (2026-07-03): imageUrl: sp.photoUrl ?? null,
+      })
       matcher.register(
         {
-          id: row.id,
+          id: playerId,
           fullName: sp.fullName,
           nationality: sp.nationality ?? null,
           position: sp.position ?? null,
@@ -246,7 +254,7 @@ async function syncLeague(
         },
         tierForName(adapter.displayName),
       )
-      playerIdBySourceId.set(sp.sourceId, row.id)
+      playerIdBySourceId.set(sp.sourceId, playerId)
       totals.playersCreated++
     }
     console.log(
@@ -267,13 +275,7 @@ async function syncLeague(
       await db
         .insert(playerSeasonStats)
         .values({ playerId, teamId, leagueId, seasonId, ...statColumns(stat) })
-        .onConflictDoUpdate({
-          target: [
-            playerSeasonStats.playerId,
-            playerSeasonStats.teamId,
-            playerSeasonStats.leagueId,
-            playerSeasonStats.seasonId,
-          ],
+        .onDuplicateKeyUpdate({
           set: statColumns(stat),
         })
       totals.statsUpserted++
@@ -310,8 +312,7 @@ async function syncLeague(
           age: sc.age ?? null,
           // PHOTOS PAUSED (2026-07-03): photoUrl: sc.photoUrl ?? null,
         })
-        .onConflictDoUpdate({
-          target: [coaches.teamId, coaches.leagueId, coaches.slug],
+        .onDuplicateKeyUpdate({
           set: {
             fullName: sc.fullName,
             role: sc.role,
@@ -389,19 +390,24 @@ export async function startGlobalSync(
   // overlap guard. Only rows older than the window are touched, so the current
   // run's own rows are never affected.
   const staleCutoff = new Date(Date.now() - STALE_RUN_WINDOW_MS)
-  const swept = await db
+  const staleFilter = and(
+    eq(syncRuns.status, "running"),
+    lt(syncRuns.startedAt, staleCutoff),
+  )
+  // MySQL has no UPDATE ... RETURNING, so the affected rows are counted from
+  // the update result instead of collected from it.
+  const [swept] = await db
     .update(syncRuns)
     .set({
       status: "failed",
       finishedAt: new Date(),
       error: "stale run (process ended before completion)",
     })
-    .where(
-      and(eq(syncRuns.status, "running"), lt(syncRuns.startedAt, staleCutoff)),
+    .where(staleFilter)
+  if (swept.affectedRows > 0) {
+    console.log(
+      `[orchestrator] swept ${swept.affectedRows} stale running sync rows`,
     )
-    .returning({ id: syncRuns.id })
-  if (swept.length > 0) {
-    console.log(`[orchestrator] swept ${swept.length} stale running sync rows`)
   }
 
   console.log(
@@ -508,11 +514,11 @@ export async function startGlobalSync(
             `,
           )) as unknown as { id: string }[]
           if (existing[0]) return existing[0].id
-          const [inserted] = await db
+          const seasonId = newId()
+          await db
             .insert(seasons)
-            .values({ name: code, isCurrent: true })
-            .returning({ id: seasons.id })
-          return inserted.id
+            .values({ id: seasonId, name: code, isCurrent: true })
+          return seasonId
         })()
         seasonPromises.set(code, pending)
       }
@@ -525,9 +531,10 @@ export async function startGlobalSync(
         pending = (async () => {
           const cached = teamStateBySlug.get(slug)
           if (cached) return cached.id
-          const [row] = await db
+          await db
             .insert(teams)
             .values({
+              id: newId(),
               name: team.name,
               slug,
               city: team.city ?? null,
@@ -538,11 +545,13 @@ export async function startGlobalSync(
               primaryColor: team.primaryColor ?? null,
               secondaryColor: team.secondaryColor ?? null,
             })
-            .onConflictDoUpdate({
-              target: teams.slug,
+            .onDuplicateKeyUpdate({
               set: { name: team.name },
             })
-            .returning({
+          // Read back by slug, not by the generated id: when the upsert hits an
+          // existing team the row keeps its original id.
+          const [row] = await db
+            .select({
               id: teams.id,
               city: teams.city,
               logoUrl: teams.logoUrl,
@@ -552,6 +561,10 @@ export async function startGlobalSync(
               primaryColor: teams.primaryColor,
               secondaryColor: teams.secondaryColor,
             })
+            .from(teams)
+            .where(eq(teams.slug, slug))
+            .limit(1)
+          if (!row) throw new Error(`team ${slug} vanished after upsert`)
           teamStateBySlug.set(slug, {
             id: row.id,
             city: row.city,

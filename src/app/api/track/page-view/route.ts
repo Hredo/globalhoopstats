@@ -2,6 +2,7 @@ import { createHash } from "node:crypto"
 import { NextResponse } from "next/server"
 import { sql } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
+import { newId } from "@/lib/db/schema"
 import { getEnv, getServerEnv } from "@/lib/env"
 import { clientIp } from "@/lib/security/ai-advisor"
 
@@ -69,19 +70,21 @@ export async function POST(request: Request) {
   // Parameterised query: values are bound, never string-interpolated, so this
   // is immune to SQL injection regardless of what the client sends.
   try {
+    // `id` is supplied explicitly: Postgres defaulted it server-side, MySQL
+    // has no equivalent so the value is minted here.
     await db.execute(
       sql`INSERT INTO page_views
-            (page_type, page_slug, league_slug, referrer, device, country, visitor_hash)
+            (id, page_type, page_slug, league_slug, referrer, device, country, visitor_hash)
           VALUES
-            (${pt}, ${str(pageSlug, 200)}, ${str(leagueSlug, 64)}, ${ref}, ${device}, ${country}, ${vhash})`,
+            (${newId()}, ${pt}, ${str(pageSlug, 200)}, ${str(leagueSlug, 64)}, ${ref}, ${device}, ${country}, ${vhash})`,
     )
   } catch {
     // The referrer/device/country/visitor_hash columns are added by a migration.
     // If it hasn't run yet, fall back to the original 3-column insert so page
     // tracking never breaks regardless of deploy/migration ordering.
     await db.execute(
-      sql`INSERT INTO page_views (page_type, page_slug, league_slug)
-          VALUES (${pt}, ${str(pageSlug, 200)}, ${str(leagueSlug, 64)})`,
+      sql`INSERT INTO page_views (id, page_type, page_slug, league_slug)
+          VALUES (${newId()}, ${pt}, ${str(pageSlug, 200)}, ${str(leagueSlug, 64)})`,
     )
   }
 

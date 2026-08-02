@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { sql } from "drizzle-orm"
-import { getDb } from "@/lib/db/client"
+import { getDb, rawRows } from "@/lib/db/client"
 import { getCurrentUser, isAdmin } from "@/lib/auth/current-user"
 import { invalidateConfigCache } from "@/lib/admin/config"
 
@@ -10,9 +10,18 @@ export async function GET(request: Request) {
   if (!isAdmin(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const db = getDb()
-  const rows = await db.execute(sql.raw(`SELECT key, value, description FROM app_config ORDER BY key`))
+  // `key` is a reserved word in MySQL and must be back-quoted.
+  const rows = await rawRows<{
+    key: string
+    value: string
+    description: string | null
+  }>(
+    db.execute(
+      sql.raw("SELECT `key`, value, description FROM app_config ORDER BY `key`"),
+    ),
+  )
 
-  return NextResponse.json(rows as unknown as { key: string; value: string; description: string | null }[])
+  return NextResponse.json(rows)
 }
 
 export async function PUT(request: Request) {
@@ -33,9 +42,9 @@ export async function PUT(request: Request) {
   const db = getDb()
   // Parameterised query: even an admin-supplied key can't break out of the SQL.
   await db.execute(
-    sql`INSERT INTO app_config (key, value, updated_at)
-      VALUES (${key}, ${JSON.stringify(value)}, now())
-      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
+    sql`INSERT INTO app_config (\`key\`, value, updated_at)
+      VALUES (${key}, ${JSON.stringify(value)}, UTC_TIMESTAMP(3))
+      ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = UTC_TIMESTAMP(3)`,
   )
 
   invalidateConfigCache()
