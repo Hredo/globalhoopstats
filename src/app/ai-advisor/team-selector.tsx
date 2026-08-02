@@ -54,7 +54,7 @@ export function TeamSelector({
   useEffect(() => {
     const cached = loadCachedTeams()
     if (cached) {
-      setTeams(cached)
+      setTeams(cached) // eslint-disable-line react-hooks/set-state-in-effect
       setLoading(false)
       return
     }
@@ -113,12 +113,12 @@ export function TeamSelector({
   }, [])
 
   useEffect(() => {
-    setHighlightIdx(-1)
+    setHighlightIdx(-1) // eslint-disable-line react-hooks/set-state-in-effect
   }, [query])
 
   useEffect(() => {
     if (initialTeam) {
-      setSelected(initialTeam)
+      setSelected(initialTeam) // eslint-disable-line react-hooks/set-state-in-effect
       setQuery(initialTeam.name)
     }
   }, [initialTeam])

@@ -137,7 +137,7 @@ async function main() {
         fouls_total: number | null
       }[]
     >`
-      select pss.id, p.first_name || ' ' || p.last_name as name,
+      select pss.id, concat(p.first_name, ' ', p.last_name) as name,
         pss.fg_made, pss.fg_attempted, pss.three_made, pss.three_attempted,
         pss.ft_made, pss.ft_attempted, pss.offensive_rebounds,
         pss.defensive_rebounds, pss.fouls_total

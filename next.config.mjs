@@ -1,5 +1,3 @@
-import { withSerwist } from "@serwist/turbopack"
-
 const isDev = process.env.NODE_ENV !== "production"
 
 // Loopback Ollama (local LLM) is contacted from the browser to list installed
@@ -147,4 +145,4 @@ const nextConfig = {
   },
 }
 
-export default withSerwist(nextConfig)
+export default nextConfig

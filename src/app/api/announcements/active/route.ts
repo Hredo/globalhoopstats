@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { sql } from "drizzle-orm"
-import { getDb } from "@/lib/db/client"
+import { getDb, rawRows } from "@/lib/db/client"
 
 export const dynamic = "force-dynamic"
 
@@ -21,16 +21,20 @@ export type ActiveAnnouncement = {
 export async function GET() {
   try {
     const db = getDb()
-    const rows = (await db.execute(sql`
-      SELECT id, title, content, priority, created_at AS "createdAt"
-      FROM announcements
-      WHERE active = true
-        AND type = 'banner'
-        AND (starts_at IS NULL OR starts_at <= now())
-        AND (expires_at IS NULL OR expires_at > now())
-      ORDER BY priority DESC, created_at DESC
-      LIMIT 10
-    `)) as unknown as ActiveAnnouncement[]
+    // Back-quoted alias (MySQL reads "..." as a string literal, not an
+    // identifier) and UTC_TIMESTAMP to match how datetimes are stored.
+    const rows = await rawRows<ActiveAnnouncement>(
+      db.execute(sql`
+        SELECT id, title, content, priority, created_at AS \`createdAt\`
+        FROM announcements
+        WHERE active = true
+          AND type = 'banner'
+          AND (starts_at IS NULL OR starts_at <= UTC_TIMESTAMP(3))
+          AND (expires_at IS NULL OR expires_at > UTC_TIMESTAMP(3))
+        ORDER BY priority DESC, created_at DESC
+        LIMIT 10
+      `),
+    )
 
     return NextResponse.json(rows, {
       headers: { "Cache-Control": "no-store" },

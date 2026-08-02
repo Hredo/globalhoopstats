@@ -26,6 +26,7 @@ desktop.ini
 
 # env files
 .env
+.env.*
 .env.local
 .env.development.local
 .env.test.local
@@ -58,3 +59,6 @@ public/swe-worker*
 
 # internal deployment notes
 /DEPLOY-HOSTINGER.md
+
+# Cached browser session used by the capture scripts
+.auth

@@ -6,6 +6,7 @@ import {
   useState,
   type CSSProperties,
 } from "react"
+import { useReducedMotion } from "@/hooks/use-reduced-motion"
 
 export function AnimatedBar({
   value,
@@ -26,13 +27,8 @@ export function AnimatedBar({
 }) {
   const ref = useRef<HTMLDivElement | null>(null)
   const [shown, setShown] = useState(false)
-  const [reduce, setReduce] = useState(false)
+  const reduce = useReducedMotion()
   const pct = Math.min(100, (value / max) * 100)
-
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
-    setReduce(mq.matches)
-  }, [])
 
   useEffect(() => {
     if (reduce) return

@@ -110,7 +110,7 @@ async function main() {
   try {
     /* ---- the lone player image ---- */
     const players = await sql<{ id: string; name: string }[]>`
-      select distinct p.id, p.first_name || ' ' || p.last_name as name
+      select distinct p.id, concat(p.first_name, ' ', p.last_name) as name
       from players p
       join player_season_stats pss on pss.player_id = p.id
       join leagues l on l.id = pss.league_id

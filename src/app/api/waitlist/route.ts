@@ -68,14 +68,15 @@ export async function POST(req: Request) {
   let inserted = false
   let duplicate = false
   try {
-    const res = await db.execute(sql`
-      insert into waitlist_entries (email, created_at, source)
-      values (${email}, ${Math.floor(Date.now() / 1000)}, ${source ?? null})
-      on conflict (email) do nothing
+    // INSERT IGNORE is MySQL's "do nothing on duplicate key"; affectedRows is
+    // 1 when the row was written and 0 when the unique email already existed.
+    // created_at now binds a real Date — the previous Unix-seconds integer was
+    // never a valid timestamp value.
+    const [res] = await db.execute(sql`
+      insert ignore into waitlist_entries (email, created_at, source)
+      values (${email}, ${new Date()}, ${source ?? null})
     `)
-    const rawRes = res as unknown as { count: number }
-    const rowCount = rawRes.count ?? 0
-    inserted = rowCount > 0
+    inserted = res.affectedRows > 0
     duplicate = !inserted
   } catch (err) {
     console.error("[waitlist] db insert failed", err)

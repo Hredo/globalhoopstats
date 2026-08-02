@@ -126,8 +126,7 @@ export async function PUT(request: Request) {
   await db
     .insert(userSettings)
     .values({ userId: user.id, ...next, createdAt: now, updatedAt: now })
-    .onConflictDoUpdate({
-      target: userSettings.userId,
+    .onDuplicateKeyUpdate({
       set: { ...next, updatedAt: now },
     })
 

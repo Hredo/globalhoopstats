@@ -38,7 +38,7 @@ export function CookieConsent() {
   useEffect(() => {
     // Run after mount to avoid a hydration mismatch (document.cookie is
     // client-only). Only show if the user hasn't chosen yet.
-    if (!hasDecided()) setVisible(true)
+    if (!hasDecided()) setVisible(true) // eslint-disable-line react-hooks/set-state-in-effect
   }, [])
 
   if (!visible) return null

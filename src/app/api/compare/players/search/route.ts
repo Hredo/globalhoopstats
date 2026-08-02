@@ -72,7 +72,7 @@ export async function GET(req: Request) {
   const conditions = []
   if (q) {
     conditions.push(
-      like(sql`lower(${players.firstName} || ' ' || ${players.lastName})`, `%${q.toLowerCase()}%`),
+      like(sql`lower(concat(${players.firstName}, ' ', ${players.lastName}))`, `%${q.toLowerCase()}%`),
     )
   }
   if (LEAGUES.has(league)) {
@@ -85,7 +85,7 @@ export async function GET(req: Request) {
     .select({
       id: players.id,
       slug: players.slug,
-      fullName: sql<string>`${players.firstName} || ' ' || ${players.lastName}`,
+      fullName: sql<string>`concat(${players.firstName}, ' ', ${players.lastName})`,
       source: leagues.slug,
       photoUrl: players.imageUrl,
       position: players.position,
@@ -104,7 +104,7 @@ export async function GET(req: Request) {
     .innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
     .leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
     .where(where)
-    .orderBy(asc(sql`${players.firstName} || ' ' || ${players.lastName}`))
+    .orderBy(asc(sql`concat(${players.firstName}, ' ', ${players.lastName})`))
     .limit(limitNum)
 
   // Deduplicate by player UUID — a player can have multiple stat rows (seasons)

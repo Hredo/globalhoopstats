@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm"
-import { getDb } from "@/lib/db/client"
+import { getDb, rawRows } from "@/lib/db/client"
 
 type ConfigValue = Record<string, unknown>
 
@@ -8,9 +8,12 @@ let configCache: Record<string, ConfigValue> | null = null
 export async function getConfig(): Promise<Record<string, ConfigValue>> {
   if (configCache) return configCache
   const db = getDb()
-  const rows = await db.execute(sql.raw(`SELECT key, value FROM app_config`))
+  // `key` is a reserved word in MySQL and must be back-quoted.
+  const rows = await rawRows<{ key: string; value: string }>(
+    db.execute(sql.raw("SELECT `key`, value FROM app_config")),
+  )
   const result: Record<string, ConfigValue> = {}
-  for (const row of rows as unknown as { key: string; value: string }[]) {
+  for (const row of rows) {
     try {
       result[row.key] = JSON.parse(row.value)
     } catch {

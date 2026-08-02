@@ -271,7 +271,7 @@ async function main() {
         nationality: string | null
       }[]
     >`
-      select distinct p.id, p.first_name || ' ' || p.last_name as name,
+      select distinct p.id, concat(p.first_name, ' ', p.last_name) as name,
         p.image_url, p.position, p.height_cm, p.weight_kg, p.nationality
       from players p
       join player_season_stats pss on pss.player_id = p.id

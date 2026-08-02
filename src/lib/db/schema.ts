@@ -1,16 +1,74 @@
+import { sql } from "drizzle-orm"
 import {
-  pgTable,
-  uuid,
+  mysqlTable,
+  varchar,
   text,
-  integer,
-  serial,
-  doublePrecision,
+  mediumtext,
+  int,
+  double,
   boolean,
-  timestamp,
-  jsonb,
+  datetime,
+  json,
   uniqueIndex,
   index,
-} from "drizzle-orm/pg-core"
+} from "drizzle-orm/mysql-core"
+
+/*
+ * ─── Postgres → MySQL mapping notes ──────────────────────────────────────────
+ * These rules are applied uniformly below; read them once and the rest is
+ * mechanical.
+ *
+ * uuid            → varchar(36). MySQL has no uuid type. We keep the canonical
+ *                   36-char dashed text form so every existing id migrates
+ *                   across byte-for-byte and no application code that passes
+ *                   ids around has to change. Generation moves from the DB
+ *                   (`defaultRandom()`) to JS (`$defaultFn`) — see uuidPk().
+ * text (indexed)  → varchar(n). MySQL CANNOT index, key or unique-constrain a
+ *                   TEXT column without a prefix length, so every column that
+ *                   participates in a PRIMARY KEY, UNIQUE or INDEX below had to
+ *                   become varchar. Lengths are deliberately generous; the
+ *                   migration preflight verifies no live value exceeds them.
+ *                   IDX_LEN (191) is the classic utf8mb4-safe index width
+ *                   (191×4 = 764 bytes < the legacy 767-byte InnoDB limit), so
+ *                   the schema also builds on older row formats.
+ * text (unindexed)→ stays text. Never narrowed, to guarantee zero truncation.
+ * jsonb           → json. Same read/write shape through Drizzle.
+ * serial          → int().autoincrement(). Postgres serial is int4, so this is
+ *                   an exact match (Drizzle's mysql `serial` is bigint — avoided).
+ * doublePrecision → double.
+ * timestamp       → datetime(3), NOT MySQL's TIMESTAMP: TIMESTAMP is limited to
+ *                   1970-2038 and silently rewrites values across time zones.
+ *                   fsp 3 is millisecond precision, which is exactly what a JS
+ *                   Date carries. The connection pins timezone "Z" so these
+ *                   round-trip as UTC (see client.ts).
+ */
+
+/** utf8mb4-safe width for any string column that takes part in an index. */
+const IDX_LEN = 191
+
+/** A uuid value: the 36-char canonical text form of what Postgres stored. */
+const uuidCol = (name: string) => varchar(name, { length: 36 })
+
+/**
+ * Mint a primary key up front.
+ *
+ * Postgres let us `INSERT ... RETURNING id` and read back a server-generated
+ * uuid. MySQL has no RETURNING, so call sites that need the id of the row they
+ * are about to write generate it here first and insert it explicitly. Same
+ * value space as before, so ids stay interchangeable across the migration.
+ */
+export const newId = () => globalThis.crypto.randomUUID()
+
+/**
+ * Primary-key uuid. Postgres generated these server-side via `defaultRandom()`;
+ * MySQL has no portable equivalent, so the value is generated in JS on insert.
+ * Uses Web Crypto (`globalThis.crypto`) rather than `node:crypto` so importing
+ * this module never drags a Node built-in into a client bundle.
+ */
+const uuidPk = (name = "id") => uuidCol(name).$defaultFn(newId).primaryKey()
+
+/** `now()` default at millisecond precision, matching the datetime(3) columns. */
+const nowDefault = sql`(CURRENT_TIMESTAMP(3))`
 
 /** The eleven half-court buckets we split shots into. */
 export type ShotZoneKey =
@@ -33,32 +91,32 @@ export type ShotZoneKey =
  */
 export type ShotZonesJson = Partial<Record<ShotZoneKey, { m: number; a: number }>>
 
-export const leagues = pgTable("leagues", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const leagues = mysqlTable("leagues", {
+  id: uuidPk(),
   name: text("name").notNull(),
-  slug: text("slug").notNull().unique(),
+  slug: varchar("slug", { length: IDX_LEN }).notNull().unique(),
   region: text("region").notNull(),
   logoUrl: text("logo_url"),
 })
 
-export const seasons = pgTable("seasons", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const seasons = mysqlTable("seasons", {
+  id: uuidPk(),
   name: text("name").notNull(),
   isCurrent: boolean("is_current").notNull().default(false),
 })
 
-export const teams = pgTable(
+export const teams = mysqlTable(
   "teams",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
-    name: text("name").notNull(),
-    slug: text("slug").notNull(),
+    id: uuidPk(),
+    name: varchar("name", { length: IDX_LEN }).notNull(),
+    slug: varchar("slug", { length: IDX_LEN }).notNull(),
     city: text("city"),
     logoUrl: text("logo_url"),
-    foundedYear: integer("founded_year"),
+    foundedYear: int("founded_year"),
     website: text("website"),
     arena: text("arena"),
-    arenaCapacity: integer("arena_capacity"),
+    arenaCapacity: int("arena_capacity"),
     primaryColor: text("primary_color"),
     secondaryColor: text("secondary_color"),
   },
@@ -68,19 +126,19 @@ export const teams = pgTable(
   ],
 )
 
-export const players = pgTable(
+export const players = mysqlTable(
   "players",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
+    id: uuidPk(),
     firstName: text("first_name").notNull(),
-    lastName: text("last_name").notNull(),
-    slug: text("slug").notNull().unique(),
-    bio: text("bio"),
+    lastName: varchar("last_name", { length: IDX_LEN }).notNull(),
+    slug: varchar("slug", { length: IDX_LEN }).notNull().unique(),
+    bio: mediumtext("bio"),
     imageUrl: text("image_url"),
     birthdate: text("birthdate"),
-    position: text("position"),
-    heightCm: integer("height_cm"),
-    weightKg: integer("weight_kg"),
+    position: varchar("position", { length: 64 }),
+    heightCm: int("height_cm"),
+    weightKg: int("weight_kg"),
     nationality: text("nationality"),
   },
   (t) => [
@@ -89,46 +147,46 @@ export const players = pgTable(
   ],
 )
 
-export const playerSeasonStats = pgTable(
+export const playerSeasonStats = mysqlTable(
   "player_season_stats",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
-    playerId: uuid("player_id")
+    id: uuidPk(),
+    playerId: uuidCol("player_id")
       .notNull()
       .references(() => players.id, { onDelete: "cascade" }),
-    teamId: uuid("team_id")
+    teamId: uuidCol("team_id")
       .notNull()
       .references(() => teams.id, { onDelete: "cascade" }),
-    leagueId: uuid("league_id")
+    leagueId: uuidCol("league_id")
       .notNull()
       .references(() => leagues.id, { onDelete: "cascade" }),
-    seasonId: uuid("season_id")
+    seasonId: uuidCol("season_id")
       .notNull()
       .references(() => seasons.id, { onDelete: "cascade" }),
-    gamesPlayed: integer("games_played").notNull().default(0),
-    minutesTotal: integer("minutes_total"),
-    pointsTotal: integer("points_total"),
-    reboundsTotal: integer("rebounds_total"),
-    assistsTotal: integer("assists_total"),
-    stealsTotal: integer("steals_total"),
-    blocksTotal: integer("blocks_total"),
-    fgMade: integer("fg_made"),
-    fgAttempted: integer("fg_attempted"),
-    threeMade: integer("three_made"),
-    threeAttempted: integer("three_attempted"),
-    ftMade: integer("ft_made"),
-    ftAttempted: integer("ft_attempted"),
-    offensiveRebounds: integer("offensive_rebounds"),
-    defensiveRebounds: integer("defensive_rebounds"),
-    foulsTotal: integer("fouls_total"),
-    plusMinus: integer("plus_minus"),
-    per: doublePrecision("per"),
-    trueShootingPct: doublePrecision("true_shooting_pct"),
-    winShares: doublePrecision("win_shares"),
-    bpm: doublePrecision("bpm"),
+    gamesPlayed: int("games_played").notNull().default(0),
+    minutesTotal: int("minutes_total"),
+    pointsTotal: int("points_total"),
+    reboundsTotal: int("rebounds_total"),
+    assistsTotal: int("assists_total"),
+    stealsTotal: int("steals_total"),
+    blocksTotal: int("blocks_total"),
+    fgMade: int("fg_made"),
+    fgAttempted: int("fg_attempted"),
+    threeMade: int("three_made"),
+    threeAttempted: int("three_attempted"),
+    ftMade: int("ft_made"),
+    ftAttempted: int("ft_attempted"),
+    offensiveRebounds: int("offensive_rebounds"),
+    defensiveRebounds: int("defensive_rebounds"),
+    foulsTotal: int("fouls_total"),
+    plusMinus: int("plus_minus"),
+    per: double("per"),
+    trueShootingPct: double("true_shooting_pct"),
+    winShares: double("win_shares"),
+    bpm: double("bpm"),
     // Real per-zone made/attempted from shot-by-shot coordinates. Null when the
     // league publishes no shot locations. See backfill-euroleague-shot-zones.ts.
-    shotZones: jsonb("shot_zones").$type<ShotZonesJson>(),
+    shotZones: json("shot_zones").$type<ShotZonesJson>(),
   },
   (t) => [
     uniqueIndex("player_season_stats_unique_idx").on(
@@ -144,24 +202,28 @@ export const playerSeasonStats = pgTable(
   ],
 )
 
-export const coaches = pgTable(
+export const coaches = mysqlTable(
   "coaches",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
-    teamId: uuid("team_id")
+    id: uuidPk(),
+    teamId: uuidCol("team_id")
       .notNull()
       .references(() => teams.id, { onDelete: "cascade" }),
-    leagueId: uuid("league_id")
+    leagueId: uuidCol("league_id")
       .notNull()
       .references(() => leagues.id, { onDelete: "cascade" }),
-    fullName: text("full_name").notNull(),
-    slug: text("slug").notNull(),
+    fullName: varchar("full_name", { length: IDX_LEN }).notNull(),
+    slug: varchar("slug", { length: IDX_LEN }).notNull(),
     role: text("role").notNull(),
     nationality: text("nationality"),
-    age: integer("age"),
+    age: int("age"),
     photoUrl: text("photo_url"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+    updatedAt: datetime("updated_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
   },
   (t) => [
     uniqueIndex("coaches_team_role_idx").on(t.teamId, t.leagueId, t.slug),
@@ -169,31 +231,31 @@ export const coaches = pgTable(
   ],
 )
 
-export const teamSeasonStats = pgTable(
+export const teamSeasonStats = mysqlTable(
   "team_season_stats",
   {
-    id: serial("id").primaryKey(),
-    teamId: uuid("team_id")
+    id: int("id").autoincrement().primaryKey(),
+    teamId: uuidCol("team_id")
       .notNull()
       .references(() => teams.id, { onDelete: "cascade" }),
-    seasonId: uuid("season_id")
+    seasonId: uuidCol("season_id")
       .notNull()
       .references(() => seasons.id, { onDelete: "cascade" }),
-    leagueId: uuid("league_id")
+    leagueId: uuidCol("league_id")
       .notNull()
       .references(() => leagues.id, { onDelete: "cascade" }),
-    gamesPlayed: integer("games_played").notNull().default(0),
-    wins: integer("wins").notNull().default(0),
-    losses: integer("losses").notNull().default(0),
-    winPct: doublePrecision("win_pct"),
-    pointsFor: doublePrecision("points_for"),
-    pointsAgainst: doublePrecision("points_against"),
-    position: integer("position"),
-    pace: doublePrecision("pace"),
-    offRtg: doublePrecision("off_rtg"),
-    defRtg: doublePrecision("def_rtg"),
-    netRtg: doublePrecision("net_rtg"),
-    sos: doublePrecision("sos"),
+    gamesPlayed: int("games_played").notNull().default(0),
+    wins: int("wins").notNull().default(0),
+    losses: int("losses").notNull().default(0),
+    winPct: double("win_pct"),
+    pointsFor: double("points_for"),
+    pointsAgainst: double("points_against"),
+    position: int("position"),
+    pace: double("pace"),
+    offRtg: double("off_rtg"),
+    defRtg: double("def_rtg"),
+    netRtg: double("net_rtg"),
+    sos: double("sos"),
   },
   (t) => [
     uniqueIndex("team_season_stats_team_season_league_idx").on(
@@ -204,84 +266,98 @@ export const teamSeasonStats = pgTable(
   ],
 )
 
-export const videos = pgTable(
+export const videos = mysqlTable(
   "videos",
   {
-    id: serial("id").primaryKey(),
-    playerId: uuid("player_id")
+    id: int("id").autoincrement().primaryKey(),
+    playerId: uuidCol("player_id")
       .notNull()
       .references(() => players.id, { onDelete: "cascade" }),
-    youtubeId: text("youtube_id").notNull(),
+    youtubeId: varchar("youtube_id", { length: 32 }).notNull(),
     title: text("title").notNull(),
     thumbnailUrl: text("thumbnail_url").notNull(),
-    publishedAt: timestamp("published_at"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    publishedAt: datetime("published_at", { mode: "date", fsp: 3 }),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
   },
   (t) => [uniqueIndex("videos_youtube_id_idx").on(t.youtubeId)],
 )
 
-export const syncRuns = pgTable("sync_runs", {
-  id: serial("id").primaryKey(),
+export const syncRuns = mysqlTable("sync_runs", {
+  id: int("id").autoincrement().primaryKey(),
   source: text("source").notNull(),
-  startedAt: timestamp("started_at").notNull().defaultNow(),
-  finishedAt: timestamp("finished_at"),
+  startedAt: datetime("started_at", { mode: "date", fsp: 3 })
+    .notNull()
+    .default(nowDefault),
+  finishedAt: datetime("finished_at", { mode: "date", fsp: 3 }),
   status: text("status").notNull(),
-  error: text("error"),
-  rowsWritten: integer("rows_written").notNull().default(0),
+  error: mediumtext("error"),
+  rowsWritten: int("rows_written").notNull().default(0),
 })
 
-export const waitlistEntries = pgTable(
+export const waitlistEntries = mysqlTable(
   "waitlist_entries",
   {
-    id: serial("id").primaryKey(),
-    email: text("email").notNull(),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    id: int("id").autoincrement().primaryKey(),
+    email: varchar("email", { length: 255 }).notNull(),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
     source: text("source"),
   },
   (t) => [uniqueIndex("waitlist_entries_email_idx").on(t.email)],
 )
 
-export const users = pgTable(
+export const users = mysqlTable(
   "users",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
-    email: text("email").notNull(),
+    id: uuidPk(),
+    email: varchar("email", { length: 255 }).notNull(),
     name: text("name").notNull(),
     passwordHash: text("password_hash"),
     twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
     plan: text("plan").notNull().default("free"),
     role: text("role").notNull().default("user"),
-    proSince: timestamp("pro_since"),
+    proSince: datetime("pro_since", { mode: "date", fsp: 3 }),
     stripeCustomerId: text("stripe_customer_id"),
     stripeSubscriptionId: text("stripe_subscription_id"),
-    planRenewsAt: timestamp("plan_renews_at"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    planRenewsAt: datetime("plan_renews_at", { mode: "date", fsp: 3 }),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+    updatedAt: datetime("updated_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
   },
   (t) => [uniqueIndex("users_email_idx").on(t.email)],
 )
 
-export const userApiKeys = pgTable(
+export const userApiKeys = mysqlTable(
   "user_api_keys",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id")
+    id: uuidPk(),
+    userId: uuidCol("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    provider: text("provider").notNull(),
+    provider: varchar("provider", { length: 64 }).notNull(),
     encryptedKey: text("encrypted_key").notNull(),
     last4: text("last4").notNull(),
     label: text("label"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+    updatedAt: datetime("updated_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
   },
   (t) => [
     uniqueIndex("user_api_keys_user_provider_idx").on(t.userId, t.provider),
   ],
 )
 
-export const userSettings = pgTable("user_settings", {
-  userId: uuid("user_id")
+export const userSettings = mysqlTable("user_settings", {
+  userId: uuidCol("user_id")
     .primaryKey()
     .references(() => users.id, { onDelete: "cascade" }),
   advisorProvider: text("advisor_provider"),
@@ -293,21 +369,28 @@ export const userSettings = pgTable("user_settings", {
   emailUsage: boolean("email_usage").notNull().default(false),
   reduceMotion: boolean("reduce_motion").notNull().default(false),
   currency: text("currency").notNull().default("EUR"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+    .notNull()
+    .default(nowDefault),
+  updatedAt: datetime("updated_at", { mode: "date", fsp: 3 })
+    .notNull()
+    .default(nowDefault),
 })
 
-export const sessions = pgTable(
+export const sessions = mysqlTable(
   "sessions",
   {
-    id: text("id").primaryKey(),
-    userId: uuid("user_id")
+    // 64 hex chars from randomBytes(32) — see src/lib/auth/session.ts.
+    id: varchar("id", { length: 128 }).primaryKey(),
+    userId: uuidCol("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    expiresAt: timestamp("expires_at").notNull(),
+    expiresAt: datetime("expires_at", { mode: "date", fsp: 3 }).notNull(),
     userAgent: text("user_agent"),
     ip: text("ip"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
   },
   (t) => [
     index("sessions_user_idx").on(t.userId),
@@ -315,11 +398,11 @@ export const sessions = pgTable(
   ],
 )
 
-export const conversations = pgTable(
+export const conversations = mysqlTable(
   "conversations",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id")
+    id: uuidPk(),
+    userId: uuidCol("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     teamId: text("team_id"),
@@ -327,69 +410,81 @@ export const conversations = pgTable(
     teamName: text("team_name").notNull(),
     leagueSlug: text("league_slug").notNull(),
     title: text("title").notNull(),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+    updatedAt: datetime("updated_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
   },
   (t) => [index("conversations_user_idx").on(t.userId, t.updatedAt)],
 )
 
-export const messages = pgTable(
+export const messages = mysqlTable(
   "messages",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
-    conversationId: uuid("conversation_id")
+    id: uuidPk(),
+    conversationId: uuidCol("conversation_id")
       .notNull()
       .references(() => conversations.id, { onDelete: "cascade" }),
     role: text("role").notNull(),
-    content: text("content").notNull(),
+    // AI answers run long; mediumtext (16 MB) keeps Postgres' unbounded text
+    // safe rather than capping at TEXT's 64 KB.
+    content: mediumtext("content").notNull(),
     model: text("model"),
     mode: text("mode"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
   },
-  (t) => [
-    index("messages_conversation_idx").on(t.conversationId, t.createdAt),
-  ],
+  (t) => [index("messages_conversation_idx").on(t.conversationId, t.createdAt)],
 )
 
-export const compareUses = pgTable(
+export const compareUses = mysqlTable(
   "compare_uses",
   {
-    id: serial("id").primaryKey(),
-    userId: uuid("user_id")
+    id: int("id").autoincrement().primaryKey(),
+    userId: uuidCol("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    usedAt: timestamp("used_at").notNull().defaultNow(),
+    usedAt: datetime("used_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
   },
   (t) => [index("compare_uses_user_idx").on(t.userId)],
 )
 
-export const passwordResetTokens = pgTable(
+export const passwordResetTokens = mysqlTable(
   "password_reset_tokens",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id")
+    id: uuidPk(),
+    userId: uuidCol("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     tokenHash: text("token_hash").notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
+    expiresAt: datetime("expires_at", { mode: "date", fsp: 3 }).notNull(),
     used: boolean("used").notNull().default(false),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
   },
   (t) => [index("password_reset_tokens_user_idx").on(t.userId)],
 )
 
-export const twoFactorSessions = pgTable(
+export const twoFactorSessions = mysqlTable(
   "two_factor_sessions",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id")
+    id: uuidPk(),
+    userId: uuidCol("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     codeHash: text("code_hash").notNull(),
-    expiresAt: timestamp("expires_at").notNull(),
+    expiresAt: datetime("expires_at", { mode: "date", fsp: 3 }).notNull(),
     verified: boolean("verified").notNull().default(false),
-    attempts: integer("attempts").notNull().default(0),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    attempts: int("attempts").notNull().default(0),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
   },
   (t) => [
     index("two_factor_sessions_user_idx").on(t.userId),
@@ -397,44 +492,52 @@ export const twoFactorSessions = pgTable(
   ],
 )
 
-export const twoFactorBackupCodes = pgTable(
+export const twoFactorBackupCodes = mysqlTable(
   "two_factor_backup_codes",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id")
+    id: uuidPk(),
+    userId: uuidCol("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     codeHash: text("code_hash").notNull(),
     used: boolean("used").notNull().default(false),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
   },
-  (t) => [
-    index("two_factor_backup_codes_user_idx").on(t.userId),
-  ],
+  (t) => [index("two_factor_backup_codes_user_idx").on(t.userId)],
 )
 
-export const announcements = pgTable("announcements", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const announcements = mysqlTable("announcements", {
+  id: uuidPk(),
   type: text("type").notNull().default("banner"),
   title: text("title").notNull(),
-  content: text("content"),
+  content: mediumtext("content"),
   active: boolean("active").notNull().default(true),
-  priority: integer("priority").notNull().default(3),
-  startsAt: timestamp("starts_at"),
-  expiresAt: timestamp("expires_at"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  priority: int("priority").notNull().default(3),
+  startsAt: datetime("starts_at", { mode: "date", fsp: 3 }),
+  expiresAt: datetime("expires_at", { mode: "date", fsp: 3 }),
+  createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+    .notNull()
+    .default(nowDefault),
+  updatedAt: datetime("updated_at", { mode: "date", fsp: 3 })
+    .notNull()
+    .default(nowDefault),
 })
 
-export const appConfig = pgTable("app_config", {
-  key: text("key").primaryKey(),
+export const appConfig = mysqlTable("app_config", {
+  // NOTE: `key` is a reserved word in MySQL. Drizzle back-quotes it, but any
+  // hand-written SQL touching this table must write `key` in backticks.
+  key: varchar("key", { length: IDX_LEN }).primaryKey(),
   value: text("value").notNull(),
   description: text("description"),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  updatedAt: datetime("updated_at", { mode: "date", fsp: 3 })
+    .notNull()
+    .default(nowDefault),
 })
 
-export const pageViews = pgTable("page_views", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const pageViews = mysqlTable("page_views", {
+  id: uuidPk(),
   pageType: text("page_type").notNull(),
   pageSlug: text("page_slug"),
   leagueSlug: text("league_slug"),
@@ -448,22 +551,48 @@ export const pageViews = pgTable("page_views", {
   // truncated. Irreversible and rotates daily, so it counts approximate unique
   // visitors without storing or exposing any personal data.
   visitorHash: text("visitor_hash"),
-  viewedAt: timestamp("viewed_at").notNull().defaultNow(),
+  viewedAt: datetime("viewed_at", { mode: "date", fsp: 3 })
+    .notNull()
+    .default(nowDefault),
 })
 
-export const searchLog = pgTable("search_log", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const searchLog = mysqlTable("search_log", {
+  id: uuidPk(),
   query: text("query").notNull(),
-  resultCount: integer("result_count").notNull().default(0),
-  searchedAt: timestamp("searched_at").notNull().defaultNow(),
+  resultCount: int("result_count").notNull().default(0),
+  searchedAt: datetime("searched_at", { mode: "date", fsp: 3 })
+    .notNull()
+    .default(nowDefault),
 })
 
-export const rateLimits = pgTable("rate_limits", {
+export const playbookPlays = mysqlTable(
+  "playbook_plays",
+  {
+    id: uuidPk(),
+    userId: uuidCol("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    // Full frame-by-frame play document (elements, positions, actions).
+    // Validated against playSchema (src/lib/playbook/types.ts) on write.
+    data: json("data").notNull(),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+    updatedAt: datetime("updated_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+  },
+  (t) => [index("playbook_plays_user_idx").on(t.userId, t.updatedAt)],
+)
+
+export const rateLimits = mysqlTable("rate_limits", {
   // Composite identifier, e.g. "login:1.2.3.4" or "ai-advisor:1.2.3.4".
-  key: text("key").primaryKey(),
-  count: integer("count").notNull().default(0),
+  // NOTE: `key` is reserved in MySQL — see the note on app_config.
+  key: varchar("key", { length: IDX_LEN }).primaryKey(),
+  count: int("count").notNull().default(0),
   // When the current fixed window expires; a request past this resets the count.
-  expiresAt: timestamp("expires_at").notNull(),
+  expiresAt: datetime("expires_at", { mode: "date", fsp: 3 }).notNull(),
 })
 
 export type Plan = "free" | "pro"
@@ -499,5 +628,6 @@ export type Announcement = typeof announcements.$inferSelect
 export type NewAnnouncement = typeof announcements.$inferInsert
 export type AppConfig = typeof appConfig.$inferSelect
 export type PageView = typeof pageViews.$inferSelect
+export type PlaybookPlayRow = typeof playbookPlays.$inferSelect
 export type SearchLogEntry = typeof searchLog.$inferSelect
 export type RateLimit = typeof rateLimits.$inferSelect

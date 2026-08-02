@@ -760,7 +760,7 @@ async function pickPlayer(
   const rows = await db
     .select({
       slug: players.slug,
-      fullName: sql<string>`${players.firstName} || ' ' || ${players.lastName}`,
+      fullName: sql<string>`concat(${players.firstName}, ' ', ${players.lastName})`,
     })
     .from(players)
     .innerJoin(playerSeasonStats, eq(playerSeasonStats.playerId, players.id))

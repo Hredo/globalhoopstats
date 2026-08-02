@@ -96,9 +96,28 @@ export async function Footer() {
         aria-hidden
         className="pointer-events-none select-none overflow-hidden"
       >
-        <p className="text-outline mx-auto -mb-[0.16em] whitespace-nowrap text-center font-display text-[clamp(3.2rem,11vw,9.5rem)] font-bold leading-none tracking-[-0.02em] opacity-[0.14]">
-          GLOBALHOOPSTATS
-        </p>
+        <svg
+          className="mx-auto -mb-[0.16em] block w-full opacity-[0.14]"
+          viewBox="0 -74 964 78"
+          preserveAspectRatio="xMidYMid meet"
+          role="presentation"
+        >
+          <text
+            x="0"
+            y="0"
+            fontSize="100"
+            className="font-display font-bold"
+            style={{
+              fill: "transparent",
+              stroke: "var(--color-ink-300)",
+              strokeWidth: 1.5,
+              letterSpacing: "-0.02em",
+              vectorEffect: "non-scaling-stroke",
+            }}
+          >
+            GLOBALHOOPSTATS
+          </text>
+        </svg>
       </div>
     </footer>
   )

@@ -104,7 +104,7 @@ export async function evaluateScrape(
 ): Promise<GateVerdict> {
   const db = getDb()
   const rows = (await db.execute(sql`
-    SELECT count(*)::int AS n
+    SELECT count(*) AS n
     FROM player_season_stats
     WHERE league_id = ${leagueId} AND season_id = ${seasonId}
   `)) as unknown as { n: number }[]

@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import { useEffect, useRef, useState } from "react"
+import { useReducedMotion } from "@/hooks/use-reduced-motion"
 import { Reveal } from "@/components/animations/reveal"
 import { StatCounter } from "@/components/ui/stat-counter"
 import { ButtonLink } from "@/components/ui/button"
@@ -13,10 +14,12 @@ export type ShowcaseCounts = { leagues: number; players: number; coaches: number
 export type ShowcaseLeague = { name: string; slug: string }
 
 /** One recorded product scene. Footage lives in /media/previews as
- *  `{key}-{dark|light}.mp4` + a matching `.webp` poster, captured from the
- *  real running app in BOTH themes so the reel always matches the page. */
+ *  `{key}-{dark|light}.mp4` + a matching `.jpg` poster, captured from the
+ *  real running app in BOTH themes so the reel always matches the page.
+ *  Posters are JPEG rather than WebP because they are also handed to the raw
+ *  `<video poster>` attribute, which next/image never gets to optimise. */
 type Scene = {
-  key: "player" | "compare" | "ai-advisor" | "trade"
+  key: "player" | "compare" | "ai-advisor" | "trade" | "playbook"
   href: string
   /** shown in the fake browser chrome on the card */
   path: string
@@ -28,11 +31,12 @@ const SCENES: readonly Scene[] = [
   { key: "compare", href: "/compare", path: "/compare", accent: "oklch(0.78 0.13 220)" },
   { key: "ai-advisor", href: "/ai-advisor", path: "/ai-advisor", accent: "oklch(0.68 0.16 290)" },
   { key: "trade", href: "/market/trade", path: "/market/trade", accent: "oklch(0.78 0.17 38)" },
+  { key: "playbook", href: "/playbook", path: "/playbook", accent: "oklch(0.82 0.12 140)" },
 ]
 
 const media = (key: Scene["key"], theme: "dark" | "light") => ({
   video: `/media/previews/${key}-${theme}.mp4`,
-  poster: `/media/previews/${key}-${theme}.webp`,
+  poster: `/media/previews/${key}-${theme}.jpg`,
 })
 
 /**
@@ -203,10 +207,9 @@ function SceneRow({
   const rowRef = useRef<HTMLDivElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [inView, setInView] = useState(false)
-  const [reduce, setReduce] = useState(false)
+  const reduce = useReducedMotion()
 
   useEffect(() => {
-    setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches)
     const el = rowRef.current
     if (!el) return
     const io = new IntersectionObserver(

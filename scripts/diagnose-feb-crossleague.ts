@@ -44,7 +44,7 @@ async function main() {
   try {
     // 1. League inventory.
     const leagues = await sql<{ slug: string; name: string; players: number }[]>`
-      select l.slug, l.name, count(distinct pss.player_id)::int as players
+      select l.slug, l.name, count(distinct pss.player_id) as players
       from leagues l
       left join player_season_stats pss on pss.league_id = l.id
       group by l.slug, l.name
@@ -63,11 +63,11 @@ async function main() {
 
     // 2. Signal coverage on players.
     const cov = await sql<{ total: number; with_bd: number; with_nat: number; with_h: number; with_img: number }[]>`
-      select count(*)::int total,
-        count(birthdate)::int with_bd,
-        count(nationality)::int with_nat,
-        count(height_cm)::int with_h,
-        count(image_url)::int with_img
+      select count(*) total,
+        count(birthdate) with_bd,
+        count(nationality) with_nat,
+        count(height_cm) with_h,
+        count(image_url) with_img
       from players
     `
     const c = cov[0]

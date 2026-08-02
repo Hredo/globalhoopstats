@@ -16,13 +16,18 @@ import { SmartImage } from "@/components/ui/smart-image"
 import { PersonAvatar } from "@/components/ui/person-avatar"
 import { leagueAccent } from "@/components/ui/league-badge"
 import { getT } from "@/lib/i18n/server"
+import { pageSeo } from "@/lib/seo/metadata"
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getT()
-  return {
+  // Always canonicalises to bare /compare: the ?a=&b= permutations are a
+  // combinatorial explosion of near-identical pages, and pointing them at one
+  // canonical keeps the crawler on the page that is worth indexing.
+  return pageSeo({
+    path: "/compare",
     title: t("compare.metaTitle"),
     description: t("compare.metaDescription"),
-  }
+  })
 }
 
 type Search = { a?: string; b?: string }

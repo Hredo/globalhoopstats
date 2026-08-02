@@ -1,5 +1,5 @@
-import { and, asc, desc, eq, ilike, like, sql } from "drizzle-orm"
-import { getDb } from "@/lib/db/client"
+import { and, asc, desc, eq, like, sql, type SQL } from "drizzle-orm"
+import { getDb, rawRows } from "@/lib/db/client"
 import {
   leagues,
   playerSeasonStats,
@@ -12,6 +12,21 @@ import { cached } from "@/lib/data/cache"
 import { leagueSlugsFor } from "@/lib/league-groups"
 import { resolveLeagueName } from "@/lib/sources/types"
 import { inArray } from "drizzle-orm"
+
+/**
+ * Accent-insensitive form of a name expression.
+ *
+ * Postgres folded diacritics with `translate(name, ACCENT_FROM, ACCENT_TO)`.
+ * MySQL has no translate(), but an accent-insensitive collation reaches the
+ * same answer natively — and covers more diacritics than the hand-written map
+ * ever did. Every use below is a comparison context (PARTITION BY, DISTINCT,
+ * LIKE), which is exactly where a collation applies, so the behaviour matches.
+ *
+ * utf8mb4_unicode_ci rather than the MySQL-8-only utf8mb4_0900_ai_ci, so this
+ * also runs on the MariaDB that Hostinger serves.
+ */
+const foldAccentsSql = (expr: SQL | string) =>
+  sql`(${typeof expr === "string" ? sql.raw(expr) : expr}) collate utf8mb4_unicode_ci`
 
 export type PlayerListItem = {
   id: string
@@ -90,7 +105,7 @@ async function listPlayersUncached(
     ? sql`lower(coalesce(t.name, '')) like ${`%${input.team.toLowerCase()}%`}`
     : sql`1=1`
   const queryFilter = input.query
-    ? sql`lower(p.first_name || ' ' || p.last_name) like ${`%${input.query.toLowerCase()}%`}`
+    ? sql`lower(concat(p.first_name, ' ', p.last_name)) like ${`%${input.query.toLowerCase()}%`}`
     : sql`1=1`
   const leagueSlugs = leagueSlugsFor(input.league)
   const leagueFilter = leagueSlugs
@@ -127,7 +142,7 @@ async function listPlayersUncached(
       select
         m.*,
         p.id as p_id,
-        p.first_name || ' ' || p.last_name as p_full_name,
+        concat(p.first_name, ' ', p.last_name) as p_full_name,
         p.slug as p_slug,
         p.nationality as p_nationality,
         p.position as p_position,
@@ -143,7 +158,7 @@ async function listPlayersUncached(
         t.slug as t_slug,
         t.logo_url as t_logo_url,
         row_number() over (
-          partition by translate(lower(p.first_name || ' ' || p.last_name), ${ACCENT_FROM}, ${ACCENT_TO})
+          partition by ${foldAccentsSql("lower(concat(p.first_name, ' ', p.last_name))")}
           order by coalesce(m.games_played, 0) desc
         ) as rn
       from memberships m
@@ -200,13 +215,13 @@ async function listPlayersUncached(
     ranked as (
       select
         p.id as p_id,
-        lower(p.first_name || ' ' || p.last_name) as p_lower_name,
+        lower(concat(p.first_name, ' ', p.last_name)) as p_lower_name,
         p.image_url as p_image_url,
         p.nationality as p_nationality,
         p.position as p_position,
         m.games_played as m_games_played,
         row_number() over (
-          partition by translate(lower(p.first_name || ' ' || p.last_name), ${ACCENT_FROM}, ${ACCENT_TO})
+          partition by ${foldAccentsSql("lower(concat(p.first_name, ' ', p.last_name))")}
           order by coalesce(m.games_played, 0) desc
         ) as rn
       from memberships m
@@ -219,10 +234,12 @@ async function listPlayersUncached(
   `
 
   try {
-    const [countRow] = (await db.execute(countSql)) as Array<{ c: number | string }>
-    const total = Number(countRow?.c ?? 0)
+    const countRows = await rawRows<{ c: number | string }>(
+      db.execute(countSql),
+    )
+    const total = Number(countRows[0]?.c ?? 0)
 
-    const rawRows = (await db.execute(fullSql)) as Array<{
+    const resultRows = await rawRows<{
       player_id: string
       full_name: string
       slug: string
@@ -254,12 +271,12 @@ async function listPlayersUncached(
       ft_made: number | null
       ft_attempted: number | null
       per: number | null
-    }>
+    }>(db.execute(fullSql))
 
     const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
     return {
-      items: rawRows.map((r) => ({
+      items: resultRows.map((r) => ({
         id: r.player_id,
         fullName: r.full_name,
         slug: r.slug,
@@ -383,7 +400,7 @@ export const getPlayerBySlug = cached(
   const [p] = await db
     .select({
       id: players.id,
-      fullName: sql<string>`${players.firstName} || ' ' || ${players.lastName}`,
+      fullName: sql<string>`concat(${players.firstName}, ' ', ${players.lastName})`,
       slug: players.slug,
       nationality: players.nationality,
       position: players.position,
@@ -431,7 +448,7 @@ export const getPlayerBySlug = cached(
     .orderBy(
       desc(seasons.name),
       desc(playerSeasonStats.gamesPlayed),
-      sql`${playerSeasonStats.pointsTotal} desc nulls last`,
+      sql`${playerSeasonStats.pointsTotal} desc`,
     )
 
   type Acc = {
@@ -576,7 +593,7 @@ export async function searchPlayersByName(
   const db = getDb()
   const cleaned = query.replace(/[\u0000-\u001f"()]/g, " ").trim()
   const q = `%${cleaned.toLowerCase()}%`
-  const nameExpr = sql<string>`${players.firstName} || ' ' || ${players.lastName}`
+  const nameExpr = sql<string>`concat(${players.firstName}, ' ', ${players.lastName})`
   const results = await db
     .select({
       id: players.id,
@@ -584,7 +601,16 @@ export async function searchPlayersByName(
       fullName: nameExpr,
     })
     .from(players)
-    .where(ilike(sql<string>`${players.firstName} || ' ' || ${players.lastName}`, q))
+    // Was ilike(): MySQL's LIKE is already case-insensitive under a _ci
+    // collation, and this one folds accents too.
+    .where(
+      like(
+        foldAccentsSql(
+          sql`concat(${players.firstName}, ' ', ${players.lastName})`,
+        ),
+        q,
+      ),
+    )
     .limit(limit)
 
   writeSearchCache(key, results as { id: string; slug: string; fullName: string }[])
@@ -649,8 +675,9 @@ const ACCENT_MAP: Record<string, string> = {
   đ: "d", ď: "d",
   ł: "l", ļ: "l",
 }
-export const ACCENT_FROM = Object.keys(ACCENT_MAP).join("")
-export const ACCENT_TO = Object.values(ACCENT_MAP).join("")
+// ACCENT_FROM / ACCENT_TO used to feed Postgres' translate(); MySQL folds
+// accents through the collation instead (see foldAccentsSql above), so only the
+// JS-side ranker still needs ACCENT_MAP.
 
 function foldAccents(s: string): string {
   let out = ""
@@ -711,7 +738,7 @@ function mapRow(
 const AUTOCOMPLETE_COLUMNS = {
   id: players.id,
   slug: players.slug,
-  fullName: sql<string>`${players.firstName} || ' ' || ${players.lastName}`,
+  fullName: sql<string>`concat(${players.firstName}, ' ', ${players.lastName})`,
   position: players.position,
   nationality: players.nationality,
   heightCm: players.heightCm,
@@ -752,9 +779,9 @@ async function runAutocomplete(
     ? (options.sort as AutocompleteSort)
     : "points"
 
-  const nameExpr = sql<string>`lower(${players.firstName} || ' ' || ${players.lastName})`
+  const nameExpr = sql<string>`lower(concat(${players.firstName}, ' ', ${players.lastName}))`
   // Fold accents on the column so an ASCII pattern matches diacritic names.
-  const foldedNameExpr = sql<string>`translate(${nameExpr}, ${ACCENT_FROM}, ${ACCENT_TO})`
+  const foldedNameExpr = foldAccentsSql(nameExpr)
 
   const conditions = []
   if (pattern) conditions.push(like(foldedNameExpr, pattern))

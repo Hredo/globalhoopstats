@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { useReducedMotion } from "@/hooks/use-reduced-motion"
 
 type CountUpProps = {
   to: number
@@ -23,12 +24,13 @@ export function CountUp({
   const [value, setValue] = useState(0)
   const startedRef = useRef(false)
 
+  const reduce = useReducedMotion()
+
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     if (reduce) {
-      setValue(to)
+      setValue(to) // eslint-disable-line react-hooks/set-state-in-effect
       return
     }
     const io = new IntersectionObserver(
@@ -52,7 +54,7 @@ export function CountUp({
     )
     io.observe(el)
     return () => io.disconnect()
-  }, [to, duration])
+  }, [to, duration, reduce])
 
   return (
     <span ref={ref} className={className}>
