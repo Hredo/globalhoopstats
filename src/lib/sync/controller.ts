@@ -97,7 +97,7 @@ export async function requestCancelDb(): Promise<void> {
   await db
     .insert(appConfig)
     .values({ key: CANCEL_KEY, value: now, description: "Sync stop signal (ms epoch)" })
-    .onConflictDoUpdate({ target: appConfig.key, set: { value: now, updatedAt: new Date() } })
+    .onDuplicateKeyUpdate({ set: { value: now, updatedAt: new Date() } })
 }
 
 /** True when a Stop was requested AFTER the given run-start time (ms epoch). */

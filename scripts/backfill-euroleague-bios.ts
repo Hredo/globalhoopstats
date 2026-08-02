@@ -148,7 +148,7 @@ async function main() {
       }[]
     >`
       select distinct on (p.id) p.id,
-        p.first_name || ' ' || p.last_name as name,
+        concat(p.first_name, ' ', p.last_name) as name,
         p.nationality, p.position, t.name as team
       from players p
       join player_season_stats pss on pss.player_id = p.id
@@ -156,7 +156,7 @@ async function main() {
       join seasons s on s.id = pss.season_id
       left join teams t on t.id = pss.team_id
       where l.slug = 'euroleague' and s.is_current and p.bio is null
-      order by p.id, pss.games_played desc nulls last
+      order by p.id, pss.games_played desc
     `
     console.log(`[bios] ${players.length} players with null bio`)
     let wiki = 0

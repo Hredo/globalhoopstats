@@ -3,7 +3,6 @@ import { getDb } from "@/lib/db/client"
 import { leagues, players, playerSeasonStats, seasons, teams } from "@/lib/db/schema"
 import type { CoachListItem } from "@/lib/data/staff"
 import { cached } from "@/lib/data/cache"
-import { ACCENT_FROM, ACCENT_TO } from "@/lib/data/players"
 import { leagueSlugsFor } from "@/lib/league-groups"
 import { resolveLeagueName } from "@/lib/sources/types"
 
@@ -100,7 +99,7 @@ async function listTeamsUncached(
   // andres-feliz"), which would otherwise double-count the roster — the same
   // folding listPlayers uses to collapse them in the roster grid.
   const playerCountExpr = sql<number>`(
-    select count(distinct translate(lower(p_pc.first_name || ' ' || p_pc.last_name), ${ACCENT_FROM}, ${ACCENT_TO}))
+    select count(distinct lower(concat(p_pc.first_name, ' ', p_pc.last_name)) collate utf8mb4_unicode_ci)
     from ${playerSeasonStats} pss
     inner join ${players} p_pc on p_pc.id = pss.player_id
     inner join ${seasons} s_pc on s_pc.id = pss.season_id and s_pc.is_current

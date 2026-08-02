@@ -1,13 +1,13 @@
 "use client"
 
 import {
-  createElement,
   useEffect,
   useRef,
   useState,
   type CSSProperties,
   type ReactNode,
 } from "react"
+import { useReducedMotion } from "@/hooks/use-reduced-motion"
 
 type Direction = "up" | "down" | "left" | "right" | "none"
 
@@ -17,15 +17,6 @@ const OFFSET: Record<Direction, { x: number; y: number }> = {
   left: { x: 36, y: 0 },
   right: { x: -36, y: 0 },
   none: { x: 0, y: 0 },
-}
-
-function useReduceMotion() {
-  const [reduce, setReduce] = useState(false)
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
-    setReduce(mq.matches)
-  }, [])
-  return reduce
 }
 
 export function Reveal({
@@ -47,7 +38,7 @@ export function Reveal({
 }) {
   const ref = useRef<HTMLDivElement | null>(null)
   const [shown, setShown] = useState(false)
-  const reduce = useReduceMotion()
+  const reduce = useReducedMotion()
 
   useEffect(() => {
     if (reduce) return
@@ -87,7 +78,7 @@ export function Reveal({
     transition: `opacity 0.85s cubic-bezier(0.19,1,0.22,1) ${delay}s, transform 0.85s cubic-bezier(0.19,1,0.22,1) ${delay}s, filter 0.85s cubic-bezier(0.19,1,0.22,1) ${delay}s`,
   }
 
-  return createElement("div", { ref, className, style }, children)
+  return <div ref={ref} className={className} style={style}>{children}</div>
 }
 
 export function Stagger({
@@ -103,7 +94,7 @@ export function Stagger({
 }) {
   const ref = useRef<HTMLDivElement | null>(null)
   const [shown, setShown] = useState(false)
-  const reduce = useReduceMotion()
+  const reduce = useReducedMotion()
 
   useEffect(() => {
     if (reduce) return
@@ -150,7 +141,7 @@ export function StaggerItem({
 }) {
   const ref = useRef<HTMLDivElement | null>(null)
   const [shown, setShown] = useState(false)
-  const reduce = useReduceMotion()
+  const reduce = useReducedMotion()
 
   useEffect(() => {
     if (reduce) return
@@ -188,5 +179,5 @@ export function StaggerItem({
     transition: `opacity 0.8s cubic-bezier(0.19,1,0.22,1) ${delay ?? 0}s, transform 0.8s cubic-bezier(0.19,1,0.22,1) ${delay ?? 0}s, filter 0.8s cubic-bezier(0.19,1,0.22,1) ${delay ?? 0}s`,
   }
 
-  return createElement("div", { ref, className, style }, children)
+  return <div ref={ref} className={className} style={style}>{children}</div>
 }

@@ -72,8 +72,7 @@ export async function PUT(request: Request) {
       createdAt: now,
       updatedAt: now,
     })
-    .onConflictDoUpdate({
-      target: [userApiKeys.userId, userApiKeys.provider],
+    .onDuplicateKeyUpdate({
       set: {
         encryptedKey: encryptSecret(key),
         last4: last4(key),

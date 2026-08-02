@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { Logo } from "@/components/svg/logo"
 import { SearchTrigger } from "@/components/players/search-trigger"
 import { UserMenu } from "@/components/auth/user-menu"
@@ -19,6 +19,7 @@ const LINKS: {
   labelKey: string
   leagues?: boolean
   pro?: boolean
+  beta?: boolean
 }[] = [
   { href: "/players", labelKey: "nav.players", leagues: true },
   { href: "/teams", labelKey: "nav.teams", leagues: true },
@@ -27,6 +28,7 @@ const LINKS: {
   { href: "/leagues", labelKey: "nav.leagues" },
   { href: "/ai-advisor", labelKey: "nav.aiAdvisor", pro: true },
   { href: "/market/trade", labelKey: "nav.trade" },
+  { href: "/playbook", labelKey: "nav.playbook", beta: true },
 ]
 
 function isActive(pathname: string, href: string) {
@@ -112,6 +114,7 @@ export function Navbar() {
                   href={l.href}
                   label={t(l.labelKey)}
                   pro={l.pro}
+                  beta={l.beta}
                   active={isActive(pathname, l.href)}
                   withLeagues={l.leagues}
                 />
@@ -138,12 +141,14 @@ function NavItem({
   label,
   active,
   pro,
+  beta,
   withLeagues,
 }: {
   href: string
   label: string
   active: boolean
   pro?: boolean
+  beta?: boolean
   withLeagues?: boolean
 }) {
   const t = useT()
@@ -155,7 +160,11 @@ function NavItem({
   const itemRef = useRef<HTMLLIElement | null>(null)
 
   useEffect(() => {
-    setCanHover(window.matchMedia("(hover: hover) and (pointer: fine)").matches)
+    const mq = window.matchMedia("(hover: hover) and (pointer: fine)")
+    setCanHover(mq.matches) // eslint-disable-line react-hooks/set-state-in-effect
+    const onChange = () => setCanHover(mq.matches)
+    mq.addEventListener("change", onChange)
+    return () => mq.removeEventListener("change", onChange)
   }, [])
 
   useEffect(() => {
@@ -219,6 +228,11 @@ function NavItem({
           {pro && (
             <span className="rounded-full border border-brand-500/40 bg-brand-500/10 px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-brand-300">
               {t("common.pro")}
+            </span>
+          )}
+          {beta && (
+            <span className="rounded-full border border-amber-400/50 bg-amber-400/10 px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-300">
+              Beta
             </span>
           )}
         </Link>

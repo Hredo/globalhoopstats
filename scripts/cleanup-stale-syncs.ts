@@ -38,7 +38,8 @@ async function main() {
   const cutoffMin = Number(process.argv[2] ?? 45)
   const cutoff = new Date(Date.now() - cutoffMin * 60_000)
 
-  const closed = await db
+  // MySQL has no UPDATE ... RETURNING; affectedRows is the row count we need.
+  const [closed] = await db
     .update(syncRuns)
     .set({
       status: "failed",
@@ -46,12 +47,11 @@ async function main() {
       error: "stale run (manual cleanup)",
     })
     .where(and(eq(syncRuns.status, "running"), lt(syncRuns.startedAt, cutoff)))
-    .returning({ id: syncRuns.id })
 
   console.log(
-    `Closed ${closed.length} stale "running" sync row(s) older than ${cutoffMin} min.`,
+    `Closed ${closed.affectedRows} stale "running" sync row(s) older than ${cutoffMin} min.`,
   )
-  closeDb()
+  await closeDb()
 }
 
 main().catch((err) => {

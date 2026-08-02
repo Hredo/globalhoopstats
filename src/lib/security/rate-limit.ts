@@ -13,7 +13,7 @@
  * anti-brute-force on auth and contact endpoints.
  */
 import { sql } from "drizzle-orm"
-import { getDb } from "@/lib/db/client"
+import { getDb, rawRows } from "@/lib/db/client"
 
 export type RateLimitResult =
   | { ok: true; remaining: number }
@@ -34,22 +34,35 @@ export async function consumeRateLimit(
   const db = getDb()
   const windowSec = Math.max(1, Math.ceil(windowMs / 1000))
 
+  // Every datetime is stored as UTC (the pool pins timezone "Z"), so raw SQL
+  // must compare against UTC_TIMESTAMP and never now() — now() is the server's
+  // local clock and would silently skew every window on a non-UTC host.
+  const expiresAt = new Date(Date.now() + windowSec * 1000)
+
   try {
-    const rows = (await db.execute(sql`
-      INSERT INTO rate_limits (key, count, expires_at)
-      VALUES (${key}, 1, now() + (${windowSec} * interval '1 second'))
-      ON CONFLICT (key) DO UPDATE SET
+    await db.execute(sql`
+      INSERT INTO rate_limits (\`key\`, count, expires_at)
+      VALUES (${key}, 1, ${expiresAt})
+      ON DUPLICATE KEY UPDATE
         count = CASE
-          WHEN rate_limits.expires_at < now() THEN 1
+          WHEN rate_limits.expires_at < UTC_TIMESTAMP(3) THEN 1
           ELSE rate_limits.count + 1
         END,
         expires_at = CASE
-          WHEN rate_limits.expires_at < now()
-            THEN now() + (${windowSec} * interval '1 second')
+          WHEN rate_limits.expires_at < UTC_TIMESTAMP(3) THEN ${expiresAt}
           ELSE rate_limits.expires_at
         END
-      RETURNING count, expires_at
-    `)) as unknown as Array<{ count: number; expires_at: string | Date }>
+    `)
+
+    // MySQL cannot RETURNING out of an upsert, so the counter is read back.
+    // The gap between the two statements can only misjudge a request that is
+    // concurrent with another from the same key — acceptable for a limiter
+    // that already fails open.
+    const rows = await rawRows<{ count: number; expires_at: string | Date }>(
+      db.execute(
+        sql`SELECT count, expires_at FROM rate_limits WHERE \`key\` = ${key}`,
+      ),
+    )
 
     const row = rows[0]
     if (!row) return { ok: true, remaining: limit - 1 }
@@ -69,7 +82,7 @@ export async function consumeRateLimit(
     if (Math.random() < 0.02) {
       void db
         .execute(
-          sql`DELETE FROM rate_limits WHERE expires_at < now() - interval '1 hour'`,
+          sql`DELETE FROM rate_limits WHERE expires_at < UTC_TIMESTAMP(3) - INTERVAL 1 HOUR`,
         )
         .catch(() => {})
     }

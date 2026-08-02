@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { sql } from "drizzle-orm"
-import { getDb } from "@/lib/db/client"
+import { getDb, rawRows } from "@/lib/db/client"
 import { getCurrentUser, isAdmin } from "@/lib/auth/current-user"
 
 export async function GET(request: Request) {
@@ -16,38 +16,53 @@ export async function GET(request: Request) {
   let filename = ""
 
   if (type === "page-views") {
-    const [rows] = await db.execute(sql.raw(`
-      SELECT page_type, page_slug, league_slug, viewed_at
-      FROM page_views
-      ORDER BY viewed_at DESC
-      LIMIT 10000
-    `))
+    const rows = await rawRows<{
+      page_type: string
+      page_slug: string | null
+      league_slug: string | null
+      viewed_at: string
+    }>(
+      db.execute(sql.raw(`
+        SELECT page_type, page_slug, league_slug, viewed_at
+        FROM page_views
+        ORDER BY viewed_at DESC
+        LIMIT 10000
+      `)),
+    )
     csv = "page_type,page_slug,league_slug,viewed_at\n"
-    for (const r of rows as unknown as { page_type: string; page_slug: string | null; league_slug: string | null; viewed_at: string }[]) {
+    for (const r of rows) {
       csv += `${r.page_type},${r.page_slug ?? ""},${r.league_slug ?? ""},${r.viewed_at}\n`
     }
     filename = "page-views.csv"
   } else if (type === "searches") {
-    const [rows] = await db.execute(sql.raw(`
-      SELECT query, result_count, searched_at
-      FROM search_log
-      ORDER BY searched_at DESC
-      LIMIT 10000
-    `))
+    const rows = await rawRows<{
+      query: string
+      result_count: number
+      searched_at: string
+    }>(
+      db.execute(sql.raw(`
+        SELECT \`query\`, result_count, searched_at
+        FROM search_log
+        ORDER BY searched_at DESC
+        LIMIT 10000
+      `)),
+    )
     csv = "query,result_count,searched_at\n"
-    for (const r of rows as unknown as { query: string; result_count: number; searched_at: string }[]) {
+    for (const r of rows) {
       csv += `"${r.query.replace(/"/g, '""')}",${r.result_count},${r.searched_at}\n`
     }
     filename = "searches.csv"
   } else if (type === "users") {
-    const [rows] = await db.execute(sql.raw(`
-      SELECT to_char(created_at, 'YYYY-MM-DD') AS date, plan, role
-      FROM users
-      ORDER BY created_at DESC
-      LIMIT 10000
-    `))
+    const rows = await rawRows<{ date: string; plan: string; role: string }>(
+      db.execute(sql.raw(`
+        SELECT date_format(created_at, '%Y-%m-%d') AS date, plan, role
+        FROM users
+        ORDER BY created_at DESC
+        LIMIT 10000
+      `)),
+    )
     csv = "date,plan,role\n"
-    for (const r of rows as unknown as { date: string; plan: string; role: string }[]) {
+    for (const r of rows) {
       csv += `${r.date},${r.plan},${r.role}\n`
     }
     filename = "users.csv"

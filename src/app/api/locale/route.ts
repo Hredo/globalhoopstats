@@ -40,8 +40,7 @@ export async function POST(request: Request) {
       await db
         .insert(userSettings)
         .values({ userId: user.id, locale, createdAt: now, updatedAt: now })
-        .onConflictDoUpdate({
-          target: userSettings.userId,
+        .onDuplicateKeyUpdate({
           set: { locale, updatedAt: now },
         })
     }

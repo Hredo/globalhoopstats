@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs"
 import { resolve } from "node:path"
-import { getDb } from "@/lib/db/client"
+import { getDb, closeDb } from "@/lib/db/client"
 import { leagues } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { SOURCE_META } from "@/lib/sources/types"
@@ -46,7 +46,7 @@ async function main() {
     console.log(`  ✓ ${slug}: "${before.name}" → "${meta.displayName}"`)
   }
 
-  await db.$client.end()
+  await closeDb()
   console.log("\nDone. League names updated in DB.")
 }
 

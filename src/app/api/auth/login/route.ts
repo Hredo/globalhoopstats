@@ -3,6 +3,7 @@ import { z } from "zod"
 import { randomInt } from "node:crypto"
 import { getDb } from "@/lib/db/client"
 import {
+  newId,
   sessions,
   users,
   twoFactorSessions,
@@ -159,16 +160,15 @@ export async function POST(request: Request) {
     const codeHash = await hashPassword(code)
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000)
 
-    const tfaRows = await db
-      .insert(twoFactorSessions)
-      .values({
-        userId: user.id,
-        codeHash,
-        expiresAt,
-      })
-      .returning({ id: twoFactorSessions.id })
+    // MySQL has no RETURNING: the id is minted here and inserted explicitly.
+    const tfaId = newId()
+    await db.insert(twoFactorSessions).values({
+      id: tfaId,
+      userId: user.id,
+      codeHash,
+      expiresAt,
+    })
 
-    const tfaId = tfaRows[0]?.id
     if (!tfaId) {
       return NextResponse.json(
         { error: "Could not initiate two-factor authentication." },

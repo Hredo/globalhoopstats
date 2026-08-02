@@ -252,7 +252,7 @@ async function main() {
     await sql`alter table player_season_stats add column if not exists shot_zones jsonb`
 
     const rows = await sql<{ stat_id: string; name: string }[]>`
-      select pss.id as stat_id, p.first_name || ' ' || p.last_name as name
+      select pss.id as stat_id, concat(p.first_name, ' ', p.last_name) as name
       from player_season_stats pss
       join players p on p.id = pss.player_id
       join leagues l on l.id = pss.league_id

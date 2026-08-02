@@ -74,7 +74,7 @@ async function main() {
 
     // Scorers with a genuine FG gap — reported, never zeroed.
     const [fgGap] = await sql<{ n: number }[]>`
-      select count(*)::int n ${scope} and fg_made is null and coalesce(points_total,0) > 0`
+      select count(*) n ${scope} and fg_made is null and coalesce(points_total,0) > 0`
     console.log(`[fg gap] scorers with null FG (left as-is): ${fgGap.n}`)
 
     if (DRY) {
@@ -113,7 +113,7 @@ async function main() {
     // 4. true shooting %, exact, last
     const ts = await sql`
       update player_season_stats
-        set true_shooting_pct = round((points_total::numeric / (2 * (fg_attempted + 0.44 * coalesce(ft_attempted,0)))), 3)
+        set true_shooting_pct = round((points_total / (2 * (fg_attempted + 0.44 * coalesce(ft_attempted,0)))), 3)
       where season_id in (select id from seasons where is_current)
         and games_played > 0 and true_shooting_pct is null
         and points_total is not null and fg_attempted is not null

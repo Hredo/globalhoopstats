@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { randomInt } from "node:crypto"
 import { eq } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
-import { users, userSettings, twoFactorSessions } from "@/lib/db/schema"
+import { newId, users, userSettings, twoFactorSessions } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/auth/current-user"
 import { hashPassword } from "@/lib/auth/password"
 import { isLocale, type Locale } from "@/lib/i18n/config"
@@ -54,16 +54,15 @@ export async function POST(request: Request) {
 
   await db.delete(twoFactorSessions).where(eq(twoFactorSessions.userId, sessionUser.id))
 
-  const tfaRows = await db
-    .insert(twoFactorSessions)
-    .values({
-      userId: sessionUser.id,
-      codeHash,
-      expiresAt,
-    })
-    .returning({ id: twoFactorSessions.id })
+  // MySQL has no RETURNING: the id is minted here and inserted explicitly.
+  const tfaId = newId()
+  await db.insert(twoFactorSessions).values({
+    id: tfaId,
+    userId: sessionUser.id,
+    codeHash,
+    expiresAt,
+  })
 
-  const tfaId = tfaRows[0]?.id
   if (!tfaId) {
     return NextResponse.json(
       { error: "Could not initiate setup. Please try again." },

@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { youtubeThumbnail, youtubeWatchUrl } from "@/lib/highlights/youtube"
 
 type Props = {
@@ -22,10 +23,11 @@ export function YouTubeEmbed({ youtubeId, title }: Props) {
       aria-label={`Watch ${title} on YouTube`}
       className="group relative block aspect-video w-full overflow-hidden rounded-xl bg-black"
     >
-      <img
+      <Image
         src={youtubeThumbnail(youtubeId)}
         alt={title}
-        loading="lazy"
+        width={480}
+        height={270}
         className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-fluid group-hover:scale-[1.03]"
       />
       <div

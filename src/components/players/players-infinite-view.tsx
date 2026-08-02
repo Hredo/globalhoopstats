@@ -71,7 +71,7 @@ export function PlayersInfiniteView({
 
   useEffect(() => {
     if (initial.page === 1) {
-      setPages([initial])
+      setPages([initial]) // eslint-disable-line react-hooks/set-state-in-effect
     }
   }, [initial])
 

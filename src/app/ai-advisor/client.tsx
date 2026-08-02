@@ -132,7 +132,7 @@ export default function AIAdvisorClient() {
   const initialized = useRef(false)
 
   useEffect(() => {
-    setReactions(loadReactions())
+    setReactions(loadReactions()) // eslint-disable-line react-hooks/set-state-in-effect
   }, [])
 
   useEffect(() => {

@@ -11,7 +11,15 @@ export async function GET(request: Request) {
 
   const db = getDb()
   const rows = await db
-    .select()
+    .select({
+      id: syncRuns.id,
+      source: syncRuns.source,
+      status: syncRuns.status,
+      rowsWritten: syncRuns.rowsWritten,
+      startedAt: syncRuns.startedAt,
+      finishedAt: syncRuns.finishedAt,
+      error: syncRuns.error,
+    })
     .from(syncRuns)
     .orderBy(desc(syncRuns.startedAt))
     .limit(50)

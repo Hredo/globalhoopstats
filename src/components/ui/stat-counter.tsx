@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { cn } from "@/components/ui/cn"
+import { useReducedMotion } from "@/hooks/use-reduced-motion"
 
 type StatCounterProps = {
   to: number
@@ -32,12 +33,13 @@ export function StatCounter({
   const [settled, setSettled] = useState(false)
   const started = useRef(false)
 
+  const reduce = useReducedMotion()
+
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     if (reduce) {
-      setValue(to)
+      setValue(to) // eslint-disable-line react-hooks/set-state-in-effect
       setSettled(true)
       if (barRef.current) barRef.current.style.transform = "scaleX(1)"
       return
@@ -66,7 +68,7 @@ export function StatCounter({
     )
     io.observe(el)
     return () => io.disconnect()
-  }, [to, duration])
+  }, [to, duration, reduce])
 
   return (
     <span className="inline-flex flex-col">

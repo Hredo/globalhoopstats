@@ -18,6 +18,7 @@ const PRIMARY_LINKS = [
   { href: "/leagues", labelKey: "nav.leagues" },
   { href: "/ai-advisor", labelKey: "nav.aiAdvisor" },
   { href: "/market/trade", labelKey: "nav.trade" },
+  { href: "/playbook", labelKey: "nav.playbook" },
 ] as const
 
 export function MobileNav() {
@@ -26,7 +27,7 @@ export function MobileNav() {
   const t = useT()
 
   useEffect(() => {
-    setOpen(false)
+    setOpen(false) // eslint-disable-line react-hooks/set-state-in-effect
   }, [pathname])
 
   useEffect(() => {
@@ -155,7 +156,7 @@ export function MobileNav() {
           </nav>
 
           <div
-            className="relative hairline-t animate-nav-rise space-y-4 px-7 py-6"
+            className="relative hairline-t animate-nav-rise space-y-4 px-7 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
             style={{ animationDelay: "0.58s" }}
           >
             <div className="flex items-center justify-between gap-3">

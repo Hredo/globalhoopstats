@@ -10,7 +10,7 @@ export function PlayerCommandPalette() {
 
   useEffect(() => {
     if (typeof window === "undefined") return
-    setIsMac(/Mac|iPhone|iPad/.test(navigator.platform))
+    setIsMac(/Mac|iPhone|iPad/.test(navigator.platform)) // eslint-disable-line react-hooks/set-state-in-effect
   }, [])
 
   useEffect(() => {

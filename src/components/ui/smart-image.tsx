@@ -28,7 +28,7 @@ export function SmartImage({
   const [errored, setErrored] = useState(false)
 
   useEffect(() => {
-    setErrored(false)
+    setErrored(false) // eslint-disable-line react-hooks/set-state-in-effect
   }, [src])
 
   if (!src || errored) {
