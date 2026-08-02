@@ -16,8 +16,21 @@ export const dynamicParams = true
 export async function generateStaticParams(): Promise<
   Array<{ league: string; slug: string }>
 > {
-  const options = await listTeamOptions(2000)
-  return options.map((t) => ({ league: t.leagueSlug, slug: t.slug }))
+  // Pre-rendering is an optimisation, not a requirement: `dynamicParams` above
+  // means anything not listed here is simply rendered on first request. So a
+  // database that is unreachable at build time must not fail the build — it
+  // did once, when DATABASE_URL still pointed at the remote MySQL hostname
+  // that the build server is not allowed to reach.
+  try {
+    const options = await listTeamOptions(2000)
+    return options.map((t) => ({ league: t.leagueSlug, slug: t.slug }))
+  } catch (err) {
+    console.warn(
+      "[teams] could not pre-render team pages; they will render on demand:",
+      err,
+    )
+    return []
+  }
 }
 
 export async function generateMetadata({
