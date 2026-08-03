@@ -4,21 +4,28 @@ import { useReducer } from "react"
 import {
   clampToCourt,
   distance,
+  mirrorX,
+  nearestRim,
 } from "@/lib/playbook/geometry"
 import {
   newId,
   nextLabel,
+  sanitizeText,
   type ActionType,
   type CourtType,
   type ElementKind,
   type LinkedPlayer,
   type Play,
   type PlayAction,
+  type PlayDrawing,
   type PlayElement,
   type PlayFrame,
   type Point,
+  MAX_DRAWING_POINTS,
+  MAX_DRAWINGS_PER_FRAME,
   MAX_ELEMENTS,
   MAX_FRAMES,
+  MAX_LABEL_LEN,
 } from "@/lib/playbook/types"
 
 /**
@@ -32,6 +39,11 @@ const HISTORY_CAP = 60
 /** Ball snaps to a hand when this close to a player (metres). */
 const BALL_GRAB_RADIUS = 1.0
 const BALL_OFFSET: Point = { x: 0.42, y: -0.1 }
+
+/** Actions that send the ball somewhere rather than move the player. */
+export function isBallAction(type: ActionType): boolean {
+  return type === "pass" || type === "handoff" || type === "shot"
+}
 
 export type EditorState = {
   play: Play
@@ -50,7 +62,14 @@ type Action =
   | { type: "move-live"; elementId: string; point: Point }
   | { type: "via-live"; actionId: string; via: Point }
   | { type: "move-next-live"; elementId: string; point: Point }
-  | { type: "add-element"; kind: ElementKind; at: Point; player?: LinkedPlayer | null }
+  | {
+      type: "add-element"
+      kind: ElementKind
+      at: Point
+      player?: LinkedPlayer | null
+      /** Free text for `text` markers; players auto-number without it. */
+      label?: string
+    }
   | { type: "remove-element"; elementId: string }
   | { type: "assign-player"; elementId: string; player: LinkedPlayer | null }
   | {
@@ -61,6 +80,11 @@ type Action =
       targetElementId?: string | null
     }
   | { type: "remove-action"; actionId: string }
+  | { type: "set-element-label"; elementId: string; label: string }
+  | { type: "add-drawing"; points: Point[] }
+  | { type: "remove-drawing"; drawingId: string }
+  | { type: "clear-drawings" }
+  | { type: "flip-horizontal" }
   | { type: "add-frame" }
   | { type: "remove-frame" }
   | { type: "set-frame-idx"; frameIdx: number }
@@ -188,7 +212,7 @@ function reducer(state: EditorState, action: Action): EditorState {
       const label =
         action.kind === "attacker" || action.kind === "defender"
           ? nextLabel(play.elements, action.kind)
-          : ""
+          : sanitizeText(action.label ?? "").slice(0, MAX_LABEL_LEN)
       const el: PlayElement = {
         id: newId(),
         kind: action.kind,
@@ -250,8 +274,10 @@ function reducer(state: EditorState, action: Action): EditorState {
 
     case "add-movement": {
       const to = clampToCourt(action.to, play.courtType)
-      const isPass = action.actionType === "pass" || action.actionType === "handoff"
-      if (isPass && !action.targetElementId) return state
+      const ballAction = isBallAction(action.actionType)
+      const isShot = action.actionType === "shot"
+      // Pass / handoff need someone to catch it; a shot goes to the rim.
+      if (ballAction && !isShot && !action.targetElementId) return state
 
       let next = play
       let nextFrameIdx = frameIdx + 1
@@ -272,7 +298,16 @@ function reducer(state: EditorState, action: Action): EditorState {
 
       next = updateFrame(next, nextFrameIdx, (f) => {
         const positions = { ...f.positions }
-        if (isPass) {
+        if (isShot) {
+          // The ball ends at the rim the shooter was attacking.
+          const shooter = frame.positions[action.elementId]
+          if (ball && shooter) {
+            positions[ball.id] = clampToCourt(
+              nearestRim(shooter, play.courtType),
+              play.courtType,
+            )
+          }
+        } else if (ballAction) {
           // The ball flies to wherever the receiver ends up.
           if (ball && action.targetElementId) {
             const receiverEnd =
@@ -312,11 +347,10 @@ function reducer(state: EditorState, action: Action): EditorState {
       next = updateFrame(next, frameIdx, (f) => ({
         ...f,
         actions: [
-          // One movement path and one pass per element per transition.
+          // One movement path and one ball action per element per transition.
           ...f.actions.filter((a) => {
             if (a.elementId !== action.elementId) return true
-            const aIsPass = a.type === "pass" || a.type === "handoff"
-            return aIsPass !== isPass
+            return isBallAction(a.type) !== ballAction
           }),
           newAction,
         ],
@@ -341,6 +375,78 @@ function reducer(state: EditorState, action: Action): EditorState {
             ? null
             : state.selectedActionId,
       }
+    }
+
+    case "set-element-label": {
+      const label = sanitizeText(action.label).slice(0, MAX_LABEL_LEN)
+      const next: Play = {
+        ...play,
+        elements: play.elements.map((e) =>
+          e.id === action.elementId ? { ...e, label } : e,
+        ),
+      }
+      return pushHistory(state, next)
+    }
+
+    case "add-drawing": {
+      const points = action.points
+        .slice(0, MAX_DRAWING_POINTS)
+        .map((p) => clampToCourt(p, play.courtType))
+      if (points.length < 2) return state
+      if ((frame.drawings?.length ?? 0) >= MAX_DRAWINGS_PER_FRAME) return state
+      const stroke: PlayDrawing = { id: newId(), points }
+      return pushHistory(
+        state,
+        updateFrame(play, frameIdx, (f) => ({
+          ...f,
+          drawings: [...(f.drawings ?? []), stroke],
+        })),
+      )
+    }
+
+    case "remove-drawing": {
+      if (!frame.drawings?.some((d) => d.id === action.drawingId)) return state
+      return pushHistory(
+        state,
+        updateFrame(play, frameIdx, (f) => {
+          const drawings = (f.drawings ?? []).filter((d) => d.id !== action.drawingId)
+          return { ...f, drawings: drawings.length > 0 ? drawings : undefined }
+        }),
+      )
+    }
+
+    case "clear-drawings": {
+      if (!frame.drawings || frame.drawings.length === 0) return state
+      return pushHistory(
+        state,
+        updateFrame(play, frameIdx, (f) => ({ ...f, drawings: undefined })),
+      )
+    }
+
+    // "Run it to the other side" — mirrors the whole play across the centre
+    // line, which is how coaches keep a left-side and right-side version.
+    case "flip-horizontal": {
+      const next: Play = {
+        ...play,
+        frames: play.frames.map((f) => {
+          const positions: Record<string, Point> = {}
+          for (const [id, p] of Object.entries(f.positions)) {
+            positions[id] = clampToCourt(mirrorX(p), play.courtType)
+          }
+          return {
+            ...f,
+            positions,
+            actions: f.actions.map((a) =>
+              a.via ? { ...a, via: clampToCourt(mirrorX(a.via), play.courtType) } : a,
+            ),
+            drawings: f.drawings?.map((d) => ({
+              ...d,
+              points: d.points.map((p) => clampToCourt(mirrorX(p), play.courtType)),
+            })),
+          }
+        }),
+      }
+      return pushHistory(state, next)
     }
 
     case "add-frame": {

@@ -110,6 +110,7 @@ Point guard at (7.5, 11.5), wings at (2.4, 9.6) and (12.6, 9.6), forwards at (5.
 - Dashed arrow → "pass" (set targetElementId to receiver)
 - Arrow ending with perpendicular bar → "screen" (set targetElementId to the player using it)
 - Arrow ending with double bar → "handoff" (set targetElementId to receiver)
+- Line ending at the rim, in a target/circle, or marked as a shot → "shot" (no targetElementId)
 
 ## FRAMES (CRITICAL RULE — one image with arrows = TWO frames)
 Frame 1 = starting positions + all actions. Frame 2 = result positions after all movements complete (movers at arrow tips, ball beside new owner after pass, others unchanged). Multiple images = one frame per image, actions in frame k point to frame k+1 positions.
@@ -346,9 +347,8 @@ function parseAiPlayResponse(raw: string, preferredName?: string): Play | null {
       for (const ra of rawActions.slice(0, MAX_ACTIONS_PER_FRAME)) {
         if (!ra || typeof ra !== "object") continue
         const raObj = ra as Record<string, unknown>
-        // "shot" is not part of the data model; render it as a cut to the rim.
-        const rawType = raObj.type === "shot" ? "cut" : raObj.type
-        const actionType = typeof rawType === "string" && ["cut", "dribble", "screen", "pass", "handoff"].includes(rawType)
+        const rawType = raObj.type
+        const actionType = typeof rawType === "string" && ["cut", "dribble", "screen", "pass", "handoff", "shot"].includes(rawType)
           ? (rawType as ActionType)
           : null
         if (!actionType) continue
@@ -409,6 +409,11 @@ function parseAiPlayResponse(raw: string, preferredName?: string): Play | null {
     const rim = { x: 7.5, y: 1.6 }
     const ball = elements.find((e) => e.kind === "ball")
     for (const a of first.actions) {
+      if (a.type === "shot") {
+        // The shooter holds their spot; only the ball travels to the rim.
+        if (ball) after[ball.id] = { ...rim }
+        continue
+      }
       if (a.type === "pass" || a.type === "handoff") {
         const receiver = a.targetElementId ? after[a.targetElementId] : undefined
         if (ball && receiver) after[ball.id] = { x: clamp(receiver.x + 0.42, -5, 20), y: clamp(receiver.y - 0.1, -5, 33) }

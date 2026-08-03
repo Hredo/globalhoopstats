@@ -20,9 +20,25 @@ export type CourtType = "half" | "full"
 
 export type Point = { x: number; y: number }
 
-export type ElementKind = "attacker" | "defender" | "ball" | "cone" | "coach"
+export type ElementKind =
+  | "attacker"
+  | "defender"
+  | "ball"
+  | "cone"
+  | "coach"
+  /** Chair / dummy defender used in drills. */
+  | "chair"
+  /** Free-text annotation pinned to a court spot. */
+  | "text"
 
-export type ActionType = "cut" | "dribble" | "screen" | "pass" | "handoff"
+export type ActionType =
+  | "cut"
+  | "dribble"
+  | "screen"
+  | "pass"
+  | "handoff"
+  /** Shot attempt — standard notation is a line ending in a target. */
+  | "shot"
 
 /** A real player from the database linked to a token on the court. */
 export type LinkedPlayer = {
@@ -51,10 +67,21 @@ export type PlayAction = {
   via?: Point | null
 }
 
+/**
+ * A freehand marker stroke drawn straight onto the board. Coaches scribble
+ * spacing, help rotations and reads that no notation covers, so strokes are
+ * kept per-frame and are purely decorative — nothing interpolates them.
+ */
+export type PlayDrawing = {
+  id: string
+  points: Point[]
+}
+
 export type PlayFrame = {
   id: string
   positions: Record<string, Point>
   actions: PlayAction[]
+  drawings?: PlayDrawing[]
   note?: string
 }
 
@@ -84,7 +111,11 @@ export type PlaybookFile = {
 export const MAX_ELEMENTS = 40
 export const MAX_FRAMES = 48
 export const MAX_ACTIONS_PER_FRAME = 40
+export const MAX_DRAWINGS_PER_FRAME = 40
+/** A stroke is resampled while drawing; this is a hard ceiling, not a target. */
+export const MAX_DRAWING_POINTS = 400
 export const MAX_NAME_LEN = 120
+export const MAX_LABEL_LEN = 40
 export const MAX_NOTE_LEN = 500
 export const MAX_DESCRIPTION_LEN = 2000
 
@@ -102,23 +133,30 @@ const linkedPlayerSchema = z.object({
 
 const elementSchema = z.object({
   id: z.string().max(40),
-  kind: z.enum(["attacker", "defender", "ball", "cone", "coach"]),
-  label: z.string().max(24),
+  kind: z.enum(["attacker", "defender", "ball", "cone", "coach", "chair", "text"]),
+  // Players are "1".."5"; a `text` element carries the whole annotation here.
+  label: z.string().max(MAX_LABEL_LEN),
   player: linkedPlayerSchema.nullish(),
 })
 
 const actionSchema = z.object({
   id: z.string().max(40),
-  type: z.enum(["cut", "dribble", "screen", "pass", "handoff"]),
+  type: z.enum(["cut", "dribble", "screen", "pass", "handoff", "shot"]),
   elementId: z.string().max(40),
   targetElementId: z.string().max(40).nullish(),
   via: pointSchema.nullish(),
+})
+
+const drawingSchema = z.object({
+  id: z.string().max(40),
+  points: z.array(pointSchema).min(2).max(MAX_DRAWING_POINTS),
 })
 
 const frameSchema = z.object({
   id: z.string().max(40),
   positions: z.record(z.string().max(40), pointSchema),
   actions: z.array(actionSchema).max(MAX_ACTIONS_PER_FRAME),
+  drawings: z.array(drawingSchema).max(MAX_DRAWINGS_PER_FRAME).optional(),
   note: z.string().max(MAX_NOTE_LEN).optional(),
 })
 
@@ -211,7 +249,7 @@ export function normalizePlay(play: Play): Play {
     elements.push({
       id,
       kind: el.kind,
-      label: sanitizeText(el.label).slice(0, 24),
+      label: sanitizeText(el.label).slice(0, MAX_LABEL_LEN),
       player: el.player
         ? {
             slug: sanitizeText(el.player.slug).slice(0, 120),
@@ -250,6 +288,18 @@ export function normalizePlay(play: Play): Play {
         via: a.via ? { x: a.via.x, y: a.via.y } : null,
       })
     }
+    const seenDrawingIds = new Set<string>()
+    const drawings: PlayDrawing[] = []
+    for (const d of f.drawings ?? []) {
+      const points = d.points
+        .slice(0, MAX_DRAWING_POINTS)
+        .map((p) => ({ x: p.x, y: p.y }))
+      if (points.length < 2) continue
+      const id = isSafeId(d.id) && !seenDrawingIds.has(d.id) ? d.id : newId()
+      seenDrawingIds.add(id)
+      drawings.push({ id, points })
+    }
+
     const note = f.note
       ? sanitizeText(f.note, { multiline: true }).slice(0, MAX_NOTE_LEN)
       : ""
@@ -257,6 +307,7 @@ export function normalizePlay(play: Play): Play {
       id: isSafeId(f.id) ? f.id : newId(),
       positions,
       actions,
+      drawings: drawings.length > 0 ? drawings : undefined,
       note: note || undefined,
     }
   })

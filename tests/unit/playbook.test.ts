@@ -11,6 +11,8 @@ import {
   ctrlFromHandle,
   curveHandle,
   describePoint,
+  mirrorX,
+  nearestRim,
   pathPoint,
   threeBreakY,
 } from "@/lib/playbook/geometry"
@@ -51,6 +53,37 @@ describe("playbook model", () => {
     expect(nextLabel([], "attacker")).toBe("1")
     expect(nextLabel([], "defender")).toBe("1")
   })
+
+  it("round-trips the tools added for on-court use", () => {
+    const play = createEmptyPlay("tools")
+    play.elements.push(
+      { id: "chair1", kind: "chair", label: "" },
+      { id: "note1", kind: "text", label: "ICE the ball screen" },
+    )
+    play.frames[0].positions = {
+      chair1: { x: 5, y: 5 },
+      note1: { x: 7.5, y: 9 },
+    }
+    play.frames[0].actions = [{ id: "a1", type: "shot", elementId: "chair1", via: null }]
+    play.frames[0].drawings = [
+      { id: "d1", points: [{ x: 1, y: 1 }, { x: 2, y: 2 }, { x: 3, y: 2.5 }] },
+    ]
+
+    const parsed = parsePlay(JSON.parse(JSON.stringify(play)))
+    expect(parsed).not.toBeNull()
+    expect(parsed!.elements.map((e) => e.kind)).toEqual(["chair", "text"])
+    expect(parsed!.elements[1].label).toBe("ICE the ball screen")
+    expect(parsed!.frames[0].actions[0].type).toBe("shot")
+    expect(parsed!.frames[0].drawings).toHaveLength(1)
+    expect(parsed!.frames[0].drawings![0].points).toHaveLength(3)
+  })
+
+  it("drops freehand strokes that are not really strokes", () => {
+    const play = createEmptyPlay("stroke")
+    // A single point is a stray tap, not a line: the schema must reject it.
+    play.frames[0].drawings = [{ id: "d1", points: [{ x: 1, y: 1 }] }]
+    expect(parsePlay(JSON.parse(JSON.stringify(play)))).toBeNull()
+  })
 })
 
 describe("playbook geometry", () => {
@@ -85,6 +118,20 @@ describe("playbook geometry", () => {
     expect(threeBreakY()).toBeLessThan(3.1)
   })
 
+  it("mirrors a point onto the other side of the floor", () => {
+    // 15 m wide: the left corner becomes the right corner, the top of the key
+    // does not move.
+    expect(mirrorX({ x: 1.2, y: 1.6 })).toEqual({ x: 13.8, y: 1.6 })
+    expect(mirrorX({ x: 7.5, y: 9 })).toEqual({ x: 7.5, y: 9 })
+  })
+
+  it("aims a shot at the basket the shooter is attacking", () => {
+    expect(nearestRim({ x: 2, y: 10 }, "half")).toEqual({ x: 7.5, y: 1.575 })
+    // Full court: whichever end the shooter is standing at.
+    expect(nearestRim({ x: 2, y: 4 }, "full").y).toBeCloseTo(1.575)
+    expect(nearestRim({ x: 2, y: 24 }, "full").y).toBeCloseTo(26.425)
+  })
+
   it("names court zones sensibly", () => {
     expect(describePoint({ x: 7.5, y: 1.5 }, "half")).toBe("restricted area")
     expect(describePoint({ x: 1, y: 1.2 }, "half")).toContain("left corner")
@@ -101,5 +148,19 @@ describe("playbook AI description", () => {
     expect(text).toContain("sets a screen")
     expect(text).toContain("passes to")
     expect(text).toMatch(/O1/)
+  })
+
+  it("hands the AI the shots and the on-court notes", () => {
+    const play = createEmptyPlay("shot play")
+    play.elements.push(
+      { id: "p1", kind: "attacker", label: "1" },
+      { id: "note1", kind: "text", label: "no middle" },
+    )
+    play.frames[0].positions = { p1: { x: 7.5, y: 9 }, note1: { x: 3, y: 3 } }
+    play.frames[0].actions = [{ id: "a1", type: "shot", elementId: "p1", via: null }]
+
+    const text = describePlay(play)
+    expect(text).toContain("O1 shoots from the")
+    expect(text).toContain('"no middle"')
   })
 })
