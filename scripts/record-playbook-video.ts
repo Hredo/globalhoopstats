@@ -125,8 +125,14 @@ async function recordTheme(theme: "dark" | "light") {
   }
 
   // ── SCENE 1: Start from one of the real templates ──
+  // "Templates" moved into the file Menu in the redesigned toolbar — it is no
+  // longer a direct button, so the menu has to be opened first.
+  console.log(`   📋 Opening the file menu...`)
+  await page.getByRole("button", { name: /^Menu$|^Menú$/ }).first().click()
+  await sleep(500)
+
   console.log(`   📋 Opening template picker...`)
-  await page.locator("button").filter({ hasText: /Templates|Plantillas/ }).first().click()
+  await page.getByRole("menuitem", { name: /^Templates$|^Plantillas$/ }).first().click()
   await sleep(1600)
 
   console.log(`   🗂️ Filtering to offense...`)

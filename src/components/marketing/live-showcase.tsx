@@ -302,7 +302,7 @@ function SceneRow({
                       muted
                       loop
                       playsInline
-                      preload="none"
+                      preload="auto"
                       aria-hidden
                       className="absolute inset-0 h-full w-full object-cover"
                     />
