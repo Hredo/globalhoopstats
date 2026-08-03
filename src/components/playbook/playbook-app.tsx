@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Eyebrow } from "@/components/ui/eyebrow"
@@ -23,13 +24,31 @@ import {
   type PlayTemplate,
 } from "@/lib/playbook/types"
 import { EXTRA_TEMPLATES } from "@/lib/playbook/templates.extra"
-import { PlayEditor, Timeline } from "@/components/playbook/editor"
+import { PlayEditor, Timeline, Toolbar, ToolRail, type Tool } from "@/components/playbook/editor"
 import { usePlayState } from "@/components/playbook/play-state"
 import { RosterPanel } from "@/components/playbook/roster-panel"
 import { AiPanel } from "@/components/playbook/ai-panel"
 import { AiAnalysisDisplay } from "@/components/market/ai-analysis-display"
 
 const ALL_TEMPLATES = [...PLAY_TEMPLATES, ...EXTRA_TEMPLATES]
+
+/** True on desktop, and on any device wide enough to want the sideways court. */
+const WIDE_BOARD_MQ = "(min-width: 1024px), (orientation: landscape)"
+
+function subscribeWide(callback: () => void): () => void {
+  const mq = window.matchMedia(WIDE_BOARD_MQ)
+  mq.addEventListener("change", callback)
+  return () => mq.removeEventListener("change", callback)
+}
+
+function useWideViewport(): boolean {
+  return useSyncExternalStore(
+    subscribeWide,
+    () => window.matchMedia(WIDE_BOARD_MQ).matches,
+    // Desktop is the majority of first paints; a phone corrects on hydration.
+    () => true,
+  )
+}
 
 const LOCAL_KEY = "ghs-playbook-v1"
 
@@ -94,6 +113,7 @@ export function PlaybookApp() {
   const t = useT()
   const locale = useLocale()
   const svgRef = useRef<SVGSVGElement | null>(null)
+  const coachSvgRef = useRef<SVGSVGElement | null>(null)
   const fileRef = useRef<HTMLInputElement | null>(null)
   const photoRef = useRef<HTMLInputElement | null>(null)
 
@@ -103,12 +123,24 @@ export function PlaybookApp() {
   const [saving, setSaving] = useState(false)
   const [photoImporting, setPhotoImporting] = useState(false)
   const [notice, setNotice] = useState<Notice | null>(null)
-  const [tab, setTab] = useState<"roster" | "ai" | "details">("roster")
+  const [tab, setTab] = useState<"library" | "roster" | "ai" | "details">("library")
   const [searchQ, setSearchQ] = useState("")
   const [templateOpen, setTemplateOpen] = useState(false)
-  const [horizontal, setHorizontal] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [analysis, setAnalysis] = useState<string | null>(null)
+  const [tool, setTool] = useState<Tool>("select")
+  const [coachMode, setCoachMode] = useState(false)
+
+  // A phone held upright fits far more court vertically; a tablet in landscape
+  // (or any desktop) wants the wide board. The media query only supplies the
+  // default — once the coach touches the toggle, their choice sticks.
+  const wideViewport = useWideViewport()
+  const [orientationChoice, setOrientationChoice] = useState<boolean | null>(null)
+  const horizontal = orientationChoice ?? wideViewport
+  const toggleOrientation = useCallback(
+    () => setOrientationChoice(!horizontal),
+    [horizontal],
+  )
 
   const { state, dispatch } = usePlayState(useMemo(() => createSamplePlay(), []))
   const playFramesLen = state.play.frames.length
@@ -541,74 +573,6 @@ export function PlaybookApp() {
     [confirmDiscard, dispatch],
   )
 
-  const sidebarContent = (
-    <div className="flex flex-col gap-4">
-      {/* Tabs */}
-      <div className="flex items-center gap-0 border-b border-hairline/30">
-        {(["roster", "ai", "details"] as const).map((id) => (
-          <button key={id} type="button" onClick={() => setTab(id)}
-            className={cn("relative px-3 pb-2 pt-1 text-xs font-semibold transition-all duration-200",
-              tab === id ? "text-brand-400" : "text-ink-300 hover:text-ink-50")}>
-            {t(`playbook.tabs.${id}`)}
-            {tab === id ? (
-              <motion.div layoutId="tab-underline" className="absolute -bottom-px left-0 right-0 h-0.5 bg-brand-400 rounded-full" />
-            ) : null}
-          </button>
-        ))}
-      </div>
-
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={tab}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
-        >
-          {tab === "roster" ? <RosterPanel state={state} dispatch={dispatch} /> :
-           tab === "ai" ? <AiPanel play={state.play} onAnalysis={setAnalysis} disabled={false} /> :
-           <div className="flex flex-col gap-4">
-             <label className="block">
-               <span className="mb-1.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-300">
-                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                 {t("playbook.details.description")}
-               </span>
-               <textarea value={state.play.description ?? ""}
-                 onChange={(e) => dispatch({ type: "set-description", description: e.target.value })}
-                 maxLength={2000} rows={5}
-                 placeholder={t("playbook.details.descriptionPlaceholder")}
-                 className="gh-input w-full resize-y text-sm" />
-               <span className="mt-1 block text-right font-mono text-[10px] text-ink-400">
-                 {(state.play.description ?? "").length}/2000
-               </span>
-             </label>
-             <Legend />
-           </div>}
-        </motion.div>
-      </AnimatePresence>
-
-      <div className="h-px bg-hairline/30" />
-
-      <Timeline
-        state={state} dispatch={dispatch}
-        playing={playing} speed={speed} setSpeed={setSpeed}
-        loop={loop} onToggleLoop={() => setLoop((l) => !l)}
-        onPlay={startPlayback} onStop={pausePlayback} progress={progress}
-      />
-
-      {/* Frame note */}
-      <input
-        type="text"
-        value={state.play.frames[state.frameIdx]?.note ?? ""}
-        onChange={(e) => dispatch({ type: "set-frame-note", note: e.target.value })}
-        placeholder={t("playbook.editor.notePlaceholder", { n: state.frameIdx + 1 })}
-        maxLength={200}
-        disabled={playing}
-        className="gh-input w-full text-xs"
-      />
-    </div>
-  )
-
   const librarySidebar = (
     <LibrarySidebar
       library={filteredLibrary}
@@ -623,167 +587,274 @@ export function PlaybookApp() {
     />
   )
 
+  /**
+   * One panel body, driven by a tab list: the desktop right column omits the
+   * library (it has its own column) while the phone sheet folds it in, so both
+   * surfaces stay a single scrollable thing instead of two stacked ones.
+   */
+  const panels = (tabs: readonly ("library" | "roster" | "ai" | "details")[]) => {
+    const active = tabs.includes(tab) ? tab : tabs[0]
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center gap-0 border-b border-hairline/30">
+          {tabs.map((id) => (
+            <button key={id} type="button" onClick={() => setTab(id)}
+              className={cn("relative px-3 pb-2.5 pt-1.5 text-xs font-semibold transition-all duration-200",
+                active === id ? "text-brand-400" : "text-ink-300 hover:text-ink-50")}>
+              {t(`playbook.tabs.${id}`)}
+              {active === id ? (
+                <motion.div layoutId={`tab-underline-${tabs.length}`} className="absolute -bottom-px left-0 right-0 h-0.5 bg-brand-400 rounded-full" />
+              ) : null}
+            </button>
+          ))}
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={active}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+          >
+            {active === "library" ? librarySidebar :
+             active === "roster" ? <RosterPanel state={state} dispatch={dispatch} /> :
+             active === "ai" ? <AiPanel play={state.play} onAnalysis={setAnalysis} disabled={false} /> :
+             <div className="flex flex-col gap-4">
+               <label className="block">
+                 <span className="mb-1.5 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-300">
+                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                   {t("playbook.details.description")}
+                 </span>
+                 <textarea value={state.play.description ?? ""}
+                   onChange={(e) => dispatch({ type: "set-description", description: e.target.value })}
+                   maxLength={2000} rows={5}
+                   placeholder={t("playbook.details.descriptionPlaceholder")}
+                   className="gh-input w-full resize-y text-sm" />
+                 <span className="mt-1 block text-right font-mono text-[10px] text-ink-400">
+                   {(state.play.description ?? "").length}/2000
+                 </span>
+               </label>
+               <Legend />
+             </div>}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    )
+  }
+
+  const timeline = (
+    <Timeline
+      state={state} dispatch={dispatch}
+      playing={playing} speed={speed} setSpeed={setSpeed}
+      loop={loop} onToggleLoop={() => setLoop((l) => !l)}
+      onPlay={startPlayback} onStop={pausePlayback} progress={progress}
+    />
+  )
+
+  // While the play runs, the field follows the playhead instead of the frame
+  // being edited — it is what the old on-court note overlay used to show, and
+  // the input is disabled during playback so it cannot be written to by mistake.
+  const noteFrameIdx = playing
+    ? Math.max(0, Math.min(Math.floor(progress), state.play.frames.length - 1))
+    : state.frameIdx
+
+  const frameNote = (
+    <div className="relative">
+      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[11px] font-bold text-brand-400">
+        {noteFrameIdx + 1}.
+      </span>
+      <input
+        type="text"
+        value={state.play.frames[noteFrameIdx]?.note ?? ""}
+        onChange={(e) => dispatch({ type: "set-frame-note", note: e.target.value })}
+        placeholder={t("playbook.editor.notePlaceholder", { n: noteFrameIdx + 1 })}
+        maxLength={200}
+        disabled={playing}
+        aria-label={t("playbook.editor.frameNote")}
+        className="gh-input w-full py-2 pl-8 pr-3 text-xs"
+      />
+    </div>
+  )
+
+  const toolRail = (
+    <ToolRail
+      tool={tool} setTool={setTool}
+      state={state} dispatch={dispatch}
+      playing={playing}
+      horizontal={horizontal}
+      onToggleOrientation={toggleOrientation}
+    />
+  )
+
+  const actionsMenu = (
+    <ActionsMenu
+      onNew={newPlay}
+      onTemplates={() => setTemplateOpen(true)}
+      onDuplicate={duplicatePlay}
+      onFlip={() => dispatch({ type: "flip-horizontal" })}
+      onExportPdf={exportPdf}
+      exportingPdf={exportingPdf}
+      onExportJson={exportJson}
+      onExportAll={exportLibrary}
+      libraryCount={library.length}
+      onImport={() => fileRef.current?.click()}
+      onImportPhoto={() => photoRef.current?.click()}
+      photoImporting={photoImporting}
+      disabled={playing}
+    />
+  )
+
   return (
     <div
-      className="playbook-root mx-auto flex w-full max-w-[1500px] flex-col px-4 sm:px-6"
+      // `main` pads the page by 1rem; on a phone that padding is board width,
+      // so bleed back out over it and re-inset only the rows that need it.
+      className="playbook-root -mx-4 flex w-[calc(100%+2rem)] flex-col px-2 sm:mx-auto sm:w-full sm:max-w-[1500px] sm:px-6"
       onDragEnter={onDragEnter}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDropFiles}
     >
-      {/* Header bar */}
-      <div className="flex shrink-0 items-center justify-between border-b border-hairline/50 py-3">
+      {/* Header bar — desktop only; on a phone every pixel goes to the board */}
+      <div className="hidden shrink-0 items-center justify-between border-b border-hairline/50 py-3 lg:flex">
         <div className="flex items-center gap-3">
           <Eyebrow>{t("playbook.page.eyebrow")}</Eyebrow>
           <span className="rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-300">
             Beta
           </span>
         </div>
-        <div className="flex items-center gap-3">
-          <AnimatePresence>
-            {notice ? (
-              <motion.span
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-                role="status"
-                className={cn(
-                  "rounded-lg px-2.5 py-1 text-xs font-semibold",
-                  notice.kind === "err"
-                    ? "bg-red-500/10 text-red-400"
-                    : "bg-emerald-500/10 text-emerald-400",
-                )}
-              >
-                {notice.text}
-              </motion.span>
-            ) : null}
-          </AnimatePresence>
-          {mode === "local" ? (
-            <span className="flex items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-400/10 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-amber-300">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
-              {t("playbook.library.localMode")}
-            </span>
-          ) : null}
-        </div>
+        {mode === "local" ? (
+          <span className="flex items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-400/10 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-amber-300">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+            {t("playbook.library.localMode")}
+          </span>
+        ) : null}
       </div>
 
-      {/* Action bar */}
-      <div className="mt-3 flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-hairline bg-surface-1/95 px-3 py-2.5 shadow-sm">
-        <input type="text" value={state.play.name}
-          onChange={(e) => dispatch({ type: "set-name", name: e.target.value })}
-          maxLength={120} aria-label={t("playbook.library.playName")}
-          className="gh-input min-w-0 flex-1 text-sm font-semibold sm:max-w-[180px]" />
-        {unsaved ? (
-          <motion.span
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="h-2 w-2 shrink-0 rounded-full bg-amber-400"
-            title={t("playbook.library.unsaved")}
-          />
+      {/* Toast — floats over the board so it never reflows the layout */}
+      <AnimatePresence>
+        {notice ? (
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+            role="status"
+            className="pointer-events-none fixed inset-x-0 top-[76px] z-[120] flex justify-center px-4"
+          >
+            <span
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-xs font-semibold shadow-lg",
+                notice.kind === "err"
+                  ? "bg-red-500/95 text-white"
+                  : "bg-emerald-500/95 text-white",
+              )}
+            >
+              {notice.text}
+            </span>
+          </motion.div>
         ) : null}
-        <ActionButton onClick={save} disabled={saving || mode === "loading"} className="gh-btn-primary px-3 py-1.5 text-xs">
+      </AnimatePresence>
+
+      {/* Action bar — name, save, everything else behind one menu. The name
+          takes its own row on a phone: with the buttons beside it there was
+          barely 30px left of it, which is not a text field. */}
+      <div className="mt-2 flex shrink-0 flex-wrap items-center gap-2 rounded-xl border border-hairline bg-surface-1/95 px-2 py-2 shadow-sm sm:flex-nowrap sm:px-3 sm:py-2.5 lg:mt-3">
+        <div className="flex min-w-0 flex-1 basis-full items-center gap-2 sm:basis-auto">
+          <input type="text" value={state.play.name}
+            onChange={(e) => dispatch({ type: "set-name", name: e.target.value })}
+            maxLength={120} aria-label={t("playbook.library.playName")}
+            className="gh-input min-w-0 flex-1 py-2 text-sm font-semibold lg:max-w-[240px]" />
+          {unsaved ? (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="h-2 w-2 shrink-0 rounded-full bg-amber-400"
+              title={t("playbook.library.unsaved")}
+            />
+          ) : null}
+        </div>
+
+        <ActionButton onClick={save} disabled={saving || mode === "loading"}
+          className="gh-btn-primary shrink-0 px-3.5 py-2 text-xs">
           {saving ? (
             <span className="flex items-center gap-1.5">
               <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              Saving
+              {t("playbook.library.save")}
             </span>
           ) : t("playbook.library.save")}
         </ActionButton>
-        <ActionButton onClick={newPlay}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="inline sm:mr-1"><path d="M12 5v14M5 12h14" /></svg>
-          <span className="hidden sm:inline">{t("playbook.library.new")}</span>
-        </ActionButton>
-        <ActionButton onClick={() => setTemplateOpen(true)}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline sm:mr-1"><path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></svg>
-          <span className="hidden sm:inline">{t("playbook.library.templates")}</span>
-        </ActionButton>
-        <span className="mx-1 hidden h-5 w-px bg-hairline/40 sm:block" aria-hidden />
-        <div className="hidden sm:flex sm:items-center sm:gap-2">
-          <ActionButton onClick={duplicatePlay}>{t("playbook.library.duplicate")}</ActionButton>
-          <ActionButton onClick={exportPdf} disabled={exportingPdf} title={t("playbook.library.exportPdfHint")}>
-            {exportingPdf ? (
-              <span className="flex items-center gap-1.5">
-                <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                PDF
-              </span>
-            ) : (
-              <>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline sm:mr-1"><path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><path d="M12 18v-6M9 15l3 3 3-3" /></svg>
-                <span className="hidden sm:inline">{t("playbook.library.exportPdf")}</span>
-              </>
-            )}
-          </ActionButton>
-          <ActionButton onClick={exportJson} title={t("playbook.library.exportJsonHint")}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline sm:mr-1"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
-            <span className="hidden sm:inline">{t("playbook.library.exportJson")}</span>
-          </ActionButton>
-          <ActionButton onClick={() => fileRef.current?.click()}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline sm:mr-1"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>
-            <span className="hidden sm:inline">{t("playbook.library.import")}</span>
-          </ActionButton>
-          <ActionButton onClick={() => photoRef.current?.click()} disabled={photoImporting}
-            title={t("playbook.library.importPhotoHint")}>
-            {photoImporting ? (
-              <span className="flex items-center gap-1.5">
-                <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                AI
-              </span>
-            ) : (
-              <>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="inline sm:mr-1"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" /><circle cx="12" cy="13" r="4" /></svg>
-                <span className="hidden sm:inline">{t("playbook.library.importPhoto")}</span>
-              </>
-            )}
-          </ActionButton>
-        </div>
+
+        {actionsMenu}
+
+        {/* Labelled, not a bare glyph: nobody guessed what the icon did. Not
+            gated on frame count either — showing a static alignment full-screen
+            to the team is as useful as playing an animation. */}
+        <button
+          type="button"
+          onClick={() => setCoachMode(true)}
+          title={t("playbook.editor.coachMode")}
+          className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-brand-500/40 bg-brand-500/10 px-2.5 text-xs font-semibold text-brand-300 transition-all duration-200 hover:border-brand-500/60 hover:bg-brand-500/20 hover:text-brand-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/70"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+            <path d="M8 3H5a2 2 0 00-2 2v3M16 3h3a2 2 0 012 2v3M8 21H5a2 2 0 01-2-2v-3M16 21h3a2 2 0 002-2v-3" />
+            <path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none" />
+          </svg>
+          <span className="whitespace-nowrap">{t("playbook.editor.coachModeShort")}</span>
+        </button>
+
+        <IconToggle
+          label={t("playbook.tabs.panels")}
+          onClick={() => setSidebarOpen((o) => !o)}
+          className="lg:hidden"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18" />
+          </svg>
+        </IconToggle>
+
         <input ref={fileRef} type="file" accept=".json,application/json" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) importFile(f); e.target.value = "" }} />
         <input ref={photoRef} type="file" accept="image/*" multiple className="hidden"
           onChange={(e) => { const files = e.target.files; if (files && files.length > 0) importPhoto(files); e.target.value = "" }} />
-
-        {/* Mobile overflow menu */}
-        <div className="sm:hidden ml-auto flex items-center gap-1">
-          <MobileOverlayMenu
-            duplicatePlay={duplicatePlay}
-            exportPdf={exportPdf}
-            exportingPdf={exportingPdf}
-            exportJson={exportJson}
-            importTrigger={() => fileRef.current?.click()}
-            photoImport={() => photoRef.current?.click()}
-            photoImporting={photoImporting}
-          />
-        </div>
-
-        <button type="button" onClick={() => setSidebarOpen((o) => !o)}
-          title="Toggle panels"
-          className="ml-1 rounded-xl border border-hairline bg-surface-0 p-2 text-ink-400 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-surface-2 hover:text-ink-50 active:scale-95 lg:hidden">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18" />
-          </svg>
-        </button>
       </div>
 
-      {/* Main area — 3-column grid: library | court | panels */}
-      <div className="min-h-0 flex-1 gap-4 py-4 transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] lg:grid lg:grid-cols-[230px_minmax(0,1fr)_310px]">
+      {/* Main area — 3-column grid on desktop; board-first stack on touch.
+          --board-vh is the height budget the court may claim: on a phone that
+          is everything the chrome above and below does not need. */}
+      <div className="min-h-0 flex-1 gap-4 py-2 [--board-vh:max(240px,calc(100dvh-380px))] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] sm:[--board-vh:max(240px,calc(100dvh-340px))] lg:grid lg:grid-cols-[230px_minmax(0,1fr)_310px] lg:py-4 lg:[--board-vh:74vh]">
         {/* Left column: library sidebar */}
         <aside className="hidden self-start rounded-xl border border-hairline bg-surface-1/95 p-3 shadow-sm lg:block">
           {librarySidebar}
         </aside>
 
-        {/* Center column: court board */}
-        <div className="min-w-0 flex flex-col">
+        {/* Center column: the board, and directly under it the controls a coach
+            reaches for mid-session (desktop keeps them in the right column).
+            The board alone bleeds past the page inset — it is the point. */}
+        <div className="flex min-w-0 flex-col gap-2 max-sm:-mx-2 max-sm:w-[calc(100%+1rem)]">
           <PlayEditor
             state={state} dispatch={dispatch} svgRef={svgRef}
             playing={playing} progress={progress}
             horizontal={horizontal}
-            onToggleOrientation={() => setHorizontal((h) => !h)}
+            onToggleOrientation={toggleOrientation}
+            tool={tool} setTool={setTool}
           />
+          {/* The note sits directly under the board on every breakpoint — it
+              used to float over the court and hide whatever was behind it. */}
+          <div className="flex flex-col gap-2 max-sm:px-2">
+            <div className="lg:hidden">{timeline}</div>
+            <div className="lg:hidden">{toolRail}</div>
+            {frameNote}
+          </div>
         </div>
 
         {/* Right column: panels */}
         <aside className="hidden self-start rounded-xl border border-hairline bg-surface-1/95 p-3 shadow-sm lg:block">
-          {sidebarContent}
+          <div className="flex flex-col gap-4">
+            {panels(["roster", "ai", "details"] as const)}
+            <div className="h-px bg-hairline/30" />
+            {timeline}
+          </div>
         </aside>
       </div>
 
@@ -841,18 +912,18 @@ export function PlaybookApp() {
               transition={{ type: "spring", damping: 32, stiffness: 400 }}
               className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-xl border-t border-hairline/40 bg-surface-2 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl"
             >
-              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-hairline/30 bg-surface-2 px-5 py-3">
-                <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-400">
-                  {t("playbook.library.title")}
-                </span>
-                <button type="button" onClick={() => setSidebarOpen(false)}
-                  className="rounded-md p-1.5 text-ink-400 transition hover:bg-white/[0.05] hover:text-ink-50">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                </button>
-              </div>
-              <div className="flex flex-col gap-4 p-4">
-                {librarySidebar}
-                {sidebarContent}
+              {/* Grab handle — the sheet reads as draggable furniture, and it
+                  doubles as a fat tap target to dismiss. */}
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(false)}
+                aria-label={t("playbook.editor.closePanels")}
+                className="sticky top-0 z-10 flex w-full justify-center bg-surface-2 pb-2 pt-3"
+              >
+                <span className="h-1 w-10 rounded-full bg-ink-500/50" />
+              </button>
+              <div className="flex flex-col gap-4 px-4 pb-4">
+                {panels(["library", "roster", "ai", "details"] as const)}
               </div>
             </motion.div>
           </>
@@ -863,6 +934,34 @@ export function PlaybookApp() {
       <AnimatePresence>
         {templateOpen ? (
           <TemplatePicker onSelect={loadTemplate} onClose={() => setTemplateOpen(false)} />
+        ) : null}
+      </AnimatePresence>
+
+      {/* Coach mode — the board and nothing else, for a huddle or a timeout */}
+      <AnimatePresence>
+        {coachMode ? (
+          <CoachMode
+            state={state}
+            dispatch={dispatch}
+            svgRef={coachSvgRef}
+            playing={playing}
+            progress={progress}
+            speed={speed}
+            setSpeed={setSpeed}
+            loop={loop}
+            onToggleLoop={() => setLoop((l) => !l)}
+            onPlay={startPlayback}
+            onStop={pausePlayback}
+            horizontal={horizontal}
+            onToggleOrientation={toggleOrientation}
+            tool={tool}
+            setTool={setTool}
+            noteField={frameNote}
+            onClose={() => {
+              if (playing) pausePlayback()
+              setCoachMode(false)
+            }}
+          />
         ) : null}
       </AnimatePresence>
 
@@ -906,12 +1005,40 @@ function ActionButton({ onClick, children, disabled, className, title }: {
   )
 }
 
-function MobileOverlayMenu({
-  duplicatePlay, exportPdf, exportingPdf, exportJson, importTrigger, photoImport, photoImporting,
+/** Square icon button used for the secondary controls in the action bar. */
+function IconToggle({
+  label, onClick, children, className, disabled,
 }: {
-  duplicatePlay: () => void; exportPdf: () => void; exportingPdf: boolean
-  exportJson: () => void
-  importTrigger: () => void; photoImport: () => void; photoImporting: boolean
+  label: string; onClick: () => void; children: React.ReactNode
+  className?: string; disabled?: boolean
+}) {
+  return (
+    <button type="button" onClick={onClick} title={label} aria-label={label} disabled={disabled}
+      className={cn(
+        "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-hairline bg-surface-0 text-ink-300 transition-all duration-200 hover:bg-surface-2 hover:text-ink-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/70",
+        className,
+      )}>
+      {children}
+    </button>
+  )
+}
+
+/**
+ * Every file-level action — new, templates, duplicate, flip, the three exports
+ * and the two imports — behind one button. The action bar used to spread them
+ * across the width and then hide half of them below `sm`, which meant desktop
+ * and phone were two different products.
+ */
+function ActionsMenu({
+  onNew, onTemplates, onDuplicate, onFlip,
+  onExportPdf, exportingPdf, onExportJson, onExportAll, libraryCount,
+  onImport, onImportPhoto, photoImporting, disabled,
+}: {
+  onNew: () => void; onTemplates: () => void; onDuplicate: () => void; onFlip: () => void
+  onExportPdf: () => void; exportingPdf: boolean
+  onExportJson: () => void; onExportAll: () => void; libraryCount: number
+  onImport: () => void; onImportPhoto: () => void; photoImporting: boolean
+  disabled?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -919,47 +1046,89 @@ function MobileOverlayMenu({
 
   useEffect(() => {
     if (!open) return
-    const onClick = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
+    const onPointer = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false)
+    }
     const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false) }
-    document.addEventListener("mousedown", onClick)
+    document.addEventListener("pointerdown", onPointer)
     document.addEventListener("keydown", onEsc)
-    return () => { document.removeEventListener("mousedown", onClick); document.removeEventListener("keydown", onEsc) }
+    return () => {
+      document.removeEventListener("pointerdown", onPointer)
+      document.removeEventListener("keydown", onEsc)
+    }
   }, [open])
 
+  const run = (fn: () => void) => () => { setOpen(false); fn() }
+
   return (
-    <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen((o) => !o)}
-        className="flex h-8 w-8 items-center justify-center rounded-lg border border-hairline/50 bg-surface-0/80 text-ink-400 transition hover:bg-surface-1 hover:text-ink-50 active:scale-95">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" /></svg>
+    <div ref={ref} className="relative shrink-0">
+      <button type="button" onClick={() => setOpen((o) => !o)} disabled={disabled}
+        aria-haspopup="menu" aria-expanded={open} aria-label={t("playbook.menu.title")}
+        className={cn(
+          "flex h-10 items-center gap-1.5 rounded-xl border border-hairline bg-surface-0 px-2.5 text-xs font-semibold text-ink-100 transition-all duration-200 hover:bg-surface-2 hover:text-ink-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/70",
+          open && "border-hairline-strong bg-surface-2",
+        )}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+        <span className="hidden sm:inline">{t("playbook.menu.title")}</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          className={cn("transition-transform duration-200", open && "rotate-180")}>
+          <path d="m6 9 6 6 6-6" />
+        </svg>
       </button>
       <AnimatePresence>
         {open ? (
           <motion.div
-            initial={{ opacity: 0, scale: 0.94, y: -4 }}
+            role="menu"
+            initial={{ opacity: 0, scale: 0.96, y: -6 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: -4 }}
+            exit={{ opacity: 0, scale: 0.96, y: -6 }}
             transition={{ duration: 0.15, ease: [0.32, 0.72, 0, 1] }}
-            className="absolute right-0 top-full z-50 mt-1 w-44 origin-top-right rounded-lg border border-hairline/40 bg-surface-2 p-1 shadow-lg">
-            <MenuItem onClick={() => { duplicatePlay(); setOpen(false) }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+            className="absolute right-0 top-full z-[80] mt-1.5 max-h-[70vh] w-60 origin-top-right overflow-y-auto rounded-xl border border-hairline/50 bg-surface-2 p-1.5 shadow-2xl">
+            <MenuLabel>{t("playbook.menu.play")}</MenuLabel>
+            <MenuItem onClick={run(onNew)}>
+              <svg {...MENU_ICON}><path d="M12 5v14M5 12h14" /></svg>
+              {t("playbook.library.new")}
+            </MenuItem>
+            <MenuItem onClick={run(onTemplates)}>
+              <svg {...MENU_ICON}><path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></svg>
+              {t("playbook.library.templates")}
+            </MenuItem>
+            <MenuItem onClick={run(onDuplicate)}>
+              <svg {...MENU_ICON}><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
               {t("playbook.library.duplicate")}
             </MenuItem>
-            <MenuItem onClick={() => { exportPdf(); setOpen(false) }} disabled={exportingPdf}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><path d="M12 18v-6M9 15l3 3 3-3" /></svg>
-              {t("playbook.library.exportPdf")}
+            <MenuItem onClick={run(onFlip)} hint={t("playbook.menu.flipHint")}>
+              <svg {...MENU_ICON}><path d="M12 3v18" strokeDasharray="3 3" /><path d="M8 8L4 12l4 4" /><path d="M16 8l4 4-4 4" /></svg>
+              {t("playbook.menu.flip")}
             </MenuItem>
-            <MenuItem onClick={() => { exportJson(); setOpen(false) }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+
+            <MenuLabel>{t("playbook.menu.export")}</MenuLabel>
+            <MenuItem onClick={run(onExportPdf)} disabled={exportingPdf} hint={t("playbook.library.exportPdfHint")}>
+              <svg {...MENU_ICON}><path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><path d="M12 18v-6M9 15l3 3 3-3" /></svg>
+              {exportingPdf ? `${t("playbook.library.exportPdf")}…` : t("playbook.library.exportPdf")}
+            </MenuItem>
+            <MenuItem onClick={run(onExportJson)} hint={t("playbook.library.exportJsonHint")}>
+              <svg {...MENU_ICON}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
               {t("playbook.library.exportJson")}
             </MenuItem>
-            <div className="my-1 h-px bg-hairline/20" />
-            <MenuItem onClick={() => { importTrigger(); setOpen(false) }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>
+            {libraryCount > 0 ? (
+              <MenuItem onClick={run(onExportAll)} hint={t("playbook.library.exportAll")}>
+                <svg {...MENU_ICON}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+                {t("playbook.menu.exportAll")}
+                <span className="ml-auto font-mono text-[10px] text-ink-400">{libraryCount}</span>
+              </MenuItem>
+            ) : null}
+
+            <MenuLabel>{t("playbook.menu.import")}</MenuLabel>
+            <MenuItem onClick={run(onImport)}>
+              <svg {...MENU_ICON}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>
               {t("playbook.library.import")}
             </MenuItem>
-            <MenuItem onClick={() => { photoImport(); setOpen(false) }} disabled={photoImporting}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" /><circle cx="12" cy="13" r="4" /></svg>
-              {t("playbook.library.importPhoto")}
+            <MenuItem onClick={run(onImportPhoto)} disabled={photoImporting} hint={t("playbook.library.importPhotoHint")}>
+              <svg {...MENU_ICON}><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" /><circle cx="12" cy="13" r="4" /></svg>
+              {photoImporting ? `${t("playbook.library.importPhoto")}…` : t("playbook.library.importPhoto")}
             </MenuItem>
           </motion.div>
         ) : null}
@@ -968,12 +1137,202 @@ function MobileOverlayMenu({
   )
 }
 
-function MenuItem({ onClick, children, disabled }: { onClick: () => void; children: React.ReactNode; disabled?: boolean }) {
+const MENU_ICON = {
+  width: 15,
+  height: 15,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  className: "shrink-0",
+}
+
+function MenuLabel({ children }: { children: React.ReactNode }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled}
-      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold text-ink-200 transition hover:bg-white/[0.05] hover:text-ink-50 disabled:opacity-40">
+    <p className="px-2.5 pb-1 pt-2 font-mono text-[9px] font-semibold uppercase tracking-[0.2em] text-ink-500">
+      {children}
+    </p>
+  )
+}
+
+function MenuItem({ onClick, children, disabled, hint }: {
+  onClick: () => void; children: React.ReactNode; disabled?: boolean; hint?: string
+}) {
+  return (
+    <button type="button" role="menuitem" onClick={onClick} disabled={disabled} title={hint}
+      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-left text-[13px] font-semibold text-ink-200 transition hover:bg-white/[0.06] hover:text-ink-50 disabled:cursor-not-allowed disabled:opacity-40">
       {children}
     </button>
+  )
+}
+
+/**
+ * Full-screen workspace for practice and timeouts. It is the same editor, not a
+ * viewer: the margins either side of the board are dead space at this size, so
+ * the tool rail takes the left one and the roster the right one, and a coach can
+ * redraw a read or swap a player without leaving the big board.
+ */
+function CoachMode({
+  state, dispatch, svgRef, playing, progress, speed, setSpeed, loop, onToggleLoop,
+  onPlay, onStop, horizontal, onToggleOrientation, tool, setTool, noteField, onClose,
+}: {
+  state: ReturnType<typeof usePlayState>["state"]
+  dispatch: ReturnType<typeof usePlayState>["dispatch"]
+  svgRef: React.RefObject<SVGSVGElement | null>
+  playing: boolean; progress: number
+  speed: number; setSpeed: (s: number) => void
+  loop: boolean; onToggleLoop: () => void
+  onPlay: () => void; onStop: () => void
+  horizontal: boolean; onToggleOrientation: () => void
+  tool: Tool; setTool: (t: Tool) => void
+  /** Same frame-note field as the main editor, so it stays editable here. */
+  noteField: React.ReactNode
+  onClose: () => void
+}) {
+  const t = useT()
+  const [rosterOpen, setRosterOpen] = useState(false)
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return
+      // Escape closes the roster drawer first, then the mode itself.
+      if (rosterOpen) setRosterOpen(false)
+      else onClose()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [onClose, rosterOpen])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      // Above the cookie/announcement bar (z-150), below the template picker.
+      className="fixed inset-0 z-[170] flex flex-col gap-2 bg-surface-0 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:p-3"
+    >
+      <div className="flex shrink-0 items-center gap-2">
+        <span className="hidden shrink-0 rounded-md bg-brand-500/15 px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-300 sm:inline">
+          {t("playbook.editor.coachModeShort")}
+        </span>
+        <p className="min-w-0 flex-1 truncate text-sm font-bold text-ink-50 sm:text-base">
+          {state.play.name}
+        </p>
+        {/* Roster gets its own column from lg up; below that it is a drawer. */}
+        <IconToggle
+          label={t("playbook.tabs.roster")}
+          onClick={() => setRosterOpen((o) => !o)}
+          className="lg:hidden"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 00-3-3.87" />
+          </svg>
+        </IconToggle>
+        <IconToggle label={horizontal ? t("playbook.editor.vertical") : t("playbook.editor.horizontal")}
+          onClick={onToggleOrientation}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {horizontal ? (
+              <><rect x="3" y="6" width="18" height="12" rx="2" /><circle cx="6.5" cy="12" r="1.2" /></>
+            ) : (
+              <><rect x="6" y="3" width="12" height="18" rx="2" /><circle cx="12" cy="6.5" r="1.2" /></>
+            )}
+          </svg>
+        </IconToggle>
+        <IconToggle label={t("playbook.editor.exitCoachMode")} onClick={onClose}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+        </IconToggle>
+      </div>
+
+      {/* Tools · board · roster. The board keeps whatever the sides don't use. */}
+      {/* The floor matters on a phone in landscape, where the fixed chrome
+          budget would otherwise leave the board a few dozen pixels tall. */}
+      <div className="flex min-h-0 flex-1 items-start justify-center gap-2 [--board-vh:max(240px,calc(100dvh-260px))] sm:gap-3 md:[--board-vh:max(240px,calc(100dvh-160px))]">
+        <div className="hidden md:block">
+          <Toolbar
+            tool={tool} setTool={setTool}
+            state={state} dispatch={dispatch}
+            playing={playing}
+            horizontal={horizontal}
+            onToggleOrientation={onToggleOrientation}
+          />
+        </div>
+
+        <div className="flex min-w-0 flex-1 justify-center self-center">
+          <PlayEditor
+            state={state} dispatch={dispatch} svgRef={svgRef}
+            playing={playing} progress={progress}
+            horizontal={horizontal}
+            onToggleOrientation={onToggleOrientation}
+            tool={tool} setTool={setTool}
+            showToolbar={false}
+          />
+        </div>
+
+        <aside className="hidden w-[290px] shrink-0 self-stretch overflow-y-auto rounded-xl border border-hairline bg-surface-1/95 p-3 shadow-sm lg:block">
+          <p className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-400">
+            {t("playbook.tabs.roster")}
+          </p>
+          <RosterPanel state={state} dispatch={dispatch} />
+        </aside>
+      </div>
+
+      <div className="flex shrink-0 flex-col gap-2">
+        {noteField}
+        <Timeline
+          state={state} dispatch={dispatch}
+          playing={playing} speed={speed} setSpeed={setSpeed}
+          loop={loop} onToggleLoop={onToggleLoop}
+          onPlay={onPlay} onStop={onStop} progress={progress}
+        />
+        {/* Narrow screens have no left margin to give: rail goes under the board */}
+        <div className="md:hidden">
+          <ToolRail
+            tool={tool} setTool={setTool}
+            state={state} dispatch={dispatch}
+            playing={playing}
+            horizontal={horizontal}
+            onToggleOrientation={onToggleOrientation}
+          />
+        </div>
+      </div>
+
+      {/* Roster drawer for anything under lg */}
+      <AnimatePresence>
+        {rosterOpen ? (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 z-10 bg-black/50 backdrop-blur-sm lg:hidden"
+              onClick={() => setRosterOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 32, stiffness: 400 }}
+              className="absolute inset-y-0 right-0 z-20 flex w-[min(320px,88vw)] flex-col border-l border-hairline/40 bg-surface-2 shadow-2xl lg:hidden"
+            >
+              <div className="flex shrink-0 items-center justify-between border-b border-hairline/30 px-4 py-3">
+                <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-400">
+                  {t("playbook.tabs.roster")}
+                </span>
+                <button type="button" onClick={() => setRosterOpen(false)}
+                  aria-label={t("playbook.editor.closePanels")}
+                  className="rounded-md p-1.5 text-ink-400 transition hover:bg-white/[0.05] hover:text-ink-50">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto p-3">
+                <RosterPanel state={state} dispatch={dispatch} />
+              </div>
+            </motion.aside>
+          </>
+        ) : null}
+      </AnimatePresence>
+    </motion.div>
   )
 }
 
@@ -1000,13 +1359,13 @@ function LibrarySidebar({ library, currentKey, searchQ, onSearch, onOpen, onDele
           </button>
         ) : null}
         <div className="relative ml-auto flex-1">
-          <svg aria-hidden className="pointer-events-none absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-ink-400"
+          <svg aria-hidden className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-400"
             fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.3-4.3M16.65 10.65a6 6 0 1 1-12 0 6 6 0 0 1 12 0Z" />
           </svg>
           <input type="text" value={searchQ} onChange={(e) => onSearch(e.target.value)}
             placeholder={t("playbook.library.searchPlh")}
-            className="gh-input w-full rounded-lg py-1.5 pl-6 pr-2 text-[11px]" />
+            className="gh-input w-full rounded-lg py-2 pl-8 pr-2.5 text-[11px]" />
         </div>
       </div>
       {mode === "loading" ? (
@@ -1078,6 +1437,7 @@ function Legend() {
     { key: "dribble", label: t("playbook.legend.dribble"), sample: <svg width="28" height="8" viewBox="0 0 28 8"><path d="M2 4c2-3 4 3 6 0s4 3 6 0s4 3 6 0" stroke="currentColor" strokeWidth="1.4" fill="none" /><path d="M22 4l-4-2.5M22 4l-4 2.5" stroke="currentColor" strokeWidth="1.4" fill="none" /></svg> },
     { key: "screen", label: t("playbook.legend.screen"), sample: <svg width="28" height="8" viewBox="0 0 28 8"><path d="M2 4h20" stroke="currentColor" strokeWidth="1.4" /><path d="M22 1.5v5" stroke="currentColor" strokeWidth="1.6" /></svg> },
     { key: "handoff", label: t("playbook.legend.handoff"), sample: <svg width="28" height="8" viewBox="0 0 28 8"><path d="M2 4h20" stroke="currentColor" strokeWidth="1.4" strokeDasharray="2.5 2" /><path d="M18 1.5v5M21 1.5v5" stroke="currentColor" strokeWidth="1.4" /></svg> },
+    { key: "shot", label: t("playbook.legend.shot"), sample: <svg width="28" height="8" viewBox="0 0 28 8"><path d="M2 4h18" stroke="currentColor" strokeWidth="1.4" /><circle cx="23" cy="4" r="2.6" stroke="currentColor" strokeWidth="1.2" fill="none" /><circle cx="23" cy="4" r="0.8" fill="currentColor" /></svg> },
   ]
   return (
     <div>
@@ -1199,7 +1559,7 @@ function TemplatePicker({ onSelect, onClose }: {
               </svg>
               <input type="text" value={searchQ} onChange={(e) => setSearchQ(e.target.value)}
                 placeholder={t("playbook.library.searchPlh")}
-                className="gh-input w-44 rounded-lg py-1.5 pl-8 pr-3 text-[12px]" />
+                className="gh-input w-36 rounded-lg py-2 pl-9 pr-3 text-[12px] sm:w-44" />
             </div>
             <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-ink-400 transition hover:bg-white/[0.05] hover:text-ink-50">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>

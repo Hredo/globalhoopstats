@@ -967,7 +967,16 @@ html[data-theme="light"] .court-backdrop {
     color: var(--color-ink-300);
   }
 
-  /* ── Form controls ───────────────────────────────────────────── */
+}
+
+/* ── Form controls & buttons ─────────────────────────────────────────────────
+   These live in `components`, NOT `utilities`: they set padding / radius /
+   font-size shorthands, and a same-specificity rule later in the utilities
+   layer beats Tailwind's own utilities. That is what made `pl-8` on a search
+   box silently do nothing and let the text run under the leading icon. In the
+   components layer the utility always wins, which is the whole point of
+   writing `gh-input pl-9` at the call site. */
+@layer components {
   /* framed input/select used across the market simulator and forms */
   .gh-input {
     width: 100%;
@@ -1043,6 +1052,19 @@ html[data-theme="light"] .court-backdrop {
     opacity: 0.5;
     cursor: not-allowed;
     box-shadow: none;
+  }
+
+}
+
+@layer utilities {
+  /* Touch devices: iOS Safari zooms the viewport whenever a focused field is
+     under 16px, which yanks the playbook board off screen mid-edit. Lives in
+     `utilities` (unlike .gh-input itself) so it also beats a `text-xs` on the
+     element — the anti-zoom floor has to win. */
+  @media (pointer: coarse) {
+    .gh-input {
+      font-size: 1rem;
+    }
   }
 
   /* ── Focus / glow helpers ────────────────────────────────────── */

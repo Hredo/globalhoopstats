@@ -18,6 +18,10 @@ export const BOARD = {
   ball: "#d97706",
   cone: "#dc2626",
   coach: "#5f5185",
+  chair: "#4b5563",
+  text: "#1f2937",
+  /** Freehand marker — deliberately reads as a different ink to the notation. */
+  pen: "#0f766e",
   selected: "#0d9488",
   note: "#6b6154",
 }

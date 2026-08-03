@@ -18,6 +18,7 @@ import {
   type LinkedPlayer,
   type Play,
   type PlayAction,
+  type PlayDrawing,
   type PlayElement,
   type PlayFrame,
   type Point,
@@ -30,6 +31,7 @@ import {
   distance,
   dribblePathD,
   easeInOut,
+  nearestRim,
   pathAngle,
   pathD,
   pathPoint,
@@ -37,6 +39,7 @@ import {
 import { BOARD, PlaybookCourt } from "@/components/playbook/court"
 import {
   ballHolderId,
+  isBallAction,
   type EditorState,
   type PlayDispatch,
 } from "@/components/playbook/play-state"
@@ -48,11 +51,15 @@ export type Tool =
   | "ball"
   | "cone"
   | "coach"
+  | "chair"
+  | "text"
   | "cut"
   | "dribble"
   | "screen"
   | "pass"
   | "handoff"
+  | "shot"
+  | "pen"
   | "erase"
 
 const LINE_TOOLS: ReadonlySet<Tool> = new Set([
@@ -61,6 +68,7 @@ const LINE_TOOLS: ReadonlySet<Tool> = new Set([
   "screen",
   "pass",
   "handoff",
+  "shot",
 ])
 const ADD_TOOLS: ReadonlySet<Tool> = new Set([
   "attacker",
@@ -68,16 +76,22 @@ const ADD_TOOLS: ReadonlySet<Tool> = new Set([
   "ball",
   "cone",
   "coach",
+  "chair",
+  "text",
 ])
 
 const TOKEN_R = 0.45
 const DEFAULT_LEN = 2
 export const PLAYER_DRAG_MIME = "application/x-ghs-player"
 
+/** Freehand samples closer together than this (metres) are dropped. */
+const PEN_MIN_STEP = 0.12
+
 type DragState =
   | { mode: "element"; elementId: string }
   | { mode: "via"; actionId: string; from: Point; to: Point }
   | { mode: "endpoint"; elementId: string; actionId: string }
+  | { mode: "pen" }
 
 type Props = {
   state: EditorState
@@ -87,15 +101,40 @@ type Props = {
   progress: number
   horizontal: boolean
   onToggleOrientation: () => void
+  tool: Tool
+  setTool: (t: Tool) => void
+  /**
+   * Render the built-in desktop tool rail. Coach mode places its own rail in
+   * the margin beside the board, so it opts out rather than getting two.
+   */
+  showToolbar?: boolean
+  /** Extra classes for the board's outer frame (mobile sizing). */
+  className?: string
 }
 
-export function PlayEditor({ state, dispatch, svgRef, playing, progress, horizontal, onToggleOrientation }: Props) {
+export function PlayEditor({
+  state,
+  dispatch,
+  svgRef,
+  playing,
+  progress,
+  horizontal,
+  onToggleOrientation,
+  tool,
+  setTool,
+  showToolbar = true,
+  className,
+}: Props) {
   const t = useT()
   const { play, frameIdx, selectedElementId, selectedActionId } = state
   const frame = play.frames[frameIdx]
 
-  const [tool, setTool] = useState<Tool>("select")
   const dragRef = useRef<DragState | null>(null)
+  const penRef = useRef<Point[]>([])
+  const [penPreview, setPenPreview] = useState<Point[] | null>(null)
+
+  /** Edits are only frozen while the play animates. */
+  const locked = playing
 
   // Frame shown on the board: while playing, follow the playhead.
   const viewFrameIdx = playing ? Math.max(0, Math.min(Math.floor(progress), play.frames.length - 2)) : frameIdx
@@ -152,12 +191,24 @@ export function PlayEditor({ state, dispatch, svgRef, playing, progress, horizon
         const target = elementAt(play, frame, to, elementId)
         if (!target) return
         dispatch({ type: "add-movement", elementId, actionType, to, targetElementId: target.id })
+      } else if (actionType === "screen") {
+        // Record who the screen is for: it is what makes the PDF and the AI
+        // read "O5 screens for O1" instead of a nameless bar on the floor.
+        const from = frame.positions[elementId]
+        const user = from ? nearestElement(play, frame, from, elementId) : null
+        dispatch({
+          type: "add-movement",
+          elementId,
+          actionType,
+          to,
+          targetElementId: user?.id ?? null,
+        })
       } else {
         dispatch({ type: "add-movement", elementId, actionType, to })
       }
       setTool("select")
     },
-    [tool, play, frame, dispatch],
+    [tool, play, frame, dispatch, setTool],
   )
 
   function defaultEndpoint(from: Point): Point {
@@ -178,7 +229,7 @@ export function PlayEditor({ state, dispatch, svgRef, playing, progress, horizon
     e: ReactPointerEvent<SVGGElement>,
     el: PlayElement,
   ) => {
-    if (playing) return
+    if (locked) return
     e.stopPropagation()
     capturePointer(e.pointerId)
 
@@ -197,6 +248,8 @@ export function PlayEditor({ state, dispatch, svgRef, playing, progress, horizon
           const targetPos = frame.positions[target.id]
           if (targetPos) commitLine(el.id, targetPos)
         }
+      } else if (tool === "shot") {
+        commitLine(el.id, nearestRim(from, play.courtType))
       } else {
         commitLine(el.id, defaultEndpoint(from))
       }
@@ -214,7 +267,7 @@ export function PlayEditor({ state, dispatch, svgRef, playing, progress, horizon
     from: Point,
     to: Point,
   ) => {
-    if (playing) return
+    if (locked) return
     e.stopPropagation()
     capturePointer(e.pointerId)
     dispatch({ type: "select-action", actionId: action.id })
@@ -227,7 +280,7 @@ export function PlayEditor({ state, dispatch, svgRef, playing, progress, horizon
     elementId: string,
     actionId: string,
   ) => {
-    if (playing) return
+    if (locked) return
     e.stopPropagation()
     capturePointer(e.pointerId)
     dispatch({ type: "select-action", actionId })
@@ -236,8 +289,21 @@ export function PlayEditor({ state, dispatch, svgRef, playing, progress, horizon
   }
 
   const onBoardPointerDown = (e: ReactPointerEvent<SVGSVGElement>) => {
-    if (playing) return
+    if (locked) return
     const p = toCourtPoint(e.clientX, e.clientY)
+    if (tool === "pen") {
+      capturePointer(e.pointerId)
+      penRef.current = [p]
+      setPenPreview([p])
+      dragRef.current = { mode: "pen" }
+      return
+    }
+    if (tool === "text") {
+      const label = window.prompt(t("playbook.tools.textPrompt"))?.trim()
+      if (label) dispatch({ type: "add-element", kind: "text", at: p, label })
+      setTool("select")
+      return
+    }
     if (ADD_TOOLS.has(tool)) {
       dispatch({ type: "add-element", kind: tool as ElementKind, at: p })
       return
@@ -250,6 +316,15 @@ export function PlayEditor({ state, dispatch, svgRef, playing, progress, horizon
     const drag = dragRef.current
     if (!drag) return
     const p = toCourtPoint(e.clientX, e.clientY)
+    if (drag.mode === "pen") {
+      const last = penRef.current[penRef.current.length - 1]
+      // Thin the samples: a 60 Hz drag across the board is thousands of points
+      // and every one of them would be persisted and re-parsed on load.
+      if (last && distance(last, p) < PEN_MIN_STEP) return
+      penRef.current.push(p)
+      setPenPreview([...penRef.current])
+      return
+    }
     if (drag.mode === "element") {
       dispatch({ type: "move-live", elementId: drag.elementId, point: p })
     } else if (drag.mode === "via") {
@@ -264,6 +339,12 @@ export function PlayEditor({ state, dispatch, svgRef, playing, progress, horizon
   }
 
   const onPointerUp = () => {
+    if (dragRef.current?.mode === "pen") {
+      const points = penRef.current
+      if (points.length >= 2) dispatch({ type: "add-drawing", points })
+      penRef.current = []
+      setPenPreview(null)
+    }
     dragRef.current = null
   }
 
@@ -331,6 +412,7 @@ export function PlayEditor({ state, dispatch, svgRef, playing, progress, horizon
     selectedElementId,
     frameIdx,
     playing,
+    setTool,
   ])
 
   const L = courtLength(play.courtType)
@@ -345,22 +427,37 @@ export function PlayEditor({ state, dispatch, svgRef, playing, progress, horizon
     : `scale(${SCALE})`
 
   return (
-    <div className="flex items-start gap-3">
-      <Toolbar
-        tool={tool}
-        setTool={setTool}
-        state={state}
-        dispatch={dispatch}
-        playing={playing}
-        horizontal={horizontal}
-        onToggleOrientation={onToggleOrientation}
-      />
+    <div className="flex flex-1 items-start gap-3">
+      {/* Desktop rail: the phone/tablet toolbar lives in the thumb zone at the
+          bottom of the shell instead (see PlaybookApp). */}
+      {showToolbar ? (
+        <div className="hidden lg:block">
+          <Toolbar
+            tool={tool}
+            setTool={setTool}
+            state={state}
+            dispatch={dispatch}
+            playing={playing}
+            horizontal={horizontal}
+            onToggleOrientation={onToggleOrientation}
+          />
+        </div>
+      ) : null}
 
       {/* Canvas container — premium single-surface */}
-      <div className="min-w-0 flex-1 rounded-xl border border-hairline bg-surface-1/95 p-1.5 shadow-md">
+      <div
+        className={cn(
+          "min-w-0 flex-1 rounded-xl border border-hairline bg-surface-1/95 p-1 shadow-md sm:p-1.5",
+          className,
+        )}
+      >
         <div
-          className="relative mx-auto w-full overflow-hidden rounded-lg bg-white/[0.01] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
-          style={{ maxWidth: `min(100%, calc(76vh * ${(vbW / vbH).toFixed(4)}))` }}
+          className="relative mx-auto w-full overflow-hidden rounded-lg bg-white/[0.01] transition-[max-width] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+          style={{
+            // The board is the point of the screen: let it take every pixel the
+            // surrounding chrome does not need. --board-vh is set per layout.
+            maxWidth: `min(100%, calc(var(--board-vh, 76vh) * ${(vbW / vbH).toFixed(4)}))`,
+          }}
           onDragOver={(e) => {
             if (e.dataTransfer.types.includes(PLAYER_DRAG_MIME)) e.preventDefault()
           }}
@@ -373,17 +470,35 @@ export function PlayEditor({ state, dispatch, svgRef, playing, progress, horizon
               "block w-full touch-none select-none",
               tool === "select" && !playing && "cursor-default",
               (ADD_TOOLS.has(tool) || LINE_TOOLS.has(tool)) && !playing && "cursor-crosshair",
+              tool === "pen" && !playing && "cursor-crosshair",
               tool === "erase" && !playing && "cursor-not-allowed",
             )}
             onPointerDown={onBoardPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={() => {
+              penRef.current = []
+              setPenPreview(null)
               dragRef.current = null
             }}
           >
             <g transform={boardTransform} style={{ transition: "transform 0.5s cubic-bezier(0.32,0.72,0,1)" }}>
               <PlaybookCourt courtType={play.courtType} />
+
+              {/* Freehand marker strokes sit under the notation */}
+              <g opacity={playing ? Math.max(0, 1 - transitionT * 1.6) : 1}>
+                {(viewFrame.drawings ?? []).map((d) => (
+                  <PenStroke
+                    key={d.id}
+                    drawing={d}
+                    erasable={!playing && tool === "erase"}
+                    onErase={() => dispatch({ type: "remove-drawing", drawingId: d.id })}
+                  />
+                ))}
+                {penPreview && penPreview.length > 1 ? (
+                  <PenStroke drawing={{ id: "preview", points: penPreview }} />
+                ) : null}
+              </g>
 
               {/* Action lines of the frame on screen */}
               <g opacity={playing ? Math.max(0, 1 - transitionT * 1.6) : 1}>
@@ -422,34 +537,9 @@ export function PlayEditor({ state, dispatch, svgRef, playing, progress, horizon
             </g>
           </svg>
 
-          {/* Court-type switch overlay */}
-          <div className="absolute right-2 top-2 flex items-center gap-0.5 rounded-md bg-gray-900/85 p-0.5 shadow-sm ring-1 ring-white/10">
-            {(["half", "full"] as const).map((c) => (
-              <button
-                key={c}
-                type="button"
-                disabled={playing}
-                onClick={() => dispatch({ type: "set-court", courtType: c })}
-                className={cn(
-                  "rounded px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] transition-all duration-200",
-                  play.courtType === c
-                    ? "bg-brand-500 text-white"
-                    : "text-gray-200 hover:text-white",
-                )}
-              >
-                {c === "half" ? t("playbook.editor.halfCourt") : t("playbook.editor.fullCourt")}
-              </button>
-            ))}
-          </div>
-
-          {/* Frame note overlay */}
-          {viewFrame.note ? (
-            <div className="pointer-events-none absolute bottom-2 left-2 max-w-[70%] rounded-md bg-gray-900/90 px-2.5 py-1 font-mono text-[11px] leading-snug text-gray-50 shadow-md ring-1 ring-white/15">
-              <span className="text-amber-400">{viewFrameIdx + 1}.</span> {viewFrame.note}
-            </div>
-          ) : null}
-
-          {/* Bottom-right frame counter */}
+          {/* Nothing that can be tapped goes over the court: the half/full
+              switch lives in the tool rail and the note under the board. The
+              only thing left on top is this counter, which is inert. */}
           <div className="pointer-events-none absolute bottom-2 right-2 rounded-md bg-gray-900/90 px-2 py-0.5 font-mono text-[10px] text-gray-200 shadow-md ring-1 ring-white/15">
             {viewFrameIdx + 1} / {play.frames.length}
           </div>
@@ -475,6 +565,9 @@ export function StaticFrame({ play, frameIdx }: { play: Play; frameIdx: number }
     >
       <g transform={`scale(${SCALE})`}>
         <PlaybookCourt courtType={play.courtType} />
+        {(frame.drawings ?? []).map((d) => (
+          <PenStroke key={d.id} drawing={d} />
+        ))}
         {frame.actions.map((a) => (
           <ActionLine
             key={a.id}
@@ -521,7 +614,7 @@ function positionsAt(
   const eased = easeInOut(Math.min(1, t))
   const out: Record<string, Point> = {}
   const holder = ballHolderId(play, cur)
-  const pass = cur.actions.find((a) => a.type === "pass" || a.type === "handoff")
+  const pass = cur.actions.find((a) => isBallAction(a.type))
 
   for (const el of play.elements) {
     const from = cur.positions[el.id]
@@ -536,7 +629,7 @@ function positionsAt(
         tt = easeInOut(Math.min(1, Math.max(0, (t - 0.2) / 0.5)))
       } else if (holder) {
         const holderAction = cur.actions.find(
-          (a) => a.elementId === holder && a.type !== "pass" && a.type !== "handoff",
+          (a) => a.elementId === holder && !isBallAction(a.type),
         )
         if (holderAction?.via) {
           via = { x: holderAction.via.x + 0.42, y: holderAction.via.y - 0.1 }
@@ -544,7 +637,7 @@ function positionsAt(
       }
     } else {
       const action = cur.actions.find(
-        (a) => a.elementId === el.id && a.type !== "pass" && a.type !== "handoff",
+        (a) => a.elementId === el.id && !isBallAction(a.type),
       )
       via = action?.via ?? null
     }
@@ -616,7 +709,11 @@ function Token({
           ? BOARD.cone
           : element.kind === "coach"
             ? BOARD.coach
-            : BOARD.ball
+            : element.kind === "chair"
+              ? BOARD.chair
+              : element.kind === "text"
+                ? BOARD.text
+                : BOARD.ball
 
   return (
     <g
@@ -727,6 +824,46 @@ function Token({
           </text>
         </>
       ) : null}
+
+      {/* Chair / dummy: the drill prop coaches stand in for a passive defender */}
+      {element.kind === "chair" ? (
+        <>
+          <path
+            d={`M ${-TOKEN_R * 0.6} ${TOKEN_R * 0.6} L ${-TOKEN_R * 0.6} ${-TOKEN_R * 0.7} L ${TOKEN_R * 0.6} ${-TOKEN_R * 0.7}`}
+            fill="none"
+            stroke={color}
+            strokeWidth={0.16}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <line
+            x1={-TOKEN_R * 0.6}
+            y1={TOKEN_R * 0.1}
+            x2={TOKEN_R * 0.6}
+            y2={TOKEN_R * 0.1}
+            stroke={color}
+            strokeWidth={0.16}
+            strokeLinecap="round"
+          />
+        </>
+      ) : null}
+
+      {/* Free-text annotation — a coaching point pinned to a spot on the floor */}
+      {element.kind === "text" ? (
+        <text
+          y={0.13}
+          textAnchor="middle"
+          fontSize={0.44}
+          fontWeight={700}
+          fill={color}
+          stroke={BOARD.floor}
+          strokeWidth={0.14}
+          paintOrder="stroke"
+          style={{ fontFamily: "var(--font-mono, monospace)" }}
+        >
+          {element.label}
+        </text>
+      ) : null}
     </g>
   )
 }
@@ -769,6 +906,7 @@ function ActionLine({
     actionId: string,
   ) => void
 }) {
+  const isShot = action.type === "shot"
   const isPass = action.type === "pass" || action.type === "handoff"
   const from = frame.positions[action.elementId]
   if (!from) return null
@@ -776,7 +914,10 @@ function ActionLine({
   let to: Point | undefined
   const endElementId =
     isPass && action.targetElementId ? action.targetElementId : action.elementId
-  if (isPass && action.targetElementId) {
+  if (isShot) {
+    // A shot always ends at the rim, whatever the shooter does next.
+    to = nearestRim(from, play.courtType)
+  } else if (isPass && action.targetElementId) {
     to = next?.positions[action.targetElementId] ?? frame.positions[action.targetElementId]
   } else {
     to = next?.positions[action.elementId]
@@ -824,11 +965,27 @@ function ActionLine({
         <ScreenCap at={trimmedTo} angle={endAngle} color={color} />
       ) : action.type === "handoff" ? (
         <HandoffCap at={trimmedTo} angle={endAngle} color={color} />
+      ) : action.type === "shot" ? (
+        <ShotCap at={trimmedTo} color={color} />
       ) : (
         <ArrowHead at={trimmedTo} angle={endAngle} color={color} />
       )}
 
-      {selected && editable ? (
+      {/* A shot has no draggable endpoint — the rim is not negotiable. */}
+      {selected && editable && isShot ? (
+        <circle
+          cx={handle.x}
+          cy={handle.y}
+          r={0.24}
+          fill="#fff"
+          stroke={BOARD.selected}
+          strokeWidth={0.09}
+          className="cursor-move"
+          onPointerDown={(e) => onViaPointerDown(e, action, from, to)}
+        />
+      ) : null}
+
+      {selected && editable && !isShot ? (
         <>
           <circle
             cx={handle.x}
@@ -915,9 +1072,192 @@ function HandoffCap({ at, angle, color }: { at: Point; angle: number; color: str
   )
 }
 
+/** Shot notation: the line ends in a target ring over the rim. */
+function ShotCap({ at, color }: { at: Point; color: string }) {
+  return (
+    <g pointerEvents="none">
+      <circle cx={at.x} cy={at.y} r={0.3} fill="none" stroke={color} strokeWidth={0.11} />
+      <circle cx={at.x} cy={at.y} r={0.1} fill={color} />
+    </g>
+  )
+}
+
+/** Freehand marker stroke. Tapping it with the eraser removes it. */
+function PenStroke({
+  drawing,
+  erasable,
+  onErase,
+}: {
+  drawing: PlayDrawing
+  erasable?: boolean
+  onErase?: () => void
+}) {
+  const d = drawing.points
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
+    .join(" ")
+  return (
+    <g>
+      {erasable ? (
+        <path
+          d={d}
+          stroke="transparent"
+          strokeWidth={0.6}
+          fill="none"
+          className="cursor-pointer"
+          onPointerDown={(e) => {
+            e.stopPropagation()
+            onErase?.()
+          }}
+        />
+      ) : null}
+      <path
+        d={d}
+        stroke={BOARD.pen}
+        strokeWidth={0.13}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+        opacity={0.85}
+        pointerEvents="none"
+      />
+    </g>
+  )
+}
+
 // ── Toolbar ──────────────────────────────────────────────────────────────────
 
-function Toolbar({
+type ToolEntry = {
+  id: Tool
+  label: string
+  /** Two or three characters shown under the icon on touch layouts. */
+  short: string
+  icon: React.ReactNode
+  disabled?: boolean
+}
+
+type ToolSection = { key: string; title: string; items: ToolEntry[] }
+
+/**
+ * The palette, grouped the way a coach thinks about a board: who is on the
+ * floor, what they do, and free marker on top. Both layouts render the same
+ * sections — only the axis and the labelling change.
+ */
+function useToolSections(play: Play): ToolSection[] {
+  const t = useT()
+  const hasBall = play.elements.some((e) => e.kind === "ball")
+  return [
+    {
+      key: "pieces",
+      title: t("playbook.toolGroups.pieces"),
+      items: [
+        { id: "select", label: t("playbook.tools.select"), short: t("playbook.toolsShort.select"), icon: <IconCursor /> },
+        { id: "attacker", label: t("playbook.tools.attacker"), short: t("playbook.toolsShort.attacker"), icon: <IconAttacker /> },
+        { id: "defender", label: t("playbook.tools.defender"), short: t("playbook.toolsShort.defender"), icon: <IconDefender /> },
+        { id: "ball", label: t("playbook.tools.ball"), short: t("playbook.toolsShort.ball"), icon: <IconBall />, disabled: hasBall },
+        { id: "cone", label: t("playbook.tools.cone"), short: t("playbook.toolsShort.cone"), icon: <IconCone /> },
+        { id: "chair", label: t("playbook.tools.chair"), short: t("playbook.toolsShort.chair"), icon: <IconChair /> },
+        { id: "coach", label: t("playbook.tools.coach"), short: t("playbook.toolsShort.coach"), icon: <IconCoach /> },
+      ],
+    },
+    {
+      key: "actions",
+      title: t("playbook.toolGroups.actions"),
+      items: [
+        { id: "cut", label: t("playbook.tools.cut"), short: t("playbook.toolsShort.cut"), icon: <IconCut /> },
+        { id: "dribble", label: t("playbook.tools.dribble"), short: t("playbook.toolsShort.dribble"), icon: <IconDribble /> },
+        { id: "screen", label: t("playbook.tools.screen"), short: t("playbook.toolsShort.screen"), icon: <IconScreen /> },
+        { id: "pass", label: t("playbook.tools.pass"), short: t("playbook.toolsShort.pass"), icon: <IconPass /> },
+        { id: "handoff", label: t("playbook.tools.handoff"), short: t("playbook.toolsShort.handoff"), icon: <IconHandoff /> },
+        { id: "shot", label: t("playbook.tools.shot"), short: t("playbook.toolsShort.shot"), icon: <IconShot /> },
+      ],
+    },
+    {
+      key: "marker",
+      title: t("playbook.toolGroups.marker"),
+      items: [
+        { id: "pen", label: t("playbook.tools.pen"), short: t("playbook.toolsShort.pen"), icon: <IconPen /> },
+        { id: "text", label: t("playbook.tools.text"), short: t("playbook.toolsShort.text"), icon: <IconText /> },
+        { id: "erase", label: t("playbook.tools.erase"), short: t("playbook.toolsShort.erase"), icon: <IconErase /> },
+      ],
+    },
+  ]
+}
+
+type UtilityAction = {
+  key: string
+  label: string
+  short: string
+  icon: React.ReactNode
+  active?: boolean
+  disabled?: boolean
+  onClick: () => void
+}
+
+/**
+ * Board-level actions that are not drawing tools. Shared so the vertical rail
+ * and the touch rail can never drift apart — and so the half/full switch has a
+ * home that isn't floating on top of the court blocking the tokens under it.
+ */
+function useUtilityActions({
+  state, dispatch, playing, horizontal, onToggleOrientation,
+}: {
+  state: EditorState
+  dispatch: PlayDispatch
+  playing: boolean
+  horizontal: boolean
+  onToggleOrientation: () => void
+}): UtilityAction[] {
+  const t = useT()
+  const { play, past, future } = state
+  const isFull = play.courtType === "full"
+
+  return [
+    {
+      key: "undo",
+      label: t("playbook.tools.undo"),
+      short: t("playbook.toolsShort.undo"),
+      icon: <IconUndo />,
+      disabled: playing || past.length === 0,
+      onClick: () => dispatch({ type: "undo" }),
+    },
+    {
+      key: "redo",
+      label: t("playbook.tools.redo"),
+      short: t("playbook.toolsShort.redo"),
+      icon: <IconRedo />,
+      disabled: playing || future.length === 0,
+      onClick: () => dispatch({ type: "redo" }),
+    },
+    {
+      key: "court",
+      label: isFull ? t("playbook.editor.switchToHalf") : t("playbook.editor.switchToFull"),
+      // The caption names the court you are on, so it reads as a state.
+      short: isFull ? t("playbook.editor.fullCourt") : t("playbook.editor.halfCourt"),
+      icon: <IconCourt full={isFull} />,
+      active: isFull,
+      disabled: playing,
+      onClick: () => dispatch({ type: "set-court", courtType: isFull ? "half" : "full" }),
+    },
+    {
+      key: "orientation",
+      label: horizontal ? t("playbook.editor.vertical") : t("playbook.editor.horizontal"),
+      short: t("playbook.toolsShort.rotate"),
+      icon: <IconOrientation horizontal={horizontal} />,
+      active: horizontal,
+      onClick: onToggleOrientation,
+    },
+    {
+      key: "flip",
+      label: t("playbook.tools.flip"),
+      short: t("playbook.toolsShort.flip"),
+      icon: <IconFlip />,
+      disabled: playing,
+      onClick: () => dispatch({ type: "flip-horizontal" }),
+    },
+  ]
+}
+
+export function Toolbar({
   tool,
   setTool,
   state,
@@ -934,106 +1274,112 @@ function Toolbar({
   horizontal: boolean
   onToggleOrientation: () => void
 }) {
-  const t = useT()
-  const { play, past, future } = state
-  const hasBall = play.elements.some((e) => e.kind === "ball")
-
-  const tools: { id: Tool; label: string; icon: React.ReactNode; disabled?: boolean }[] = [
-    { id: "select", label: t("playbook.tools.select"), icon: <IconCursor /> },
-    { id: "attacker", label: t("playbook.tools.attacker"), icon: <IconAttacker /> },
-    { id: "defender", label: t("playbook.tools.defender"), icon: <IconDefender /> },
-    { id: "ball", label: t("playbook.tools.ball"), icon: <IconBall />, disabled: hasBall },
-    { id: "cone", label: t("playbook.tools.cone"), icon: <IconCone /> },
-    { id: "coach", label: t("playbook.tools.coach"), icon: <IconCoach /> },
-  ]
-  const lines: { id: Tool; label: string; icon: React.ReactNode }[] = [
-    { id: "cut", label: t("playbook.tools.cut"), icon: <IconCut /> },
-    { id: "dribble", label: t("playbook.tools.dribble"), icon: <IconDribble /> },
-    { id: "screen", label: t("playbook.tools.screen"), icon: <IconScreen /> },
-    { id: "pass", label: t("playbook.tools.pass"), icon: <IconPass /> },
-    { id: "handoff", label: t("playbook.tools.handoff"), icon: <IconHandoff /> },
-  ]
+  const sections = useToolSections(state.play)
+  const utilities = useUtilityActions({ state, dispatch, playing, horizontal, onToggleOrientation })
 
   return (
-    <div className="flex shrink-0 flex-col items-center gap-0.5 self-start rounded-xl border border-hairline bg-surface-1/95 p-1.5 shadow-md">
-      <ToolGroup>
-        {tools.map((x) => (
+    <div className="flex w-[76px] shrink-0 flex-col gap-2 self-start rounded-xl border border-hairline bg-surface-1/95 p-2 shadow-md">
+      {sections.map((section) => (
+        <div key={section.key} className="flex flex-col gap-1">
+          <p className="px-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-ink-500">
+            {section.title}
+          </p>
+          <div className="grid grid-cols-2 gap-1">
+            {section.items.map((x) => (
+              <ToolButton
+                key={x.id}
+                active={tool === x.id}
+                label={x.label}
+                disabled={playing || x.disabled}
+                onClick={() => setTool(x.id)}
+              >
+                {x.icon}
+              </ToolButton>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      <span className="h-px w-full bg-hairline/70" aria-hidden />
+
+      <div className="grid grid-cols-2 gap-1">
+        {utilities.map((u) => (
           <ToolButton
-            key={x.id}
-            active={tool === x.id}
-            label={x.label}
-            disabled={playing || x.disabled}
-            onClick={() => setTool(x.id)}
+            key={u.key}
+            active={u.active}
+            label={u.label}
+            disabled={u.disabled}
+            onClick={u.onClick}
           >
-            {x.icon}
+            {u.icon}
           </ToolButton>
         ))}
-      </ToolGroup>
-      <span className="my-1 h-px w-6 bg-hairline/70" aria-hidden />
-      <ToolGroup>
-        {lines.map((x) => (
-          <ToolButton
-            key={x.id}
-            active={tool === x.id}
-            label={x.label}
-            disabled={playing}
-            onClick={() => setTool(x.id)}
-          >
-            {x.icon}
-          </ToolButton>
-        ))}
-        <ToolButton
-          active={tool === "erase"}
-          label={t("playbook.tools.erase")}
-          disabled={playing}
-          onClick={() => setTool("erase")}
-        >
-          <IconErase />
-        </ToolButton>
-      </ToolGroup>
-      <span className="my-1 h-px w-6 bg-hairline/70" aria-hidden />
-      <ToolGroup>
-        <ToolButton
-          label={t("playbook.tools.undo")}
-          disabled={playing || past.length === 0}
-          onClick={() => dispatch({ type: "undo" })}
-        >
-          <IconUndo />
-        </ToolButton>
-        <ToolButton
-          label={t("playbook.tools.redo")}
-          disabled={playing || future.length === 0}
-          onClick={() => dispatch({ type: "redo" })}
-        >
-          <IconRedo />
-        </ToolButton>
-      </ToolGroup>
-      <span className="my-1 h-px w-6 bg-hairline/70" aria-hidden />
-      <ToolButton
-        active={horizontal}
-        label={horizontal ? t("playbook.editor.vertical") : t("playbook.editor.horizontal")}
-        onClick={onToggleOrientation}
-      >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          {horizontal ? (
-            <>
-              <rect x="3" y="6" width="18" height="12" rx="2" />
-              <circle cx="6.5" cy="12" r="1.2" />
-            </>
-          ) : (
-            <>
-              <rect x="6" y="3" width="12" height="18" rx="2" />
-              <circle cx="12" cy="6.5" r="1.2" />
-            </>
-          )}
-        </svg>
-      </ToolButton>
+      </div>
     </div>
   )
 }
 
-function ToolGroup({ children }: { children: React.ReactNode }) {
-  return <div className="flex flex-col items-center gap-0.5">{children}</div>
+/**
+ * Touch layout: one horizontal rail parked in the thumb zone. Each tool keeps
+ * its name so nobody has to decode a 14px glyph mid-timeout, and the whole rail
+ * scrolls sideways instead of stealing width from the board.
+ */
+export function ToolRail({
+  tool,
+  setTool,
+  state,
+  dispatch,
+  playing,
+  horizontal,
+  onToggleOrientation,
+}: {
+  tool: Tool
+  setTool: (t: Tool) => void
+  state: EditorState
+  dispatch: PlayDispatch
+  playing: boolean
+  horizontal: boolean
+  onToggleOrientation: () => void
+}) {
+  const sections = useToolSections(state.play)
+  const utilities = useUtilityActions({ state, dispatch, playing, horizontal, onToggleOrientation })
+
+  return (
+    <div className="flex items-stretch gap-1.5 overflow-x-auto rounded-xl border border-hairline bg-surface-1/95 p-1.5 shadow-md scrollbar-thin">
+      {sections.map((section, i) => (
+        <div key={section.key} className="flex shrink-0 items-stretch gap-1.5">
+          {i > 0 ? <span className="my-1 w-px shrink-0 bg-hairline/70" aria-hidden /> : null}
+          {section.items.map((x) => (
+            <RailButton
+              key={x.id}
+              active={tool === x.id}
+              label={x.label}
+              short={x.short}
+              disabled={playing || x.disabled}
+              onClick={() => setTool(x.id)}
+            >
+              {x.icon}
+            </RailButton>
+          ))}
+        </div>
+      ))}
+
+      <span className="my-1 w-px shrink-0 bg-hairline/70" aria-hidden />
+
+      {utilities.map((u) => (
+        <RailButton
+          key={u.key}
+          active={u.active}
+          label={u.label}
+          short={u.short}
+          disabled={u.disabled}
+          onClick={u.onClick}
+        >
+          {u.icon}
+        </RailButton>
+      ))}
+    </div>
+  )
 }
 
 function ToolButton({
@@ -1058,7 +1404,7 @@ function ToolButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-200 active:scale-[0.92] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/70",
+        "flex h-8 w-full items-center justify-center rounded-lg transition-all duration-200 active:scale-[0.92] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/70",
         active
           ? "bg-brand-500 text-ink-950 shadow-sm"
           : "text-ink-300 hover:bg-white/[0.08] hover:text-ink-50",
@@ -1066,6 +1412,46 @@ function ToolButton({
       )}
     >
       {children}
+    </button>
+  )
+}
+
+/** 56×52 touch target — comfortably above the 44px minimum, with a caption. */
+function RailButton({
+  active,
+  label,
+  short,
+  disabled,
+  onClick,
+  children,
+}: {
+  active?: boolean
+  label: string
+  short: string
+  disabled?: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      aria-pressed={active}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "flex h-[52px] w-14 shrink-0 flex-col items-center justify-center gap-1 rounded-lg transition-all duration-200 active:scale-[0.94] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/70",
+        active
+          ? "bg-brand-500 text-ink-950 shadow-sm"
+          : "bg-surface-0/60 text-ink-200 hover:bg-white/[0.08] hover:text-ink-50",
+        disabled && "cursor-not-allowed opacity-40",
+      )}
+    >
+      {children}
+      <span className="max-w-full truncate px-0.5 text-[9px] font-semibold leading-none">
+        {short}
+      </span>
     </button>
   )
 }
@@ -1099,6 +1485,12 @@ export function Timeline({
   const { play, frameIdx } = state
   const activeIdx = playing ? Math.min(Math.floor(progress), play.frames.length - 1) : frameIdx
   const SPEEDS = [0.5, 0.75, 1, 1.5, 2]
+  const hasDrawings = (play.frames[frameIdx]?.drawings?.length ?? 0) > 0
+
+  const step = (delta: number) => {
+    if (playing) return
+    dispatch({ type: "set-frame-idx", frameIdx: frameIdx + delta })
+  }
 
   return (
     <div className="flex items-center gap-1.5 rounded-xl border border-hairline bg-surface-0 p-1.5 shadow-sm">
@@ -1107,7 +1499,7 @@ export function Timeline({
         onClick={playing ? onStop : onPlay}
         disabled={play.frames.length < 2}
         aria-label={playing ? t("playbook.editor.pause") : t("playbook.editor.play")}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-500 text-ink-950 shadow-sm transition-all hover:bg-brand-400 active:scale-95 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/70"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-500 text-ink-950 shadow-sm transition-all hover:bg-brand-400 active:scale-95 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/70"
       >
         {playing ? <IconPause /> : <IconPlay />}
       </button>
@@ -1119,7 +1511,7 @@ export function Timeline({
         onClick={() => setSpeed(SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length] ?? 1)}
         title={t("playbook.editor.speed")}
         aria-label={t("playbook.editor.speed")}
-        className="flex h-7 w-10 shrink-0 items-center justify-center rounded-md border border-hairline bg-surface-1 font-mono text-[10px] font-bold text-ink-100 transition-all hover:border-hairline-strong hover:text-ink-50 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/70"
+        className="flex h-8 w-10 shrink-0 items-center justify-center rounded-md border border-hairline bg-surface-1 font-mono text-[11px] font-bold text-ink-100 transition-all hover:border-hairline-strong hover:text-ink-50 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/70"
       >
         {speed}×
       </button>
@@ -1131,13 +1523,13 @@ export function Timeline({
         aria-label={t("playbook.editor.loop")}
         aria-pressed={loop}
         className={cn(
-          "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/70",
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/70",
           loop
             ? "border-brand-400/50 bg-brand-500/25 text-brand-300"
             : "border-hairline bg-surface-1 text-ink-300 hover:border-hairline-strong hover:text-ink-50",
         )}
       >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M17 2l4 4-4 4" />
           <path d="M3 11v-1a4 4 0 014-4h14" />
           <path d="M7 22l-4-4 4-4" />
@@ -1145,7 +1537,16 @@ export function Timeline({
         </svg>
       </button>
 
-      <span className="h-4 w-px shrink-0 bg-hairline/60" aria-hidden />
+      <span className="h-5 w-px shrink-0 bg-hairline/60" aria-hidden />
+
+      {/* Step arrows: on a phone these beat aiming at a 7 mm numbered chip. */}
+      <FrameButton
+        label={t("playbook.editor.prevFrame")}
+        disabled={playing || frameIdx === 0}
+        onClick={() => step(-1)}
+      >
+        <IconChevronLeft />
+      </FrameButton>
 
       <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-0.5 scrollbar-thin">
         {play.frames.map((f, i) => (
@@ -1155,7 +1556,7 @@ export function Timeline({
             onClick={() => !playing && dispatch({ type: "set-frame-idx", frameIdx: i })}
             title={f.note || undefined}
             className={cn(
-              "flex h-7 min-w-7 shrink-0 items-center justify-center rounded-md border px-1 font-mono text-[10px] font-bold transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/70",
+              "flex h-8 min-w-8 shrink-0 items-center justify-center rounded-md border px-1.5 font-mono text-[11px] font-bold transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/70",
               i === activeIdx
                 ? "border-brand-500 bg-brand-500 text-ink-950 shadow-sm"
                 : "border-hairline bg-surface-1 text-ink-200 hover:border-hairline-strong hover:text-ink-50",
@@ -1166,7 +1567,25 @@ export function Timeline({
         ))}
       </div>
 
+      <FrameButton
+        label={t("playbook.editor.nextFrame")}
+        disabled={playing || frameIdx >= play.frames.length - 1}
+        onClick={() => step(1)}
+      >
+        <IconChevronRight />
+      </FrameButton>
+
       <div className="flex shrink-0 items-center gap-1">
+        {hasDrawings ? (
+          <FrameButton
+            label={t("playbook.editor.clearDrawings")}
+            disabled={playing}
+            danger
+            onClick={() => dispatch({ type: "clear-drawings" })}
+          >
+            <IconPen />
+          </FrameButton>
+        ) : null}
         <FrameButton
           label={t("playbook.editor.addFrame")}
           disabled={playing}
@@ -1209,7 +1628,7 @@ function FrameButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "flex h-7 w-7 items-center justify-center rounded-md border border-hairline bg-surface-1 text-ink-300 transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/70",
+        "flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-hairline bg-surface-1 text-ink-300 transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/70",
         danger
           ? "hover:border-red-400/50 hover:bg-red-500/10 hover:text-red-400"
           : "hover:border-hairline-strong hover:text-ink-50",
@@ -1322,6 +1741,81 @@ function IconHandoff() {
     </svg>
   )
 }
+function IconShot() {
+  return (
+    <svg {...I.props}>
+      <path d="M3 20L14 9" />
+      <circle cx="17.5" cy="6.5" r="3" />
+      <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" />
+    </svg>
+  )
+}
+function IconChair() {
+  return (
+    <svg {...I.props}>
+      <path d="M7 20V5h10" />
+      <path d="M7 13h10" />
+    </svg>
+  )
+}
+function IconPen() {
+  return (
+    <svg {...I.props}>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z" />
+    </svg>
+  )
+}
+function IconText() {
+  return (
+    <svg {...I.props}>
+      <path d="M5 6V4h14v2" />
+      <path d="M12 4v16M9 20h6" />
+    </svg>
+  )
+}
+function IconFlip() {
+  return (
+    <svg {...I.props}>
+      <path d="M12 3v18" strokeDasharray="3 3" />
+      <path d="M8 8L4 12l4 4" />
+      <path d="M16 8l4 4-4 4" />
+    </svg>
+  )
+}
+/** Half court = one hoop drawn, full court = a centre line and two. */
+function IconCourt({ full }: { full: boolean }) {
+  return (
+    <svg {...I.props} width={15} height={15}>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      {full ? (
+        <>
+          <path d="M3 12h18" />
+          <circle cx="12" cy="12" r="2.2" strokeWidth={1.4} />
+        </>
+      ) : (
+        <path d="M8.5 3v4a3.5 3.5 0 007 0V3" strokeWidth={1.6} />
+      )}
+    </svg>
+  )
+}
+function IconOrientation({ horizontal }: { horizontal: boolean }) {
+  return (
+    <svg {...I.props} width={15} height={15}>
+      {horizontal ? (
+        <>
+          <rect x="3" y="6" width="18" height="12" rx="2" />
+          <circle cx="6.5" cy="12" r="1.2" />
+        </>
+      ) : (
+        <>
+          <rect x="6" y="3" width="12" height="18" rx="2" />
+          <circle cx="12" cy="6.5" r="1.2" />
+        </>
+      )}
+    </svg>
+  )
+}
 function IconErase() {
   return (
     <svg {...I.props}>
@@ -1372,6 +1866,20 @@ function IconTrash() {
   return (
     <svg {...I.props}>
       <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13h10l1-13" />
+    </svg>
+  )
+}
+function IconChevronLeft() {
+  return (
+    <svg {...I.props}>
+      <path d="M15 5l-7 7 7 7" />
+    </svg>
+  )
+}
+function IconChevronRight() {
+  return (
+    <svg {...I.props}>
+      <path d="M9 5l7 7-7 7" />
     </svg>
   )
 }

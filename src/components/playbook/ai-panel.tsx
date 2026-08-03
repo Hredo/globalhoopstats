@@ -63,7 +63,7 @@ export function AiPanel({
           onChange={(e) => setQuestion(e.target.value)}
           placeholder={t("playbook.ai.questionPlaceholder")}
           maxLength={500}
-          className="gh-input w-full rounded-lg py-2 pl-9 pr-3 text-sm"
+          className="gh-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm"
         />
       </div>
       <button

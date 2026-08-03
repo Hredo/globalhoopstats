@@ -12,6 +12,8 @@ function elementName(el: PlayElement | undefined): string {
   if (el.kind === "defender") return `X${el.label}`
   if (el.kind === "ball") return "the ball"
   if (el.kind === "coach") return "the coach"
+  if (el.kind === "chair") return "a chair / dummy"
+  if (el.kind === "text") return `the note "${el.label}"`
   return `cone ${el.label}`
 }
 
@@ -20,6 +22,14 @@ function annotationList(play: Play): string[] {
   const cones = play.elements.filter((e) => e.kind === "cone")
   if (cones.length > 0) {
     lines.push(`Cones (fixed markers): ${cones.map((c) => c.label).join(", ")}`)
+  }
+  const chairs = play.elements.filter((e) => e.kind === "chair")
+  if (chairs.length > 0) {
+    lines.push(`Chairs / dummies on the floor: ${chairs.length} (drill setup, not live defenders)`)
+  }
+  const notes = play.elements.filter((e) => e.kind === "text" && e.label)
+  if (notes.length > 0) {
+    lines.push(`Coach's on-court notes: ${notes.map((n) => `"${n.label}"`).join(", ")}`)
   }
   return lines
 }
@@ -68,6 +78,10 @@ function actionLine(
     case "cut":
       return from && to
         ? `  - ${elementName(el)} cuts from the ${describePoint(from, play.courtType)} to the ${describePoint(to, play.courtType)}.`
+        : null
+    case "shot":
+      return from
+        ? `  - ${elementName(el)} shoots from the ${describePoint(from, play.courtType)}.`
         : null
   }
 }

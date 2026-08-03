@@ -51,6 +51,7 @@ function getStrings(locale: string) {
     ballWord: isEn ? "ball" : "balón",
     coneWord: isEn ? "cone" : "cono",
     coachWord: isEn ? "coach" : "entrenador",
+    chairWord: isEn ? "chair" : "silla",
     sequence: isEn ? "Play sequence" : "Secuencia de la jugada",
     frameWord: isEn ? "Frame" : "Fotograma",
     noActions: isEn
@@ -72,6 +73,8 @@ function elName(el: PlayElement | undefined, s: ReturnType<typeof getStrings>): 
   if (el.kind === "defender") return `X${el.label}`
   if (el.kind === "ball") return s.ballWord
   if (el.kind === "coach") return s.coachWord
+  if (el.kind === "chair") return s.chairWord
+  if (el.kind === "text") return `"${el.label}"`
   return `${s.coneWord} ${el.label}`.trim()
 }
 
@@ -103,6 +106,8 @@ function actionText(
       return isEn ? `${actor} attacks off the dribble` : `${actor} ataca con bote`
     case "cut":
       return isEn ? `${actor} cuts` : `${actor} corta`
+    case "shot":
+      return isEn ? `${actor} shoots` : `${actor} tira a canasta`
   }
 }
 
@@ -195,7 +200,7 @@ export async function exportPlayPdf({
   const attackers = play.elements.filter((e) => e.kind === "attacker")
   const defenders = play.elements.filter((e) => e.kind === "defender")
   const extras = play.elements.filter(
-    (e) => e.kind === "ball" || e.kind === "cone" || e.kind === "coach",
+    (e) => e.kind !== "attacker" && e.kind !== "defender",
   )
   y = ensure(doc, y, 20)
   y = sectionHeading(doc, s.personnel, y)
@@ -221,9 +226,7 @@ export async function exportPlayPdf({
   if (extras.length > 0) {
     y = ensure(doc, y, 6)
     setText(doc, SUBTLE)
-    const words = extras.map((e) =>
-      e.kind === "ball" ? s.ballWord : e.kind === "coach" ? s.coachWord : `${s.coneWord} ${e.label}`.trim(),
-    )
+    const words = extras.map((e) => elName(e, s))
     doc.text(`${s.extras}: ${words.join(", ")}`, MARGIN, y)
     y += 4.6
   }

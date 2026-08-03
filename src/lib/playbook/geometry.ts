@@ -41,6 +41,24 @@ export function courtLength(courtType: CourtType): number {
   return courtType === "half" ? FIBA.half : FIBA.full
 }
 
+/**
+ * Centre of the hoop a player at `from` is attacking. On a half court there is
+ * only one; on a full court it is whichever basket they are closest to, which
+ * is what a coach means when they draw a shot.
+ */
+export function nearestRim(from: Point, courtType: CourtType): Point {
+  const cx = COURT_WIDTH_M / 2
+  if (courtType === "half") return { x: cx, y: FIBA.rimFromBaseline }
+  const near = FIBA.rimFromBaseline
+  const far = FIBA.full - FIBA.rimFromBaseline
+  return { x: cx, y: Math.abs(from.y - near) <= Math.abs(from.y - far) ? near : far }
+}
+
+/** Mirrors a point across the centre line of the court (left ↔ right). */
+export function mirrorX(p: Point): Point {
+  return { x: COURT_WIDTH_M - p.x, y: p.y }
+}
+
 export function clampToCourt(p: Point, courtType: CourtType): Point {
   const m = 0.25
   return {
