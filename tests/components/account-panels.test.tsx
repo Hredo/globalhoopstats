@@ -35,16 +35,24 @@ const PROFILE = {
   settings: { advisorProvider: null, compareProvider: null, currency: "EUR" },
 }
 
+let KEYS: Array<{ provider: string; last4: string; label: string | null; updatedAt: string }> = []
+let SETTINGS = {
+  advisorProvider: null as string | null,
+  advisorModel: null as string | null,
+  compareProvider: null as string | null,
+  compareModel: null as string | null,
+}
+
 /** Answer every endpoint these panels hit on mount. */
 function stubFetch() {
   return vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input)
-    const body = url.includes("/api/account/profile")
+    const body = url.includes("/api/account/models")
+      ? { ok: true, models: [{ id: "live-model-a", label: "Live Model A" }] }
+      : url.includes("/api/account/profile")
       ? PROFILE
       : url.includes("/api/account/api-keys")
-        ? { keys: [], settings: {
-            advisorProvider: null, advisorModel: null,
-            compareProvider: null, compareModel: null } }
+        ? { keys: KEYS, settings: SETTINGS }
         : url.includes("/api/account/sessions")
           ? { sessions: [] }
           : url.includes("/api/account/2fa/status")
@@ -69,6 +77,13 @@ function renderIn(locale: Locale, ui: React.ReactElement) {
 }
 
 beforeEach(() => {
+  KEYS = []
+  SETTINGS = {
+    advisorProvider: null,
+    advisorModel: null,
+    compareProvider: null,
+    compareModel: null,
+  }
   vi.stubGlobal("fetch", stubFetch())
 })
 
@@ -132,6 +147,45 @@ describe("account panels are actually translated", () => {
     renderIn("es", <ProfilePanel />)
     // es-ES renders "15 de enero de 2026"; en-GB would say "January".
     expect(await screen.findByText(/enero/)).toBeInTheDocument()
+  })
+})
+
+describe("AI keys manager uses the provider's live model list", () => {
+  it("offers models fetched from the provider, not the stale catalogue", async () => {
+    // A saved Groq key with a model the vendor has retired — the exact state
+    // that produced `model_not_found` at answer time.
+    KEYS = [
+      { provider: "groq", last4: "ab12", label: null, updatedAt: new Date().toISOString() },
+    ]
+    SETTINGS = {
+      advisorProvider: "groq",
+      advisorModel: "meta-llama/llama-4-scout-17b-16e-instruct",
+      compareProvider: null,
+      compareModel: null,
+    }
+    renderIn("en", <ApiKeysManager />)
+
+    // The dropdown should end up on the live model, not the retired one.
+    await waitFor(() => {
+      expect(screen.getByText("Live Model A")).toBeInTheDocument()
+    })
+    expect(screen.queryByText(/llama-4-scout/)).not.toBeInTheDocument()
+  })
+
+  it("says where the list came from", async () => {
+    KEYS = [
+      { provider: "groq", last4: "ab12", label: null, updatedAt: new Date().toISOString() },
+    ]
+    SETTINGS = {
+      advisorProvider: "groq",
+      advisorModel: null,
+      compareProvider: null,
+      compareModel: null,
+    }
+    renderIn("en", <ApiKeysManager />)
+    await waitFor(() => {
+      expect(screen.getAllByText("Live from the provider").length).toBeGreaterThan(0)
+    })
   })
 })
 

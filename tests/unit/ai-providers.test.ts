@@ -14,15 +14,25 @@ describe("resolveModel", () => {
     expect(resolveModel(openai, openai.models[1].id)).toBe(openai.models[1].id)
   })
 
-  it("falls back to the default for a cloud model that is not in the catalogue", () => {
-    expect(resolveModel(openai, "not-a-real-model")).toBe(openai.defaultModel)
+  it("uses the default only when nothing has been chosen", () => {
     expect(resolveModel(openai, null)).toBe(openai.defaultModel)
+    expect(resolveModel(openai, "")).toBe(openai.defaultModel)
+    expect(resolveModel(openai, "   ")).toBe(openai.defaultModel)
+  })
+
+  it("passes a cloud model through even when the catalogue has not heard of it", () => {
+    // The catalogue is hand-written and goes stale. Substituting a different
+    // model hides the problem — and when the catalogue's own default is the
+    // stale one (Groq, Aug 2026: `meta-llama/llama-4-scout-17b-16e-instruct`
+    // returned model_not_found) the substitution IS the outage. Passing the
+    // user's pick through gives them an actionable error instead.
+    expect(resolveModel(openai, "gpt-6-turbo")).toBe("gpt-6-turbo")
+    expect(
+      resolveModel(getProvider("groq")!, "moonshotai/kimi-k2-instruct"),
+    ).toBe("moonshotai/kimi-k2-instruct")
   })
 
   it("accepts any installed tag for a local engine", () => {
-    // The regression that silently killed the advisor: a locally installed
-    // model was snapped back to the catalogue default, so the request went out
-    // for a model the machine had never pulled and Ollama answered 404.
     expect(resolveModel(ollama, "llama3.2:latest")).toBe("llama3.2:latest")
     expect(resolveModel(ollama, "hf.co/user/some-model:Q4_K_M")).toBe(
       "hf.co/user/some-model:Q4_K_M",
@@ -30,16 +40,24 @@ describe("resolveModel", () => {
     expect(resolveModel(ollama, "qwen2.5-coder:7b")).toBe("qwen2.5-coder:7b")
   })
 
-  it("still rejects a nonsense tag for a local engine", () => {
-    expect(resolveModel(ollama, "  ")).toBe(ollama.defaultModel)
-    expect(resolveModel(ollama, "bad model; drop table")).toBe(
-      ollama.defaultModel,
-    )
-    expect(resolveModel(ollama, "a".repeat(200))).toBe(ollama.defaultModel)
+  it("still rejects a value that is not shaped like a model id", () => {
+    for (const provider of [ollama, openai]) {
+      expect(resolveModel(provider, "bad model; drop table")).toBe(
+        provider.defaultModel,
+      )
+      expect(resolveModel(provider, "a".repeat(200))).toBe(
+        provider.defaultModel,
+      )
+      expect(resolveModel(provider, "../../etc/passwd")).toBe(
+        provider.defaultModel,
+      )
+    }
   })
 
   it("migrates retired cloud model ids to their replacement", () => {
+    // A known rename still wins over pass-through: that mapping is deliberate.
     const migrated = resolveModel(openai, "gpt-4o")
+    expect(migrated).not.toBe("gpt-4o")
     expect(openai.models.some((m) => m.id === migrated)).toBe(true)
   })
 })
@@ -58,6 +76,34 @@ describe("provider catalogue", () => {
     for (const p of AI_PROVIDERS) {
       if (p.allowCustomModels) expect(p.kind).toBe("local")
     }
+  })
+
+  it("never migrates a model id onto one that is not in the catalogue", () => {
+    // A migration whose target no longer exists silently converts a
+    // possibly-valid choice into a definitely-broken one. That is how the Groq
+    // entry behaved: it pointed at a model the vendor had retired.
+    const catalogue = new Set(
+      AI_PROVIDERS.flatMap((p) => p.models.map((m) => m.id)),
+    )
+    for (const p of AI_PROVIDERS) {
+      for (const { id } of p.models) {
+        // A catalogue id must never itself be a migration source.
+        expect(
+          resolveModel(p, id),
+          `${p.id}: ${id} is both a catalogue entry and a migration source`,
+        ).toBe(id)
+      }
+    }
+    expect(catalogue.size).toBeGreaterThan(0)
+  })
+
+  it("does not offer the Groq model that upstream retired", () => {
+    const groq = getProvider("groq")!
+    const dead = "meta-llama/llama-4-scout-17b-16e-instruct"
+    expect(groq.models.some((m) => m.id === dead)).toBe(false)
+    expect(groq.defaultModel).not.toBe(dead)
+    // And nothing migrates onto it either.
+    expect(resolveModel(groq, "llama-3.1-8b-instant")).not.toBe(dead)
   })
 })
 

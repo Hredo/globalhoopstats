@@ -340,6 +340,10 @@ export const es: Messages = {
       localSuffix: "local",
       model: "Modelo",
       installedOnMachine: "Instalados en este equipo",
+      fromProvider: "En directo del proveedor",
+      loadingModels: "Cargando modelos…",
+      catalogueFallback:
+        "No se ha podido consultar al proveedor — mostramos nuestra lista",
       addKeyHint: "Añade abajo la clave API de este proveedor para usarlo.",
       startOllamaHint: "Arranca Ollama en tu equipo para usar este motor.",
       saveEngines: "Guardar motores",
