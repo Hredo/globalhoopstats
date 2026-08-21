@@ -15,6 +15,7 @@ import {
   providersForFeature,
   resolveModel,
   type AiFeature,
+  type AiModel,
   type AiProvider,
 } from "@/lib/ai/providers"
 import { useLocale, useT } from "@/lib/i18n/provider"
@@ -37,6 +38,12 @@ type Settings = {
 }
 
 type OllamaStatus = "checking" | "available" | "unavailable"
+
+/** Where the model dropdown's options came from. */
+type LiveState = "idle" | "loading" | "live" | "failed"
+
+/** Stable empty reference so memos downstream do not invalidate every render. */
+const EMPTY_MODELS: AiModel[] = []
 
 type Note = { type: "success" | "error" | "info"; msg: string }
 
@@ -277,37 +284,106 @@ function FeaturePicker({
   const selected = provider ? getProvider(provider) : null
   const ready = provider ? readiness[provider] : true
 
-  // For a local engine the only models that can actually answer are the ones
-  // pulled onto this machine, so offer those. The static catalogue is a
-  // fallback for when Ollama is not reachable and we have nothing to list.
+  // Models the provider itself says it will serve for this key. The static
+  // catalogue is hand-written and goes stale — a retired id 404s at answer
+  // time — so ask upstream whenever we can.
+  //
+  // The fetched provider id is stored alongside the result so switching
+  // provider discards the previous answer by derivation rather than by an
+  // extra reset render, which also stops a slow response for provider A from
+  // ever being shown under provider B.
+  const [live, setLive] = useState<{
+    provider: string
+    models: AiModel[]
+    state: Exclude<LiveState, "idle" | "loading">
+  } | null>(null)
+
+  const providerId = selected?.id ?? null
+  const isLocal = Boolean(selected?.allowCustomModels)
+  const hasKey = providerId ? Boolean(readiness[providerId]) : false
+  // Local engines are discovered in the browser (see checkOllama); the server
+  // cannot reach the user's localhost.
+  const shouldQuery = Boolean(providerId) && !isLocal && hasKey
+
+  const matched = live !== null && live.provider === providerId
+  // Memoised so the empty case is a stable reference; a fresh [] each render
+  // would re-run the modelOptions memo below on every render.
+  const liveModels = useMemo(
+    () => (matched && live ? live.models : EMPTY_MODELS),
+    [matched, live],
+  )
+  const liveState: LiveState = !shouldQuery
+    ? "idle"
+    : matched
+      ? live.state
+      : "loading"
+
+  useEffect(() => {
+    if (!shouldQuery || !providerId) return
+    let cancelled = false
+    void (async () => {
+      let next: { models: AiModel[]; state: "live" | "failed" }
+      try {
+        const res = await fetch(
+          `/api/account/models?provider=${encodeURIComponent(providerId)}`,
+          { cache: "no-store" },
+        )
+        const data = (await res.json()) as { ok?: boolean; models?: AiModel[] }
+        next =
+          data.ok && data.models && data.models.length > 0
+            ? { models: data.models, state: "live" }
+            : { models: [], state: "failed" }
+      } catch {
+        next = { models: [], state: "failed" }
+      }
+      if (!cancelled) setLive({ provider: providerId, ...next })
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [providerId, shouldQuery])
+
   const modelOptions = useMemo(() => {
     if (!selected) return []
-    if (selected.allowCustomModels && installedLocalModels.length > 0) {
+    if (isLocal && installedLocalModels.length > 0) {
       const labels = new Map(selected.models.map((m) => [m.id, m.label]))
       return installedLocalModels.map((id) => ({
         id,
         label: labels.get(id) ?? id,
       }))
     }
+    if (liveModels.length > 0) return liveModels
     return selected.models
-  }, [selected, installedLocalModels])
+  }, [selected, isLocal, installedLocalModels, liveModels])
 
-  // Never show a model the engine cannot serve: if the saved pick is gone from
-  // the machine, fall back to the first one that is actually installed.
+  // Never show a model the engine cannot serve: if the saved pick is gone,
+  // fall back to the first one that is actually available.
   const currentModel = selected
     ? modelOptions.some((m) => m.id === model)
       ? (model as string)
       : (modelOptions[0]?.id ?? resolveModel(selected, model))
     : ""
 
-  // Detection is async: the saved model may only turn out to be missing once
-  // /api/tags answers. Write the corrected pick back into the draft so saving
-  // persists the model the user can actually see selected.
+  // Discovery is async: the saved model may only turn out to be missing once
+  // the provider answers. Write the corrected pick back into the draft so
+  // saving persists the model the user can actually see selected.
   useEffect(() => {
     if (selected && currentModel && currentModel !== model) {
       onChange(selected.id, currentModel)
     }
   }, [selected, currentModel, model, onChange])
+
+  const modelHint = isLocal
+    ? installedLocalModels.length > 0
+      ? t("account.aiKeys.installedOnMachine")
+      : undefined
+    : liveState === "live"
+      ? t("account.aiKeys.fromProvider")
+      : liveState === "loading"
+        ? t("account.aiKeys.loadingModels")
+        : liveState === "failed"
+          ? t("account.aiKeys.catalogueFallback")
+          : undefined
 
   return (
     <div className="rounded-xl border border-hairline bg-ink-900/40 p-3.5">
@@ -341,14 +417,7 @@ function FeaturePicker({
 
       {selected ? (
         <div className="mt-3">
-          <Field
-            label={t("account.aiKeys.model")}
-            hint={
-              selected.allowCustomModels && installedLocalModels.length > 0
-                ? t("account.aiKeys.installedOnMachine")
-                : undefined
-            }
-          >
+          <Field label={t("account.aiKeys.model")} hint={modelHint}>
             <Select
               value={currentModel}
               onChange={(e) => onChange(selected.id, e.target.value)}

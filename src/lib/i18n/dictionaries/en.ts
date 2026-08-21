@@ -335,6 +335,10 @@ export const en = {
       localSuffix: "local",
       model: "Model",
       installedOnMachine: "Installed on this machine",
+      fromProvider: "Live from the provider",
+      loadingModels: "Loading models…",
+      catalogueFallback:
+        "Could not reach the provider — showing our list",
       addKeyHint: "Add this provider's API key below to use it.",
       startOllamaHint: "Start Ollama on your machine to use this engine.",
       saveEngines: "Save engines",

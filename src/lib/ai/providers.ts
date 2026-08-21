@@ -38,10 +38,10 @@ export type AiProvider = {
   models: AiModel[]
   defaultModel: string
   /**
-   * The `models` list is a fixed catalogue for cloud vendors, but for a local
-   * engine it is only a suggestion: what actually runs is whatever the user has
-   * pulled onto their own machine. Providers with this flag accept any model id
-   * the user supplies instead of being snapped back to `defaultModel`.
+   * True for engines whose model list comes from the user's own machine rather
+   * than from an account with the vendor. Drives how the picker labels and
+   * sources its options; `resolveModel` passes through a plausible id for every
+   * provider, local or not.
    */
   allowCustomModels?: boolean
   supportsAdvisor: boolean
@@ -172,13 +172,15 @@ export const AI_PROVIDERS: AiProvider[] = [
     needsKey: true,
     keyPrefix: "gsk_",
     keyUrl: "https://console.groq.com/keys",
+    // CONFIRMED DEAD 2026-08-21: "meta-llama/llama-4-scout-17b-16e-instruct"
+    // returned model_not_found from Groq. The live list from
+    // /api/account/models is authoritative; these are only the fallback shown
+    // when we cannot reach the provider.
     models: [
-      { id: "meta-llama/llama-4-scout-17b-16e-instruct", label: "Llama 4 Scout 17B (recomendado)" },
-      { id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B (sólido)" },
-      { id: "qwen/qwen3.6-27b", label: "Qwen 3.6 27B" },
+      { id: "llama-3.3-70b-versatile", label: "Llama 3.3 70B" },
       { id: "qwen/qwen3-32b", label: "Qwen 3 32B" },
     ],
-    defaultModel: "meta-llama/llama-4-scout-17b-16e-instruct",
+    defaultModel: "llama-3.3-70b-versatile",
     supportsAdvisor: true,
     supportsCompare: true,
     accent: "#f55036",
@@ -332,6 +334,13 @@ export function providersForFeature(feature: AiFeature): AiProvider[] {
 /**
  * Map of deprecated model IDs → their replacements (per-provider).
  * Lets users keep their old settings without breaking when models are retired.
+ *
+ * CAUTION: a migration is only as good as its target. An entry pointing at a
+ * model the vendor no longer serves converts a possibly-valid choice into a
+ * definitely-broken one, silently — that is exactly how the Groq entry here
+ * behaved before 2026-08-21. A replacement must be a model id verified to
+ * exist; when in doubt, delete the entry and let the user re-pick from the
+ * live list, which now surfaces a clear error rather than a silent swap.
  */
 const MODEL_MIGRATIONS: Record<string, string> = {
   // OpenAI — GPT-4.x series retired Feb 2026
@@ -351,8 +360,6 @@ const MODEL_MIGRATIONS: Record<string, string> = {
   // xAI — grok-2/grok-beta retired May 2026
   "grok-2-latest": "grok-4.3",
   "grok-beta": "grok-4.3",
-  // Groq
-  "llama-3.1-8b-instant": "meta-llama/llama-4-scout-17b-16e-instruct",
 }
 
 /**
@@ -366,29 +373,35 @@ export function isPlausibleModelId(model: string): boolean {
   return MODEL_ID_RE.test(model)
 }
 
-/** Validate that a model id belongs to a provider; fall back to its default.
- *  Also checks MODEL_MIGRATIONS for renamed/retired models.
+/**
+ * Decide which model id to send for a stored preference.
  *
- *  Providers flagged `allowCustomModels` (the local engines) are the exception:
- *  their catalogue is a suggestion list, not an allow-list. Snapping a locally
- *  installed tag back to `defaultModel` is what silently broke the advisor —
- *  the request went out for a model the machine had never pulled, Ollama
- *  answered 404, and the whole feature fell back to the rule-based answer with
- *  no visible error. */
+ * The `models` array is a SUGGESTION list, never an allow-list. It is written
+ * by hand, so it goes stale the moment a vendor renames or retires something —
+ * and the old behaviour (snap anything unrecognised back to `defaultModel`)
+ * turned that staleness into an outage twice: once for Ollama, where the
+ * default tag did not exist locally, and once for Groq, where the catalogue's
+ * own default no longer existed upstream. Substituting a *different* wrong
+ * model hides the problem; passing the user's choice through surfaces a precise
+ * `model_not_found` they can act on, and the picker now offers whatever
+ * `listProviderModels` reports so the choice is a real one.
+ *
+ * `defaultModel` is only for "the user has not chosen yet".
+ */
 export function resolveModel(
   provider: AiProvider,
   model: string | null | undefined,
 ): string {
   const trimmed = model?.trim()
-  if (trimmed && provider.models.some((m) => m.id === trimmed)) return trimmed
-  // Local engines run whatever the user pulled — accept any sane-looking tag.
-  if (trimmed && provider.allowCustomModels && isPlausibleModelId(trimmed)) {
-    return trimmed
+  if (!trimmed) return provider.defaultModel
+  if (provider.models.some((m) => m.id === trimmed)) return trimmed
+  // Known rename/retirement: upgrade silently, that mapping is deliberate.
+  const replacement = MODEL_MIGRATIONS[trimmed]
+  if (replacement && provider.models.some((m) => m.id === replacement)) {
+    return replacement
   }
-  // Check migration map for old model names
-  if (trimmed && MODEL_MIGRATIONS[trimmed]) {
-    const replacement = MODEL_MIGRATIONS[trimmed]
-    if (provider.models.some((m) => m.id === replacement)) return replacement
-  }
+  // Anything else that looks like a model id is the user's explicit choice —
+  // most likely picked from the provider's own live list.
+  if (isPlausibleModelId(trimmed)) return trimmed
   return provider.defaultModel
 }
