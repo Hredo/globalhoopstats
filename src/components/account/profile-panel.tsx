@@ -10,6 +10,8 @@ import {
   TextInput,
 } from "@/components/account/primitives"
 import { getProvider } from "@/lib/ai/providers"
+import { useLocale, useT } from "@/lib/i18n/provider"
+import type { Locale } from "@/lib/i18n/config"
 
 import { CURRENCIES, type CurrencyCode } from "@/lib/market/currency"
 
@@ -27,10 +29,12 @@ type Profile = {
   createdAt: string
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, locale: Locale): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return "—"
-  return d.toLocaleDateString(undefined, {
+  // Follow the language the user picked in the app, not the browser's own
+  // locale — otherwise a Spanish UI renders "January 3, 2026".
+  return d.toLocaleDateString(locale === "es" ? "es-ES" : "en-GB", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -38,6 +42,8 @@ function formatDate(iso: string): string {
 }
 
 export function ProfilePanel() {
+  const t = useT()
+  const locale = useLocale()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [settings, setSettings] = useState<Settings | null>(null)
   const [name, setName] = useState("")
@@ -79,7 +85,7 @@ export function ProfilePanel() {
         email.trim().toLowerCase() !== profile.email.toLowerCase()
       if (emailChanging) body.email = email.trim()
       if (Object.keys(body).length === 0) {
-        setStatus({ type: "success", msg: "Nothing to change." })
+        setStatus({ type: "success", msg: t("account.profile.nothingToChange") })
         return
       }
       // Changing the sign-in email requires re-authentication.
@@ -87,7 +93,7 @@ export function ProfilePanel() {
         if (!currentPassword) {
           setStatus({
             type: "error",
-            msg: "Enter your current password to change your email.",
+            msg: t("account.profile.needPasswordForEmail"),
           })
           return
         }
@@ -100,16 +106,19 @@ export function ProfilePanel() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setStatus({ type: "error", msg: data.error ?? "Could not save changes." })
+        setStatus({
+          type: "error",
+          msg: data.error ?? t("account.profile.saveError"),
+        })
         return
       }
       setProfile({ ...profile, name: body.name ?? profile.name, email: body.email ?? profile.email })
       setCurrentPassword("")
-      setStatus({ type: "success", msg: "Profile updated." })
+      setStatus({ type: "success", msg: t("account.profile.updated") })
       // Refresh the navbar's account menu without a reload.
       window.dispatchEvent(new Event("auth:changed"))
     } catch {
-      setStatus({ type: "error", msg: "Network error. Try again." })
+      setStatus({ type: "error", msg: t("account.profile.networkError") })
     } finally {
       setSaving(false)
     }
@@ -126,15 +135,15 @@ export function ProfilePanel() {
   return (
     <>
       <AccountSection
-        title="Profile"
-        description="Your display name and the email you sign in with."
+        title={t("account.profile.title")}
+        description={t("account.profile.description")}
       >
         {loading ? (
           <SkeletonForm />
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <FieldRow>
-              <Field label="Name" htmlFor="acc-name">
+              <Field label={t("account.profile.name")} htmlFor="acc-name">
                 <TextInput
                   id="acc-name"
                   value={name}
@@ -144,7 +153,11 @@ export function ProfilePanel() {
                   autoComplete="name"
                 />
               </Field>
-              <Field label="Email" htmlFor="acc-email" hint="Used to sign in.">
+              <Field
+                label={t("account.profile.email")}
+                htmlFor="acc-email"
+                hint={t("account.profile.emailHint")}
+              >
                 <TextInput
                   id="acc-email"
                   type="email"
@@ -159,9 +172,9 @@ export function ProfilePanel() {
             {profile &&
             email.trim().toLowerCase() !== profile.email.toLowerCase() ? (
               <Field
-                label="Current password"
+                label={t("account.profile.currentPassword")}
                 htmlFor="acc-current-password"
-                hint="Required to change the email you sign in with."
+                hint={t("account.profile.currentPasswordHint")}
               >
                 <TextInput
                   id="acc-current-password"
@@ -182,7 +195,7 @@ export function ProfilePanel() {
                 disabled={saving}
                 className="inline-flex h-10 items-center rounded-full bg-brand-500 px-5 text-sm font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition hover:bg-brand-400 disabled:opacity-60"
               >
-                {saving ? "Saving…" : "Save changes"}
+                {saving ? t("account.profile.saving") : t("account.profile.save")}
               </button>
             </div>
           </form>
@@ -190,32 +203,39 @@ export function ProfilePanel() {
       </AccountSection>
 
       <AccountSection
-        title="AI engines"
-        description="Which model powers each AI feature. Manage providers and keys in AI & keys."
+        title={t("account.profile.aiEnginesTitle")}
+        description={t("account.profile.aiEnginesDescription")}
         action={
           <Link
             href="/account/ai-keys"
             className="inline-flex h-9 items-center rounded-full border border-hairline bg-white/[0.04] px-4 text-[13px] font-medium text-ink-100 transition hover:bg-white/[0.08]"
           >
-            Manage
+            {t("account.profile.manage")}
           </Link>
         }
       >
         <div className="grid gap-3 sm:grid-cols-2">
-          <EngineCard feature="AI Advisor" provider={advisor?.name ?? null} />
-          <EngineCard feature="AI Compare" provider={compare?.name ?? null} />
+          <EngineCard
+            feature={t("account.profile.advisorFeature")}
+            provider={advisor?.name ?? null}
+            emptyLabel={t("account.profile.notConnected")}
+          />
+          <EngineCard
+            feature={t("account.profile.compareFeature")}
+            provider={compare?.name ?? null}
+            emptyLabel={t("account.profile.notConnected")}
+          />
         </div>
         {!anyAi && !loading ? (
           <div className="mt-4">
             <StatusNote type="info">
-              You haven&apos;t connected an AI yet. AI features fall back to basic
-              mode until you{" "}
+              {t("account.profile.noAiNoticeBefore")}{" "}
               <Link href="/account/ai-keys" className="font-semibold underline">
-                add a provider
+                {t("account.profile.noAiNoticeLink")}
               </Link>
-              . New here?{" "}
+              {t("account.profile.noAiNoticeMiddle")}{" "}
               <Link href="/ai-setup" className="font-semibold underline">
-                Read the setup guide
+                {t("account.profile.noAiNoticeGuide")}
               </Link>
               .
             </StatusNote>
@@ -224,8 +244,8 @@ export function ProfilePanel() {
       </AccountSection>
 
       <AccountSection
-        title="Currency"
-        description="Default currency for market valuations and the trade simulator."
+        title={t("account.profile.currencyTitle")}
+        description={t("account.profile.currencyDescription")}
       >
         <div className="flex flex-wrap gap-2">
           {(["EUR", "USD", "GBP"] as CurrencyCode[]).map((code) => (
@@ -257,10 +277,16 @@ export function ProfilePanel() {
       </AccountSection>
 
       {profile ? (
-        <AccountSection title="Account details">
+        <AccountSection title={t("account.profile.detailsTitle")}>
           <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-            <Detail label="Plan" value={profile.planLabel} />
-            <Detail label="Member since" value={formatDate(profile.createdAt)} />
+            <Detail
+              label={t("account.profile.plan")}
+              value={profile.planLabel}
+            />
+            <Detail
+              label={t("account.profile.memberSince")}
+              value={formatDate(profile.createdAt, locale)}
+            />
           </dl>
         </AccountSection>
       ) : null}
@@ -271,9 +297,11 @@ export function ProfilePanel() {
 function EngineCard({
   feature,
   provider,
+  emptyLabel,
 }: {
   feature: string
   provider: string | null
+  emptyLabel: string
 }) {
   return (
     <div className="rounded-xl border border-hairline bg-ink-900/40 p-3.5">
@@ -286,7 +314,7 @@ function EngineCard({
             provider ? "bg-emerald-400" : "bg-ink-600"
           }`}
         />
-        {provider ?? "Not connected"}
+        {provider ?? emptyLabel}
       </p>
     </div>
   )

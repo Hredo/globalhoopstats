@@ -2,6 +2,10 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { SITE } from "@/lib/site"
 import { AI_PROVIDERS } from "@/lib/ai/providers"
+import { providerCopy } from "@/lib/ai/provider-copy"
+import { getT } from "@/lib/i18n/server"
+import type { Locale } from "@/lib/i18n/config"
+import type { ClientTranslator } from "@/lib/i18n/provider"
 
 export const metadata: Metadata = {
   title: "Connect your AI",
@@ -17,91 +21,91 @@ export const metadata: Metadata = {
   },
 }
 
-export default function AiSetupPage() {
+export default async function AiSetupPage() {
+  const { t, locale } = await getT()
   const local = AI_PROVIDERS.filter((p) => !p.needsKey)
   const cloud = AI_PROVIDERS.filter((p) => p.needsKey)
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
       <header className="max-w-2xl">
-        <p className="gh-eyebrow text-brand-300">AI setup</p>
+        <p className="gh-eyebrow text-brand-300">{t("aiSetup.eyebrow")}</p>
         <h1 className="mt-3 font-display text-3xl font-bold tracking-tight text-ink-50 sm:text-4xl">
-          Connect your own AI
+          {t("aiSetup.title")}
         </h1>
         <p className="mt-4 text-base leading-relaxed text-ink-300">
-          The AI Advisor and AI Compare run on a model{" "}
-          <span className="text-ink-100">you choose and control</span>. Either
-          run a model locally with Ollama — fully private, no key, no cost — or
-          paste an API key from any supported provider. Keys are encrypted before
-          they touch our database and never leave the server.
+          {t("aiSetup.introBefore")}{" "}
+          <span className="text-ink-100">{t("aiSetup.introEmphasis")}</span>
+          {t("aiSetup.introAfter")}
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
             href="/account/ai-keys"
             className="inline-flex h-11 items-center rounded-full bg-brand-500 px-6 text-sm font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition hover:bg-brand-400"
           >
-            Open AI settings
+            {t("aiSetup.openSettings")}
           </Link>
           <Link
             href="/ai-advisor"
             className="inline-flex h-11 items-center rounded-full border border-hairline bg-white/[0.04] px-6 text-sm font-medium text-ink-100 transition hover:bg-white/[0.08]"
           >
-            Try the Advisor
+            {t("aiSetup.tryAdvisor")}
           </Link>
         </div>
       </header>
 
       <section className="mt-12 grid gap-4 sm:grid-cols-2">
         <HowCard
-          step="Option A"
-          title="Run a model locally"
-          body="Install Ollama and pull a model. We detect it in your browser automatically — no key, nothing leaves your machine. Best for privacy and zero cost."
+          step={t("aiSetup.optionA")}
+          title={t("aiSetup.localTitle")}
+          body={t("aiSetup.localBody")}
         />
         <HowCard
-          step="Option B"
-          title="Bring an API key"
-          body="Create a key with any provider below, paste it in your account, pick a model. Best if you don't want to run anything locally."
+          step={t("aiSetup.optionB")}
+          title={t("aiSetup.cloudTitle")}
+          body={t("aiSetup.cloudBody")}
         />
       </section>
 
       <section id="ollama" className="mt-14">
         <SectionTitle
-          eyebrow="Local · no key"
-          title="Ollama (recommended for privacy)"
+          eyebrow={t("aiSetup.localEyebrow")}
+          title={t("aiSetup.ollamaTitle")}
         />
         {local.map((p) => (
-          <ProviderGuide key={p.id} provider={p} />
+          <ProviderGuide key={p.id} provider={p} locale={locale} t={t} />
         ))}
       </section>
 
       <section className="mt-14">
-        <SectionTitle eyebrow="Cloud · your key" title="Cloud providers" />
+        <SectionTitle
+          eyebrow={t("aiSetup.cloudEyebrow")}
+          title={t("aiSetup.cloudProviders")}
+        />
         <div className="space-y-4">
           {cloud.map((p) => (
-            <ProviderGuide key={p.id} provider={p} />
+            <ProviderGuide key={p.id} provider={p} locale={locale} t={t} />
           ))}
         </div>
       </section>
 
       <section className="mt-14 rounded-2xl border border-hairline bg-surface-1/60 p-6">
         <h2 className="font-display text-lg font-bold text-ink-50">
-          Is my key safe?
+          {t("aiSetup.safetyTitle")}
         </h2>
         <ul className="mt-3 space-y-2 text-[14px] leading-relaxed text-ink-300">
           <li className="flex gap-2">
-            <Dot /> Keys are encrypted with AES-256-GCM before being stored — we
-            keep ciphertext, never the raw key.
+            <Dot /> {t("aiSetup.safety1")}
           </li>
           <li className="flex gap-2">
-            <Dot /> They&apos;re only decrypted server-side, for the moment we
-            call your chosen model. They&apos;re never sent to the browser.
+            <Dot /> {t("aiSetup.safety2")}
           </li>
           <li className="flex gap-2">
-            <Dot /> Remove a key any time from{" "}
+            <Dot /> {t("aiSetup.safety3Before")}{" "}
             <Link href="/account/ai-keys" className="text-brand-300 hover:underline">
-              AI &amp; keys
+              {t("account.nav.aiKeys")}
             </Link>
-            . Deleting it wipes the stored ciphertext.
+            {t("aiSetup.safety3After")}
           </li>
         </ul>
       </section>
@@ -111,7 +115,7 @@ export default function AiSetupPage() {
           href="/account/ai-keys"
           className="inline-flex h-11 items-center rounded-full bg-brand-500 px-6 text-sm font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition hover:bg-brand-400"
         >
-          Connect a provider →
+          {t("aiSetup.connectProvider")}
         </Link>
       </div>
     </div>
@@ -151,9 +155,14 @@ function SectionTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
 
 function ProviderGuide({
   provider,
+  locale,
+  t,
 }: {
   provider: (typeof AI_PROVIDERS)[number]
+  locale: Locale
+  t: ClientTranslator
 }) {
+  const copy = providerCopy(provider.id, locale)
   return (
     <div className="rounded-2xl border border-hairline bg-surface-1/60 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -168,7 +177,7 @@ function ProviderGuide({
             <h3 className="font-display text-lg font-bold text-ink-50">
               {provider.name}
             </h3>
-            <p className="text-[13px] text-ink-400">{provider.blurb}</p>
+            <p className="text-[13px] text-ink-400">{copy.blurb}</p>
           </div>
         </div>
         {provider.keyUrl ? (
@@ -178,13 +187,15 @@ function ProviderGuide({
             rel="noopener noreferrer"
             className="inline-flex h-9 items-center rounded-full border border-brand-500/40 bg-brand-500/10 px-4 text-[13px] font-semibold text-brand-200 transition hover:bg-brand-500/20"
           >
-            {provider.needsKey ? "Get a key →" : "Download →"}
+            {provider.needsKey
+              ? t("account.aiKeys.getKey")
+              : t("aiSetup.download")}
           </a>
         ) : null}
       </div>
 
       <ol className="mt-4 space-y-2.5">
-        {provider.guide.map((step, i) => (
+        {copy.guide.map((step, i) => (
           <li key={i} className="flex gap-3 text-[14px] text-ink-200">
             <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-[11px] font-bold text-ink-300">
               {i + 1}
@@ -196,7 +207,9 @@ function ProviderGuide({
 
       {provider.models.length > 0 ? (
         <p className="mt-4 flex flex-wrap items-center gap-1.5 text-[12px] text-ink-500">
-          <span className="uppercase tracking-widest">Models:</span>
+          <span className="uppercase tracking-widest">
+            {t("aiSetup.models")}
+          </span>
           {provider.models.map((m) => (
             <span
               key={m.id}

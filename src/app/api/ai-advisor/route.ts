@@ -9,7 +9,7 @@ import {
   type AdvisorOutput,
   type Recruit,
 } from "@/lib/ai/local-advisor"
-import { generateAdvisorResponse, lastLlmError } from "@/lib/ai/llm"
+import { generateAdvisorResponse } from "@/lib/ai/llm"
 import { detectIntent, detectOperation } from "@/lib/ai/intent"
 import { findCandidates, type Candidate } from "@/lib/market/candidates"
 import { getMarketPlayerBySlug } from "@/lib/market/pool"
@@ -24,6 +24,8 @@ import { resolveDefaultEngine, resolveEngine } from "@/lib/ai/user-provider"
 import { getProvider, resolveModel } from "@/lib/ai/providers"
 import { getCurrentUser } from "@/lib/auth/current-user"
 import { getLocale } from "@/lib/i18n/server"
+import type { Locale } from "@/lib/i18n/config"
+import { promptCopy } from "@/lib/ai/prompt-copy"
 // NOTE: Import kept for when usage limits are re-enabled.
 // import { getAdvisorFreeUsage } from "@/lib/auth/free-usage"
 // import { userPlan } from "@/lib/db/schema"
@@ -37,6 +39,7 @@ import {
   MAX_HISTORY_MESSAGE_LEN,
   MAX_HISTORY_MESSAGES,
   MAX_USER_MESSAGE_LEN,
+  redactSecrets,
   securityHeaders,
 } from "@/lib/security/ai-advisor"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
@@ -411,6 +414,11 @@ export async function POST(request: Request) {
   }
 
   let aiReason: string | null = engine.ok ? null : engine.reason
+  // Distinct from `aiReason`: set only when an engine IS configured but the
+  // call to it failed. That case used to be completely silent — the user got a
+  // canned rule-based answer with `aiConfigured: true` and no hint that their
+  // model had 404'd — which is what "the AI stopped working" looked like.
+  let aiError: string | null = null
   if (engine.ok) {
     try {
       const llm = await generateAdvisorResponse(
@@ -435,7 +443,7 @@ export async function POST(request: Request) {
           apiKey: engine.apiKey,
         },
       )
-      if (llm) {
+      if (llm.ok) {
         const safe = cleanLlmOutput(llm.content)
         await persistAssistant(db, conversationId!, safe, llm.model, "llm")
         return NextResponse.json(
@@ -449,10 +457,12 @@ export async function POST(request: Request) {
           { headers: securityHeaders() },
         )
       }
-      aiReason = lastLlmError() ?? "ai_error"
-      audit("llm-null", { ip, provider: engine.provider.id, reason: aiReason })
+      aiReason = "ai_error"
+      aiError = redactSecrets(llm.error)
+      audit("llm-failed", { ip, provider: engine.provider.id, error: aiError })
     } catch (err) {
       aiReason = "ai_error"
+      aiError = redactSecrets(String(err))
       audit("llm-threw", { ip, err: String(err) })
     }
   }
@@ -464,7 +474,7 @@ export async function POST(request: Request) {
       team,
       userMessage,
       locale,
-      candidatesToRecruits(candidates),
+      candidatesToRecruits(candidates, locale),
     )
     const safe = cleanLlmOutput(fallback.analysis)
     await persistAssistant(db, conversationId!, safe, null, "local")
@@ -475,6 +485,9 @@ export async function POST(request: Request) {
         mode: "local" as const,
         aiConfigured: engine.ok,
         aiReason,
+        aiError,
+        aiProvider: engine.ok ? engine.provider.name : null,
+        aiModel: engine.ok ? engine.model : null,
         conversationId,
       },
       { headers: securityHeaders() },
@@ -489,7 +502,10 @@ export async function POST(request: Request) {
 }
 
 /** Shape DB candidates into the Recruit cards the fallback UI renders. */
-function candidatesToRecruits(candidates: Candidate[]): Recruit[] {
+function candidatesToRecruits(
+  candidates: Candidate[],
+  locale: Locale,
+): Recruit[] {
   return candidates.map((c) => {
     const p = c.player
     return {
@@ -499,11 +515,11 @@ function candidatesToRecruits(candidates: Candidate[]): Recruit[] {
       age: p.age ?? 0,
       contractValue: formatEur(p.valuation.eur),
       strengths: [
-        valuationTierLabel(p.valuation.tier, p.valuation.leagueSlug),
+        valuationTierLabel(p.valuation.tier, p.valuation.leagueSlug, locale),
         `Rating ${p.valuation.rating}/100`,
       ],
       fit: c.reason,
-      market: p.team ? p.team.name : "Agente libre",
+      market: p.team ? p.team.name : promptCopy(locale).freeAgent,
     }
   })
 }

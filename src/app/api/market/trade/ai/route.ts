@@ -69,7 +69,7 @@ function buildPrompt(body: TradeAiBody, locale: Locale): string {
     if (out.valuation) {
       lines.push(`- Estimated market value: ${formatEur(out.valuation.eur)}`)
       lines.push(`- Estimated annual salary: ${formatEur(out.valuation.annualEur)}`)
-      lines.push(`- Rating: ${out.valuation.rating}/100 (${valuationTierLabel(out.valuation.tier as any, out.valuation.leagueSlug)})`)
+      lines.push(`- Rating: ${out.valuation.rating}/100 (${valuationTierLabel(out.valuation.tier as any, out.valuation.leagueSlug, locale)})`)
     }
     lines.push("")
 
@@ -103,7 +103,7 @@ function buildPrompt(body: TradeAiBody, locale: Locale): string {
       lines.push(`  - ${p.name} (${p.position ?? "?"}, ${p.team ?? "FA"}, ${p.league ?? "?"})`)
       if (p.valuation) {
         lines.push(`    Market value: ${formatEur(p.valuation.eur)} · Rating: ${p.valuation.rating}/100`)
-        lines.push(`    Profile: ${valuationTierLabel(p.valuation.tier as any, p.valuation.leagueSlug)}`)
+        lines.push(`    Profile: ${valuationTierLabel(p.valuation.tier as any, p.valuation.leagueSlug, locale)}`)
       }
       if (p.stats) {
         const parts = []
@@ -122,7 +122,7 @@ function buildPrompt(body: TradeAiBody, locale: Locale): string {
       lines.push(`  - ${p.name} (${p.position ?? "?"}, ${p.team ?? "FA"}, ${p.league ?? "?"})`)
       if (p.valuation) {
         lines.push(`    Market value: ${formatEur(p.valuation.eur)} · Rating: ${p.valuation.rating}/100`)
-        lines.push(`    Profile: ${valuationTierLabel(p.valuation.tier as any, p.valuation.leagueSlug)}`)
+        lines.push(`    Profile: ${valuationTierLabel(p.valuation.tier as any, p.valuation.leagueSlug, locale)}`)
       }
       if (p.stats) {
         const parts = []
