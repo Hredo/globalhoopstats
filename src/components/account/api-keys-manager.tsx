@@ -17,6 +17,8 @@ import {
   type AiFeature,
   type AiProvider,
 } from "@/lib/ai/providers"
+import { useLocale, useT } from "@/lib/i18n/provider"
+import { providerCopy } from "@/lib/ai/provider-copy"
 
 const OLLAMA_TAGS_URL = "http://localhost:11434/api/tags"
 
@@ -39,6 +41,7 @@ type OllamaStatus = "checking" | "available" | "unavailable"
 type Note = { type: "success" | "error" | "info"; msg: string }
 
 export function ApiKeysManager() {
+  const t = useT()
   const [keys, setKeys] = useState<Record<string, KeyStatus>>({})
   const [settings, setSettings] = useState<Settings>({
     advisorProvider: null,
@@ -94,27 +97,28 @@ export function ApiKeysManager() {
   return (
     <>
       <AccountSection
-        title="Bring your own AI"
-        description="Pick any provider and paste your own API key — it's encrypted before it touches our database and never leaves the server. Running a model locally with Ollama? No key needed, we detect it automatically."
+        title={t("account.aiKeys.byoTitle")}
+        description={t("account.aiKeys.byoDescription")}
         action={
           <Link
             href="/ai-setup"
             className="inline-flex h-9 items-center rounded-full border border-brand-500/40 bg-brand-500/10 px-4 text-[13px] font-semibold text-brand-200 transition hover:bg-brand-500/20"
           >
-            Setup guide →
+            {t("account.aiKeys.setupGuide")}
           </Link>
         }
       >
         <EngineSelectors
           settings={settings}
           readiness={readiness}
+          installedLocalModels={ollamaModels}
           onSaved={(s) => setSettings(s)}
         />
       </AccountSection>
 
       <AccountSection
-        title="Providers"
-        description="Connect as many as you like. The one selected above is what actually runs."
+        title={t("account.aiKeys.providersTitle")}
+        description={t("account.aiKeys.providersDescription")}
       >
         {loading ? (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -155,12 +159,16 @@ export function ApiKeysManager() {
 function EngineSelectors({
   settings,
   readiness,
+  installedLocalModels,
   onSaved,
 }: {
   settings: Settings
   readiness: Record<string, boolean>
+  /** Model tags actually pulled onto this machine, from Ollama's /api/tags. */
+  installedLocalModels: string[]
   onSaved: (s: Settings) => void
 }) {
+  const t = useT()
   const [draft, setDraft] = useState<Settings>(settings)
   const [saving, setSaving] = useState(false)
   const [note, setNote] = useState<Note | null>(null)
@@ -189,13 +197,16 @@ function EngineSelectors({
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setNote({ type: "error", msg: data.error ?? "Could not save." })
+        setNote({
+          type: "error",
+          msg: data.error ?? t("account.aiKeys.couldNotSave"),
+        })
         return
       }
       onSaved(data.settings)
-      setNote({ type: "success", msg: "AI engines updated." })
+      setNote({ type: "success", msg: t("account.aiKeys.enginesUpdated") })
     } catch {
-      setNote({ type: "error", msg: "Network error." })
+      setNote({ type: "error", msg: t("account.aiKeys.networkError") })
     } finally {
       setSaving(false)
     }
@@ -206,20 +217,22 @@ function EngineSelectors({
       <div className="grid gap-4 sm:grid-cols-2">
         <FeaturePicker
           feature="advisor"
-          label="AI Advisor engine"
+          label={t("account.aiKeys.advisorEngine")}
           provider={draft.advisorProvider}
           model={draft.advisorModel}
           readiness={readiness}
+          installedLocalModels={installedLocalModels}
           onChange={(provider, model) =>
             setDraft((d) => ({ ...d, advisorProvider: provider, advisorModel: model }))
           }
         />
         <FeaturePicker
           feature="compare"
-          label="AI Compare engine"
+          label={t("account.aiKeys.compareEngine")}
           provider={draft.compareProvider}
           model={draft.compareModel}
           readiness={readiness}
+          installedLocalModels={installedLocalModels}
           onChange={(provider, model) =>
             setDraft((d) => ({ ...d, compareProvider: provider, compareModel: model }))
           }
@@ -234,7 +247,9 @@ function EngineSelectors({
         disabled={saving || !dirty}
         className="inline-flex h-10 items-center rounded-full bg-brand-500 px-5 text-sm font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition hover:bg-brand-400 disabled:opacity-50"
       >
-        {saving ? "Saving…" : "Save engines"}
+        {saving
+          ? t("account.aiKeys.savingEngines")
+          : t("account.aiKeys.saveEngines")}
       </button>
     </div>
   )
@@ -246,6 +261,7 @@ function FeaturePicker({
   provider,
   model,
   readiness,
+  installedLocalModels,
   onChange,
 }: {
   feature: AiFeature
@@ -253,11 +269,45 @@ function FeaturePicker({
   provider: string | null
   model: string | null
   readiness: Record<string, boolean>
+  installedLocalModels: string[]
   onChange: (provider: string | null, model: string | null) => void
 }) {
+  const t = useT()
   const options = providersForFeature(feature)
   const selected = provider ? getProvider(provider) : null
   const ready = provider ? readiness[provider] : true
+
+  // For a local engine the only models that can actually answer are the ones
+  // pulled onto this machine, so offer those. The static catalogue is a
+  // fallback for when Ollama is not reachable and we have nothing to list.
+  const modelOptions = useMemo(() => {
+    if (!selected) return []
+    if (selected.allowCustomModels && installedLocalModels.length > 0) {
+      const labels = new Map(selected.models.map((m) => [m.id, m.label]))
+      return installedLocalModels.map((id) => ({
+        id,
+        label: labels.get(id) ?? id,
+      }))
+    }
+    return selected.models
+  }, [selected, installedLocalModels])
+
+  // Never show a model the engine cannot serve: if the saved pick is gone from
+  // the machine, fall back to the first one that is actually installed.
+  const currentModel = selected
+    ? modelOptions.some((m) => m.id === model)
+      ? (model as string)
+      : (modelOptions[0]?.id ?? resolveModel(selected, model))
+    : ""
+
+  // Detection is async: the saved model may only turn out to be missing once
+  // /api/tags answers. Write the corrected pick back into the draft so saving
+  // persists the model the user can actually see selected.
+  useEffect(() => {
+    if (selected && currentModel && currentModel !== model) {
+      onChange(selected.id, currentModel)
+    }
+  }, [selected, currentModel, model, onChange])
 
   return (
     <div className="rounded-xl border border-hairline bg-ink-900/40 p-3.5">
@@ -267,15 +317,23 @@ function FeaturePicker({
           onChange={(e) => {
             const id = e.target.value || null
             const p = id ? getProvider(id) : null
-            onChange(id, p ? p.defaultModel : null)
+            if (!p) {
+              onChange(null, null)
+              return
+            }
+            const first =
+              p.allowCustomModels && installedLocalModels.length > 0
+                ? installedLocalModels[0]
+                : p.defaultModel
+            onChange(id, first)
           }}
         >
-          <option value="">None (basic mode)</option>
+          <option value="">{t("account.aiKeys.noneBasic")}</option>
           {options.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
-              {p.needsKey ? "" : " — local"}
-              {readiness[p.id] ? "" : " (not ready)"}
+              {p.needsKey ? "" : ` — ${t("account.aiKeys.localSuffix")}`}
+              {readiness[p.id] ? "" : ` (${t("account.aiKeys.notReady")})`}
             </option>
           ))}
         </Select>
@@ -283,12 +341,19 @@ function FeaturePicker({
 
       {selected ? (
         <div className="mt-3">
-          <Field label="Model">
+          <Field
+            label={t("account.aiKeys.model")}
+            hint={
+              selected.allowCustomModels && installedLocalModels.length > 0
+                ? t("account.aiKeys.installedOnMachine")
+                : undefined
+            }
+          >
             <Select
-              value={resolveModel(selected, model)}
+              value={currentModel}
               onChange={(e) => onChange(selected.id, e.target.value)}
             >
-              {selected.models.map((m) => (
+              {modelOptions.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.label}
                 </option>
@@ -301,8 +366,8 @@ function FeaturePicker({
       {selected && !ready ? (
         <p className="mt-2 text-[11px] leading-relaxed text-amber-300/90">
           {selected.needsKey
-            ? "Add this provider's API key below to use it."
-            : "Start Ollama on your machine to use this engine."}
+            ? t("account.aiKeys.addKeyHint")
+            : t("account.aiKeys.startOllamaHint")}
         </p>
       ) : null}
     </div>
@@ -337,9 +402,13 @@ function StatusPill({
 function ProviderHeader({
   provider,
   pill,
+  apiKeyLabel,
+  localNoKeyLabel,
 }: {
   provider: AiProvider
   pill: React.ReactNode
+  apiKeyLabel: string
+  localNoKeyLabel: string
 }) {
   return (
     <div className="flex items-start justify-between gap-3">
@@ -353,7 +422,7 @@ function ProviderHeader({
         <div>
           <p className="text-sm font-semibold text-ink-50">{provider.name}</p>
           <p className="text-[11px] text-ink-500">
-            {provider.needsKey ? "API key" : "Local · no key"}
+            {provider.needsKey ? apiKeyLabel : localNoKeyLabel}
           </p>
         </div>
       </div>
@@ -371,6 +440,8 @@ function KeyProviderCard({
   status: KeyStatus | null
   onChanged: () => void | Promise<void>
 }) {
+  const t = useT()
+  const locale = useLocale()
   const [value, setValue] = useState("")
   const [reveal, setReveal] = useState(false)
   const [busy, setBusy] = useState<"save" | "test" | "remove" | null>(null)
@@ -388,14 +459,17 @@ function KeyProviderCard({
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setNote({ type: "error", msg: data.error ?? "Could not save key." })
+        setNote({
+          type: "error",
+          msg: data.error ?? t("account.aiKeys.keySaveError"),
+        })
         return
       }
       setValue("")
-      setNote({ type: "success", msg: "Key saved and encrypted." })
+      setNote({ type: "success", msg: t("account.aiKeys.keySaved") })
       await onChanged()
     } catch {
-      setNote({ type: "error", msg: "Network error." })
+      setNote({ type: "error", msg: t("account.aiKeys.networkError") })
     } finally {
       setBusy(null)
     }
@@ -415,12 +489,15 @@ function KeyProviderCard({
       })
       const data = await res.json().catch(() => ({}))
       if (data.ok) {
-        setNote({ type: "success", msg: "Connection works ✓" })
+        setNote({ type: "success", msg: t("account.aiKeys.testOk") })
       } else {
-        setNote({ type: "error", msg: data.error ?? "Test failed." })
+        setNote({
+          type: "error",
+          msg: data.error ?? t("account.aiKeys.testFailed"),
+        })
       }
     } catch {
-      setNote({ type: "error", msg: "Network error." })
+      setNote({ type: "error", msg: t("account.aiKeys.networkError") })
     } finally {
       setBusy(null)
     }
@@ -435,12 +512,12 @@ function KeyProviderCard({
         { method: "DELETE" },
       )
       if (!res.ok) {
-        setNote({ type: "error", msg: "Could not remove key." })
+        setNote({ type: "error", msg: t("account.aiKeys.removeError") })
         return
       }
       await onChanged()
     } catch {
-      setNote({ type: "error", msg: "Network error." })
+      setNote({ type: "error", msg: t("account.aiKeys.networkError") })
     } finally {
       setBusy(null)
     }
@@ -450,16 +527,18 @@ function KeyProviderCard({
     <div className="flex flex-col rounded-xl border border-hairline bg-ink-900/40 p-4">
       <ProviderHeader
         provider={provider}
+        apiKeyLabel={t("account.aiKeys.apiKeyLabel")}
+        localNoKeyLabel={t("account.aiKeys.localNoKey")}
         pill={
           status ? (
             <StatusPill tone="on">····{status.last4}</StatusPill>
           ) : (
-            <StatusPill tone="off">Not set</StatusPill>
+            <StatusPill tone="off">{t("account.aiKeys.notSet")}</StatusPill>
           )
         }
       />
       <p className="mt-2.5 text-[12px] leading-relaxed text-ink-400">
-        {provider.blurb}
+        {providerCopy(provider.id, locale).blurb}
       </p>
 
       <div className="mt-3 space-y-2">
@@ -469,7 +548,9 @@ function KeyProviderCard({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder={
-              status ? "Paste a new key to replace" : `Paste your ${provider.name} key`
+              status
+                ? t("account.aiKeys.pasteNewKey")
+                : t("account.aiKeys.pasteKey", { provider: provider.name })
             }
             autoComplete="off"
             spellCheck={false}
@@ -478,7 +559,9 @@ function KeyProviderCard({
           <button
             type="button"
             onClick={() => setReveal((r) => !r)}
-            aria-label={reveal ? "Hide key" : "Show key"}
+            aria-label={
+              reveal ? t("account.aiKeys.hideKey") : t("account.aiKeys.showKey")
+            }
             className="absolute inset-y-0 right-2 my-auto flex h-7 w-7 items-center justify-center rounded-md text-ink-500 transition hover:text-ink-200"
           >
             {reveal ? "🙈" : "👁"}
@@ -494,7 +577,9 @@ function KeyProviderCard({
             disabled={busy !== null || !value.trim()}
             className="inline-flex h-8 items-center rounded-full bg-brand-500 px-3.5 text-[13px] font-semibold text-ink-950 transition hover:bg-brand-400 disabled:opacity-50"
           >
-            {busy === "save" ? "Saving…" : "Save"}
+            {busy === "save"
+              ? t("account.aiKeys.saving")
+              : t("account.aiKeys.save")}
           </button>
           <button
             type="button"
@@ -502,7 +587,9 @@ function KeyProviderCard({
             disabled={busy !== null || (!value.trim() && !status)}
             className="inline-flex h-8 items-center rounded-full border border-hairline bg-white/[0.04] px-3.5 text-[13px] font-medium text-ink-100 transition hover:bg-white/[0.08] disabled:opacity-50"
           >
-            {busy === "test" ? "Testing…" : "Test"}
+            {busy === "test"
+              ? t("account.aiKeys.testing")
+              : t("account.aiKeys.test")}
           </button>
           {status ? (
             <button
@@ -511,7 +598,9 @@ function KeyProviderCard({
               disabled={busy !== null}
               className="inline-flex h-8 items-center rounded-full px-3 text-[13px] font-medium text-red-300/80 transition hover:bg-red-500/10 hover:text-red-200 disabled:opacity-50"
             >
-              {busy === "remove" ? "Removing…" : "Remove"}
+              {busy === "remove"
+                ? t("account.aiKeys.removing")
+                : t("account.aiKeys.remove")}
             </button>
           ) : null}
           {provider.keyUrl ? (
@@ -521,7 +610,7 @@ function KeyProviderCard({
               rel="noopener noreferrer"
               className="ml-auto text-[12px] font-medium text-brand-300 hover:underline"
             >
-              Get a key →
+              {t("account.aiKeys.getKey")}
             </a>
           ) : null}
         </div>
@@ -541,29 +630,38 @@ function LocalProviderCard({
   models: string[]
   onRetry: () => void
 }) {
+  const t = useT()
+  const locale = useLocale()
   const available = status === "available"
   return (
     <div className="flex flex-col rounded-xl border border-hairline bg-ink-900/40 p-4">
       <ProviderHeader
         provider={provider}
+        apiKeyLabel={t("account.aiKeys.apiKeyLabel")}
+        localNoKeyLabel={t("account.aiKeys.localNoKey")}
         pill={
           status === "checking" ? (
-            <StatusPill tone="off">Checking…</StatusPill>
+            <StatusPill tone="off">{t("account.aiKeys.checking")}</StatusPill>
           ) : available ? (
-            <StatusPill tone="on">Detected</StatusPill>
+            <StatusPill tone="on">{t("account.aiKeys.detected")}</StatusPill>
           ) : (
-            <StatusPill tone="off">Offline</StatusPill>
+            <StatusPill tone="off">{t("account.aiKeys.offline")}</StatusPill>
           )
         }
       />
       <p className="mt-2.5 text-[12px] leading-relaxed text-ink-400">
-        {provider.blurb}
+        {providerCopy(provider.id, locale).blurb}
       </p>
 
       {available ? (
         <div className="mt-3 space-y-1.5">
           <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-300">
-            {models.length} model{models.length === 1 ? "" : "s"} ready
+            {t(
+              models.length === 1
+                ? "account.aiKeys.modelsReadyOne"
+                : "account.aiKeys.modelsReadyOther",
+              { count: models.length },
+            )}
           </p>
           {models.length > 0 ? (
             <ul className="flex flex-wrap gap-1.5">
@@ -581,8 +679,7 @@ function LocalProviderCard({
       ) : (
         <div className="mt-3 space-y-2">
           <p className="text-[12px] leading-relaxed text-ink-400">
-            Not detected on localhost:11434. Install Ollama, run a model, then
-            retry.
+            {t("account.aiKeys.notDetected")}
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -590,13 +687,13 @@ function LocalProviderCard({
               onClick={onRetry}
               className="inline-flex h-8 items-center rounded-full border border-hairline bg-white/[0.04] px-3.5 text-[13px] font-medium text-ink-100 transition hover:bg-white/[0.08]"
             >
-              Retry detection
+              {t("account.aiKeys.retryDetection")}
             </button>
             <Link
               href="/ai-setup#ollama"
               className="text-[12px] font-medium text-brand-300 hover:underline"
             >
-              How to set up Ollama →
+              {t("account.aiKeys.howToSetUp")}
             </Link>
           </div>
         </div>

@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { AccountSection } from "@/components/account/primitives"
+import { useT } from "@/lib/i18n/provider"
 
 export function SubscriptionPanel() {
+  const t = useT()
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
@@ -24,8 +26,8 @@ export function SubscriptionPanel() {
     <>
       {/* NOTE: Plan section simplified during Beta — everything is free. */}
       <AccountSection
-        title="Your plan"
-        description="Everything is free during the public beta. No limits, no paywalls."
+        title={t("account.subscription.planTitle")}
+        description={t("account.subscription.planDescription")}
       >
         {loading ? (
           <div className="h-24 animate-pulse rounded-xl bg-white/[0.04]" />
@@ -36,15 +38,16 @@ export function SubscriptionPanel() {
                 🏀
               </span>
               <div>
-                <p className="text-sm text-ink-400">Current status</p>
+                <p className="text-sm text-ink-400">
+                  {t("account.subscription.currentStatus")}
+                </p>
                 <p className="font-display text-lg font-bold text-ink-50">
-                  Everything unlocked — Beta
+                  {t("account.subscription.everythingUnlocked")}
                 </p>
               </div>
             </div>
             <p className="mt-2 text-[13px] text-ink-300">
-              All features are available to everyone during the public beta. AI
-              Advisor, AI comparisons, exports — no limits.
+              {t("account.subscription.betaBody")}
             </p>
           </div>
         )}

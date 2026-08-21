@@ -8,6 +8,8 @@ import {
   StatusNote,
   TextInput,
 } from "@/components/account/primitives"
+import { useLocale, useT, type ClientTranslator } from "@/lib/i18n/provider"
+import type { Locale } from "@/lib/i18n/config"
 
 type SessionRow = {
   id: string
@@ -18,14 +20,14 @@ type SessionRow = {
   current: boolean
 }
 
-function deviceLabel(ua: string | null): string {
-  if (!ua) return "Unknown device"
+function deviceLabel(ua: string | null, t: ClientTranslator): string {
+  if (!ua) return t("account.security.unknownDevice")
   const browser =
     /Edg/i.test(ua) ? "Edge"
     : /Chrome/i.test(ua) ? "Chrome"
     : /Firefox/i.test(ua) ? "Firefox"
     : /Safari/i.test(ua) ? "Safari"
-    : "Browser"
+    : t("account.security.browser")
   const os =
     /Windows/i.test(ua) ? "Windows"
     : /Mac OS X|Macintosh/i.test(ua) ? "macOS"
@@ -36,10 +38,11 @@ function deviceLabel(ua: string | null): string {
   return os ? `${browser} · ${os}` : browser
 }
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, locale: Locale): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ""
-  return d.toLocaleString(undefined, {
+  // Match the app language rather than the browser's.
+  return d.toLocaleString(locale === "es" ? "es-ES" : "en-GB", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -59,6 +62,7 @@ export function SecurityPanel() {
 }
 
 function PasswordSection() {
+  const t = useT()
   const [current, setCurrent] = useState("")
   const [next, setNext] = useState("")
   const [confirm, setConfirm] = useState("")
@@ -72,7 +76,7 @@ function PasswordSection() {
     if (saving) return
     setNote(null)
     if (next !== confirm) {
-      setNote({ type: "error", msg: "New passwords don't match." })
+      setNote({ type: "error", msg: t("account.security.passwordsDoNotMatch") })
       return
     }
     setSaving(true)
@@ -84,18 +88,21 @@ function PasswordSection() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setNote({ type: "error", msg: data.error ?? "Could not update password." })
+        setNote({
+          type: "error",
+          msg: data.error ?? t("account.security.passwordUpdateError"),
+        })
         return
       }
       setNote({
         type: "success",
-        msg: "Password updated. Other sessions were signed out.",
+        msg: t("account.security.passwordUpdated"),
       })
       setCurrent("")
       setNext("")
       setConfirm("")
     } catch {
-      setNote({ type: "error", msg: "Network error." })
+      setNote({ type: "error", msg: t("account.security.networkError") })
     } finally {
       setSaving(false)
     }
@@ -103,11 +110,11 @@ function PasswordSection() {
 
   return (
     <AccountSection
-      title="Password"
-      description="Use at least 8 characters with uppercase, lowercase and a digit."
+      title={t("account.security.passwordTitle")}
+      description={t("account.security.passwordDescription")}
     >
       <form onSubmit={submit} className="space-y-4">
-        <Field label="Current password" htmlFor="cur-pw">
+        <Field label={t("account.security.currentPassword")} htmlFor="cur-pw">
           <TextInput
             id="cur-pw"
             type="password"
@@ -117,7 +124,7 @@ function PasswordSection() {
           />
         </Field>
         <FieldRow>
-          <Field label="New password" htmlFor="new-pw">
+          <Field label={t("account.security.newPassword")} htmlFor="new-pw">
             <TextInput
               id="new-pw"
               type="password"
@@ -127,7 +134,10 @@ function PasswordSection() {
               minLength={8}
             />
           </Field>
-          <Field label="Repeat new password" htmlFor="new-pw2">
+          <Field
+            label={t("account.security.repeatPassword")}
+            htmlFor="new-pw2"
+          >
             <TextInput
               id="new-pw2"
               type="password"
@@ -146,7 +156,9 @@ function PasswordSection() {
           disabled={saving || !current || !next}
           className="inline-flex h-10 items-center rounded-full bg-brand-500 px-5 text-sm font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition hover:bg-brand-400 disabled:opacity-50"
         >
-          {saving ? "Updating…" : "Update password"}
+          {saving
+            ? t("account.security.updating")
+            : t("account.security.updatePassword")}
         </button>
       </form>
     </AccountSection>
@@ -154,6 +166,8 @@ function PasswordSection() {
 }
 
 function SessionsSection() {
+  const t = useT()
+  const locale = useLocale()
   const [sessions, setSessions] = useState<SessionRow[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -199,8 +213,8 @@ function SessionsSection() {
 
   return (
     <AccountSection
-      title="Active sessions"
-      description="Devices currently signed in to your account."
+      title={t("account.security.sessionsTitle")}
+      description={t("account.security.sessionsDescription")}
       action={
         hasOthers ? (
           <button
@@ -209,7 +223,7 @@ function SessionsSection() {
             disabled={busy}
             className="inline-flex h-9 items-center rounded-full border border-hairline bg-white/[0.04] px-4 text-[13px] font-medium text-ink-100 transition hover:bg-white/[0.08] disabled:opacity-50"
           >
-            Sign out others
+            {t("account.security.signOutOthers")}
           </button>
         ) : null
       }
@@ -232,16 +246,16 @@ function SessionsSection() {
             >
               <div className="min-w-0">
                 <p className="flex items-center gap-2 text-sm font-medium text-ink-100">
-                  {deviceLabel(s.userAgent)}
+                  {deviceLabel(s.userAgent, t)}
                   {s.current ? (
                     <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-emerald-300">
-                      This device
+                      {t("account.security.thisDevice")}
                     </span>
                   ) : null}
                 </p>
                 <p className="mt-0.5 text-[11px] text-ink-500">
                   {s.ip ? `${s.ip} · ` : ""}
-                  {timeAgo(s.createdAt)}
+                  {timeAgo(s.createdAt, locale)}
                 </p>
               </div>
               {!s.current ? (
@@ -251,7 +265,7 @@ function SessionsSection() {
                   disabled={busy}
                   className="shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium text-red-300/80 transition hover:bg-red-500/10 hover:text-red-200 disabled:opacity-50"
                 >
-                  Revoke
+                  {t("account.security.revoke")}
                 </button>
               ) : null}
             </li>
@@ -263,6 +277,7 @@ function SessionsSection() {
 }
 
 function TwoFactorSection() {
+  const t = useT()
   const [enabled, setEnabled] = useState(false)
   const [loading, setLoading] = useState(true)
   const [setupStep, setSetupStep] = useState<"idle" | "sending" | "confirm" | "done">("idle")
@@ -303,7 +318,7 @@ function TwoFactorSection() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(data.error ?? "Could not start setup.")
+        setError(data.error ?? t("account.security.setupError"))
         setSetupStep("idle")
         return
       }
@@ -329,7 +344,7 @@ function TwoFactorSection() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(data.error ?? "Invalid code.")
+        setError(data.error ?? t("account.security.invalidCode"))
         return
       }
       setBackupCodes(data.backupCodes ?? [])
@@ -354,7 +369,7 @@ function TwoFactorSection() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(data.error ?? "Could not disable 2FA.")
+        setError(data.error ?? t("account.security.disableError"))
         return
       }
       setEnabled(false)
@@ -362,7 +377,7 @@ function TwoFactorSection() {
       setBackupCodes([])
       setBackupCodesRevealed(false)
       setRegenPassword("")
-      setStatusMsg({ type: "success", msg: "Two-factor authentication disabled." })
+      setStatusMsg({ type: "success", msg: t("account.security.disabledOk") })
     } catch {
       setError("Network error.")
     } finally {
@@ -381,13 +396,13 @@ function TwoFactorSection() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(data.error ?? "Could not regenerate backup codes.")
+        setError(data.error ?? t("account.security.regenerateError"))
         return
       }
       setBackupCodes(data.backupCodes ?? [])
       setBackupCodesRevealed(true)
       setRemainingCodes(data.backupCodes?.length ?? 0)
-      setStatusMsg({ type: "success", msg: "New backup codes generated. Save them securely." })
+      setStatusMsg({ type: "success", msg: t("account.security.regeneratedOk") })
     } catch {
       setError("Network error.")
     } finally {
@@ -397,7 +412,10 @@ function TwoFactorSection() {
 
   if (loading) {
     return (
-      <AccountSection title="Two-factor authentication" description="Add an extra layer of security to your account.">
+      <AccountSection
+        title={t("account.security.twoFactorTitle")}
+        description={t("account.security.twoFactorDescription")}
+      >
         <div className="h-12 animate-pulse rounded-xl bg-white/[0.04]" />
       </AccountSection>
     )
@@ -405,22 +423,22 @@ function TwoFactorSection() {
 
   return (
     <AccountSection
-      title="Two-factor authentication"
-      description="Add an extra layer of security to your account."
+      title={t("account.security.twoFactorTitle")}
+      description={t("account.security.twoFactorDescription")}
     >
       {setupStep === "done" ? (
         <div className="space-y-4">
           <StatusNote type="success">
-            Two-factor authentication is now enabled. A verification code will be sent to your email each time you sign in.
+            {t("account.security.twoFactorEnabledNote")}
           </StatusNote>
 
           {backupCodes.length > 0 ? (
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-4">
               <p className="text-sm font-semibold text-amber-200">
-                Save your backup codes
+                {t("account.security.saveBackupCodes")}
               </p>
               <p className="mt-1 text-xs text-ink-400">
-                Each code can be used only once. Store them in a safe place — they are your only way to access your account if you lose access to your email.
+                {t("account.security.backupCodesHint")}
               </p>
               <div className={backupCodesRevealed ? "" : "mt-3"}>
                 {backupCodesRevealed ? (
@@ -437,7 +455,7 @@ function TwoFactorSection() {
                     onClick={() => setBackupCodesRevealed(true)}
                     className="mt-3 inline-flex h-9 items-center rounded-full border border-hairline bg-white/[0.04] px-4 text-[13px] font-medium text-ink-100 transition hover:bg-white/[0.08]"
                   >
-                    Reveal backup codes
+                    {t("account.security.revealBackupCodes")}
                   </button>
                 )}
                 <button
@@ -449,7 +467,7 @@ function TwoFactorSection() {
                   }}
                   className="mt-3 inline-flex h-9 items-center rounded-full bg-brand-500 px-4 text-[13px] font-semibold text-ink-950 transition hover:bg-brand-400"
                 >
-                  Done — I&apos;ve saved my codes
+                  {t("account.security.doneSavedCodes")}
                 </button>
               </div>
             </div>
@@ -458,9 +476,12 @@ function TwoFactorSection() {
       ) : setupStep === "confirm" ? (
         <div className="space-y-4">
           <p className="text-sm text-ink-300">
-            Enter the 6-digit code sent to your email.
+            {t("account.security.enterCode")}
           </p>
-          <Field label="Verification code" htmlFor="tfa-code">
+          <Field
+            label={t("account.security.verificationCode")}
+            htmlFor="tfa-code"
+          >
             <TextInput
               id="tfa-code"
               type="text"
@@ -479,7 +500,9 @@ function TwoFactorSection() {
               disabled={busy || setupCode.length !== 6}
               className="inline-flex h-10 items-center rounded-full bg-brand-500 px-5 text-sm font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition hover:bg-brand-400 disabled:opacity-50"
             >
-              {busy ? "Verifying…" : "Confirm"}
+              {busy
+                ? t("account.security.verifying")
+                : t("account.security.confirm")}
             </button>
             <button
               type="button"
@@ -491,7 +514,7 @@ function TwoFactorSection() {
               disabled={busy}
               className="inline-flex h-10 items-center rounded-full px-4 text-sm font-medium text-ink-300 transition hover:text-ink-50"
             >
-              Cancel
+              {t("account.security.cancel")}
             </button>
           </div>
         </div>
@@ -500,18 +523,25 @@ function TwoFactorSection() {
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Enabled
+              {t("account.security.enabled")}
             </span>
             <span className="text-xs text-ink-500">
               {remainingCodes > 0
-                ? `${remainingCodes} backup code${remainingCodes === 1 ? "" : "s"} remaining`
-                : "No backup codes remaining"}
+                ? t(
+                    remainingCodes === 1
+                      ? "account.security.backupCodesRemainingOne"
+                      : "account.security.backupCodesRemainingOther",
+                    { count: remainingCodes },
+                  )
+                : t("account.security.noBackupCodesRemaining")}
             </span>
           </div>
 
           {backupCodesRevealed && backupCodes.length > 0 ? (
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-4">
-              <p className="text-sm font-semibold text-amber-200">Backup codes</p>
+              <p className="text-sm font-semibold text-amber-200">
+                {t("account.security.backupCodes")}
+              </p>
               <div className="mt-2 grid grid-cols-2 gap-1.5">
                 {backupCodes.map((code, i) => (
                   <code key={i} className="rounded-lg bg-ink-900/60 px-3 py-2 text-xs font-mono text-amber-100">
@@ -526,14 +556,17 @@ function TwoFactorSection() {
           {statusMsg ? <StatusNote type={statusMsg.type}>{statusMsg.msg}</StatusNote> : null}
 
           <div className="space-y-2">
-            <Field label="Confirm your password" htmlFor="tfa-pw">
+            <Field
+              label={t("account.security.confirmYourPassword")}
+              htmlFor="tfa-pw"
+            >
               <TextInput
                 id="tfa-pw"
                 type="password"
                 value={regenPassword}
                 onChange={(e) => setRegenPassword(e.target.value)}
                 autoComplete="current-password"
-                placeholder="Your password"
+                placeholder={t("account.security.yourPassword")}
               />
             </Field>
             <div className="flex flex-wrap items-center gap-2">
@@ -543,7 +576,9 @@ function TwoFactorSection() {
                 disabled={busy || !regenPassword}
                 className="inline-flex h-9 items-center rounded-full border border-hairline bg-white/[0.04] px-4 text-[13px] font-medium text-ink-100 transition hover:bg-white/[0.08] disabled:opacity-50"
               >
-                {busy ? "Working…" : "Regenerate backup codes"}
+                {busy
+                  ? t("account.security.working")
+                  : t("account.security.regenerateBackupCodes")}
               </button>
               <button
                 type="button"
@@ -551,7 +586,9 @@ function TwoFactorSection() {
                 disabled={busy || !regenPassword}
                 className="inline-flex h-9 items-center rounded-full border border-red-500/40 bg-red-500/10 px-4 text-[13px] font-medium text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
               >
-                {busy ? "Working…" : "Disable 2FA"}
+                {busy
+                  ? t("account.security.working")
+                  : t("account.security.disable2fa")}
               </button>
             </div>
           </div>
@@ -559,7 +596,7 @@ function TwoFactorSection() {
       ) : (
         <div className="space-y-3">
           <p className="text-sm text-ink-300">
-            When enabled, you&apos;ll need to enter a verification code sent to your email each time you sign in.
+            {t("account.security.enablePrompt")}
           </p>
           {error ? <StatusNote type="error">{error}</StatusNote> : null}
           <button
@@ -568,7 +605,9 @@ function TwoFactorSection() {
             disabled={busy}
             className="inline-flex h-10 items-center rounded-full bg-brand-500 px-5 text-sm font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition hover:bg-brand-400 disabled:opacity-50"
           >
-            {busy ? "Sending code…" : "Enable two-factor authentication"}
+            {busy
+              ? t("account.security.sendingCode")
+              : t("account.security.enable2fa")}
           </button>
         </div>
       )}
@@ -577,6 +616,7 @@ function TwoFactorSection() {
 }
 
 function DangerZone() {
+  const t = useT()
   const [open, setOpen] = useState(false)
   const [password, setPassword] = useState("")
   const [busy, setBusy] = useState(false)
@@ -593,13 +633,13 @@ function DangerZone() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(data.error ?? "Could not delete account.")
+        setError(data.error ?? t("account.security.deleteError"))
         return
       }
       window.dispatchEvent(new Event("auth:changed"))
       window.location.assign("/")
     } catch {
-      setError("Network error.")
+      setError(t("account.security.networkError"))
     } finally {
       setBusy(false)
     }
@@ -608,11 +648,10 @@ function DangerZone() {
   return (
     <section className="rounded-2xl border border-red-500/30 bg-red-500/[0.04] p-5 sm:p-6">
       <h2 className="font-display text-base font-semibold text-red-200 sm:text-lg">
-        Delete account
+        {t("account.security.dangerTitle")}
       </h2>
       <p className="mt-1 max-w-prose text-[13px] leading-relaxed text-ink-400">
-        Permanently removes your profile, conversations, saved AI keys and
-        settings. This cannot be undone.
+        {t("account.security.dangerDescription")}
       </p>
 
       {!open ? (
@@ -621,18 +660,21 @@ function DangerZone() {
           onClick={() => setOpen(true)}
           className="mt-4 inline-flex h-10 items-center rounded-full border border-red-500/40 bg-red-500/10 px-5 text-sm font-semibold text-red-200 transition hover:bg-red-500/20"
         >
-          Delete my account
+          {t("account.security.deleteMyAccount")}
         </button>
       ) : (
         <div className="mt-4 space-y-3">
-          <Field label="Confirm with your password" htmlFor="del-pw">
+          <Field
+            label={t("account.security.confirmWithPassword")}
+            htmlFor="del-pw"
+          >
             <TextInput
               id="del-pw"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
-              placeholder="Your password"
+              placeholder={t("account.security.yourPassword")}
             />
           </Field>
           {error ? <StatusNote type="error">{error}</StatusNote> : null}
@@ -643,7 +685,9 @@ function DangerZone() {
               disabled={busy || !password}
               className="inline-flex h-10 items-center rounded-full bg-red-500 px-5 text-sm font-semibold text-[#fff] transition hover:bg-red-400 disabled:opacity-50"
             >
-              {busy ? "Deleting…" : "Permanently delete"}
+              {busy
+                ? t("account.security.deleting")
+                : t("account.security.permanentlyDelete")}
             </button>
             <button
               type="button"
@@ -655,7 +699,7 @@ function DangerZone() {
               disabled={busy}
               className="inline-flex h-10 items-center rounded-full px-4 text-sm font-medium text-ink-300 transition hover:text-ink-50"
             >
-              Cancel
+              {t("account.security.cancel")}
             </button>
           </div>
         </div>

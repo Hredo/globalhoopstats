@@ -151,7 +151,17 @@ const INJECTION_PATTERNS: { re: RegExp; label: string }[] = [
     label: "forget-previous",
   },
   { re: /you\s+are\s+now\s+(a|an|the)\s+/i, label: "role-reassignment" },
-  { re: /\bact\s+as\s+(a|an|the)\s+/i, label: "act-as" },
+  // Deliberately narrow: a bare "act as a" is ordinary scouting language
+  // ("can he act as a backup point guard?") and blocking it rejected real
+  // questions. Only flag it when it is reassigning the model's own role.
+  {
+    re: /\b(you|now)\s+(must\s+|should\s+|will\s+)?act\s+as\s+(a|an|the)\s+/i,
+    label: "act-as",
+  },
+  {
+    re: /\bact\s+as\s+(a|an|the)\s+(system|developer|assistant|admin(istrator)?|ai|model|chatbot|dan)\b/i,
+    label: "act-as-role",
+  },
   { re: /\bsystem\s*[:>]\s*/i, label: "fake-system-tag" },
   { re: /\bdeveloper\s*[:>]\s*/i, label: "fake-developer-tag" },
   { re: /\bassistant\s*[:>]\s*/i, label: "fake-assistant-tag" },
@@ -181,7 +191,11 @@ const INJECTION_PATTERNS: { re: RegExp; label: string }[] = [
   { re: /\bcurl\s+http/i, label: "shell-curl" },
   { re: /\bwget\s+http/i, label: "shell-wget" },
   { re: /\brm\s+-rf\b/i, label: "shell-rm" },
-  { re: /\.\.\//g, label: "path-traversal" },
+  // NOTE: no /g flag anywhere in this table. These RegExp objects are shared
+  // across every request, and a global regex carries `lastIndex` from one
+  // `exec` to the next — the same payload would be flagged on one request and
+  // waved through on the next.
+  { re: /\.\.\//, label: "path-traversal" },
 ]
 
 export type InjectionFinding = { label: string; match: string }
@@ -189,6 +203,8 @@ export type InjectionFinding = { label: string; match: string }
 export function detectInjection(raw: string): InjectionFinding[] {
   const findings: InjectionFinding[] = []
   for (const { re, label } of INJECTION_PATTERNS) {
+    // Belt-and-braces against a /g slipping back into the table above.
+    re.lastIndex = 0
     const m = re.exec(raw)
     if (m) findings.push({ label, match: m[0] })
   }
@@ -224,6 +240,32 @@ export function cleanLlmOutput(raw: string): string {
       .trim()
       .slice(0, MAX_LLM_OUTPUT_CHARS)
   )
+}
+
+/**
+ * Strip anything key-shaped out of a provider error before it reaches the
+ * browser. Vendors echo the offending credential back in their 401 bodies
+ * (usually partly masked, sometimes not), and those bodies are shown verbatim
+ * in the "your AI failed because…" notice.
+ */
+const SECRET_PATTERNS: RegExp[] = [
+  /\bsk-[A-Za-z0-9_-]{8,}/g, // OpenAI / Anthropic / DeepSeek / OpenRouter
+  /\bgsk_[A-Za-z0-9_-]{8,}/g, // Groq
+  /\bxai-[A-Za-z0-9_-]{8,}/g, // xAI
+  /\bpplx-[A-Za-z0-9_-]{8,}/g, // Perplexity
+  /\bAIza[A-Za-z0-9_-]{8,}/g, // Google
+  /\bBearer\s+[A-Za-z0-9._-]{8,}/gi,
+  /([?&]key=)[^&\s"']+/gi,
+]
+
+export function redactSecrets(raw: string): string {
+  let out = raw
+  for (const re of SECRET_PATTERNS) {
+    out = out.replace(re, (match, prefix?: string) =>
+      typeof prefix === "string" ? `${prefix}[redacted]` : "[redacted]",
+    )
+  }
+  return out.slice(0, 400)
 }
 
 // ---- Response helpers -----------------------------------------------------

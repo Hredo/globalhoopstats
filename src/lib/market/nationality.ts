@@ -8,6 +8,8 @@
  * matching is tolerant: normalise and test against English + Spanish forms.
  * Best-effort by design — it won't catch every edge case.
  */
+import type { Locale } from "@/lib/i18n/config"
+
 export type NatFilter = "spanish" | "eu" | "non-eu" | "any"
 
 function norm(s: string | null | undefined): string {
@@ -93,13 +95,25 @@ export function detectNationalityFilter(q: string): NatFilter {
   return "any"
 }
 
-const NAT_FILTER_LABELS_ES: Record<NatFilter, string> = {
-  spanish: "español (de formación / nacional)",
-  eu: "comunitario (no ocupa cupo)",
-  "non-eu": "extracomunitario",
-  any: "cualquier nacionalidad",
+const NAT_FILTER_LABELS: Record<Locale, Record<NatFilter, string>> = {
+  es: {
+    spanish: "español (de formación / nacional)",
+    eu: "comunitario (no ocupa cupo)",
+    "non-eu": "extracomunitario",
+    any: "cualquier nacionalidad",
+  },
+  en: {
+    spanish: "Spanish (home-grown / national)",
+    eu: "EU-passport",
+    "non-eu": "non-EU",
+    any: "any nationality",
+  },
 }
 
-export function natFilterLabel(filter: NatFilter): string {
-  return NAT_FILTER_LABELS_ES[filter]
+/** Defaults to Spanish so existing Spanish-only call sites are unchanged. */
+export function natFilterLabel(
+  filter: NatFilter,
+  locale: Locale = "es",
+): string {
+  return (NAT_FILTER_LABELS[locale] ?? NAT_FILTER_LABELS.es)[filter]
 }

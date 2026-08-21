@@ -8,6 +8,7 @@
  * exposed in `Valuation.components` so the number can be explained and audited.
  * Anchored to per-league ceilings from league-strength.ts.
  */
+import type { Locale } from "@/lib/i18n/config"
 import { leagueEconomics, leagueStrength } from "@/lib/market/league-strength"
 
 export type MarketStatLine = {
@@ -216,16 +217,30 @@ export function ageFromBirthdate(
   return age
 }
 
-const TIER_LABEL_ES: Record<ValuationTier, string> = {
-  franchise: "Jugador franquicia",
-  starter: "Titular",
-  rotation: "Rotación",
-  role: "Jugador de rol",
-  fringe: "Fondo de armario",
+const TIER_LABELS: Record<Locale, Record<ValuationTier, string>> = {
+  es: {
+    franchise: "Jugador franquicia",
+    starter: "Titular",
+    rotation: "Rotación",
+    role: "Jugador de rol",
+    fringe: "Fondo de armario",
+  },
+  en: {
+    franchise: "Franchise player",
+    starter: "Starter",
+    rotation: "Rotation",
+    role: "Role player",
+    fringe: "Fringe / end of bench",
+  },
 }
 
-export function valuationTierLabel(tier: ValuationTier, leagueSlug?: string): string {
-  const label = TIER_LABEL_ES[tier]
+/** Defaults to Spanish so existing Spanish-only call sites are unchanged. */
+export function valuationTierLabel(
+  tier: ValuationTier,
+  leagueSlug?: string,
+  locale: Locale = "es",
+): string {
+  const label = (TIER_LABELS[locale] ?? TIER_LABELS.es)[tier]
   if (!leagueSlug) return label
   const econ = leagueEconomics(leagueSlug)
   return `${label} — ${econ.label}`

@@ -166,20 +166,23 @@ export async function resolveEngine(
 
   const apiKey = await getDecryptedKey(userId, providerId)
   if (!apiKey) {
-    // A row may exist but fail to decrypt after a secret rotation.
+    // Distinguish "no key saved for THIS provider" from "a key is saved but no
+    // longer decrypts" (ENCRYPTION_KEY rotated). The check has to be scoped to
+    // the selected provider: keyed on the user alone, anyone who had ever saved
+    // any key got told "decrypt_failed" for a provider they simply never set up.
     const db = getDb()
     const exists = await db
       .select({ id: userApiKeys.id })
       .from(userApiKeys)
-      .where(eq(userApiKeys.userId, userId))
-    const hasRow = exists.length > 0
-    // If user has no key at all, fall back to default engine
-    if (!hasRow) return resolveDefaultEngine()
-    return {
-      ok: false,
-      reason: hasRow ? "decrypt_failed" : "no_key",
-      providerId,
+      .where(
+        and(eq(userApiKeys.userId, userId), eq(userApiKeys.provider, providerId)),
+      )
+      .limit(1)
+    if (exists.length === 0) {
+      // Nothing saved for this provider — fall back to the default engine.
+      return resolveDefaultEngine()
     }
+    return { ok: false, reason: "decrypt_failed", providerId }
   }
   return { ok: true, provider, model, apiKey }
 }

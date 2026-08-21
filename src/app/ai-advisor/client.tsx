@@ -38,6 +38,10 @@ type AdvisorApiResult = {
   provider?: string
   aiConfigured?: boolean
   aiReason?: string | null
+  /** Present when an engine IS configured but the call to it failed. */
+  aiError?: string | null
+  aiProvider?: string | null
+  aiModel?: string | null
   conversationId?: string
   error?: boolean
 }
@@ -127,6 +131,10 @@ export default function AIAdvisorClient() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [aiNotConfigured, setAiNotConfigured] = useState(false)
   const [aiNoticeDismissed, setAiNoticeDismissed] = useState(false)
+  const [aiFailure, setAiFailure] = useState<{
+    detail: string
+    engine: string | null
+  } | null>(null)
   const t = useT()
   const idRef = useRef(0)
   const initialized = useRef(false)
@@ -323,8 +331,24 @@ export default function AIAdvisorClient() {
           model: result.model,
         }
         setMessages((prev) => [...prev, aiMsg])
-        if (result.mode === "llm") setAiNotConfigured(false)
-        else if (result.aiConfigured === false) setAiNotConfigured(true)
+        if (result.mode === "llm") {
+          setAiNotConfigured(false)
+          setAiFailure(null)
+        } else if (result.aiConfigured === false) {
+          setAiNotConfigured(true)
+          setAiFailure(null)
+        } else if (result.aiError) {
+          // Engine configured but it refused/failed — say so instead of
+          // quietly handing back the rule-based answer.
+          setAiNotConfigured(false)
+          setAiFailure({
+            detail: result.aiError,
+            engine:
+              result.aiProvider && result.aiModel
+                ? `${result.aiProvider} · ${result.aiModel}`
+                : (result.aiProvider ?? null),
+          })
+        }
         if (result.conversationId) {
           setActiveConversationId(result.conversationId)
           loadConversationList()
@@ -772,29 +796,79 @@ export default function AIAdvisorClient() {
                 />
               </svg>
               <p className="flex-1 text-[12px] leading-relaxed text-amber-100/90">
-                You&apos;re seeing{" "}
-                <span className="font-semibold">basic mode</span>. Connect an
-                AI for AI-powered answers —{" "}
+                {t("aiAdvisor.basicModeNotice")}{" "}
                 <Link
                   href="/account/ai-keys"
                   className="font-semibold underline underline-offset-2"
                 >
-                  add a provider
+                  {t("aiAdvisor.basicModeAddProvider")}
                 </Link>{" "}
-                or{" "}
+                {t("common.or")}{" "}
                 <Link
                   href="/ai-setup"
                   className="font-semibold underline underline-offset-2"
                 >
-                  read the setup guide
+                  {t("aiAdvisor.basicModeGuide")}
                 </Link>
                 .
               </p>
               <button
                 type="button"
                 onClick={() => setAiNoticeDismissed(true)}
-                aria-label="Dismiss"
+                aria-label={t("common.dismiss")}
                 className="shrink-0 rounded-md p-1 text-amber-200/70 transition hover:bg-white/10 hover:text-amber-100"
+              >
+                <svg
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  aria-hidden
+                >
+                  <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
+            </div>
+          ) : null}
+
+          {aiFailure ? (
+            <div className="flex items-start gap-3 border-b border-red-500/25 bg-red-500/[0.07] px-4 py-2.5 sm:px-5">
+              <svg
+                className="mt-0.5 h-4 w-4 shrink-0 text-red-300"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                aria-hidden
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path strokeLinecap="round" d="M12 8v5m0 3h.01" />
+              </svg>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] leading-relaxed text-red-100/90">
+                  {aiFailure.engine
+                    ? t("aiAdvisor.engineFailedWith", {
+                        engine: aiFailure.engine,
+                      })
+                    : t("aiAdvisor.engineFailed")}{" "}
+                  <Link
+                    href="/account/ai-keys"
+                    className="font-semibold underline underline-offset-2"
+                  >
+                    {t("aiAdvisor.engineFailedCheck")}
+                  </Link>
+                  .
+                </p>
+                <p className="mt-1 break-words font-mono text-[11px] leading-relaxed text-red-200/60">
+                  {aiFailure.detail}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAiFailure(null)}
+                aria-label={t("common.dismiss")}
+                className="shrink-0 rounded-md p-1 text-red-200/70 transition hover:bg-white/10 hover:text-red-100"
               >
                 <svg
                   className="h-3.5 w-3.5"

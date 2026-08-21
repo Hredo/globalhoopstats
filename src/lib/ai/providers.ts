@@ -37,6 +37,13 @@ export type AiProvider = {
   keyUrl?: string
   models: AiModel[]
   defaultModel: string
+  /**
+   * The `models` list is a fixed catalogue for cloud vendors, but for a local
+   * engine it is only a suggestion: what actually runs is whatever the user has
+   * pulled onto their own machine. Providers with this flag accept any model id
+   * the user supplies instead of being snapped back to `defaultModel`.
+   */
+  allowCustomModels?: boolean
   supportsAdvisor: boolean
   supportsCompare: boolean
   /** Short, ordered "how to connect" steps for the setup guide. */
@@ -50,20 +57,26 @@ export const AI_PROVIDERS: AiProvider[] = [
     id: "ollama",
     name: "Ollama (local)",
     blurb:
-      "Modelos locales (Llama 4, Qwen 3, Gemma 3) en tu máquina. Privado, sin clave, sin coste.",
+      "Cualquier modelo que tengas instalado en tu máquina. Privado, sin clave, sin coste.",
     kind: "local",
     baseUrl: "http://localhost:11434/v1",
     needsKey: false,
     keyUrl: "https://ollama.com/download",
+    // Suggestions only. The picker replaces these with the tags actually
+    // installed on the machine, and `allowCustomModels` lets any of them
+    // through — a model that is not in this list is not an invalid model.
     models: [
-      { id: "llama4:17b", label: "Llama 4 17B" },
+      { id: "llama3.1:8b", label: "Llama 3.1 8B" },
       { id: "qwen3:8b", label: "Qwen 3 8B" },
       { id: "gemma3:12b", label: "Gemma 3 12B" },
       { id: "llama3.3:70b", label: "Llama 3.3 70B" },
-      { id: "mistral-small:24b", label: "Mistral Small 3 24B" },
+      { id: "mistral-small:24b", label: "Mistral Small 24B" },
       { id: "deepseek-r1:8b", label: "DeepSeek R1 8B (light)" },
     ],
-    defaultModel: "llama4:17b",
+    // Matches the tag the setup guide tells users to pull. Only used when the
+    // machine reports no installed models at all.
+    defaultModel: "llama3.1:8b",
+    allowCustomModels: true,
     supportsAdvisor: true,
     supportsCompare: true,
     accent: "#9ca3af",
@@ -342,16 +355,39 @@ const MODEL_MIGRATIONS: Record<string, string> = {
   "llama-3.1-8b-instant": "meta-llama/llama-4-scout-17b-16e-instruct",
 }
 
+/**
+ * Shape of a model id we are willing to send to a provider: the tags every
+ * vendor and Ollama actually use (`llama3.1:8b`, `qwen/qwen3-32b`,
+ * `gpt-5.5-pro`) and nothing that could confuse a URL or a JSON body.
+ */
+const MODEL_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9._:\/-]{0,119}$/
+
+export function isPlausibleModelId(model: string): boolean {
+  return MODEL_ID_RE.test(model)
+}
+
 /** Validate that a model id belongs to a provider; fall back to its default.
- *  Also checks MODEL_MIGRATIONS for renamed/retired models. */
+ *  Also checks MODEL_MIGRATIONS for renamed/retired models.
+ *
+ *  Providers flagged `allowCustomModels` (the local engines) are the exception:
+ *  their catalogue is a suggestion list, not an allow-list. Snapping a locally
+ *  installed tag back to `defaultModel` is what silently broke the advisor —
+ *  the request went out for a model the machine had never pulled, Ollama
+ *  answered 404, and the whole feature fell back to the rule-based answer with
+ *  no visible error. */
 export function resolveModel(
   provider: AiProvider,
   model: string | null | undefined,
 ): string {
-  if (model && provider.models.some((m) => m.id === model)) return model
+  const trimmed = model?.trim()
+  if (trimmed && provider.models.some((m) => m.id === trimmed)) return trimmed
+  // Local engines run whatever the user pulled — accept any sane-looking tag.
+  if (trimmed && provider.allowCustomModels && isPlausibleModelId(trimmed)) {
+    return trimmed
+  }
   // Check migration map for old model names
-  if (model && MODEL_MIGRATIONS[model]) {
-    const replacement = MODEL_MIGRATIONS[model]
+  if (trimmed && MODEL_MIGRATIONS[trimmed]) {
+    const replacement = MODEL_MIGRATIONS[trimmed]
     if (provider.models.some((m) => m.id === replacement)) return replacement
   }
   return provider.defaultModel
