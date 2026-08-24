@@ -85,16 +85,18 @@ export function AiAnalysisDisplay({ text }: { text: string }) {
     }
     // Line starting with **Label.** followed by content text.
     // Accepts **Label.** text, **Label:** text, **Label** text, with any punctuation after.
-    if (/^\*\*[^*]+\*\*\s*[:.]?\s/.test(line)) {
+    const labelled = /^\*\*([^*]+)\*\*\s*[:.]?\s+([\s\S]*)$/.exec(line)
+    if (labelled) {
       flushList(`fl-${i}`)
-      const labelEnd = line.indexOf("**") + 2
-      const afterBold = line.slice(labelEnd).trimStart()
-      const punctMatch = afterBold.match(/^[:.]?\s*|^[—–-]\s*/)
-      let rest = afterBold
-      if (punctMatch) {
-        rest = afterBold.slice(punctMatch[0].length)
-      }
-      const label = line.slice(0, labelEnd).replace(/\*\*/g, "")
+      // Capture groups rather than indexOf: searching for "**" found the
+      // OPENING marker, so the label came out empty and the closing "**" was
+      // left sitting in the middle of the rendered sentence.
+      const label = labelled[1].replace(/[:.\s]+$/, "")
+      const afterBold = labelled[2].trimStart()
+      const punctMatch = afterBold.match(/^[:.]\s*|^[—–-]\s*/)
+      const rest = punctMatch
+        ? afterBold.slice(punctMatch[0].length)
+        : afterBold
       blocks.push(
         <div key={i} className="flex gap-2 pt-1.5 first:pt-0">
           <span

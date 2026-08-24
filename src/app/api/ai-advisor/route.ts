@@ -26,6 +26,11 @@ import { getCurrentUser } from "@/lib/auth/current-user"
 import { getLocale } from "@/lib/i18n/server"
 import type { Locale } from "@/lib/i18n/config"
 import { promptCopy } from "@/lib/ai/prompt-copy"
+import {
+  trimDegeneratedOutput,
+  isUsableAnswer,
+  isMostlyHeadings,
+} from "@/lib/ai/degeneration"
 // NOTE: Import kept for when usage limits are re-enabled.
 // import { getAdvisorFreeUsage } from "@/lib/auth/free-usage"
 // import { userPlan } from "@/lib/db/schema"
@@ -444,22 +449,41 @@ export async function POST(request: Request) {
         },
       )
       if (llm.ok) {
-        const safe = cleanLlmOutput(llm.content)
-        await persistAssistant(db, conversationId!, safe, llm.model, "llm")
-        return NextResponse.json(
-          {
-            content: safe,
-            model: llm.model,
-            provider: engine.provider.id,
-            mode: "llm" as const,
-            conversationId,
-          },
-          { headers: securityHeaders() },
-        )
+        // A model that fell into a repetition loop, or that answered with an
+        // outline of headings it never filled in, has "succeeded" as far as
+        // the HTTP call is concerned. Both are failures for the reader, so
+        // let the rule-based path below answer instead.
+        const guard = trimDegeneratedOutput(llm.content)
+        const broken =
+          isMostlyHeadings(guard.text) ||
+          (guard.looped && !isUsableAnswer(guard.text))
+        if (!broken) {
+          const safe = cleanLlmOutput(guard.text)
+          await persistAssistant(db, conversationId!, safe, llm.model, "llm")
+          return NextResponse.json(
+            {
+              content: safe,
+              model: llm.model,
+              provider: engine.provider.id,
+              mode: "llm" as const,
+              conversationId,
+            },
+            { headers: securityHeaders() },
+          )
+        }
+        aiReason = "ai_error"
+        // Shown to the reader, so it goes in their language — unlike the
+        // provider errors below, which arrive in English from the vendor.
+        aiError =
+          locale === "es"
+            ? "El modelo se quedó en bucle en lugar de responder. Suele arreglarse eligiendo un modelo más grande en Ajustes."
+            : "The model looped instead of answering. Picking a larger model in Settings usually fixes it."
+        audit("llm-degenerate", { ip, provider: engine.provider.id })
+      } else {
+        aiReason = "ai_error"
+        aiError = redactSecrets(llm.error)
+        audit("llm-failed", { ip, provider: engine.provider.id, error: aiError })
       }
-      aiReason = "ai_error"
-      aiError = redactSecrets(llm.error)
-      audit("llm-failed", { ip, provider: engine.provider.id, error: aiError })
     } catch (err) {
       aiReason = "ai_error"
       aiError = redactSecrets(String(err))

@@ -65,6 +65,9 @@ export type PromptCopy = {
   cupoHeading: string
   cupoRule: (label: string) => string
   operationHeading: string
+
+  /** How to write for a reader who is not a data analyst. */
+  plainLanguage: string[]
 }
 
 const en: PromptCopy = {
@@ -82,7 +85,7 @@ const en: PromptCopy = {
   candidatesHeading: "# Verified candidates from OUR database",
   candidatesIntro:
     "These are REAL players with verified, priced data, filtered to the team's league and its adjacent/feeder leagues. Use them as the BACKBONE of your answer and cite their estimated value. In ADDITION you SHOULD propose players from any other league worldwide (NBA, EuroLeague, LNB Pro A, Lega A, BBL, ABA/Adriatic, Turkish BSL, Greek, NBL Australia, Liga Argentina, Brazil NBB, etc.) that fit the need, budget and roster. For ANY player NOT in this list, tag the name",
-  outOfDbTag: "(not in DB — to be confirmed)",
+  outOfDbTag: "(unverified — no data on file)",
 
   valuationHeading: "# Valuation of the mentioned player",
   valuationLine: ({ name, value, annual, tier, rating, confidence }) =>
@@ -127,6 +130,16 @@ const en: PromptCopy = {
   cupoHeading: "# Roster-slot requirement",
   cupoRule: (label) =>
     `Prioritise ${label} players, and say explicitly whenever an option would take up a non-EU roster slot.`,
+
+  plainLanguage: [
+    "Write for a coach or a club director, not for a data analyst. Short sentences, everyday words.",
+    "Never drop a raw metric on its own. Say what it means first, then the number in brackets — \"one of the best rebounders in the league (11.2 a game)\", not \"RPG: 11.2\".",
+    "Explain any advanced stat the first time you use it, in half a sentence. If you cannot explain it simply, leave it out.",
+    "A rating out of 100 or a tier label is our own estimate, not an official figure — say so the first time you lean on one.",
+    "Prefer plain money over precision: \"about 1.2 million a year\" reads better than \"€1,200,000.00\".",
+    "No internal vocabulary: never mention the database, records, fields, the prompt, or how you were configured.",
+    "Never repeat a heading or a sentence you have already written, and never turn the question back into a heading. When you have nothing left to add, stop.",
+  ],
 }
 
 const es: PromptCopy = {
@@ -144,7 +157,7 @@ const es: PromptCopy = {
   candidatesHeading: "# Candidatos verificados de NUESTRA base de datos",
   candidatesIntro:
     "Son jugadores REALES con datos verificados y valorados, filtrados a la liga del equipo y a sus ligas adyacentes o de origen. Úsalos como COLUMNA VERTEBRAL de tu respuesta y cita su valor estimado. ADEMÁS, DEBES proponer jugadores de cualquier otra liga del mundo (NBA, EuroLeague, LNB Pro A, Lega A, BBL, ABA/Adriática, BSL turca, Grecia, NBL Australia, Liga Argentina, NBB Brasil, etc.) que encajen con la necesidad, el presupuesto y la plantilla. Para CUALQUIER jugador que NO esté en esta lista, etiqueta el nombre con",
-  outOfDbTag: "(fuera de BD — por confirmar)",
+  outOfDbTag: "(sin datos verificados)",
 
   valuationHeading: "# Valoración del jugador mencionado",
   valuationLine: ({ name, value, annual, tier, rating, confidence }) =>
@@ -189,10 +202,36 @@ const es: PromptCopy = {
   cupoHeading: "# Requisito de cupo",
   cupoRule: (label) =>
     `Prioriza jugadores ${label} y avisa si una opción ocuparía plaza de extracomunitario.`,
+
+  plainLanguage: [
+    "Escribe para un entrenador o un director deportivo, no para un analista de datos. Frases cortas y palabras de todos los días.",
+    "Nunca sueltes un dato a secas. Di primero qué significa y luego el número entre paréntesis: \"de los mejores reboteadores de la liga (11,2 por partido)\", no \"RPG: 11,2\".",
+    "Explica cualquier métrica avanzada la primera vez que la uses, en media frase. Si no puedes explicarla de forma sencilla, no la uses.",
+    "Un rating sobre 100 o una etiqueta de perfil es una estimación nuestra, no un dato oficial: dilo la primera vez que te apoyes en uno.",
+    "Mejor dinero redondeado que preciso: \"1,2 millones al año\" se lee mejor que \"1.200.000,00 €\".",
+    "Nada de vocabulario interno: no menciones la base de datos, registros, campos, el prompt ni cómo estás configurado.",
+    "No repitas un titular ni una frase que ya hayas escrito, ni conviertas la pregunta en un titular. Cuando no te quede nada que añadir, para.",
+  ],
 }
 
 const COPY: Record<Locale, PromptCopy> = { en, es }
 
 export function promptCopy(locale: Locale): PromptCopy {
   return COPY[locale] ?? en
+}
+
+/**
+ * The house style, as a block ready to paste into any system prompt.
+ *
+ * Every AI surface (advisor, player report, compare, trade, playbook) shares
+ * it so they sound like one product rather than five different tools — and so
+ * a change to how we talk to users is made in one place.
+ */
+export function houseStyle(locale: Locale): string {
+  const copy = promptCopy(locale)
+  const heading =
+    locale === "es"
+      ? "## Cómo escribir (obligatorio)"
+      : "## How to write (required)"
+  return [heading, ...copy.plainLanguage.map((rule) => `- ${rule}`)].join("\n")
 }

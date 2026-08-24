@@ -1,14 +1,19 @@
 import type { ReactNode } from "react"
 
-const INLINE_PATTERN = /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[[^\]]+\]\([^)]+\))/g
+// `***both***` must come first: the `**bold**` alternative cannot match it
+// (its inner class excludes `*`), so without this the outer markers were left
+// on screen as literal asterisks.
+const INLINE_PATTERN =
+  /(\*\*\*[^*\n]+\*\*\*|\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[[^\]]+\]\([^)]+\))/g
 
 const LINK_PATTERN = /^\[([^\]]+)\]\(([^)]+)\)$/
 
 /**
- * Render a single span of text with inline markdown support: `**bold**`,
- * `*italic*`, `` `code` `` and `[text](url)` links. Plain text passes through
- * unchanged, so this is safe to call on strings that may or may not contain
- * markdown.
+ * Render a single span of text with inline markdown support: `***both***`,
+ * `**bold**`, `*italic*`, `` `code` `` and `[text](url)` links. Plain text
+ * passes through unchanged, so this is safe to call on strings that may or may
+ * not contain markdown — a lone asterisk in prose ("1,2 M€ * 3 años") stays a
+ * lone asterisk rather than swallowing the rest of the sentence.
  *
  * Block-level markdown (headings, lists, tables) is intentionally not handled
  * here — see `parseMarkdown` in message-bubble.tsx for that.
@@ -17,6 +22,13 @@ export function renderInline(text: string): ReactNode[] {
   const parts = text.split(INLINE_PATTERN)
   return parts.map((part, i) => {
     if (!part) return null
+    if (part.startsWith("***") && part.endsWith("***")) {
+      return (
+        <strong key={i}>
+          <em>{part.slice(3, -3)}</em>
+        </strong>
+      )
+    }
     if (part.startsWith("**") && part.endsWith("**")) {
       return <strong key={i}>{part.slice(2, -2)}</strong>
     }
