@@ -13,7 +13,7 @@ const SURFACES: Record<string, string> = {
   advisor: "src/lib/ai/llm.ts",
   playerReport: "src/lib/ai/player-report.ts",
   compare: "src/app/api/compare/ai/route.ts",
-  trade: "src/app/api/market/trade/ai/route.ts",
+  trade: "src/lib/ai/trade-instructions.ts",
   playbook: "src/app/api/playbooks/ai/route.ts",
 }
 
@@ -77,11 +77,11 @@ describe("no surface asks for the patterns that made output unreadable", () => {
 })
 
 describe("internal jargon stays out of the reader's view", () => {
-  it("does not label unknown players with database vocabulary", () => {
+  it("keeps the closed-list rule free of database vocabulary", () => {
     for (const locale of LOCALES) {
-      const tag = promptCopy(locale).outOfDbTag
-      expect(tag).not.toMatch(/\bDB\b/i)
-      expect(tag).not.toMatch(/database|base de datos/i)
+      const rule = promptCopy(locale).onlyListedPlayers
+      expect(rule).not.toMatch(/\bDB\b/i)
+      expect(rule).not.toMatch(/database|base de datos/i)
     }
   })
 

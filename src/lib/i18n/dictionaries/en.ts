@@ -1038,6 +1038,9 @@ export const en = {
       analysisTitle: "AI Analysis of the Trade",
       errorGenerating: "Error generating analysis.",
       networkError: "Network error contacting the AI service.",
+      cutOff:
+        "The answer was cut off before it arrived. That usually means the model took too long: try a faster one, or analyse the scenarios one at a time.",
+      queued: "Queued…",
       scenario: {
         analyze: "Analyze with AI",
         analyzing: "Analyzing with AI…",

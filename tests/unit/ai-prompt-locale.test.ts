@@ -61,13 +61,24 @@ describe("buildSystemPrompt", () => {
     expect(buildSystemPrompt(input("es"))).toContain("in Spanish")
   })
 
-  it("uses the locale's own out-of-database tag", () => {
-    expect(buildSystemPrompt(input("en"))).toContain(
-      promptCopy("en").outOfDbTag,
-    )
-    expect(buildSystemPrompt(input("es"))).toContain(
-      promptCopy("es").outOfDbTag,
-    )
+  it("confines the model to players we can actually price", () => {
+    // The prompt used to invite names from any league in the world with a
+    // "not in our data" tag. Weak models dropped the tag and recommended
+    // retired or invented players, so the list is closed now.
+    for (const locale of ["en", "es"] as const) {
+      const prompt = buildSystemPrompt(input(locale))
+      expect(prompt).toContain(promptCopy(locale).onlyListedPlayers)
+      expect(prompt).not.toMatch(/any other league worldwide|cualquier otra liga del mundo/i)
+    }
+  })
+
+  it("has no operation guidance that reopens the closed list", () => {
+    for (const locale of ["en", "es"] as const) {
+      const guidance = Object.values(promptCopy(locale).operation).join(" ")
+      expect(guidance).not.toMatch(
+        /anywhere in the world|resto del mundo|DB|base de datos/i,
+      )
+    }
   })
 
   it("still carries the team data in both locales", () => {

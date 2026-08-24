@@ -157,6 +157,47 @@ function parseCashInput(value: string): number | null {
   return num
 }
 
+/**
+ * One AI request at a time.
+ *
+ * The scenario list has eight "Analizar con IA" buttons and nothing stopped a
+ * coach from pressing all of them. A local model serves one request at a time
+ * and hosted keys rate-limit, so the rest sat waiting until something upstream
+ * cut them off — and the page reported that as "network error" on half the
+ * cards while the other half worked.
+ */
+let aiChain: Promise<unknown> = Promise.resolve()
+function queueAi<T>(task: () => Promise<T>): Promise<T> {
+  const run = aiChain.then(task, task)
+  aiChain = run.catch(() => undefined)
+  return run
+}
+
+/**
+ * Read an AI response without assuming it is JSON. A request that dies at the
+ * gateway comes back as an HTML error page, and `res.json()` throwing on that
+ * is what turned a timeout into a meaningless "network error".
+ */
+async function readAiResponse(
+  res: Response,
+): Promise<{ ok: true; analysis: string } | { ok: false; error: string | null }> {
+  const text = await res.text().catch(() => "")
+  let parsed: { analysis?: string; error?: string } | null = null
+  try {
+    parsed = JSON.parse(text) as { analysis?: string; error?: string }
+  } catch {
+    parsed = null
+  }
+  if (!parsed) {
+    // null error = "we could not tell"; the caller shows the cut-off message.
+    return { ok: false, error: null }
+  }
+  if (!res.ok || !parsed.analysis) {
+    return { ok: false, error: parsed.error ?? null }
+  }
+  return { ok: true, analysis: parsed.analysis }
+}
+
 export default function TradePage() {
   const t = useT()
   const locale = useLocale()
@@ -382,18 +423,20 @@ export default function TradePage() {
         }
       }
 
-      const res = await fetch("/api/market/trade/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      })
+      const res = await queueAi(() =>
+        fetch("/api/market/trade/ai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+      )
 
-      const data = await res.json()
-      if (!res.ok) {
-        setAiError(data.error ?? t("trade.ai.errorGenerating"))
+      const parsed = await readAiResponse(res)
+      if (!parsed.ok) {
+        setAiError(parsed.error ?? t("trade.ai.cutOff"))
         return
       }
-      setAiAnalysis(data.analysis)
+      setAiAnalysis(parsed.analysis)
     } catch {
       setAiError(t("trade.ai.networkError"))
     } finally {
@@ -437,22 +480,28 @@ export default function TradePage() {
         terms: "",
         currency,
       }
-      const res = await fetch("/api/market/trade/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      })
-      const data = await res.json()
-      if (!res.ok) {
+      const res = await queueAi(() =>
+        fetch("/api/market/trade/ai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }),
+      )
+      const parsed = await readAiResponse(res)
+      if (!parsed.ok) {
         setScenarioAi((prev) => ({
           ...prev,
-          [index]: { loading: false, analysis: null, error: data.error ?? t("trade.ai.errorGenerating") },
+          [index]: {
+            loading: false,
+            analysis: null,
+            error: parsed.error ?? t("trade.ai.cutOff"),
+          },
         }))
         return
       }
       setScenarioAi((prev) => ({
         ...prev,
-        [index]: { loading: false, analysis: data.analysis, error: null },
+        [index]: { loading: false, analysis: parsed.analysis, error: null },
       }))
     } catch {
       setScenarioAi((prev) => ({

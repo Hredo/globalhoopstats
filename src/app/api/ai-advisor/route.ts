@@ -355,14 +355,15 @@ export async function POST(request: Request) {
     audit("candidates-error", { ip, err: String(err) })
   }
 
-  // Own-roster analysis for release / renewal questions.
+  // Own-roster analysis. Always, not just for release/renewal questions: it is
+  // what lets the advisor answer "and who do I move to pay for him?" — and it
+  // is the second half of the closed list of players it may name. Reads the
+  // cached league pool, so it costs nothing extra.
   let roster: RosterAnalysis | null = null
-  if (operation === "release" || operation === "renewal") {
-    try {
-      roster = await analyzeRoster(body.leagueSlug, team.id)
-    } catch (err) {
-      audit("roster-analysis-error", { ip, err: String(err) })
-    }
+  try {
+    roster = await analyzeRoster(body.leagueSlug, team.id)
+  } catch (err) {
+    audit("roster-analysis-error", { ip, err: String(err) })
   }
 
   let namedValuation = null
