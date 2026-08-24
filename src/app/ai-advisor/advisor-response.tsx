@@ -4,6 +4,7 @@ import { useRef, useState } from "react"
 import { motion } from "framer-motion"
 import type { AdvisorOutput, Recruit } from "@/lib/ai/local-advisor"
 import { renderInline } from "./inline-markdown"
+import { useT } from "@/lib/i18n/provider"
 
 const LEAGUE_COLORS: Record<string, string> = {
   NBA: "from-orange-500 to-red-500",
@@ -17,7 +18,19 @@ const LEAGUE_BG: Record<string, string> = {
   ACB: "bg-red-500/10 text-red-300 border-red-500/30",
 }
 
-export function AdvisorResponse({ data }: { data: AdvisorOutput }) {
+export function AdvisorResponse({
+  data,
+  showAnalysis = true,
+}: {
+  data: AdvisorOutput
+  /**
+   * False when the model's own answer is already rendered above the cards.
+   * The diagnosis card then keeps only the gap and the current core, which
+   * the prose does not repeat.
+   */
+  showAnalysis?: boolean
+}) {
+  const t = useT()
   return (
     <div className="space-y-4 w-full">
       {/* Header card */}
@@ -48,7 +61,7 @@ export function AdvisorResponse({ data }: { data: AdvisorOutput }) {
                 {data.intentEmoji}
               </motion.span>
               <span className="text-[10px] uppercase tracking-widest text-ink-400">
-                Analysis for
+                {t("aiAdvisor.analysisFor")}
               </span>
             </div>
             <h2 className="text-xl font-bold text-ink-50">{data.team.name}</h2>
@@ -61,9 +74,9 @@ export function AdvisorResponse({ data }: { data: AdvisorOutput }) {
         </div>
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-ink-300 relative z-10">
           <span className="rounded-md bg-ink-700/40 px-2 py-1">
-            <span className="text-ink-500">Roster</span> ·{" "}
+            <span className="text-ink-500">{t("aiAdvisor.rosterLabel")}</span> ·{" "}
             <span className="font-mono font-semibold text-ink-100">
-              {data.team.rosterSize} players
+              {data.team.rosterSize} {t("aiAdvisor.playersUnit")}
             </span>
           </span>
         </div>
@@ -91,21 +104,23 @@ export function AdvisorResponse({ data }: { data: AdvisorOutput }) {
             />
           </svg>
           <h3 className="text-sm font-semibold text-ink-100">
-            Team diagnosis
+            {t("aiAdvisor.teamDiagnosis")}
           </h3>
         </div>
-        <p className="text-sm leading-relaxed text-ink-300">
-          {renderInline(data.analysis)}
-        </p>
+        {showAnalysis && (
+          <p className="text-sm leading-relaxed text-ink-300">
+            {renderInline(data.analysis)}
+          </p>
+        )}
         <div className="mt-3 rounded-lg border-l-2 border-brand-500/60 bg-brand-500/5 px-3 py-2 text-xs text-ink-200">
           <span className="font-semibold text-brand-300">
-            Detected gap:{" "}
+            {t("aiAdvisor.detectedGap")}{" "}
           </span>
           {renderInline(data.gap)}
         </div>
         {data.team.topPlayers.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px]">
-            <span className="text-ink-500">Current core:</span>
+            <span className="text-ink-500">{t("aiAdvisor.currentCore")}</span>
             {data.team.topPlayers.map((p) => (
               <span
                 key={p}
@@ -142,7 +157,7 @@ export function AdvisorResponse({ data }: { data: AdvisorOutput }) {
             />
           </motion.svg>
           <h3 className="text-sm font-semibold text-ink-100">
-            Recommended candidates
+            {t("aiAdvisor.recommendedCandidates")}
           </h3>
         </motion.div>
 
@@ -173,7 +188,7 @@ export function AdvisorResponse({ data }: { data: AdvisorOutput }) {
             />
           </svg>
           <h3 className="text-sm font-semibold text-ink-200">
-            Before you negotiate
+            {t("aiAdvisor.beforeNegotiate")}
           </h3>
         </div>
         <ul className="space-y-1.5 text-xs text-ink-300">
@@ -196,6 +211,7 @@ function RecruitCard({
   rec: Recruit & { priority: string; priorityColor: string }
   index: number
 }) {
+  const t = useT()
   const [mx, setMx] = useState(0)
   const [my, setMy] = useState(0)
   const cardRef = useRef<HTMLDivElement>(null)
@@ -247,13 +263,23 @@ function RecruitCard({
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-ink-400">
             <span>{rec.position}</span>
             <span className="text-ink-600">·</span>
-            <span>{rec.age} y/o</span>
+            <span>
+              {rec.age} {t("aiAdvisor.yearsOld")}
+            </span>
           </div>
         </div>
         <div className="shrink-0 text-right">
+          <div className="text-[10px] uppercase tracking-wider text-ink-500">
+            {t("aiAdvisor.estimatedValue")}
+          </div>
           <div className="font-mono text-sm font-bold text-ink-100">
             {rec.contractValue}
           </div>
+          {rec.annual ? (
+            <div className="mt-0.5 font-mono text-[11px] text-ink-400">
+              {t("aiAdvisor.annualSalary")} {rec.annual}
+            </div>
+          ) : null}
           <div className="mt-0.5 text-[10px] uppercase tracking-wider text-ink-500">
             {rec.market}
           </div>
@@ -268,9 +294,32 @@ function RecruitCard({
         </div>
       </div>
 
+      {rec.stats && rec.stats.length > 0 ? (
+        <div className="mt-3 pl-2">
+          <div className="mb-1 text-[10px] uppercase tracking-wider text-ink-500">
+            {t("aiAdvisor.perGameLabel")}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {rec.stats.map((s) => (
+              <span
+                key={s.label}
+                className="rounded-md border border-ink-700/60 bg-ink-900/40 px-2 py-1 text-[11px] text-ink-200"
+              >
+                <span className="text-ink-500">{s.label}</span>{" "}
+                <span className="font-mono font-semibold text-ink-50">
+                  {s.value}
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="mt-3 pl-2">
         <p className="text-sm leading-relaxed text-ink-200">
-          <span className="text-brand-300 font-semibold">Fit: </span>
+          <span className="text-brand-300 font-semibold">
+            {t("aiAdvisor.fit")}{" "}
+          </span>
           {renderInline(rec.fit)}
         </p>
       </div>

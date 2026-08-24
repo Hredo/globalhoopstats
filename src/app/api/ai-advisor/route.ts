@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db/client"
 import { conversations, messages } from "@/lib/db/schema"
 import { getTeamBySlug } from "@/lib/data/teams"
 import {
+  assembleAdvice,
   buildLocalAdvice,
   findPlayerInQuery,
   type AdvisorOutput,
@@ -26,6 +27,7 @@ import { getCurrentUser } from "@/lib/auth/current-user"
 import { getLocale } from "@/lib/i18n/server"
 import type { Locale } from "@/lib/i18n/config"
 import { promptCopy } from "@/lib/ai/prompt-copy"
+import { replyLocale } from "@/lib/ai/language"
 import {
   trimDegeneratedOutput,
   isUsableAnswer,
@@ -223,6 +225,9 @@ export async function POST(request: Request) {
   if (userMessage.length === 0) {
     return jsonError("The question cannot be empty.", 400)
   }
+  // Answer in the language the coach typed in, falling back to the language
+  // they set the site to. `locale` stays the UI language for chrome.
+  const answerLocale = replyLocale(userMessage, locale)
 
   // 8. Prompt-injection detection.
   const findings = detectInjection(userMessage)
@@ -331,6 +336,7 @@ export async function POST(request: Request) {
       nationality: nationalityFilter,
       maxAge: draftMaxAge,
       limit: 6,
+      locale: answerLocale,
     })
     // If the budget/cupo filters leave nothing, retry without the budget cap so
     // we still ground the advisor on real players rather than the hardcoded list.
@@ -342,6 +348,7 @@ export async function POST(request: Request) {
         nationality: nationalityFilter,
         maxAge: draftMaxAge,
         limit: 6,
+        locale: answerLocale,
       })
     }
   } catch (err) {
@@ -432,7 +439,7 @@ export async function POST(request: Request) {
           userMessage,
           history,
           playerProfile,
-          locale,
+          locale: answerLocale,
           candidates,
           namedValuation,
           trade,
@@ -460,9 +467,28 @@ export async function POST(request: Request) {
         if (!broken) {
           const safe = cleanLlmOutput(guard.text)
           await persistAssistant(db, conversationId!, safe, llm.model, "llm")
+          // The model's words come with the same shortlist of real players the
+          // rule-based path shows: name, age, club, our valuation and the
+          // season line behind it. Connecting an AI used to REMOVE those cards,
+          // leaving prose whose numbers nobody could check.
+          // Not on a question about one named player: "what do you think of
+          // Curry?" wants an opinion, not a shortlist of replacements.
+          const recs = playerProfile
+            ? []
+            : candidatesToRecruits(candidates, answerLocale)
           return NextResponse.json(
             {
               content: safe,
+              data:
+                recs.length > 0
+                  ? assembleAdvice({
+                      team,
+                      intent,
+                      locale: answerLocale,
+                      recs,
+                      analysis: safe,
+                    })
+                  : undefined,
               model: llm.model,
               provider: engine.provider.id,
               mode: "llm" as const,
@@ -497,8 +523,8 @@ export async function POST(request: Request) {
     const fallback: AdvisorOutput = await buildLocalAdvice(
       team,
       userMessage,
-      locale,
-      candidatesToRecruits(candidates, locale),
+      answerLocale,
+      candidatesToRecruits(candidates, answerLocale),
     )
     const safe = cleanLlmOutput(fallback.analysis)
     await persistAssistant(db, conversationId!, safe, null, "local")
@@ -530,20 +556,42 @@ function candidatesToRecruits(
   candidates: Candidate[],
   locale: Locale,
 ): Recruit[] {
+  const es = locale === "es"
   return candidates.map((c) => {
     const p = c.player
+    const gp = p.stats.gamesPlayed
+    const perGame = (total: number | null): string | null =>
+      total == null || gp <= 0 ? null : (total / gp).toFixed(1)
+    const pct = (v: number | null): string | null =>
+      v == null ? null : `${(v * 100).toFixed(0)}%`
+
+    // Only what we actually measured. A missing stat is dropped, never zeroed:
+    // "0.0 asistencias" and "no lo sabemos" are very different claims.
+    const stats = [
+      { label: es ? "PTS" : "PTS", value: perGame(p.stats.pointsTotal) },
+      { label: es ? "REB" : "REB", value: perGame(p.stats.reboundsTotal) },
+      { label: es ? "AST" : "AST", value: perGame(p.stats.assistsTotal) },
+      { label: es ? "T3" : "3P", value: pct(p.stats.threePct) },
+      { label: es ? "PJ" : "GP", value: gp > 0 ? String(gp) : null },
+    ].filter((s): s is { label: string; value: string } => s.value !== null)
+
     return {
       name: p.fullName,
       position: p.position ?? "N/A",
       league: p.league.name,
       age: p.age ?? 0,
       contractValue: formatEur(p.valuation.eur),
+      annual:
+        p.valuation.annualEur != null
+          ? `${formatEur(p.valuation.annualEur)}${es ? "/año" : "/yr"}`
+          : null,
       strengths: [
         valuationTierLabel(p.valuation.tier, p.valuation.leagueSlug, locale),
         `Rating ${p.valuation.rating}/100`,
       ],
       fit: c.reason,
       market: p.team ? p.team.name : promptCopy(locale).freeAgent,
+      stats,
     }
   })
 }

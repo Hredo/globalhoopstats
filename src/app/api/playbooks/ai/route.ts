@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth/current-user"
 import { chatComplete } from "@/lib/ai/chat"
-import { aiLanguageDirective } from "@/lib/ai/language"
+import { aiLanguageDirective, replyLocale } from "@/lib/ai/language"
 import { houseStyle } from "@/lib/ai/prompt-copy"
 import { trimDegeneratedOutput } from "@/lib/ai/degeneration"
+import {
+  describeTeamProfiles,
+  detectLeagueSlug,
+  leagueTeamProfiles,
+} from "@/lib/market/team-profiles"
 import { resolveDefaultEngine, resolveEngine } from "@/lib/ai/user-provider"
 import { getLocale } from "@/lib/i18n/server"
 import { describePlay } from "@/lib/playbook/describe"
@@ -40,6 +45,12 @@ const SYSTEM_PROMPT = `You are an elite basketball tactician — a blend of a Eu
 **Who you need.** The concrete role requirements for the key spots. If real players are linked, say whether they fit.
 
 **Wrinkles.** One to three variations and how each changes the geometry.
+
+## WHEN THE COACH ASKS SOMETHING SPECIFIC
+If the message includes a question, THAT question is the assignment. Answer it in your first sentence and spend the whole answer on it — the framework above is only material to think with, not a checklist to recite. A breakdown of a play nobody asked you to break down is a wrong answer, however good it is.
+- "Which club could run this?" is answered by naming clubs from the list of real clubs you were given, each tied to the trait the play needs and the number that proves it ("cuatro tiradores por encima del 35%"). If no list was given, say what the play demands of a squad and stop there — never name clubs from memory.
+- "Which player fits spot O3?" is answered with the role requirements first, then any linked or listed player who meets them.
+- Only fall back to a full breakdown when no question was asked.
 
 ## OUTPUT — a coach reads this between drills
 - Open with your verdict in one plain sentence: what the play is, and whether it is good.
@@ -79,6 +90,9 @@ export async function POST(request: Request) {
       : ""
 
   const locale = await getLocale()
+  // A coach who types the question in Spanish gets a Spanish answer, whatever
+  // the site language is set to.
+  const answerLocale = replyLocale(question, locale)
   const user = await getCurrentUser(request.headers.get("cookie"))
   const engine = user
     ? await resolveEngine(user.id, "advisor")
@@ -92,11 +106,31 @@ export async function POST(request: Request) {
     })
   }
 
+  // "Which ACB team could run this?" used to be answered from the model's
+  // memory. If the question (or the play itself) names a league we cover, hand
+  // it the real squads instead, measured this season.
+  let clubs = ""
+  const askedLeague =
+    detectLeagueSlug(question) ?? play.team?.leagueSlug ?? null
+  if (askedLeague) {
+    try {
+      clubs = describeTeamProfiles(
+        await leagueTeamProfiles(askedLeague),
+        askedLeague,
+        answerLocale,
+      )
+    } catch {
+      // No squad data is a reason to answer without it, not to fail.
+      clubs = ""
+    }
+  }
+
   const userMessage = [
     describePlay(play),
     question ? `\nCoach's specific question: ${question}` : "",
+    clubs ? `\n${clubs}` : "",
     "",
-    aiLanguageDirective(locale),
+    aiLanguageDirective(answerLocale),
   ].join("\n")
 
   try {
@@ -104,7 +138,7 @@ export async function POST(request: Request) {
       provider: engine.provider,
       model: engine.model,
       apiKey: engine.apiKey,
-      system: `${SYSTEM_PROMPT}\n\n${houseStyle(locale)}\n${aiLanguageDirective(locale)}`,
+      system: `${SYSTEM_PROMPT}\n\n${houseStyle(answerLocale)}\n${aiLanguageDirective(answerLocale)}`,
       messages: [{ role: "user", content: userMessage }],
       maxTokens: 1200,
       temperature: 0.65,
