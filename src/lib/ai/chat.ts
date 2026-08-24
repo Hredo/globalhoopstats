@@ -67,6 +67,27 @@ async function withTimeout<T>(
   }
 }
 
+/**
+ * Repetition controls, sent on every OpenAI-compatible call.
+ *
+ * Without them a small model (a local 8B, the fast hosted ones) locks onto a
+ * phrase and repeats it until it hits the token cap — "de tiro de tiro de
+ * tiro…" — or re-emits the same heading a dozen times. No amount of prompt
+ * wording prevents that; the sampler does. Values are deliberately mild: high
+ * penalties push the model off the vocabulary it needs, and a scouting note
+ * has to say "rebotes" more than once.
+ *
+ * Anthropic has no equivalent parameter and Gemini rejects it on some models,
+ * so those two rely on `trimDegeneratedOutput` alone — neither loops in
+ * practice.
+ */
+function repetitionControls(provider: AiProvider): Record<string, number> {
+  // Perplexity documents frequency_penalty and presence_penalty as mutually
+  // exclusive; sending both is a 400.
+  if (provider.id === "perplexity") return { frequency_penalty: 0.5 }
+  return { frequency_penalty: 0.4, presence_penalty: 0.1 }
+}
+
 /** OpenAI, OpenAI-compatible vendors, and local Ollama all share this shape. */
 async function chatOpenAiCompatible(input: ChatInput): Promise<ChatResult> {
   const isLocal = input.provider.kind === "local"
@@ -95,22 +116,33 @@ async function chatOpenAiCompatible(input: ChatInput): Promise<ChatResult> {
     headers["X-Title"] = "globalhoopstats"
   }
 
+  const base: Record<string, unknown> = {
+    model: input.model,
+    messages: [
+      { role: "system", content: input.system },
+      ...input.messages,
+    ],
+    max_tokens: input.maxTokens ?? 700,
+    temperature: input.temperature ?? 0.6,
+    stream: false,
+  }
+
   return withTimeout(async (signal) => {
-    const res = await fetch(`${baseUrl}/chat/completions`, {
-      method: "POST",
-      headers,
-      signal,
-      body: JSON.stringify({
-        model: input.model,
-        messages: [
-          { role: "system", content: input.system },
-          ...input.messages,
-        ],
-        max_tokens: input.maxTokens ?? 700,
-        temperature: input.temperature ?? 0.6,
-        stream: false,
-      }),
-    })
+    const post = (body: Record<string, unknown>) =>
+      fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers,
+        signal,
+        body: JSON.stringify(body),
+      })
+
+    let res = await post({ ...base, ...repetitionControls(input.provider) })
+    if (res.status === 400) {
+      // A vendor that rejects the penalties (they are optional in the spec and
+      // a few models refuse them) must still answer, just without the guard.
+      const detail = (await res.clone().text().catch(() => "")).toLowerCase()
+      if (detail.includes("penalty")) res = await post(base)
+    }
     if (!res.ok) {
       const detail = (await res.text().catch(() => "")).slice(0, 300)
       return {

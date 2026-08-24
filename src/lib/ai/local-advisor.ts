@@ -510,6 +510,44 @@ function analyzeTeamGaps(
   return gaps[0]
 }
 
+/**
+ * One concrete sentence for the rule-based advisor, built from what we
+ * actually know: the gap detected in the roster, and the cheapest of the
+ * candidates we are about to show. No model involved.
+ */
+/** Exported for tests: the only prose the no-AI path produces. */
+export function buildFallbackSummary({
+  label,
+  gap,
+  recs,
+  rosterSize,
+  locale,
+}: {
+  label: string
+  gap: string
+  recs: Recruit[]
+  rosterSize: number
+  locale: Locale
+}): string {
+  const need = label.toLowerCase()
+  const top = recs[0]
+  const shortlist = recs.length
+
+  if (!top) {
+    return pick(
+      locale,
+      `We could not find a **${need}** in the leagues we cover that fits this roster. Widening the budget or the league would open up options.`,
+      `No hemos encontrado ningún **${need}** en las ligas que cubrimos que encaje en esta plantilla. Ampliar el presupuesto o la liga abriría opciones.`,
+    )
+  }
+
+  return pick(
+    locale,
+    `Looking at your ${rosterSize}-player roster, the clearest hole is here: ${gap.toLowerCase()}. These ${shortlist} are the **${need}** options that fit it best — **${top.name}** is the one we would start with, at around ${top.contractValue}.`,
+    `Mirando tu plantilla de ${rosterSize} jugadores, el hueco más claro es este: ${gap.toLowerCase()}. Estas son las ${shortlist} opciones de **${need}** que mejor encajan — por **${top.name}** empezaríamos nosotros, en torno a ${top.contractValue}.`,
+  )
+}
+
 function getLeagueBadge(league: string): string {
   const lname = league.toLowerCase()
   if (lname.includes("nba")) return "NBA"
@@ -566,11 +604,18 @@ export async function buildLocalAdvice(
       rosterSize: team.roster.length,
       topPlayers: team.roster.slice(0, 4).map((p) => p.fullName),
     },
-    analysis: pick(
+    // Say something the reader could not have worked out by looking at the
+    // screen. The old line ("this signing could bring a differential profile
+    // to the rotation") was true of every signing ever made, so it read as
+    // filler — which is worse here than in the AI path, because this is the
+    // answer shown to people who have not connected a model.
+    analysis: buildFallbackSummary({
+      label,
+      gap,
+      recs,
+      rosterSize: team.roster.length,
       locale,
-      `Your query targets a **${label.toLowerCase()}**. Based on the current roster analysis, this signing could bring a differential profile to the rotation.`,
-      `Tu consulta apunta a un **${label.toLowerCase()}**. Según el análisis de la plantilla actual, este fichaje podría aportar un perfil diferencial a la rotación.`,
-    ),
+    }),
     gap,
     recommendations: recs.map((r, i) => ({
       ...r,

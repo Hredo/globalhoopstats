@@ -5,12 +5,14 @@ import {
   type ComparisonOutput,
 } from "@/lib/ai/player-comparator"
 import { clientIp, cleanLlmOutput } from "@/lib/security/ai-advisor"
+import { trimDegeneratedOutput } from "@/lib/ai/degeneration"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
 import { getCurrentUser } from "@/lib/auth/current-user"
 import { resolveEngine, resolveDefaultEngine } from "@/lib/ai/user-provider"
 import { chatComplete } from "@/lib/ai/chat"
 import { getLocale } from "@/lib/i18n/server"
 import { aiLanguageDirective } from "@/lib/ai/language"
+import { houseStyle } from "@/lib/ai/prompt-copy"
 import type { Locale } from "@/lib/i18n/config"
 
 export const dynamic = "force-dynamic"
@@ -40,14 +42,17 @@ function buildComparePrompt(
     .join("\n")
   return [
     `Players: ${aName} vs ${bName}`,
-    `Overall AI score: ${aName} ${r.overall.aScore.toFixed(1)} — ${bName} ${r.overall.bScore.toFixed(1)} (confidence ${r.overall.confidence})`,
-    `Archetypes: ${aName} = ${r.archetype.a}; ${bName} = ${r.archetype.b}`,
+    `Our overall score (an internal estimate out of 100, not an official rating): ${aName} ${r.overall.aScore.toFixed(1)} — ${bName} ${r.overall.bScore.toFixed(1)} (confidence: ${r.overall.confidence})`,
+    `Player types: ${aName} = ${r.archetype.a}; ${bName} = ${r.archetype.b}`,
     `Category winners:`,
     cats,
     "",
     aiLanguageDirective(locale),
     "",
-    `Write a sharp 3-4 sentence verdict: who is the better fit and for what kind of team and role, with the decisive reason backed by the numbers above. Add the one situation where the other player is the better pick. Commit to a call — no hedging, no generic praise. Plain prose, no lists, no markdown.`,
+    houseStyle(locale),
+    "",
+    `Write 3-4 sentences, as if answering a coach who asked "so which one do I sign?". Say who you would take and for what kind of team and role, with the one reason that decides it. Then name the single situation where the other player is the better pick. Commit to a call — no hedging, no generic praise.`,
+    `Plain prose only: no lists, no headings, no bold, no bullet points. Do not restate the numbers as a table of figures; use at most two of them, and only where one earns its place in a sentence.`,
   ].join("\n")
 }
 
@@ -140,7 +145,12 @@ export async function POST(request: Request) {
         provider: engine.provider,
         model: engine.model,
         apiKey: engine.apiKey,
-        system: `You are an elite basketball scout. Given a structured head-to-head, write a short, specific and decisive verdict anchored to the data. No hedging, no generic filler, no markdown, no lists — plain prose. ${aiLanguageDirective(locale)}`,
+        system: [
+          "You are an experienced basketball scout giving a straight answer to a coach comparing two players.",
+          "Be specific and decisive, and anchor the call to the data you were given. No hedging, no generic filler, no markdown, no lists — plain prose.",
+          houseStyle(locale),
+          aiLanguageDirective(locale),
+        ].join("\n"),
         messages: [
           {
             role: "user",
@@ -151,7 +161,7 @@ export async function POST(request: Request) {
         temperature: 0.6,
       })
       if (llm.ok) {
-        aiSummary = cleanLlmOutput(llm.content)
+        aiSummary = cleanLlmOutput(trimDegeneratedOutput(llm.content).text)
         aiProvider = engine.provider.id
       } else {
         aiReason = "ai_error"

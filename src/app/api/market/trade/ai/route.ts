@@ -3,9 +3,11 @@ import { getCurrentUser } from "@/lib/auth/current-user"
 import { resolveEngine } from "@/lib/ai/user-provider"
 import { chatComplete } from "@/lib/ai/chat"
 import { aiLanguageDirective } from "@/lib/ai/language"
+import { houseStyle } from "@/lib/ai/prompt-copy"
 import { getLocale } from "@/lib/i18n/server"
 import type { Locale } from "@/lib/i18n/config"
 import { cleanLlmOutput } from "@/lib/security/ai-advisor"
+import { trimDegeneratedOutput } from "@/lib/ai/degeneration"
 import { formatEur } from "@/lib/market/league-strength"
 import { valuationTierLabel } from "@/lib/market/valuation"
 
@@ -144,7 +146,9 @@ function buildPrompt(body: TradeAiBody, locale: Locale): string {
   lines.push("## Financial summary")
   lines.push(`Total value given: ${formatEur(outVal)} (includes ${formatEur(body.cash)} in cash)`)
   lines.push(`Total value received: ${formatEur(inVal)}`)
-  lines.push(`Balance: ${balance.toFixed(2)}`)
+  lines.push(
+    `Balance: ${balance.toFixed(2)} (1.00 = an even swap by our estimated values; below 1 means you give up more than you get). This is our own estimate, not an official valuation — say so if you lean on it.`,
+  )
   if (balance >= 0.95 && balance <= 1.08) lines.push("Status: Balanced")
   else if (balance < 0.95) lines.push("⚠ Status: You give more value than you receive")
   else lines.push("⚠ Status: You receive more value than you give")
@@ -173,8 +177,13 @@ function buildPrompt(body: TradeAiBody, locale: Locale): string {
     lines.push("- **Riesgos**: edad, lesiones, adaptación a otra liga, contrato, cupo de extracomunitario.")
     lines.push("")
     lines.push(
-      "Escribe 250-400 palabras en español, en Markdown limpio y fácil de escanear. Empieza por un veredicto de una línea (¿quién sale ganando y por qué?). Desarrolla el ajuste deportivo y los riesgos con detalle concreto, y cierra con una recomendación clara: aceptar, rechazar o renegociar. Si el trato está desequilibrado, di a favor de quién y propón un ajuste concreto (qué pieza o cuánto cash lo equilibraría).",
+      "Escribe 200-350 palabras. Empieza con el veredicto en una frase llana: ¿quién sale ganando y por qué? Desarrolla el ajuste deportivo y los riesgos con detalle concreto, y cierra con una recomendación clara: aceptar, rechazar o renegociar. Si el trato está desequilibrado, di a favor de quién y propón un ajuste concreto (qué pieza o cuánto dinero lo equilibraría).",
     )
+    lines.push(
+      "Formato: como mucho dos encabezados con '## ' y en lenguaje normal ('Lo que ganas', 'Lo que arriesgas'). Nada de tablas. Viñetas solo si enumeras piezas comparables, nunca una por estadística. Negrita solo en nombres de jugadores.",
+    )
+    lines.push("")
+    lines.push(houseStyle("es"))
     lines.push("")
     lines.push(
       "Sé específico y cíñete a los datos proporcionados: no inventes estadísticas, contratos ni información que no esté aquí. Nada de relleno ni frases vacías; ve al grano con criterio.",
@@ -193,8 +202,13 @@ function buildPrompt(body: TradeAiBody, locale: Locale): string {
     lines.push("- **Risks**: age, injuries, adaptation to another league, contract, non-EU player quota.")
     lines.push("")
     lines.push(
-      "Write 250-400 words in English, in clean, easy-to-scan Markdown. Start with a one-line verdict (who comes out ahead and why?). Develop the on-court fit and the risks with concrete detail, and close with a clear recommendation: accept, reject or renegotiate. If the deal is unbalanced, say in whose favour and propose a concrete adjustment (which piece or how much cash would balance it).",
+      "Write 200-350 words. Open with the verdict in one plain sentence: who comes out ahead, and why? Develop the on-court fit and the risks with concrete detail, and close with a clear recommendation: accept, reject or renegotiate. If the deal is unbalanced, say in whose favour and propose a concrete adjustment (which piece, or how much cash, would balance it).",
     )
+    lines.push(
+      "Formatting: at most two '## ' headings, in everyday words ('What you gain', 'What you risk'). No tables. Bullets only for a list of comparable pieces, never one per statistic. Bold only for player names.",
+    )
+    lines.push("")
+    lines.push(houseStyle("en"))
     lines.push("")
     lines.push(
       "Be specific and stick to the data provided: don't invent statistics, contracts or information that isn't here. No filler or empty phrases; get to the point with sound judgement.",
@@ -272,7 +286,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      analysis: cleanLlmOutput(result.content),
+      analysis: cleanLlmOutput(trimDegeneratedOutput(result.content).text),
       provider: engine.provider.id,
       model: result.model,
     })
