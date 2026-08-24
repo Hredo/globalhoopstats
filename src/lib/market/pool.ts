@@ -111,6 +111,8 @@ async function loadPool(
       blocksTotal: r.blocksTotal,
       fgPct: pct(r.fgMade, r.fgAttempted),
       threePct: pct(r.threeMade, r.threeAttempted),
+      threeMade: r.threeMade,
+      threeAttempted: r.threeAttempted,
       ftPct: pct(r.ftMade, r.ftAttempted),
       per: r.per,
       trueShootingPct: r.trueShootingPct,

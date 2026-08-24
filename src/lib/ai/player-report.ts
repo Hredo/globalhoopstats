@@ -73,6 +73,11 @@ export function buildPlayerPrompt(
   shotZones: ShotZonesJson | null,
   locale: Locale,
   canBrowse: boolean,
+  /**
+   * League comparison block from `describeLeagueContext`. Empty when we have
+   * too little of the league measured to rank anybody honestly.
+   */
+  leagueContext = "",
 ): string {
   const copy = promptCopy(locale)
   const labels = REPORT_LABELS[locale] ?? REPORT_LABELS.en
@@ -115,6 +120,8 @@ export function buildPlayerPrompt(
     "",
     "## Market valuation",
     valStr,
+    leagueContext ? "" : null,
+    leagueContext,
     shotChartStr ? "" : null,
     shotChartStr,
     "",
@@ -126,7 +133,7 @@ export function buildPlayerPrompt(
       "Write a short scouting note a coach could read in under a minute.",
       "",
       "Cover, in this order, and ONLY where you have something concrete to say:",
-      `- ${labels.onCourt} — what he actually gives a team, from his numbers.`,
+      `- ${labels.onCourt} — what he actually gives a team, from his numbers. Where you have the league comparison, judge him against it rather than quoting the raw figure.`,
       `- ${labels.weakness} — where he costs you. Never skip this one; a note with no weaknesses is useless.`,
       `- ${labels.value} — is the estimated price fair for that production?`,
       shotChartStr

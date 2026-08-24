@@ -9,6 +9,7 @@ import { adjacentLeagueSlugs } from "@/lib/market/league-strength"
 import { getMarketPool, type MarketPlayer } from "@/lib/market/pool"
 import { matchesNatFilter, type NatFilter } from "@/lib/market/nationality"
 import type { Intent } from "@/lib/ai/intent"
+import type { Locale } from "@/lib/i18n/config"
 
 export type Candidate = {
   player: MarketPlayer
@@ -30,6 +31,11 @@ export type CandidateQuery = {
   /** Minimum games to count as a real sample. */
   minGames?: number
   limit?: number
+  /**
+   * Language of the `reason` line. It is shown verbatim on the shortlist
+   * cards, and it used to be hardcoded Spanish for English users too.
+   */
+  locale?: Locale
 }
 
 function pg(total: number | null, gp: number): number {
@@ -38,7 +44,8 @@ function pg(total: number | null, gp: number): number {
 
 type Scored = { score: number; reason: string }
 
-function scoreFor(intent: Intent, p: MarketPlayer): Scored {
+function scoreFor(intent: Intent, p: MarketPlayer, locale: Locale): Scored {
+  const es = locale === "es"
   const gp = p.stats.gamesPlayed || 1
   const pts = pg(p.stats.pointsTotal, gp)
   const reb = pg(p.stats.reboundsTotal, gp)
@@ -53,44 +60,58 @@ function scoreFor(intent: Intent, p: MarketPlayer): Scored {
     case "defender":
       return {
         score: stl * 14 + blk * 14 + reb * 1.5 + rating * 0.3,
-        reason: `${stl.toFixed(1)} robos · ${blk.toFixed(1)} tapones por partido`,
+        reason: es
+          ? `${stl.toFixed(1)} robos y ${blk.toFixed(1)} tapones por partido`
+          : `${stl.toFixed(1)} steals and ${blk.toFixed(1)} blocks a game`,
       }
     case "scorer":
       return {
         score: pts * 2.2 + three * 25 + ts * 20 + rating * 0.3,
-        reason: `${pts.toFixed(1)} pts · ${(three * 100).toFixed(0)}% en triples`,
+        reason: es
+          ? `${pts.toFixed(1)} puntos por partido con un ${(three * 100).toFixed(0)}% en triples`
+          : `${pts.toFixed(1)} points a game at ${(three * 100).toFixed(0)}% from three`,
       }
     case "playmaker":
       return {
         score: ast * 9 + pts * 0.6 + stl * 4 + rating * 0.3,
-        reason: `${ast.toFixed(1)} asistencias por partido`,
+        reason: es
+          ? `${ast.toFixed(1)} asistencias por partido`
+          : `${ast.toFixed(1)} assists a game`,
       }
     case "wing":
       return {
         score: pts * 1.2 + three * 18 + stl * 6 + reb * 1.2 + rating * 0.4,
-        reason: `Perfil 3&D: ${pts.toFixed(1)} pts, ${(three * 100).toFixed(0)}% T3, ${stl.toFixed(1)} robos`,
+        reason: es
+          ? `Perfil 3&D: ${pts.toFixed(1)} puntos, ${(three * 100).toFixed(0)}% en triples y ${stl.toFixed(1)} robos`
+          : `3&D profile: ${pts.toFixed(1)} points, ${(three * 100).toFixed(0)}% from three, ${stl.toFixed(1)} steals`,
       }
     case "big":
       return {
         score: reb * 4 + blk * 12 + pts * 1.1 + rating * 0.3,
-        reason: `${reb.toFixed(1)} rebotes · ${blk.toFixed(1)} tapones por partido`,
+        reason: es
+          ? `${reb.toFixed(1)} rebotes y ${blk.toFixed(1)} tapones por partido`
+          : `${reb.toFixed(1)} rebounds and ${blk.toFixed(1)} blocks a game`,
       }
     case "cheap":
       // Best production per euro: rating relative to value.
       return {
         score: (rating * rating) / Math.max(40_000, p.valuation.eur),
-        reason: `Valor ${p.valuation.tier} a ~${Math.round(p.valuation.eur / 1000)}K — buena relación rendimiento/precio`,
+        reason: es
+          ? `Rinde por encima de lo que cuesta: ~${Math.round(p.valuation.eur / 1000)}K de valor`
+          : `Produces above his price: ~${Math.round(p.valuation.eur / 1000)}K of value`,
       }
     case "star":
       return {
         score: rating * 2 + pts * 1.2,
-        reason: `Rating de impacto ${rating}/100 · ${pts.toFixed(1)} pts`,
+        reason: es
+          ? `Impacto ${rating}/100 con ${pts.toFixed(1)} puntos por partido`
+          : `Impact ${rating}/100 with ${pts.toFixed(1)} points a game`,
       }
     case "general":
     default:
       return {
         score: rating,
-        reason: `Rating global ${rating}/100`,
+        reason: es ? `Impacto global ${rating}/100` : `Overall impact ${rating}/100`,
       }
   }
 }
@@ -132,7 +153,7 @@ export async function findCandidates(q: CandidateQuery): Promise<Candidate[]> {
     .filter((p) => q.maxAge == null || p.age == null || p.age <= q.maxAge)
     .filter((p) => q.minAge == null || p.age == null || p.age >= q.minAge)
     .map((p) => {
-      const s = scoreFor(q.intent, p)
+      const s = scoreFor(q.intent, p, q.locale ?? "es")
       return { player: p, fitScore: s.score, reason: s.reason }
     })
     .sort((a, b) => b.fitScore - a.fitScore)

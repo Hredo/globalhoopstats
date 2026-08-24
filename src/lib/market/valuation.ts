@@ -22,6 +22,14 @@ export type MarketStatLine = {
   fgPct: number | null
   threePct: number | null
   ftPct: number | null
+  /**
+   * Raw three-point volume. Optional because only the pool fills it in, but
+   * without it a percentage cannot be qualified: 2-for-3 from the corner is
+   * not a 67% shooter, and league rankings say so unless you filter on
+   * attempts.
+   */
+  threeMade?: number | null
+  threeAttempted?: number | null
   per: number | null
   trueShootingPct: number | null
   winShares: number | null

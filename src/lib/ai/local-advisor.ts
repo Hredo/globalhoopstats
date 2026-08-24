@@ -30,6 +30,15 @@ export type Recruit = {
   strengths: string[]
   fit: string
   market: string
+  /**
+   * Real per-game production, already formatted for display. The card used to
+   * show a price and an adjective and nothing else, which is what "it gives me
+   * no information" meant. Optional because the legacy hardcoded shortlist has
+   * no season data behind it.
+   */
+  stats?: Array<{ label: string; value: string }>
+  /** Estimated annual salary, formatted. Distinct from the transfer value. */
+  annual?: string | null
 }
 
 export type AdvisorOutput = {
@@ -570,12 +579,39 @@ export async function buildLocalAdvice(
   }
 
   const intent = detectIntent(userMessage)
-  const meta = INTENT_META[intent]
-  const label = intentLabel(intent, locale)
   const recs =
     dbCandidates && dbCandidates.length > 0
       ? dbCandidates.slice(0, 3)
       : pickRecommendations(intent, 3, team.league.name)
+
+  return assembleAdvice({ team, intent, locale, recs })
+}
+
+/**
+ * The structured answer — team header, gap, ranked shortlist, caveats — with
+ * whatever prose you hand it.
+ *
+ * Split out so the AI path can show the SAME real player cards under the
+ * model's own words. Before this, connecting a model made the shortlist
+ * disappear: you got the cards with prices and stats only when the AI was off,
+ * and a wall of text when it was on.
+ */
+export function assembleAdvice({
+  team,
+  intent,
+  locale,
+  recs,
+  analysis,
+}: {
+  team: TeamProfile
+  intent: Intent
+  locale: Locale
+  recs: Recruit[]
+  /** The model's answer. Omit for the rule-based summary. */
+  analysis?: string
+}): AdvisorOutput {
+  const meta = INTENT_META[intent]
+  const label = intentLabel(intent, locale)
   const gap = analyzeTeamGaps(team.roster, locale)
 
   const priorities = [
@@ -609,15 +645,17 @@ export async function buildLocalAdvice(
     // to the rotation") was true of every signing ever made, so it read as
     // filler — which is worse here than in the AI path, because this is the
     // answer shown to people who have not connected a model.
-    analysis: buildFallbackSummary({
-      label,
-      gap,
-      recs,
-      rosterSize: team.roster.length,
-      locale,
-    }),
+    analysis:
+      analysis ??
+      buildFallbackSummary({
+        label,
+        gap,
+        recs,
+        rosterSize: team.roster.length,
+        locale,
+      }),
     gap,
-    recommendations: recs.map((r, i) => ({
+    recommendations: recs.slice(0, priorities.length).map((r, i) => ({
       ...r,
       priority: priorities[i].label,
       priorityColor: priorities[i].color,

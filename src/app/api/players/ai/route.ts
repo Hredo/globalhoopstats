@@ -10,6 +10,10 @@ import { getLocale } from "@/lib/i18n/server"
 import { aiLanguageDirective } from "@/lib/ai/language"
 import { buildPlayerPrompt } from "@/lib/ai/player-report"
 import {
+  describeLeagueContext,
+  playerLeagueContext,
+} from "@/lib/market/player-context"
+import {
   trimDegeneratedOutput,
   isUsableAnswer,
   isMostlyHeadings,
@@ -109,6 +113,20 @@ export async function POST(request: Request) {
           bpm: marketPlayer?.stats?.bpm ?? null,
         }
 
+        // "26.6 puntos" means nothing on its own. Rank him inside his own
+        // league so the note can say whether that is a lot HERE.
+        let leagueContext = ""
+        if (marketPlayer) {
+          try {
+            leagueContext = describeLeagueContext(
+              await playerLeagueContext(marketPlayer),
+              locale,
+            )
+          } catch {
+            leagueContext = ""
+          }
+        }
+
         const llm = await chatComplete({
           provider: engine.provider,
           model: engine.model,
@@ -132,6 +150,7 @@ export async function POST(request: Request) {
                 shotZones,
                 locale,
                 canBrowse,
+                leagueContext,
               ),
             },
           ],

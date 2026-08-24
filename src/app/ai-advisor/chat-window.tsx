@@ -12,6 +12,8 @@ type Msg = {
   type: "user" | "ai"
   content: string
   data?: AdvisorOutput
+  /** "llm" when a model wrote `content`; "local" for the rule-based answer. */
+  mode?: "llm" | "local"
 }
 
 type Props = {
@@ -198,15 +200,33 @@ export function ChatWindow({
         const canRedo = isLastAi && prev?.type === "user"
 
         if (msg.type === "ai" && msg.data) {
+          // With a model connected the answer is the model's prose, rendered
+          // as markdown above the cards; the cards carry the real numbers
+          // behind it. Without one, the rule-based summary lives inside the
+          // diagnosis card and there is nothing to render twice.
+          const fromModel = msg.mode === "llm"
           return (
             <div
               key={msg.id}
               ref={isLastAi ? internalLastRef : undefined}
               tabIndex={isLastAi ? -1 : undefined}
               aria-label={isLastAi ? "Latest advisor response" : undefined}
-              className="focus:outline-none"
+              className="focus:outline-none space-y-3"
             >
-              <AdvisorResponse data={msg.data} />
+              {fromModel && (
+                <MessageBubble
+                  type="ai"
+                  content={msg.content}
+                  reaction={null}
+                  onCopy={() => onCopy(msg.id)}
+                  onLike={() => onLike(msg.id)}
+                  onDislike={() => onDislike(msg.id)}
+                  onRedo={() => onRedo(msg.id)}
+                  canRedo={canRedo}
+                  showActions={false}
+                />
+              )}
+              <AdvisorResponse data={msg.data} showAnalysis={!fromModel} />
               <BubbleActions
                 content={msg.data.analysis}
                 reaction={reactions[msg.id] ?? null}
