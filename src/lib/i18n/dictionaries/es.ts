@@ -1050,6 +1050,9 @@ export const es: Messages = {
       analysisTitle: "Análisis del traspaso por IA",
       errorGenerating: "Error al generar análisis.",
       networkError: "Error de red al contactar el servicio de IA.",
+      cutOff:
+        "La respuesta se cortó antes de llegar. Suele pasar cuando el modelo tarda demasiado: prueba con uno más rápido o analiza los escenarios de uno en uno.",
+      queued: "En cola…",
       scenario: {
         analyze: "Analizar con IA",
         analyzing: "Analizando con IA…",

@@ -32,6 +32,12 @@ export type ChatInput = {
    * that don't support it.
    */
   webSearch?: boolean
+  /**
+   * Give up before the platform does. A request that outlives the hosting
+   * timeout comes back to the browser as an HTML error page instead of our
+   * JSON, which the UI can only report as a vague network failure.
+   */
+  timeoutMs?: number
 }
 
 /**
@@ -57,9 +63,10 @@ function localBaseUrl(provider: AiProvider): string | null {
 
 async function withTimeout<T>(
   fn: (signal: AbortSignal) => Promise<T>,
+  ms: number = TIMEOUT_MS,
 ): Promise<T> {
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+  const timer = setTimeout(() => controller.abort(), ms)
   try {
     return await fn(controller.signal)
   } finally {
@@ -157,7 +164,7 @@ async function chatOpenAiCompatible(input: ChatInput): Promise<ChatResult> {
     const content = json.choices?.[0]?.message?.content?.trim()
     if (!content) return { ok: false, error: "Empty response." }
     return { ok: true, content, model: input.model }
-  })
+  }, input.timeoutMs)
 }
 
 async function chatAnthropic(input: ChatInput): Promise<ChatResult> {
@@ -205,7 +212,7 @@ async function chatAnthropic(input: ChatInput): Promise<ChatResult> {
       .trim()
     if (!content) return { ok: false, error: "Empty response." }
     return { ok: true, content, model: input.model }
-  })
+  }, input.timeoutMs)
 }
 
 async function chatGoogle(input: ChatInput): Promise<ChatResult> {
@@ -254,7 +261,7 @@ async function chatGoogle(input: ChatInput): Promise<ChatResult> {
       .trim()
     if (!content) return { ok: false, error: "Empty response." }
     return { ok: true, content, model: input.model }
-  })
+  }, input.timeoutMs)
 }
 
 export async function chatComplete(input: ChatInput): Promise<ChatResult> {

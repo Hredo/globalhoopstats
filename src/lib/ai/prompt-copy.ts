@@ -32,7 +32,6 @@ export type PromptCopy = {
   candidatesHeading: string
   candidatesIntro: string
   /** Tag the model must append to any player not in our database. */
-  outOfDbTag: string
 
   valuationHeading: string
   valuationLine: (opts: {
@@ -68,6 +67,15 @@ export type PromptCopy = {
 
   /** How to write for a reader who is not a data analyst. */
   plainLanguage: string[]
+
+  /**
+   * The closed-list rule. Recommending someone the user cannot sign — retired,
+   * invented, or simply not in our data — is the fastest way to lose a scout's
+   * trust, so the model is confined to players we can price.
+   */
+  onlyListedPlayers: string
+  /** What to do when the only good fit costs more than the club can spend. */
+  fundingRule: string
 }
 
 const en: PromptCopy = {
@@ -84,8 +92,7 @@ const en: PromptCopy = {
 
   candidatesHeading: "# Verified candidates from OUR database",
   candidatesIntro:
-    "These are REAL players with verified, priced data, filtered to the team's league and its adjacent/feeder leagues. Use them as the BACKBONE of your answer and cite their estimated value. In ADDITION you SHOULD propose players from any other league worldwide (NBA, EuroLeague, LNB Pro A, Lega A, BBL, ABA/Adriatic, Turkish BSL, Greek, NBL Australia, Liga Argentina, Brazil NBB, etc.) that fit the need, budget and roster. For ANY player NOT in this list, tag the name",
-  outOfDbTag: "(unverified — no data on file)",
+    "Real players, active this season, priced from our own data and already filtered to this team's league and its feeder leagues. Rank them against each other, say what each one would cost, and use their numbers.",
 
   valuationHeading: "# Valuation of the mentioned player",
   valuationLine: ({ name, value, annual, tier, rating, confidence }) =>
@@ -111,7 +118,7 @@ const en: PromptCopy = {
   operationHeading: "# Type of move",
   operation: {
     signing:
-      "The user wants to SIGN someone to fill a need. Propose reinforcements (from the DB and from anywhere in the world) within budget.",
+      "The user wants to SIGN someone to fill a need. Rank the verified candidates by how well they fit this roster, and stay inside the budget ceiling.",
     trade:
       "The user is proposing a TRADE. Lean on the trade scenarios (value balance): explain which players to ask for or offer, and why the numbers work.",
     draft:
@@ -130,6 +137,11 @@ const en: PromptCopy = {
   cupoHeading: "# Roster-slot requirement",
   cupoRule: (label) =>
     `Prioritise ${label} players, and say explicitly whenever an option would take up a non-EU roster slot.`,
+
+  onlyListedPlayers:
+    "CLOSED LIST. The only players you may name are the ones under 'Verified candidates' and the ones on the user's own roster. Every one of them is playing this season and priced. If none of them fits, say so in one line and describe the profile that is missing — naming anyone else is a mistake, not a suggestion, however famous or well-suited he seems. Never name a player from memory, and never invent his stats, salary or club.",
+  fundingRule:
+    "Say how the club actually gets him. If your pick costs more than the ceiling for a single signing, or plays for another club, name who from the user's own roster you would offer in exchange or move on to fund it — with the value we have for that player — and whether the swap comes out even. Only ever name players from the two lists you were given.",
 
   plainLanguage: [
     "Write for a coach or a club director, not for a data analyst. Short sentences, everyday words.",
@@ -156,8 +168,7 @@ const es: PromptCopy = {
 
   candidatesHeading: "# Candidatos verificados de NUESTRA base de datos",
   candidatesIntro:
-    "Son jugadores REALES con datos verificados y valorados, filtrados a la liga del equipo y a sus ligas adyacentes o de origen. Úsalos como COLUMNA VERTEBRAL de tu respuesta y cita su valor estimado. ADEMÁS, DEBES proponer jugadores de cualquier otra liga del mundo (NBA, EuroLeague, LNB Pro A, Lega A, BBL, ABA/Adriática, BSL turca, Grecia, NBL Australia, Liga Argentina, NBB Brasil, etc.) que encajen con la necesidad, el presupuesto y la plantilla. Para CUALQUIER jugador que NO esté en esta lista, etiqueta el nombre con",
-  outOfDbTag: "(sin datos verificados)",
+    "Jugadores reales, en activo esta temporada, valorados con nuestros propios datos y ya filtrados a la liga del equipo y a sus ligas de origen. Ordénalos entre ellos, di lo que costaría cada uno y apóyate en sus números.",
 
   valuationHeading: "# Valoración del jugador mencionado",
   valuationLine: ({ name, value, annual, tier, rating, confidence }) =>
@@ -183,7 +194,7 @@ const es: PromptCopy = {
   operationHeading: "# Tipo de operación",
   operation: {
     signing:
-      "El usuario quiere FICHAR para cubrir una necesidad. Propón refuerzos (de la BD y del resto del mundo) dentro del presupuesto.",
+      "El usuario quiere FICHAR para cubrir una necesidad. Ordena los candidatos verificados por lo bien que encajan en esta plantilla, y no te salgas del tope de presupuesto.",
     trade:
       "El usuario plantea un TRASPASO. Apóyate en los escenarios de traspaso (equilibrio de valor): explica qué jugadores pedir u ofrecer y por qué cuadra.",
     draft:
@@ -202,6 +213,11 @@ const es: PromptCopy = {
   cupoHeading: "# Requisito de cupo",
   cupoRule: (label) =>
     `Prioriza jugadores ${label} y avisa si una opción ocuparía plaza de extracomunitario.`,
+
+  onlyListedPlayers:
+    "LISTA CERRADA. Los únicos jugadores que puedes nombrar son los de 'Candidatos verificados' y los de la plantilla del usuario. Todos ellos están jugando esta temporada y tienen valoración. Si ninguno encaja, dilo en una línea y describe el perfil que falta — nombrar a cualquier otro es un error, no una sugerencia, por muy conocido o adecuado que parezca. Nunca nombres a un jugador de memoria ni te inventes sus estadísticas, su sueldo o su club.",
+  fundingRule:
+    "Di cómo se consigue de verdad. Si tu recomendación cuesta más que el techo para un solo fichaje, o juega en otro club, di a quién de la plantilla del usuario ofrecerías a cambio o traspasarías para financiarlo — con el valor que tenemos de ese jugador — y si el intercambio queda equilibrado. Solo puedes nombrar jugadores de las dos listas que te hemos dado.",
 
   plainLanguage: [
     "Escribe para un entrenador o un director deportivo, no para un analista de datos. Frases cortas y palabras de todos los días.",

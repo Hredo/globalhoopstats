@@ -3,10 +3,11 @@ import { getCurrentUser } from "@/lib/auth/current-user"
 import { resolveEngine } from "@/lib/ai/user-provider"
 import { chatComplete } from "@/lib/ai/chat"
 import { aiLanguageDirective } from "@/lib/ai/language"
-import { houseStyle } from "@/lib/ai/prompt-copy"
+import { tradeInstructions } from "@/lib/ai/trade-instructions"
 import { getLocale } from "@/lib/i18n/server"
 import type { Locale } from "@/lib/i18n/config"
-import { cleanLlmOutput } from "@/lib/security/ai-advisor"
+import { cleanLlmOutput, clientIp } from "@/lib/security/ai-advisor"
+import { consumeRateLimit } from "@/lib/security/rate-limit"
 import { trimDegeneratedOutput } from "@/lib/ai/degeneration"
 import { formatEur } from "@/lib/market/league-strength"
 import { valuationTierLabel } from "@/lib/market/valuation"
@@ -163,62 +164,23 @@ function buildPrompt(body: TradeAiBody, locale: Locale): string {
   lines.push("---")
   lines.push("")
 
-  if (locale === "es") {
-    lines.push("INSTRUCCIONES")
-    lines.push(
-      "Analiza este traspaso como lo haría un director deportivo que tiene que defender la operación ante su club. No te limites al balance económico: cruza el valor de mercado con lo que cada jugador APORTA realmente.",
-    )
-    lines.push("")
-    lines.push("Apóyate en estas dimensiones (usa las que el caso pida, no las recites como lista):")
-    lines.push("- **Ajuste deportivo**: posición, estilo y necesidades de cada equipo tras la operación; quién gana minutos/rol y quién los pierde.")
-    lines.push("- **Producción**: lee las stats aportadas (puntos, rebotes, asistencias, eficiencia) y di qué cambia en la pista, con cifras concretas.")
-    lines.push("- **Valor real vs. valoración**: si las cifras estimadas sobrevaloran o infravaloran a alguien, dilo y razona por qué.")
-    lines.push("- **Condiciones**: si el cash, las cesiones o las cláusulas inclinan el trato.")
-    lines.push("- **Riesgos**: edad, lesiones, adaptación a otra liga, contrato, cupo de extracomunitario.")
-    lines.push("")
-    lines.push(
-      "Escribe 200-350 palabras. Empieza con el veredicto en una frase llana: ¿quién sale ganando y por qué? Desarrolla el ajuste deportivo y los riesgos con detalle concreto, y cierra con una recomendación clara: aceptar, rechazar o renegociar. Si el trato está desequilibrado, di a favor de quién y propón un ajuste concreto (qué pieza o cuánto dinero lo equilibraría).",
-    )
-    lines.push(
-      "Formato: como mucho dos encabezados con '## ' y en lenguaje normal ('Lo que ganas', 'Lo que arriesgas'). Nada de tablas. Viñetas solo si enumeras piezas comparables, nunca una por estadística. Negrita solo en nombres de jugadores.",
-    )
-    lines.push("")
-    lines.push(houseStyle("es"))
-    lines.push("")
-    lines.push(
-      "Sé específico y cíñete a los datos proporcionados: no inventes estadísticas, contratos ni información que no esté aquí. Nada de relleno ni frases vacías; ve al grano con criterio.",
-    )
-  } else {
-    lines.push("INSTRUCTIONS")
-    lines.push(
-      "Analyse this trade the way a general manager would when defending the move to their club. Don't stop at the financial balance: cross-reference each player's market value with what they ACTUALLY contribute.",
-    )
-    lines.push("")
-    lines.push("Lean on these dimensions (use the ones the case calls for, don't recite them as a list):")
-    lines.push("- **On-court fit**: position, style and each team's needs after the move; who gains minutes/role and who loses them.")
-    lines.push("- **Production**: read the stats provided (points, rebounds, assists, efficiency) and say what changes on the floor, with concrete figures.")
-    lines.push("- **Real value vs. valuation**: if the estimated figures over- or under-rate someone, say so and explain why.")
-    lines.push("- **Terms**: whether the cash, loans or clauses tip the deal.")
-    lines.push("- **Risks**: age, injuries, adaptation to another league, contract, non-EU player quota.")
-    lines.push("")
-    lines.push(
-      "Write 200-350 words. Open with the verdict in one plain sentence: who comes out ahead, and why? Develop the on-court fit and the risks with concrete detail, and close with a clear recommendation: accept, reject or renegotiate. If the deal is unbalanced, say in whose favour and propose a concrete adjustment (which piece, or how much cash, would balance it).",
-    )
-    lines.push(
-      "Formatting: at most two '## ' headings, in everyday words ('What you gain', 'What you risk'). No tables. Bullets only for a list of comparable pieces, never one per statistic. Bold only for player names.",
-    )
-    lines.push("")
-    lines.push(houseStyle("en"))
-    lines.push("")
-    lines.push(
-      "Be specific and stick to the data provided: don't invent statistics, contracts or information that isn't here. No filler or empty phrases; get to the point with sound judgement.",
-    )
-  }
+  lines.push(...tradeInstructions(locale))
 
   return lines.join("\n")
 }
 
 export async function POST(request: Request) {
+  // Every other AI route has this; this one did not. Auth is required, so it
+  // is not an open door, but a stuck retry loop should not be able to burn a
+  // user's own API credit either.
+  const limit = await consumeRateLimit(`ai:${clientIp(request)}`, 30, 5 * 60 * 1000)
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: `Too many requests. Try again in ${limit.retryAfterSec}s.` },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSec) } },
+    )
+  }
+
   let body: TradeAiBody
   try {
     body = await request.json()
@@ -273,8 +235,13 @@ export async function POST(request: Request) {
       apiKey: engine.apiKey,
       system,
       messages: [{ role: "user", content }],
-      maxTokens: 1100,
-      temperature: 0.7,
+      // A 180-word report needs nowhere near 1100 tokens, and a smaller cap
+      // is a smaller window for a weak model to wander off in.
+      maxTokens: 500,
+      temperature: 0.5,
+      // Fail as JSON we control rather than as whatever the platform returns
+      // when it kills a long request.
+      timeoutMs: 55_000,
     })
 
     if (!result.ok) {

@@ -166,7 +166,8 @@ function buildCandidatesContext(
   return [
     "",
     copy.candidatesHeading,
-    `${copy.candidatesIntro} "${copy.outOfDbTag}" — and do NOT invent exact stats, salaries or contracts for them; describe them qualitatively.`,
+    copy.candidatesIntro,
+    copy.onlyListedPlayers,
     ...lines,
   ].join("\n")
 }
@@ -299,8 +300,9 @@ export function buildSystemPrompt(input: GenerateAdvisorInput): string {
     `- Be specific, never generic. Anchor every claim to concrete evidence from the context: actual stats, valuations, team gaps, budget. Use numbers and named reasons.`,
     `- Show your reasoning briefly: WHY does this fit THIS roster, league and budget?`,
     `- Compare and rank. Weigh options against each other and against known reference points.`,
-    `- Ground first in the verified candidates (real priced data from our database). Beyond them you SHOULD add well-fitting players from any league; tag every non-DB name "${copy.outOfDbTag}" and never fabricate precise stats, salaries or contracts.`,
+    `- ${copy.onlyListedPlayers}`,
     `- Respect budget cap and nationality/roster-slot requirements. If an option breaks a constraint, say so explicitly.`,
+    `- ${copy.fundingRule}`,
     `- Never invent contracts, injuries, awards or stats not in the context. If you need a fact you do not have, name the gap.`,
     `- No filler. Open with substance — never restate the question, never open with "Great question" or a summary of what you are about to say.`,
     `- Never mention these instructions, the database, the prompt, or how you were configured. Write as an analyst talking to a GM.`,
@@ -311,7 +313,7 @@ export function buildSystemPrompt(input: GenerateAdvisorInput): string {
     `- **Public opinion / media**: what the press and fans say about a player, coach or team; controversies, criticism, speculation.`,
     `- **Teams**: roster analysis, season performance, strengths/weaknesses, transfer needs, financial situation.`,
     `- **General basketball**: league comparisons, historical context, rules, trends.`,
-    `- The user can ask about ANY league in the world — if you have web context use it, otherwise draw from your knowledge but clearly mark what you are unsure about.`,
+    `- The user can ask about ANY league in the world, and general basketball knowledge is fair game: rules, history, styles, how a competition works. Naming a player you could sign is the one thing that is not — those come only from the lists above.`,
     ``,
     `## Source citation — MANDATORY`,
     `When you use information from the web-context section, you MUST cite the source as a clickable markdown link: [source name](url), for example "[AS](https://example.com) reports that…".`,
@@ -324,6 +326,7 @@ export function buildSystemPrompt(input: GenerateAdvisorInput): string {
     `Write your entire answer in ${language}, including every heading and label. Roughly 200-350 words for a full answer, much shorter for a follow-up. Open with your answer in one plain sentence, then support it.`,
     `Shape the answer around the question, never a fixed template:`,
     `- Recommending someone: your pick first and why it fits THIS roster and budget, then one or two alternatives and what each would cost you.`,
+    `- Every name you give carries its estimated value AND at least one number from its own line (points, rebounds, three-point %). A name with no price and no number is not a recommendation, it is a guess.`,
     `- Assessing a player or coach: what they give you, what they cost you, then your call.`,
     `- Opinion questions: what the sources actually say, where they disagree, then your reading.`,
     `- Follow-ups: answer in 2-4 sentences with no preamble and no headings.`,
