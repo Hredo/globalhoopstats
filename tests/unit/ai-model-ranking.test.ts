@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest"
 import {
   isChatModel,
+  modelScore,
   paramsOf,
   pickBestModel,
   rankModels,
@@ -176,5 +177,58 @@ describe("the provider catalogue", () => {
       // These read their catalogue live; a hardcoded list here would rot.
       expect(p?.models, id).toHaveLength(0)
     }
+  })
+})
+
+/**
+ * The auto-pick landed on `allam-2-7b` — a seven-billion-parameter Arabic
+ * model Groq serves — which answered a request for an interior defender by
+ * asking the coach where one might be found, and then ran out of tokens per
+ * minute. Its size was stated in its own id the whole time.
+ */
+describe("size beats recency", () => {
+  it("never auto-picks a tiny model over a large one", () => {
+    expect(
+      pickBestModel(ids(["allam-2-7b", "openai/gpt-oss-120b", "gemma2-9b-it"])),
+    ).toBe("openai/gpt-oss-120b")
+  })
+
+  it("outweighs a whole version bump", () => {
+    // A brand-new 8B is still an 8B.
+    expect(modelScore("llama-3.1-8b-instant")).toBeLessThan(
+      modelScore("llama-3.3-70b-versatile"),
+    )
+    expect(modelScore("allam-2-7b")).toBeLessThan(modelScore("openai/gpt-oss-120b"))
+  })
+
+  it("does not punish an id that simply never states a size", () => {
+    // Most hosted flagships don't. Guessing against them would be worse than
+    // not guessing at all.
+    expect(modelScore("claude-sonnet-5")).toBeGreaterThan(0)
+    expect(modelScore("gpt-5.5")).toBeGreaterThan(0)
+  })
+
+  it("still returns something when every option is small", () => {
+    expect(pickBestModel(ids(["allam-2-7b", "gemma2-9b-it"]))).not.toBeNull()
+  })
+})
+
+describe("numbers in an id that are not versions", () => {
+  it("does not read a mixture-of-experts count as a version", () => {
+    // `llama-4-scout-17b-16e` read as version SIXTEEN and outranked every
+    // model any vendor has ever shipped.
+    expect(versionOf("meta-llama/llama-4-scout-17b-16e-instruct")).toBe(4)
+    expect(versionOf("meta-llama/llama-4-maverick-17b-128e-instruct")).toBe(4)
+  })
+
+  it("does not match a digit prefix inside a longer number", () => {
+    // `\d{1,2}` happily matches the "12" inside "128".
+    expect(versionOf("model-128e")).toBe(0)
+    expect(versionOf("ctx-256k-v2")).toBe(2)
+  })
+
+  it("still reads a real version next to a parameter count", () => {
+    expect(versionOf("llama-3.3-70b-versatile")).toBe(3.3)
+    expect(versionOf("qwen/qwen3-32b")).toBe(3)
   })
 })

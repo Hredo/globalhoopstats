@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm"
+import { and, desc, eq, sql } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
 import {
   leagues,
@@ -55,7 +55,12 @@ export const getPlayerForCompare = cached(
     .select({
       id: players.id,
       slug: players.slug,
-      fullName: players.firstName,
+      // Every other query in the app builds the name this way. This one
+      // selected `firstName` alone, so the whole compare screen — headers,
+      // stat rows, verdict and the AI brief — called each player by their
+      // first name only. Two players called Aaron came out as "Aaron vs
+      // Aaron", and the model quite reasonably asked which Aaron we meant.
+      fullName: sql<string>`concat(${players.firstName}, ' ', ${players.lastName})`,
       imageUrl: players.imageUrl,
       position: players.position,
       nationality: players.nationality,

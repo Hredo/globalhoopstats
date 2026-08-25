@@ -143,11 +143,20 @@ describe("playbook geometry", () => {
 describe("playbook AI description", () => {
   it("describes the sample play with frames, zones and actions", () => {
     const text = describePlay(createSamplePlay())
-    expect(text).toContain("Frame 1")
-    expect(text).toContain("Frame 4")
+    expect(text).toContain("FRAME 1")
+    expect(text).toContain("FRAME 4")
     expect(text).toContain("sets a screen")
     expect(text).toContain("passes to")
     expect(text).toMatch(/O1/)
+  })
+
+  it("labels frames without markdown headings", () => {
+    // Shown a document of "## " titles, a small model writes one back: a
+    // breakdown came out as "Frame 1 — 2-player Pick & Roll / Frame 2 —
+    // 3-player Pick & Roll", with the coach's question never answered.
+    for (const line of describePlay(createSamplePlay()).split("\n")) {
+      expect(line, line).not.toMatch(/^#{1,6}\s/)
+    }
   })
 
   it("hands the AI the shots and the on-court notes", () => {

@@ -2,7 +2,7 @@ import type { TeamProfile } from "@/lib/data/teams"
 import type { PlayerProfile } from "@/lib/data/players"
 import { formatStat, getLeagueBadge } from "@/lib/ai/local-advisor"
 import { supportsNativeWebSearch, type ChatMessage } from "@/lib/ai/chat"
-import { generateGroundedAnswer } from "@/lib/ai/answer"
+import { answerFailureMessage, generateGroundedAnswer } from "@/lib/ai/answer"
 import type { AiProvider } from "@/lib/ai/providers"
 import type { Locale } from "@/lib/i18n/config"
 import { aiLanguageDirective, aiLanguageName } from "@/lib/ai/language"
@@ -451,7 +451,11 @@ export async function generateAdvisorResponse(
     // Returned rather than stashed in a module-level variable: two requests in
     // flight at once would otherwise read each other's error.
     console.error(`[llm] ${answer.reason}: ${answer.error}`)
-    return { ok: false, error: answer.error }
+    // The vendor's own text goes to the log, not to the coach. What used to
+    // appear under the advisor was `Groq 429: {"error":{"message":"Rate limit
+    // reached for model allam-2-7b in organization org_01k…` — English, JSON,
+    // truncated mid-word, and no help to anybody.
+    return { ok: false, error: answerFailureMessage(answer, input.locale) }
   }
   return { ok: true, content: answer.text, model: answer.model }
 }

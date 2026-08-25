@@ -31,12 +31,18 @@ export function AiPanel({
         body: JSON.stringify({ play, question: question || undefined }),
       })
       const data = await res.json()
-      if (!res.ok) {
+      // The AI failing is reported in the payload, not in the status: a 5xx
+      // gets rewritten by Cloudflare and the reason never reaches the reader.
+      if (!res.ok || data.error) {
         setError(data.error ?? t("playbook.ai.error"))
         return
       }
       if (!data.aiConfigured) {
         setNeedsSetup(true)
+        return
+      }
+      if (!data.analysis) {
+        setError(t("playbook.ai.error"))
         return
       }
       onAnalysis(data.analysis)

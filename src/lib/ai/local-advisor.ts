@@ -1,6 +1,7 @@
 import type { TeamProfile } from "@/lib/data/teams"
 import type { PlayerProfile } from "@/lib/data/players"
 import { getPlayerBySlug } from "@/lib/data/players"
+import { getMarketPlayerBySlug } from "@/lib/market/pool"
 import { getDb } from "@/lib/db/client"
 import { leagues, playerSeasonStats, players, teams } from "@/lib/db/schema"
 import { and, asc, eq, like, or, sql, type SQL } from "drizzle-orm"
@@ -25,7 +26,12 @@ export type Recruit = {
   // Widened from the old NBA/EuroLeague/ACB union so DB-grounded candidates
   // from any league (ACB, Primera FEB / Segunda FEB, Tercera FEB) can flow through unchanged.
   league: string
-  age: number
+  /**
+   * Null when we do not know it. It used to be a bare `number`, which forced
+   * every caller to substitute 0 for "unknown" — and the card duly told
+   * coaches that Victor Wembanyama is 0 años.
+   */
+  age: number | null
   contractValue: string
   strengths: string[]
   fit: string
@@ -56,323 +62,6 @@ export type AdvisorOutput = {
   gap: string
   recommendations: Array<Recruit & { priority: string; priorityColor: string }>
   considerations: string[]
-}
-
-const RECRUITS: Record<string, Recruit[]> = {
-  defender: [
-    {
-      name: "Alex Caruso",
-      position: "Guard",
-      league: "NBA",
-      age: 30,
-      contractValue: "$9M",
-      strengths: ["Elite perimeter defense", "Basketball IQ", "Steals"],
-      fit: "Closes passing lanes, perimeter defensive anchor",
-      market: "Free agent / MLE",
-    },
-    {
-      name: "Marcus Smart",
-      position: "Shooting guard",
-      league: "NBA",
-      age: 30,
-      contractValue: "$18M",
-      strengths: ["2022 Defensive Player of the Year", "Leadership", "Versatility"],
-      fit: "Brings intensity and defensive communication",
-      market: "Trade",
-    },
-    {
-      name: "Jrue Holiday",
-      position: "Point guard",
-      league: "NBA",
-      age: 34,
-      contractValue: "$36M",
-      strengths: ["Elite defense", "Playoff experience", "Two-way play"],
-      fit: "Defensive point guard and competitive reference",
-      market: "Trade",
-    },
-    {
-      name: "Dyson Daniels",
-      position: "Point guard",
-      league: "NBA",
-      age: 21,
-      contractValue: "$7M",
-      strengths: ["NBA steals leader", "2.03m length", "Energy"],
-      fit: "Young defensive specialist with huge upside",
-      market: "Re-sign",
-    },
-    {
-      name: "Nicolas Batum",
-      position: "Forward",
-      league: "NBA",
-      age: 35,
-      contractValue: "$11M",
-      strengths: ["Defensive versatility", "Experience", "Three-point shot"],
-      fit: "Versatile veteran for the rotation",
-      market: "Free agent",
-    },
-    {
-      name: "Vincent Poirier",
-      position: "Center",
-      league: "EuroLeague",
-      age: 30,
-      contractValue: "€1.8M",
-      strengths: ["Rim protection", "Rebounding", "Shot blocking"],
-      fit: "Defensive interior anchor for the rotation",
-      market: "Free agent",
-    },
-  ],
-  scorer: [
-    {
-      name: "Buddy Hield",
-      position: "Shooting guard",
-      league: "NBA",
-      age: 31,
-      contractValue: "$21M",
-      strengths: ["Elite outside shooting", "Volume", "7m range"],
-      fit: "Opens up defenses with a quick three-point shot",
-      market: "Trade",
-    },
-    {
-      name: "Bogdan Bogdanovic",
-      position: "Wing",
-      league: "NBA",
-      age: 31,
-      contractValue: "$20M",
-      strengths: ["Shot creation", "Pick and pop", "Experience"],
-      fit: "Offense generator with European experience",
-      market: "Free agent",
-    },
-    {
-      name: "Khris Middleton",
-      position: "Small forward",
-      league: "NBA",
-      age: 33,
-      contractValue: "$33M",
-      strengths: ["Mid-range", "Clutch scorer", "Size"],
-      fit: "Secondary scorer for clutch situations",
-      market: "Trade",
-    },
-    {
-      name: "Malik Monk",
-      position: "Shooting guard",
-      league: "NBA",
-      age: 26,
-      contractValue: "$15M",
-      strengths: ["Sixth man", "Jump shot", "Creation"],
-      fit: "Scoring engine off the bench",
-      market: "Free agent",
-    },
-    {
-      name: "Dzanan Musa",
-      position: "Small forward",
-      league: "EuroLeague",
-      age: 25,
-      contractValue: "€3.5M",
-      strengths: ["Pure scorer", "One-on-one", "Jump shot"],
-      fit: "Scoring wing for a European rotation",
-      market: "Available",
-    },
-  ],
-  playmaker: [
-    {
-      name: "D'Angelo Russell",
-      position: "Point guard",
-      league: "NBA",
-      age: 28,
-      contractValue: "$19M",
-      strengths: ["Pick and roll", "Three-point shot", "Creation"],
-      fit: "Floor general with experience in modern systems",
-      market: "Trade",
-    },
-    {
-      name: "Mike Conley",
-      position: "Point guard",
-      league: "NBA",
-      age: 36,
-      contractValue: "$24M",
-      strengths: ["Veteran floor general", "Shooting", "Leadership"],
-      fit: "Mentor and starting playmaker, consummate professional",
-      market: "Free agent",
-    },
-    {
-      name: "Sergio Llull",
-      position: "Shooting guard",
-      league: "EuroLeague",
-      age: 36,
-      contractValue: "€2.5M",
-      strengths: ["Clutch shooting", "Speed", "Experience"],
-      fit: "Clutch veteran for the bench",
-      market: "Re-sign",
-    },
-    {
-      name: "Vasilije Micic",
-      position: "Point guard",
-      league: "EuroLeague",
-      age: 30,
-      contractValue: "€5M",
-      strengths: ["Pick and roll", "Shooting", "NBA experience"],
-      fit: "European point guard with NBA experience",
-      market: "Trade",
-    },
-  ],
-  wing: [
-    {
-      name: "Andrew Wiggins",
-      position: "Small forward",
-      league: "NBA",
-      age: 29,
-      contractValue: "$28M",
-      strengths: ["Athleticism", "Perimeter defense", "Transition"],
-      fit: "3&D with the motor to start",
-      market: "Trade",
-    },
-    {
-      name: "Tobias Harris",
-      position: "Power forward",
-      league: "NBA",
-      age: 32,
-      contractValue: "$39M",
-      strengths: ["Mid-range", "Size", "Versatility"],
-      fit: "Versatile forward for the four spot",
-      market: "Free agent",
-    },
-    {
-      name: "Kelly Oubre Jr.",
-      position: "Small forward",
-      league: "NBA",
-      age: 28,
-      contractValue: "$12M",
-      strengths: ["Athleticism", "Jump shot", "Energy"],
-      fit: "Athletic wing for small-ball lineups",
-      market: "Free agent",
-    },
-    {
-      name: "Mario Hezonja",
-      position: "Small forward",
-      league: "EuroLeague",
-      age: 29,
-      contractValue: "€4M",
-      strengths: ["Size", "Shooting", "Versatility"],
-      fit: "Complete European wing with NBA experience",
-      market: "Free agent",
-    },
-  ],
-  big: [
-    {
-      name: "Jonas Valanciunas",
-      position: "Center",
-      league: "NBA",
-      age: 32,
-      contractValue: "$18M",
-      strengths: ["Offensive rebounding", "Post-up", "Size"],
-      fit: "Classic center for the interior game",
-      market: "Trade",
-    },
-    {
-      name: "Al Horford",
-      position: "Center",
-      league: "NBA",
-      age: 38,
-      contractValue: "$9M",
-      strengths: ["Outside shooting", "Defense", "Versatility"],
-      fit: "Modern five with shooting, defense and experience",
-      market: "Free agent / MLE",
-    },
-    {
-      name: "Tibor Pleiss",
-      position: "Center",
-      league: "EuroLeague",
-      age: 35,
-      contractValue: "€2M",
-      strengths: ["2.21m size", "Shooting", "Experience"],
-      fit: "European center who can shoot",
-      market: "Free agent",
-    },
-    {
-      name: "Willy Hernangomez",
-      position: "Center",
-      league: "EuroLeague",
-      age: 30,
-      contractValue: "€1.5M",
-      strengths: ["Post moves", "Rebounding", "Toughness"],
-      fit: "Center with NBA and EuroLeague experience",
-      market: "Free agent",
-    },
-  ],
-  cheap: [
-    {
-      name: "Alex Len",
-      position: "Center",
-      league: "NBA",
-      age: 31,
-      contractValue: "Min",
-      strengths: ["2.13m size", "Rim protection", "Rebounding"],
-      fit: "Budget center for a short rotation",
-      market: "Veteran minimum",
-    },
-    {
-      name: "Lonnie Walker IV",
-      position: "Shooting guard",
-      league: "NBA",
-      age: 25,
-      contractValue: "Min",
-      strengths: ["Athleticism", "Jump shot", "Highlights"],
-      fit: "Young player with upside on a minimum deal",
-      market: "Veteran minimum",
-    },
-    {
-      name: "Juan Nuñez",
-      position: "Point guard",
-      league: "ACB",
-      age: 20,
-      contractValue: "€0.4M",
-      strengths: ["Court vision", "Speed", "Potential"],
-      fit: "Young Spanish point guard with NBA projection",
-      market: "Low buy-out",
-    },
-  ],
-  star: [
-    {
-      name: "Trae Young",
-      position: "Point guard",
-      league: "NBA",
-      age: 26,
-      contractValue: "$46M",
-      strengths: ["Pick and roll", "Deep range", "Assists"],
-      fit: "Offense-generating star",
-      market: "Star trade",
-    },
-    {
-      name: "Donovan Mitchell",
-      position: "Shooting guard",
-      league: "NBA",
-      age: 28,
-      contractValue: "$35M",
-      strengths: ["Elite scorer", "Speed", "Clutch"],
-      fit: "All-Star scoring guard",
-      market: "Star trade",
-    },
-    {
-      name: "Karl-Anthony Towns",
-      position: "Center",
-      league: "NBA",
-      age: 29,
-      contractValue: "$60M",
-      strengths: ["Three-point shot", "Post-up", "Rebounding"],
-      fit: "All-Star center with outside shooting",
-      market: "Star trade",
-    },
-    {
-      name: "Luka Doncic",
-      position: "Point guard",
-      league: "NBA",
-      age: 25,
-      contractValue: "$43M",
-      strengths: ["MVP calibre", "Triple-doubles", "Creation"],
-      fit: "Franchise-transforming talent, highest level",
-      market: "Superstar trade only",
-    },
-  ],
 }
 
 const INTENT_META: Record<
@@ -421,6 +110,22 @@ const INTENT_META: Record<
   },
 }
 
+/**
+ * There used to be a hand-written table of about forty real players here —
+ * name, age, salary, three English adjectives — used as the shortlist whenever
+ * the database returned no candidates.
+ *
+ * It was deleted because it was inventing things. "Buddy Hield · $21M · Elite
+ * outside shooting" is not data: the figure was typed by a person, the age was
+ * frozen at whatever it was the day it was written, and the card carrying it
+ * looked exactly like the cards built from real valuations next to it. Asked
+ * for CHEAPER options, it offered a $21M and a $33M contract, in English, on a
+ * Spanish page.
+ *
+ * The shortlist now comes only from `findCandidates` — real players, priced
+ * from our own valuations, scoped to the club's league. When that finds
+ * nobody, the honest answer is no shortlist, not a stale one.
+ */
 function getPositionBreakdown(
   roster: TeamProfile["roster"],
 ): Record<string, number> {
@@ -432,46 +137,6 @@ function getPositionBreakdown(
   return counts
 }
 
-function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
-
-function pickRecommendations(
-  intent: Intent,
-  count: number,
-  league: string,
-): Recruit[] {
-  let pool: Recruit[]
-  if (intent === "general") {
-    const intents: Intent[] = ["defender", "scorer", "playmaker", "wing", "big"]
-    pool = intents.flatMap((i) => RECRUITS[i] ?? [])
-  } else {
-    pool = RECRUITS[intent] ?? []
-  }
-
-  const lname = league.toLowerCase()
-  if (lname.includes("nba")) {
-    pool = pool.filter((r) => r.league === "NBA")
-  } else if (lname.includes("euro")) {
-    pool = [
-      ...pool.filter((r) => r.league === "EuroLeague"),
-      ...pool.filter((r) => r.league === "NBA").slice(0, 1),
-    ]
-  } else if (lname.includes("acb") || lname.includes("endesa")) {
-    pool = [
-      ...pool.filter((r) => r.league === "ACB"),
-      ...pool.filter((r) => r.league === "EuroLeague").slice(0, 1),
-      ...pool.filter((r) => r.league === "NBA").slice(0, 1),
-    ]
-  }
-
-  return shuffle(pool).slice(0, count)
-}
 
 function analyzeTeamGaps(
   roster: TeamProfile["roster"],
@@ -575,14 +240,13 @@ export async function buildLocalAdvice(
 ): Promise<AdvisorOutput> {
   const specific = await findPlayerInQuery(userMessage)
   if (specific) {
-    return buildPlayerSpecificAdvice(team, specific, locale)
+    return await buildPlayerSpecificAdvice(team, specific, locale, dbCandidates)
   }
 
   const intent = detectIntent(userMessage)
-  const recs =
-    dbCandidates && dbCandidates.length > 0
-      ? dbCandidates.slice(0, 3)
-      : pickRecommendations(intent, 3, team.league.name)
+  // No hand-written fallback any more: an empty shortlist is the truthful
+  // answer when we have nobody real to put in it.
+  const recs = dbCandidates?.slice(0, 3) ?? []
 
   return assembleAdvice({ team, intent, locale, recs })
 }
@@ -806,12 +470,14 @@ async function findPlayerInQuery(query: string): Promise<PlayerProfile | null> {
   const db = getDb()
   const nameLower = sql<string>`lower(concat(${players.firstName}, ' ', ${players.lastName}))`
 
-  // 1. Combined AND query: every token must match.
-  const andConditions = tokens.map((t) => like(nameLower, `%${t}%`))
-  let row: { slug: string; fullName: string } | undefined = await pickPlayer(
-    db,
-    and(...andConditions),
-  )
+  // 1. Combined AND query: every token must match. Skipped for a one-word
+  //    message, where it degenerates into the same loose substring match that
+  //    step 3 exists to avoid.
+  let row: { slug: string; fullName: string } | undefined
+  if (tokens.length >= 2) {
+    const andConditions = tokens.map((t) => like(nameLower, `%${t}%`))
+    row = await pickPlayer(db, and(...andConditions))
+  }
 
   // 2. If nothing matched, try pairwise combinations of the first tokens
   //    (handles "Doncic", "Luka Doncic", "Doncic Luka" by matching any
@@ -825,10 +491,22 @@ async function findPlayerInQuery(query: string): Promise<PlayerProfile | null> {
     row = await pickPlayer(db, or(...pairs))
   }
 
-  // 3. Last resort: any single token.
+  // 3. Last resort: a single token, but only if it IS somebody's SURNAME.
+  //
+  //    This used to be `like('%token%')` over the whole name, which is how
+  //    "dame jugadores más económicos que puedan cumplir" — give me cheaper
+  //    players — was read as a question about Dame Sarr, a EuroLeague guard
+  //    averaging 0.0 points, who was then presented to an NBA club as the
+  //    requested candidate. A Spanish imperative is not a scouting request.
+  //
+  //    Requiring the whole surname is what separates the two: "Doncic" and
+  //    "Wembanyama" still resolve on their own, while "dame", "quiero" and
+  //    "busco" match nothing, because they are first names at best and the
+  //    identifying half of a name is the last one.
   if (!row) {
-    const orConditions = tokens.map((t) => like(nameLower, `%${t}%`))
-    row = await pickPlayer(db, or(...orConditions))
+    const surnameLower = sql<string>`lower(${players.lastName})`
+    const exact = tokens.map((t) => eq(surnameLower, t))
+    row = await pickPlayer(db, or(...exact))
   }
 
   if (!row) return null
@@ -874,11 +552,13 @@ function estimateContractValue(
   return pick(locale, "Minimum / <€1M", "Mínimo / <€1M")
 }
 
-function buildPlayerSpecificAdvice(
+async function buildPlayerSpecificAdvice(
   team: TeamProfile,
   profile: PlayerProfile,
   locale: Locale = "en",
-): AdvisorOutput {
+  /** Real DB candidates to offer alongside the player the coach named. */
+  alternatives?: Recruit[],
+): Promise<AdvisorOutput> {
   const latest = profile.seasons[0]
   const age = null as number | null
 
@@ -966,7 +646,11 @@ function buildPlayerSpecificAdvice(
     )
   }
 
-  const alternativeRecs = pickRecommendations(intent, 2, team.league.name)
+  // Alternatives beside the player the coach asked about — real candidates
+  // only, and never the player himself.
+  const alternativeRecs = (alternatives ?? [])
+    .filter((r) => r.name !== profile.fullName)
+    .slice(0, 2)
 
   const alternative = (r: Recruit) => ({
     ...r,
@@ -975,6 +659,10 @@ function buildPlayerSpecificAdvice(
   })
 
   const positionLabel = profile.position ?? pick(locale, "Position N/A", "Posición N/D")
+
+  const valuationEur = await getMarketPlayerBySlug(profile.slug)
+    .then((m) => m?.valuation?.eur ?? null)
+    .catch(() => null)
 
   return {
     intent,
@@ -1015,8 +703,16 @@ function buildPlayerSpecificAdvice(
           | "NBA"
           | "EuroLeague"
           | "ACB",
-        age: age ?? 0,
-        contractValue: estimateContractValue(profile, locale),
+        age: age ?? null,
+        // The real valuation, the same one every other card on the site
+        // shows. `estimateContractValue` is only reached when we have not
+        // priced this player at all — and it hands back dollar bands on a
+        // euro-denominated site, which is why it is now the last resort
+        // rather than the first answer.
+        contractValue:
+          valuationEur != null
+            ? formatAdvisorEur(valuationEur)
+            : estimateContractValue(profile, locale),
         strengths,
         fit: fitParts.join(" "),
         market: pick(locale, "Custom evaluation", "Evaluación personalizada"),
@@ -1054,4 +750,12 @@ function buildPlayerSpecificAdvice(
       ),
     ],
   }
+}
+
+
+/** `€4.2 M` / `€850 K` — the same shape the market cards use. */
+function formatAdvisorEur(eur: number): string {
+  if (eur >= 1_000_000) return `€${(eur / 1_000_000).toFixed(1)}M`
+  if (eur >= 1_000) return `€${Math.round(eur / 1_000)}K`
+  return `€${Math.round(eur)}`
 }

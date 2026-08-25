@@ -32,7 +32,10 @@ const UNSTABLE = /(?:^|[-_.])(?:alpha|nightly|test|deprecated|legacy)(?:[-_.]|$)
  * per token. A user who wants the expensive one picks it themselves.
  */
 const TIER: Array<[RegExp, number]> = [
-  [/(?:^|[-_.])(?:mini|nano|tiny|lite|small|flash-?lite|haiku|instant|8b|4b|1b|3b)(?:[-_.:]|$)/i, -6],
+  // Parameter counts used to be listed here (`8b|4b|1b|3b`), which caught the
+  // four sizes somebody happened to think of and missed `7b`, `9b`, `2b`. Size
+  // is a number, `paramsOf` already reads it, and `sizeScore` now judges it.
+  [/(?:^|[-_.])(?:mini|nano|tiny|lite|small|flash-?lite|haiku|instant)(?:[-_.:]|$)/i, -6],
   [/(?:^|[-_.])(?:flash|turbo|fast|scout)(?:[-_.:]|$)/i, -2],
   [/(?:^|[-_.])(?:pro|opus|max|ultra|large|premier|405b|671b)(?:[-_.:]|$)/i, 2],
   [/(?:^|[-_.])(?:sonnet|flagship|standard|medium|maverick)(?:[-_.:]|$)/i, 4],
@@ -66,11 +69,17 @@ export function versionOf(id: string): number {
     .replace(/(20\d{2})-?\d{2}-?\d{2}/g, " ")
     .replace(/\b\d+x\d+b\b/gi, " ")
     .replace(/(?:^|[-_.:])\d{1,4}b\b/gi, " ")
+    // Mixture-of-experts counts: `llama-4-scout-17b-16e`, `maverick-…-128e`.
+    // Left in, the scout read as version SIXTEEN and outranked everything any
+    // vendor has ever shipped.
+    .replace(/(?:^|[-_.:])\d{1,4}e\b/gi, " ")
   // "3-5-sonnet" → "3.5-sonnet", so the pair reads as the decimal it is.
   const normalised = stripped.replace(/(?<![\d.])(\d)-(\d)(?![\d])/g, "$1.$2")
 
   let best = 0
-  for (const m of normalised.matchAll(/\d{1,2}(?:\.\d{1,2})?/g)) {
+  // The digit run has to be WHOLE. `\d{1,2}` on its own happily matches the
+  // "12" inside "128", so a 128-expert model came back as version 12.
+  for (const m of normalised.matchAll(/(?<![\d.])\d{1,2}(?:\.\d{1,2})?(?![\d])/g)) {
     const n = Number(m[0])
     // A context length is not a version either.
     if (Number.isFinite(n) && n > best && n < 100) best = n
@@ -119,17 +128,45 @@ function tierScore(id: string): number {
 }
 
 /**
+ * Under this many billion parameters a model cannot do the work this product
+ * asks of it — read a roster, weigh three candidates, write a paragraph a
+ * coach would act on.
+ */
+const SMALL_PARAMS = 14
+
+/**
+ * Big enough to matter, and not so small it should never be picked for you.
+ *
+ * The penalty is deliberately larger than a whole version bump. Groq serves
+ * `allam-2-7b`, a seven-billion-parameter Arabic model; under the old scoring
+ * it beat `gpt-oss-120b` on the strength of the "2" in its name and became the
+ * automatic pick, whereupon it answered a request for an interior defender by
+ * asking the coach where one might be found, and then ran out of tokens per
+ * minute. Its size was in its id the whole time.
+ *
+ * An id that does not state a size scores neutral rather than badly: most
+ * hosted flagships never mention one, and guessing against them would be worse
+ * than not guessing at all.
+ */
+function sizeScore(id: string): number {
+  const params = paramsOf(id)
+  if (params === 0) return 0
+  if (params < SMALL_PARAMS) return -2_500
+  return Math.min(params, 700) / 10
+}
+
+/**
  * How strongly we would recommend this model, higher is better.
  *
  * Version dominates, because "newest" is what a user means by "the latest
- * model" and what the vendor keeps improving. Everything else breaks ties.
+ * model" and what the vendor keeps improving. Size is the one thing allowed to
+ * override it: a brand-new 7B is still a 7B.
  */
 export function modelScore(id: string): number {
   const version = versionOf(id) * 1_000
   const date = dateStampOf(id) > 0 ? 200 : 0
-  const params = Math.min(paramsOf(id), 700) / 10
   const preview = PREVIEW.test(id) ? -300 : 0
-  return version + date + params + tierScore(id) * 100 + preview
+  return version + date + sizeScore(id) + tierScore(id) * 100 + preview
 }
 
 /**

@@ -75,9 +75,22 @@ describe("player scouting note prompt", () => {
 
   it("includes real zone percentages when they exist", () => {
     const prompt = build(REAL_ZONES)
-    expect(prompt).toContain("Shooting by zone (real, from shot-location data)")
+    expect(prompt).toContain("SHOOTING BY ZONE")
     expect(prompt).toContain("Paint: 60.0% (90/150)")
     expect(brief(REAL_ZONES)).toContain("Where he scores from")
+  })
+
+  it("labels the data block without markdown headings", () => {
+    // A model shown a document of "## " titles writes one back. A playbook
+    // breakdown came out as "Frame 1 — 2-player Pick & Roll / Frame 2 — …",
+    // and a scouting note came out as the zone table transcribed twice.
+    for (const line of build(REAL_ZONES).split("\n")) {
+      expect(line, line).not.toMatch(/^#{1,6}\s/)
+    }
+  })
+
+  it("asks for a conclusion about the zones, not a list of them", () => {
+    expect(brief(REAL_ZONES)).toMatch(/do not list the zones one by one/i)
   })
 
   it("ignores a zone with too few attempts to mean anything", () => {

@@ -111,3 +111,60 @@ export function inventsFigures(answer: string, data: string): boolean {
   if (unsupported.some((f) => Math.abs(f) >= MONEY_THRESHOLD)) return true
   return unsupported.length >= MAX_UNSUPPORTED
 }
+
+
+/**
+ * Did the model transcribe the data block instead of analysing it?
+ *
+ * A scouting note for Darius Garland came back as this, and nothing rejected
+ * it: "En la pista: * Pintura: 53.7% (158 goles de 294) * Lateral izquierdo
+ * (2PT): 62,5% (10 goles de 16) …" — the shot-zone table copied out, then
+ * copied out a second time under a different heading, and a closing line
+ * asking the coach to send more information. Every figure in it was real, so
+ * `inventsFigures` passed it; the labels were translated, so the shingle check
+ * for echoed instructions never matched either. What was missing was any
+ * judgement at all.
+ *
+ * Numbers per word is what separates the two. A note that says "he is a
+ * 53.7% finisher in the paint but disappears from the right wing" quotes two
+ * figures in a paragraph. A transcription quotes twenty in the same space —
+ * and it does it whatever language it translates the labels into, which is why
+ * this counts figures rather than words.
+ */
+
+/** Fewer figures than this and there is no dump to detect, whatever the ratio. */
+const MIN_DUMP_FIGURES = 10
+/** Figures per hundred words. A dense but genuine paragraph sits near three. */
+const MAX_FIGURES_PER_100_WORDS = 8
+/** `Left corner (3PT): 44.2% (38/86)` — a table row wearing a sentence's clothes. */
+const DATA_ROW = /^\s*(?:[-*•>]|\d+[.)])?\s*[^:\n]{1,48}:\s*[^\n]*\d/
+/** Enough rows that the shape is the answer, not a stray line inside one. */
+const MAX_DATA_ROWS = 4
+
+export function isDataDump(text: string): boolean {
+  // A markdown table is a legitimate way to compare the same three numbers
+  // across three players, and the house style allows exactly that. It is also
+  // dense by design, so judging density on it would reject the good case
+  // along with the bad one.
+  const prose = text
+    .split(/\r?\n/)
+    .filter((line) => !/^\s*\|/.test(line))
+    .join("\n")
+
+  const words = prose.split(/\s+/).filter(Boolean).length
+  if (words === 0) return false
+
+  const figures = extractFigures(prose).length
+  if (
+    figures >= MIN_DUMP_FIGURES &&
+    (figures * 100) / words > MAX_FIGURES_PER_100_WORDS
+  ) {
+    return true
+  }
+
+  // A model can also dump without being number-dense — the playbook breakdown
+  // came back as one "Frame N — …" paragraph per frame, restating the
+  // coordinates it had been given. Rows of `label: value` are that shape.
+  const rows = prose.split(/\r?\n/).filter((line) => DATA_ROW.test(line)).length
+  return rows > MAX_DATA_ROWS
+}

@@ -10,7 +10,16 @@
 import type { AiProvider } from "@/lib/ai/providers"
 import { safeOllamaBaseUrl } from "@/lib/security/ai-advisor"
 
-const TIMEOUT_MS = 120_000
+/**
+ * Ceiling for one provider call.
+ *
+ * This was 120s, which no hosting layer in front of us will wait for: nginx on
+ * the origin gives up first and the browser gets a 502 with an HTML body it
+ * cannot parse. `/api/market/trade/ai` was returning exactly that. Callers
+ * that answer inside a request should pass something tighter still — see the
+ * budget in `ai/answer.ts`, which has to fit TWO of these.
+ */
+const TIMEOUT_MS = 55_000
 
 export type ChatMessage = {
   role: "user" | "assistant"
