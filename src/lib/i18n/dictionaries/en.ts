@@ -336,6 +336,7 @@ export const en = {
       model: "Model",
       installedOnMachine: "Installed on this machine",
       fromProvider: "Live from the provider",
+      modelAuto: "Automatic — always the newest",
       loadingModels: "Loading models…",
       catalogueFallback:
         "Could not reach the provider — showing our list",

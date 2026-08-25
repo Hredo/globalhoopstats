@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
 import { newId } from "@/lib/db/schema"
 import { getEnv, getServerEnv } from "@/lib/env"
-import { clientIp } from "@/lib/security/ai-advisor"
+import { clientIp, readRateLimit } from "@/lib/security/ai-advisor"
 
 // Cap stored values so a malicious client can't bloat the table; the strings
 // are bound as parameters below, so they cannot break out of the query.
@@ -43,6 +43,19 @@ function visitorHash(ip: string, ua: string, secret: string): string {
 }
 
 export async function POST(request: Request) {
+  // Unauthenticated and it writes a row, so without a ceiling anyone with curl
+  // can inflate the table and poison the admin analytics for free. The
+  // in-memory limiter is deliberate: `consumeRateLimit` writes to the database
+  // itself, which on an endpoint that fires once per page view would double
+  // the very cost it is here to contain.
+  const limited = readRateLimit(clientIp(request), "track:page-view", 120, 2)
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Too many requests." },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } },
+    )
+  }
+
   const body = await request.json().catch(() => ({}))
   const { pageType, pageSlug, leagueSlug, referrer } = body ?? {}
 

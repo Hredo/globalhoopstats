@@ -145,3 +145,62 @@ describe("isMostlyHeadings", () => {
     )
   })
 })
+
+/**
+ * The two failures that reached real users after the prompts were rewritten:
+ * a model that answered with our own brief, and one that answered about
+ * players who were not in the deal.
+ */
+describe("echoesInstructions", () => {
+  const brief = [
+    "Te van a pasar los datos de los dos. Di a cuál te quedarías, para qué tipo de equipo y en qué rol, con la única razón que lo decide.",
+    "Prosa seguida y corta, sin listas, sin titulares y sin negrita. No repitas las cifras como un listado: usa dos como mucho.",
+  ].join("\n")
+
+  it("catches an answer that recites the brief back", async () => {
+    const { echoesInstructions } = await import("@/lib/ai/degeneration")
+    // Shipped to a user on the compare screen.
+    const echoed =
+      "Primero, voy a analizar algunos datos de cada jugador. Después, defino cuál sería el mejor elegido para un equipo y un rol, con la única razón que lo decide. Prosa seguida y corta, sin listas, sin titulares y sin negrita."
+    expect(echoesInstructions(echoed, brief)).toBe(true)
+  })
+
+  it("leaves a real answer alone", async () => {
+    const { echoesInstructions } = await import("@/lib/ai/degeneration")
+    const real =
+      "Me quedo con Doncic. Crea para todos sin perder anotación, y en un equipo que necesita un generador principal eso decide. Curry es la elección si ya tienes quien lleve el balón y lo que buscas es abrir la pista."
+    expect(echoesInstructions(real, brief)).toBe(false)
+  })
+
+  it("says no when there are no instructions to echo", async () => {
+    const { echoesInstructions } = await import("@/lib/ai/degeneration")
+    expect(echoesInstructions("cualquier cosa", "")).toBe(false)
+  })
+})
+
+describe("mentionsAnySubject", () => {
+  it("rejects a report about players who are not in the deal", async () => {
+    const { mentionsAnySubject } = await import("@/lib/ai/degeneration")
+    // Real output for a Maxey/Curry proposal.
+    const invented =
+      "Se propone traspasar a Tyrese Baskets (Paso 1) y Tyrese Baskets (Paso 2). El jugador tiene un valor de mercado estimado de 5,2 millones."
+    expect(
+      mentionsAnySubject(invented, ["Tyrese Maxey", "Stephen Curry"]),
+    ).toBe(false)
+  })
+
+  it("accepts the surname on its own", async () => {
+    const { mentionsAnySubject } = await import("@/lib/ai/degeneration")
+    expect(
+      mentionsAnySubject("Curry sigue siendo el mejor tirador del trato.", [
+        "Tyrese Maxey",
+        "Stephen Curry",
+      ]),
+    ).toBe(true)
+  })
+
+  it("passes when we have no names to check against", async () => {
+    const { mentionsAnySubject } = await import("@/lib/ai/degeneration")
+    expect(mentionsAnySubject("lo que sea", [])).toBe(true)
+  })
+})

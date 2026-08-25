@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next"
+import { headers } from "next/headers"
 import { Fraunces, Hanken_Grotesk, Space_Mono } from "next/font/google"
 import { Navbar } from "@/components/layout/navbar"
 import { CourtMarkings } from "@/components/ui/court-markings"
@@ -148,6 +149,10 @@ export default async function RootLayout({
   const locale = await getLocale()
   const dict = getDictionary(locale)
   await ensureOverridesLoaded()
+  // The CSP is nonce-based (middleware.ts). Next stamps its own inline scripts
+  // automatically; ours is ours to nonce, and without this the no-flash theme
+  // script is blocked and every visitor gets a white flash on load.
+  const nonce = (await headers()).get("x-nonce") ?? undefined
   return (
     <html
       lang={locale}
@@ -165,7 +170,7 @@ export default async function RootLayout({
         {/* Runs before paint to apply the saved theme (no dark→light flash).
             Lives as the first body node — a raw <script> may not be a direct
             child of <html>, and this still executes before content renders. */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <div
           aria-hidden
           className="court-backdrop pointer-events-none fixed inset-0 -z-10 flex items-center justify-center overflow-hidden"

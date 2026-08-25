@@ -80,9 +80,44 @@ export function detectOperation(q: string): MarketOperation {
   if (/buy-?out|cl[aá]usula|rescisi[oó]n/.test(s)) return "buyout"
   if (/compar|eval[uú]a|an[aá]lisis de|scouting|informe|qu[eé] tal es|c[oó]mo de bueno/.test(s))
     return "scouting"
-  if (/fich|\bsign\b|contrat|incorpora|refuerzo|agente libre|free agent|necesit|busc/.test(s))
+  if (
+    /fich|\bsign\b|contrat|incorpora|refuerz|agente libre|free agent|necesit|busc|recomien|recomend|sugier|sugerir|\bsuggest\b|me interesa|cubrir|tapar el hueco|mejorar (?:el|la|mi)|opci[oó]n|alternativ|deber[ií]a (?:fichar|traer|firmar)/.test(
+      s,
+    )
+  )
     return "signing"
   return "general"
+}
+
+/**
+ * Does this read as a question about basketball rather than about this club's
+ * next move? "¿Quién es el mejor base de la ACB?" — yes. "¿Quién me
+ * recomiendas para el poste?" — no, that is a signing question wearing a
+ * question mark.
+ *
+ * Deliberately narrow, and deliberately the ONLY way to lose the shortlist.
+ * `detectOperation` is a keyword router that misses plenty of real phrasings
+ * ("Quiero un defensor fuerte para el equipo" and "Una opción económica para
+ * la rotación" are two of our own suggested questions and neither used to
+ * match), so gating the candidate list on a positive market match made the
+ * advisor look broken for anything typed by hand: no shortlist reached the
+ * prompt, and the model answered from memory — which is how an NBA club got
+ * recommended a LEB player, once, with no price and no numbers.
+ *
+ * Getting this wrong in the "include the shortlist" direction costs a few
+ * unused lines of context. Getting it wrong the other way costs the feature.
+ */
+const KNOWLEDGE_OPENERS =
+  /^\s*[¿?]?\s*(qui[eé]n|cu[aá]l|qu[eé]|c[oó]mo|cu[aá]nt[oa]s?|cu[aá]ndo|d[oó]nde|por\s+qu[eé]|who|which|what|how|when|where|why)\b/i
+/** Any of these turns a question back into a market question. */
+const MARKET_WORDS =
+  /necesit|busc|fich|refuerz|recomien|recomend|sugier|contrat|traspas|cort(?:ar|e)|renov|plantilla|roster|cubrir|reforzar|mejorar|encaj|presupuest|budget|\bsign\b|\btrade\b|\bcut\b|\bneed\b|\blooking for\b/i
+
+export function looksLikeKnowledgeQuestion(message: string): boolean {
+  const s = message.trim()
+  if (s.length === 0) return false
+  if (MARKET_WORDS.test(s)) return false
+  return KNOWLEDGE_OPENERS.test(s)
 }
 
 /**

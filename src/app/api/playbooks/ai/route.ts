@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth/current-user"
-import { chatComplete } from "@/lib/ai/chat"
+import {
+  answerFailureMessage,
+  generateGroundedAnswer,
+} from "@/lib/ai/answer"
 import { aiLanguageDirective, replyLocale } from "@/lib/ai/language"
 import { houseStyle } from "@/lib/ai/prompt-copy"
 import { playbookInstructions } from "@/lib/ai/playbook-instructions"
-import { trimDegeneratedOutput } from "@/lib/ai/degeneration"
+import { supportsNativeWebSearch } from "@/lib/ai/chat"
 import {
   describeTeamProfiles,
   detectLeagueSlug,
@@ -15,15 +18,19 @@ import { getLocale } from "@/lib/i18n/server"
 import { describePlay } from "@/lib/playbook/describe"
 import { parsePlay } from "@/lib/playbook/types"
 import {
-  cleanLlmOutput,
-  cleanUserText,
+  audit,
   clientIp,
+  jsonError,
+  sanitisePromptInput,
+  screenPromptFields,
 } from "@/lib/security/ai-advisor"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
 
 export const dynamic = "force-dynamic"
 
 const MAX_QUESTION_LEN = 500
+/** Per text field on the play itself: a note is a note, not a document. */
+const MAX_PLAY_TEXT_LEN = 400
 
 export async function POST(request: Request) {
   const ip = clientIp(request)
@@ -47,10 +54,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid play document." }, { status: 400 })
   }
 
-  const question =
-    typeof body.question === "string"
-      ? cleanUserText(body.question).slice(0, MAX_QUESTION_LEN)
-      : ""
+  // The question is user text going into a prompt, and so are the play's own
+  // name, description, per-frame notes and on-court text labels — which are
+  // attacker-controlled the moment a play is imported from someone else's
+  // file. None of it used to be screened.
+  const asked = sanitisePromptInput(body.question, MAX_QUESTION_LEN)
+  const playFindings = screenPromptFields(
+    [
+      play.name,
+      play.description,
+      ...play.frames.map((f) => f.note),
+      ...play.elements.map((e) => e.label),
+    ],
+    MAX_PLAY_TEXT_LEN,
+  )
+  if (!asked.ok || playFindings.length > 0) {
+    audit("prompt-injection-blocked", {
+      ip,
+      route: "playbooks/ai",
+      findings: (asked.ok ? playFindings : asked.findings).slice(0, 5),
+    })
+    return jsonError(
+      "This play or question contains patterns that are not allowed. Rephrase it as a normal coaching question.",
+      400,
+    )
+  }
+  const question = asked.text
 
   const locale = await getLocale()
   // A coach who types the question in Spanish gets a Spanish answer, whatever
@@ -104,29 +133,34 @@ export async function POST(request: Request) {
   ].join("\n")
 
   try {
-    const llm = await chatComplete({
-      provider: engine.provider,
-      model: engine.model,
-      apiKey: engine.apiKey,
-      system: [
-        playbookInstructions(answerLocale),
-        "",
-        houseStyle(answerLocale),
-        "",
-        aiLanguageDirective(answerLocale),
-      ].join("\n"),
-      messages: [{ role: "user", content: userMessage }],
+    const system = [
+      playbookInstructions(answerLocale),
+      "",
+      houseStyle(answerLocale),
+      "",
+      aiLanguageDirective(answerLocale),
+    ].join("\n")
+    const answer = await generateGroundedAnswer({
+      engine,
+      system,
+      data: userMessage,
+      locale: answerLocale,
       maxTokens: 1200,
       temperature: 0.65,
+      webSearch: supportsNativeWebSearch(engine.provider),
+      // A good breakdown works distances and angles out from the metre
+      // coordinates it was given, so its numbers are derived rather than
+      // quoted. Numeric grounding is the wrong tool here; the rest applies.
+      checkFigures: false,
     })
-    if (!llm.ok) {
+    if (!answer.ok) {
       return NextResponse.json(
-        { error: "The AI engine failed to respond.", aiConfigured: true },
+        { error: answerFailureMessage(answer, answerLocale), aiConfigured: true },
         { status: 502 },
       )
     }
     return NextResponse.json({
-      analysis: cleanLlmOutput(trimDegeneratedOutput(llm.content).text),
+      analysis: answer.text,
       aiConfigured: true,
       provider: engine.provider.id,
     })

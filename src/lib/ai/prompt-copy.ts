@@ -125,6 +125,12 @@ export type PromptCopy = {
   knowledgeRule: string
   /** What to do when the only good fit costs more than the club can spend. */
   fundingRule: string
+  /**
+   * What a recommendation has to contain to be worth reading. Without this the
+   * model answers a "who should I sign?" question with a single bare name and
+   * no price, no club and no number behind it — which is a guess, not advice.
+   */
+  recommendationShape: string
 }
 
 const en: PromptCopy = {
@@ -226,6 +232,8 @@ const en: PromptCopy = {
     "Answer from what you know about basketball, the way any well-informed analyst would. Where the context above gives you a figure, use it. Where it does not, you can still talk about the player, the coach or the team — just never invent statistics, salaries or contract details, and say plainly when something is outside what you can check.",
   fundingRule:
     "Say how the club actually gets him. If your pick costs more than the ceiling for a single signing, or plays for another club, name who from the user's own roster you would offer in exchange or move on to fund it — with the value we have for that player — and whether the swap comes out even.",
+  recommendationShape:
+    "Give your pick first and then one or two real alternatives — one name on its own is not a shortlist. For every name you put forward say which club he is at now, what we estimate he is worth, at least one number from his own line (points, rebounds, three-point percentage) and, in a sentence, why he fits THIS roster and this budget rather than someone else's.",
 
   plainLanguage: [
     "Answer the question that was asked, in your first sentence. No preamble, no restating the question, no announcing what you are about to say.",
@@ -346,6 +354,8 @@ const es: PromptCopy = {
     "Responde con lo que sabes de baloncesto, como haría cualquier analista bien informado. Cuando el contexto de arriba te dé una cifra, úsala. Cuando no la tenga, puedes hablar igualmente del jugador, del entrenador o del equipo — pero no te inventes estadísticas, sueldos ni detalles de contrato, y di con naturalidad cuándo algo se te escapa.",
   fundingRule:
     "Di cómo se consigue de verdad. Si tu recomendación cuesta más que el techo para un solo fichaje, o juega en otro club, di a quién de la plantilla del usuario ofrecerías a cambio o traspasarías para financiarlo — con el valor que tenemos de ese jugador — y si el intercambio queda equilibrado.",
+  recommendationShape:
+    "Da primero tu elección y después una o dos alternativas reales — un solo nombre no es una terna. De cada nombre que propongas di en qué club está ahora, cuánto estimamos que vale, al menos un número de su propia línea (puntos, rebotes, porcentaje de triples) y, en una frase, por qué encaja en ESTA plantilla y en este presupuesto y no en la de otro.",
 
   plainLanguage: [
     "Responde a lo que te han preguntado, en la primera frase. Sin preámbulos, sin repetir la pregunta y sin anunciar lo que vas a contar.",

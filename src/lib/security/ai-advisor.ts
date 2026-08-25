@@ -140,6 +140,40 @@ export function cleanUserText(raw: string): string {
     .trim()
 }
 
+/**
+ * Schemes a link in AI output may use.
+ *
+ * The renderer turns `[text](url)` into an `<a href>`, and the model writes
+ * that URL — from a web search result, or from anything a user managed to talk
+ * it into repeating. `cleanLlmOutput` neutralises `href="javascript:…"` in raw
+ * HTML but never saw the markdown form, and while React happens to block a
+ * `javascript:` href today, `data:text/html` went through untouched. Relying
+ * on a framework side-effect for this is not a control.
+ *
+ * An allow-list rather than a block-list: the set of URL schemes a browser
+ * will execute is not something to keep up with by hand.
+ */
+const SAFE_LINK_SCHEMES = new Set(["http:", "https:", "mailto:"])
+
+/**
+ * The URL to put in an `href`, or null if it is not safe to link at all.
+ * Callers render the link text as plain text when this returns null.
+ */
+export function safeLinkHref(raw: string): string | null {
+  const url = raw.trim()
+  if (url.length === 0) return null
+  // Relative and anchor links never carry a scheme, and cannot execute.
+  if (/^[#/](?![/\\])/.test(url)) return url
+  try {
+    // A base is required for the parse to succeed on relative input; anything
+    // that resolves against it has no scheme of its own and was handled above.
+    const parsed = new URL(url)
+    return SAFE_LINK_SCHEMES.has(parsed.protocol) ? url : null
+  } catch {
+    return null
+  }
+}
+
 // Patterns that look like prompt-injection / jailbreak attempts.
 const INJECTION_PATTERNS: { re: RegExp; label: string }[] = [
   {
@@ -199,6 +233,54 @@ const INJECTION_PATTERNS: { re: RegExp; label: string }[] = [
 ]
 
 export type InjectionFinding = { label: string; match: string }
+
+export type PromptInput =
+  | { ok: true; text: string }
+  | { ok: false; findings: InjectionFinding[] }
+
+/**
+ * Clean, cap and screen a user-controlled string before it goes into a prompt.
+ *
+ * `detectInjection` existed for a year and only the advisor route ever called
+ * it, so every other surface fed user text to a model unscreened: the coach's
+ * playbook question, the free-text terms on a trade, the player names posted
+ * to compare, and — the one nobody would think of — the NAME, DESCRIPTION and
+ * per-frame NOTES inside a play document, which are attacker-controlled the
+ * moment a play is imported from a file someone else made.
+ *
+ * That gap matters more now than it did: the AI surfaces search the web with
+ * the user's own key, so an instruction smuggled into a frame note is an
+ * instruction with an outbound network call attached to it.
+ *
+ * Screening happens AFTER the cap, so padding an attack past the limit does
+ * not smuggle it through.
+ */
+export function sanitisePromptInput(raw: unknown, maxLen: number): PromptInput {
+  if (typeof raw !== "string" || raw.trim().length === 0) {
+    return { ok: true, text: "" }
+  }
+  const text = cleanUserText(raw).slice(0, maxLen)
+  const findings = detectInjection(text)
+  if (findings.length > 0) return { ok: false, findings }
+  return { ok: true, text }
+}
+
+/**
+ * Screen several fields at once and report the first that fails.
+ *
+ * Used for documents rather than single questions: a play carries a name, a
+ * description and a note per frame, and any one of them reaches the model.
+ */
+export function screenPromptFields(
+  fields: Array<unknown>,
+  maxLen: number,
+): InjectionFinding[] {
+  for (const field of fields) {
+    const result = sanitisePromptInput(field, maxLen)
+    if (!result.ok) return result.findings
+  }
+  return []
+}
 
 export function detectInjection(raw: string): InjectionFinding[] {
   const findings: InjectionFinding[] = []

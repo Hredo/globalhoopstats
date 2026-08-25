@@ -11,7 +11,12 @@ import {
   type Recruit,
 } from "@/lib/ai/local-advisor"
 import { generateAdvisorResponse } from "@/lib/ai/llm"
-import { detectIntent, detectOperation, isMarketOperation } from "@/lib/ai/intent"
+import {
+  detectIntent,
+  detectOperation,
+  isMarketOperation,
+  looksLikeKnowledgeQuestion,
+} from "@/lib/ai/intent"
 import { findCandidates, type Candidate } from "@/lib/market/candidates"
 import { getMarketPlayerBySlug } from "@/lib/market/pool"
 import { buildTradeScenarios } from "@/lib/market/trade"
@@ -475,8 +480,13 @@ export async function POST(request: Request) {
           // Only when the coach is actually shopping, though. "What do you
           // think of Curry?" wants an opinion, and "who is the best point
           // guard in the ACB?" wants an answer — neither wants six signings.
+          // Everything else keeps the cards: this must match the gate in
+          // buildSystemPrompt, or the prose and the cards disagree.
+          const marketQuestion =
+            isMarketOperation(operation) ||
+            !looksLikeKnowledgeQuestion(userMessage)
           const recs =
-            playerProfile || !isMarketOperation(operation)
+            playerProfile || !marketQuestion
               ? []
               : candidatesToRecruits(candidates, answerLocale)
           return NextResponse.json(

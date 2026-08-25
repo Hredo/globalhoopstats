@@ -358,20 +358,25 @@ function FeaturePicker({
 
   // Never show a model the engine cannot serve: if the saved pick is gone,
   // fall back to the first one that is actually available.
-  const currentModel = selected
-    ? modelOptions.some((m) => m.id === model)
-      ? (model as string)
-      : (modelOptions[0]?.id ?? resolveModel(selected, model))
-    : ""
+  // "" is a real choice — it means "whatever this provider's newest model is
+  // when the question is asked" — so it is never corrected away.
+  const isAuto = model === "" || model === null
+  const currentModel = !selected
+    ? ""
+    : isAuto
+      ? ""
+      : modelOptions.some((m) => m.id === model)
+        ? (model as string)
+        : (modelOptions[0]?.id ?? resolveModel(selected, model))
 
   // Discovery is async: the saved model may only turn out to be missing once
   // the provider answers. Write the corrected pick back into the draft so
   // saving persists the model the user can actually see selected.
   useEffect(() => {
-    if (selected && currentModel && currentModel !== model) {
+    if (selected && !isAuto && currentModel && currentModel !== model) {
       onChange(selected.id, currentModel)
     }
-  }, [selected, currentModel, model, onChange])
+  }, [selected, isAuto, currentModel, model, onChange])
 
   const modelHint = isLocal
     ? installedLocalModels.length > 0
@@ -397,10 +402,17 @@ function FeaturePicker({
               onChange(null, null)
               return
             }
+            // Empty means "auto": the server resolves the newest model the
+            // provider actually serves, at answer time. Pinning
+            // `p.defaultModel` here wrote a hand-maintained literal into the
+            // user's settings, and that literal goes stale — a retired id is a
+            // 404 at answer time, which is what "the AI stopped working"
+            // looked like. A local engine still gets a concrete tag, because
+            // there is no live list to resolve against on the server.
             const first =
               p.allowCustomModels && installedLocalModels.length > 0
                 ? installedLocalModels[0]
-                : p.defaultModel
+                : ""
             onChange(id, first)
           }}
         >
@@ -422,6 +434,7 @@ function FeaturePicker({
               value={currentModel}
               onChange={(e) => onChange(selected.id, e.target.value)}
             >
+              <option value="">{t("account.aiKeys.modelAuto")}</option>
               {modelOptions.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.label}

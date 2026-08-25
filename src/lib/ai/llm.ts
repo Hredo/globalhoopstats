@@ -1,7 +1,8 @@
 import type { TeamProfile } from "@/lib/data/teams"
 import type { PlayerProfile } from "@/lib/data/players"
 import { formatStat, getLeagueBadge } from "@/lib/ai/local-advisor"
-import { chatComplete, supportsNativeWebSearch, type ChatMessage } from "@/lib/ai/chat"
+import { supportsNativeWebSearch, type ChatMessage } from "@/lib/ai/chat"
+import { generateGroundedAnswer } from "@/lib/ai/answer"
 import type { AiProvider } from "@/lib/ai/providers"
 import type { Locale } from "@/lib/i18n/config"
 import { aiLanguageDirective, aiLanguageName } from "@/lib/ai/language"
@@ -15,7 +16,11 @@ import { valuationTierLabel, type Valuation } from "@/lib/market/valuation"
 import { singleSigningCap, type ClubBudget } from "@/lib/market/club-budgets"
 import type { RosterAnalysis } from "@/lib/market/roster"
 import { natFilterLabel, type NatFilter } from "@/lib/market/nationality"
-import { isMarketOperation, type MarketOperation } from "@/lib/ai/intent"
+import {
+  isMarketOperation,
+  looksLikeKnowledgeQuestion,
+  type MarketOperation,
+} from "@/lib/ai/intent"
 
 export type AdvisorHistoryMessage = {
   role: "user" | "assistant"
@@ -299,13 +304,16 @@ function advisorVoice(locale: Locale): AdvisorVoice {
 /**
  * Is this a question about moving players, or a question about basketball?
  *
- * Only the first kind gets the shortlist, the budget ceiling and the roster
- * breakdown. The second kind used to get all three anyway, which is why
- * "¿quién es el mejor base de la ACB?" came back as six replacement signings
- * nobody had asked for.
+ * Only the second kind loses the shortlist, the budget ceiling and the roster
+ * breakdown — "¿quién es el mejor base de la ACB?" does not want six
+ * replacement signings. Everything else keeps them, including phrasings
+ * `detectOperation` fails to classify: it is a keyword router, and gating the
+ * data on a positive match from it left most hand-typed questions with no
+ * candidates in the prompt at all.
  */
 function isMarketQuestion(input: GenerateAdvisorInput): boolean {
-  return isMarketOperation(input.operation ?? "general")
+  if (isMarketOperation(input.operation ?? "general")) return true
+  return !looksLikeKnowledgeQuestion(input.userMessage)
 }
 
 /**
@@ -370,7 +378,7 @@ export function buildSystemPrompt(input: GenerateAdvisorInput): string {
     // The closed list is about who you can PUT FORWARD, so it only appears
     // when there is a priced shortlist to put forward.
     closedList
-      ? `${copy.onlyListedPlayers} ${copy.fundingRule}`
+      ? `${copy.onlyListedPlayers} ${copy.recommendationShape} ${copy.fundingRule}`
       : copy.knowledgeRule,
     ``,
     houseStyle(input.locale),
@@ -410,28 +418,40 @@ export async function generateAdvisorResponse(
   input: GenerateAdvisorInput,
   engine: AdvisorEngine,
 ): Promise<AdvisorResult> {
-  const messages: ChatMessage[] = [
-    ...input.history.slice(-8),
-    { role: "user", content: input.userMessage },
-  ]
+  const system = buildSystemPrompt(input)
+  const canBrowse = supportsNativeWebSearch(engine.provider)
 
-  const result = await chatComplete({
-    provider: engine.provider,
-    model: engine.model,
-    apiKey: engine.apiKey,
-    system: buildSystemPrompt(input),
-    messages,
+  const answer = await generateGroundedAnswer({
+    engine,
+    system,
+    data: input.userMessage,
+    // The advisor's numbers live in the context block inside `system`, not in
+    // the coach's question.
+    groundingSource: system,
+    history: input.history.slice(-8) as ChatMessage[],
+    // Only when the question is about one identifiable person. A general
+    // question has no fixed subject, and demanding one would reject good
+    // answers.
+    subjects: input.playerProfile ? [input.playerProfile.fullName] : [],
+    locale: input.locale,
     maxTokens: 1100,
     temperature: 0.7,
     // Let Anthropic/Gemini browse with the user's own key (no Tavily needed).
-    webSearch: supportsNativeWebSearch(engine.provider),
+    webSearch: canBrowse,
+    // Check the figures when the shortlist IS the source of truth. On a
+    // general basketball question the model answers from training, and there
+    // is nothing of ours to check it against. When it can browse, an outside
+    // figure still passes — but only with a citation next to it.
+    checkFigures: isMarketQuestion(input),
+    // A follow-up in a chat is legitimately two sentences long.
+    requireLength: false,
   })
 
-  if (!result.ok) {
+  if (!answer.ok) {
     // Returned rather than stashed in a module-level variable: two requests in
     // flight at once would otherwise read each other's error.
-    console.error(`[llm] ${result.error}`)
-    return { ok: false, error: result.error }
+    console.error(`[llm] ${answer.reason}: ${answer.error}`)
+    return { ok: false, error: answer.error }
   }
-  return { ok: true, content: result.content, model: result.model }
+  return { ok: true, content: answer.text, model: answer.model }
 }

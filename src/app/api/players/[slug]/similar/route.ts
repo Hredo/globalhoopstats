@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { clientIp, readRateLimit } from "@/lib/security/ai-advisor"
 import { findSimilarPlayers } from "@/lib/market/similarity"
 import { leagueSlugsFor } from "@/lib/league-groups"
 
@@ -18,6 +19,17 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ slug: string }> },
 ) {
+  // Public, uncached per slug (the cardinality is every player we hold), and
+  // each call fans out into the market pool. Enumerating the slug space was
+  // free.
+  const limited = readRateLimit(clientIp(request), "players:similar", 60, 1)
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Too many requests." },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } },
+    )
+  }
+
   const { slug } = await context.params
   if (!slug || slug.length > 120) {
     return NextResponse.json({ error: "Invalid slug." }, { status: 400 })
