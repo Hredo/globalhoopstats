@@ -13,6 +13,7 @@
  */
 import type { AiModel, AiProvider } from "@/lib/ai/providers"
 import { isPlausibleModelId } from "@/lib/ai/providers"
+import { pickBestModel, rankModels } from "@/lib/ai/model-ranking"
 import { safeOllamaBaseUrl } from "@/lib/security/ai-advisor"
 
 const TIMEOUT_MS = 15_000
@@ -33,7 +34,14 @@ async function withTimeout<T>(
   }
 }
 
-/** Keep only ids we would be willing to send back out in a chat request. */
+/**
+ * Keep only ids we would be willing to send back out in a chat request, and
+ * put the newest first.
+ *
+ * This used to sort alphabetically, which is how a picker offered
+ * `gpt-3.5-turbo` above `gpt-5` and listed embedding and image models a chat
+ * call would have 400'd on. `rankModels` drops those and orders by version.
+ */
 function clean(models: AiModel[]): AiModel[] {
   const seen = new Set<string>()
   const out: AiModel[] = []
@@ -43,7 +51,7 @@ function clean(models: AiModel[]): AiModel[] {
     seen.add(id)
     out.push({ id, label: m.label?.trim() || id })
   }
-  return out.sort((a, b) => a.id.localeCompare(b.id))
+  return rankModels(out)
 }
 
 async function failure(res: Response, name: string): Promise<ModelListResult> {
@@ -176,4 +184,51 @@ export async function listProviderModels(
       error: err instanceof Error ? err.message : "Could not list models.",
     }
   }
+}
+
+/**
+ * The model to use when the user has NOT pinned one.
+ *
+ * `provider.defaultModel` is a hand-written literal, and a literal goes stale:
+ * it has broken the AI twice, once on Ollama and once on Groq, with a 404
+ * `model_not_found` that looked to the user like "the AI stopped working". So
+ * the live list decides, and the catalogue is only the fallback of last resort.
+ *
+ * Cached per provider+key, because this sits in the path of every single
+ * advisor request and a models round-trip per answer is not acceptable. A
+ * short TTL is enough — a vendor shipping a new flagship is a daily event at
+ * worst, not a per-request one.
+ */
+const BEST_MODEL_TTL_MS = 6 * 60 * 60 * 1000
+const bestModelCache = new Map<string, { id: string; expires: number }>()
+
+function cacheKey(provider: AiProvider, apiKey: string | null): string {
+  // Never the key itself: this map outlives the request and is read by id.
+  const fingerprint = apiKey ? apiKey.slice(-6) : "local"
+  return `${provider.id}:${fingerprint}`
+}
+
+export async function resolveBestModel(
+  provider: AiProvider,
+  apiKey: string | null,
+): Promise<string> {
+  const key = cacheKey(provider, apiKey)
+  const hit = bestModelCache.get(key)
+  if (hit && hit.expires > Date.now()) return hit.id
+
+  const listed = await listProviderModels(provider, apiKey)
+  const best = listed.ok ? pickBestModel(listed.models) : null
+  const chosen = best ?? provider.defaultModel
+  bestModelCache.set(key, {
+    id: chosen,
+    // A failed lookup is cached briefly too, so a provider that is down does
+    // not get hammered once per answer.
+    expires: Date.now() + (best ? BEST_MODEL_TTL_MS : 5 * 60 * 1000),
+  })
+  return chosen
+}
+
+/** Exported for tests: the cache is module state and would leak between them. */
+export function clearBestModelCache(): void {
+  bestModelCache.clear()
 }

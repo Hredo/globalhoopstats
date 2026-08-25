@@ -14,6 +14,7 @@ import {
   type AiFeature,
   type AiProvider,
 } from "@/lib/ai/providers"
+import { resolveBestModel } from "@/lib/ai/models"
 import { decryptSecret } from "@/lib/security/secrets"
 
 export type UserSettingsView = {
@@ -130,18 +131,46 @@ export type ResolvedEngine =
  *   AI_DEFAULT_MODEL     — model id (optional, falls back to provider default)
  *   AI_DEFAULT_API_KEY   — API key for the provider (required if needsKey)
  */
+/**
+ * Which model to actually send.
+ *
+ * A pinned choice is the user's and is respected as-is. With nothing pinned we
+ * ask the provider what it serves today and take the newest capable one, so a
+ * vendor shipping a new flagship reaches every user without a code change —
+ * and a retired id never reaches the API as a 404 `model_not_found`, which is
+ * the failure that twice looked like "the AI stopped working".
+ */
+async function pickModel(
+  provider: AiProvider,
+  pinned: string | null,
+  apiKey: string | null,
+): Promise<string> {
+  if (pinned?.trim()) return resolveModel(provider, pinned)
+  return resolveBestModel(provider, apiKey)
+}
+
 export async function resolveDefaultEngine(): Promise<ResolvedEngine> {
   const providerId = process.env.AI_DEFAULT_PROVIDER
   if (!providerId) return { ok: false, reason: "not_selected" }
   const provider = getProvider(providerId)
   if (!provider) return { ok: false, reason: "unknown_provider", providerId }
-  const model = resolveModel(provider, process.env.AI_DEFAULT_MODEL ?? null)
+  const pinned = process.env.AI_DEFAULT_MODEL ?? null
   if (!provider.needsKey) {
-    return { ok: true, provider, model, apiKey: null }
+    return {
+      ok: true,
+      provider,
+      model: await pickModel(provider, pinned, null),
+      apiKey: null,
+    }
   }
   const apiKey = process.env.AI_DEFAULT_API_KEY
   if (!apiKey) return { ok: false, reason: "no_key", providerId }
-  return { ok: true, provider, model, apiKey }
+  return {
+    ok: true,
+    provider,
+    model: await pickModel(provider, pinned, apiKey),
+    apiKey,
+  }
 }
 
 export async function resolveEngine(
@@ -158,10 +187,13 @@ export async function resolveEngine(
   const provider = getProvider(providerId)
   if (!provider) return resolveDefaultEngine()
 
-  const model = resolveModel(provider, modelPref)
-
   if (!provider.needsKey) {
-    return { ok: true, provider, model, apiKey: null }
+    return {
+      ok: true,
+      provider,
+      model: await pickModel(provider, modelPref, null),
+      apiKey: null,
+    }
   }
 
   const apiKey = await getDecryptedKey(userId, providerId)
@@ -184,5 +216,10 @@ export async function resolveEngine(
     }
     return { ok: false, reason: "decrypt_failed", providerId }
   }
-  return { ok: true, provider, model, apiKey }
+  return {
+    ok: true,
+    provider,
+    model: await pickModel(provider, modelPref, apiKey),
+    apiKey,
+  }
 }

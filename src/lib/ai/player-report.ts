@@ -124,31 +124,74 @@ export function buildPlayerPrompt(
     leagueContext,
     shotChartStr ? "" : null,
     shotChartStr,
+  ]
+    .filter((line): line is string => line !== null)
+    .join("\n")
+}
+
+/**
+ * The brief for a scouting note, in the reader's language.
+ *
+ * Split out of `buildPlayerPrompt` because everything below used to be
+ * appended to the DATA and sent in the user turn. A small model reads the user
+ * turn as material rather than as orders and answers it — the compare screen
+ * shipped a translated paraphrase of its own brief to a user for exactly this
+ * reason. Instructions go in `system`; the user turn carries the numbers.
+ */
+export function playerReportSystem(
+  locale: Locale,
+  opts: { hasShotChart: boolean; canBrowse: boolean },
+): string {
+  const copy = promptCopy(locale)
+  const labels = REPORT_LABELS[locale] ?? REPORT_LABELS.en
+  const es = locale === "es"
+  return [
+    es
+      ? "Eres un ojeador de baloncesto con experiencia y le escribes una nota corta a un entrenador que no ha visto nunca a este jugador."
+      : "You are an experienced basketball scout writing a short note for a coach who has never seen this player.",
+    es
+      ? "Te van a pasar sus datos. Mójate y sé concreto: ata cada afirmación a los números que tienes, y no llames a nadie \"sólido\" o \"versátil\" sin decir qué lo hace serlo."
+      : "You will be given his numbers. Be specific and commit to an opinion: anchor every claim to the numbers you have, and never call someone 'solid' or 'versatile' without saying what makes them so.",
+    es
+      ? "Habla solo de lo que te han dado. No te inventes contratos, lesiones, premios ni porcentajes de tiro."
+      : "Only discuss what you were given. Do not invent contracts, injuries, awards or shooting splits.",
     "",
-    aiLanguageDirective(locale),
+    es
+      ? "Una nota que un entrenador pueda leer en menos de un minuto. Cubre, en este orden, y SOLO donde tengas algo concreto que decir:"
+      : "A note a coach could read in under a minute. Cover, in this order, and ONLY where you have something concrete to say:",
+    es
+      ? `- ${labels.onCourt} — qué le da de verdad a un equipo, a partir de sus números. Donde tengas la comparación con la liga, júzgalo contra ella en vez de soltar el dato en bruto.`
+      : `- ${labels.onCourt} — what he actually gives a team, from his numbers. Where you have the league comparison, judge him against it rather than quoting the raw figure.`,
+    es
+      ? `- ${labels.weakness} — dónde te cuesta caro. Esta no te la saltes nunca: una nota sin debilidades no sirve de nada.`
+      : `- ${labels.weakness} — where he costs you. Never skip this one; a note with no weaknesses is useless.`,
+    es
+      ? `- ${labels.value} — ¿es justo el precio estimado para esa producción?`
+      : `- ${labels.value} — is the estimated price fair for that production?`,
+    opts.hasShotChart
+      ? es
+        ? `- ${labels.shooting} — desde dónde anota, según los datos por zonas.`
+        : `- ${labels.shooting} — where on the floor he scores from, based on the zone data.`
+      : null,
+    opts.canBrowse
+      ? es
+        ? `- ${labels.reputation} — qué dicen la prensa y la afición de él, y cualquier cosa de fuera de la pista que importe. Cita las fuentes como [nombre](url).`
+        : `- ${labels.reputation} — what press and fans say about him, and anything off-court that matters. Cite sources as [name](url).`
+      : null,
+    "",
+    es
+      ? `Formato: un párrafo corto por punto, cada uno abriendo con la etiqueta en negrita y un punto, así: "**${labels.onCourt}.** Es…". Sin viñetas, sin titulares y sin tablas.`
+      : `Format: one short paragraph per point, each opening with the label in bold followed by a full stop, like "**${labels.onCourt}.** He is…". No bullet lists, no headings, no tables.`,
+    es
+      ? "De dos a cuatro frases por punto. Cierra con un veredicto tuyo de una línea, no con un resumen de lo anterior."
+      : "Two to four sentences per point. Finish with a one-line verdict of your own, not a summary of the above.",
+    es
+      ? "Si te falta un punto, déjalo fuera en vez de escribir que no tienes el dato — nunca le cuentes al lector lo que no has podido hacer."
+      : "Leave a point out entirely rather than writing that you lack the data for it — never tell the reader what you could not do.",
     "",
     copy.plainLanguage.join("\n"),
     "",
-    [
-      "Write a short scouting note a coach could read in under a minute.",
-      "",
-      "Cover, in this order, and ONLY where you have something concrete to say:",
-      `- ${labels.onCourt} — what he actually gives a team, from his numbers. Where you have the league comparison, judge him against it rather than quoting the raw figure.`,
-      `- ${labels.weakness} — where he costs you. Never skip this one; a note with no weaknesses is useless.`,
-      `- ${labels.value} — is the estimated price fair for that production?`,
-      shotChartStr
-        ? `- ${labels.shooting} — where on the floor he scores from, based on the zone data above.`
-        : null,
-      canBrowse
-        ? `- ${labels.reputation} — what press and fans say about him, and anything off-court that matters. Cite sources as [name](url).`
-        : null,
-      "",
-      "Format: one short paragraph per point, each opening with the label in bold followed by a full stop, like \"**" + labels.onCourt + ".** He is…\". No bullet lists, no headings, no tables.",
-      "Two to four sentences per point. Finish with a one-line verdict of your own, not a summary of the above.",
-      "Leave a point out entirely rather than writing that you lack the data for it — never tell the reader what you could not do.",
-    ]
-      .filter((line) => line !== null)
-      .join("\n"),
+    aiLanguageDirective(locale),
   ]
     .filter((line): line is string => line !== null)
     .join("\n")

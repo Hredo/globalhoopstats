@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { safeLinkHref } from "@/lib/security/ai-advisor"
 
 // `***both***` must come first: the `**bold**` alternative cannot match it
 // (its inner class excludes `*`), so without this the outer markers were left
@@ -54,10 +55,14 @@ export function renderInline(text: string): ReactNode[] {
     const linkMatch = part.match(LINK_PATTERN)
     if (linkMatch) {
       const [, linkText, linkUrl] = linkMatch
+      const href = safeLinkHref(linkUrl)
+      // A link we will not follow is still text worth reading. Rendering the
+      // label without the href beats dropping the sentence it sits in.
+      if (!href) return <span key={i}>{linkText}</span>
       return (
         <a
           key={i}
-          href={linkUrl}
+          href={href}
           target="_blank"
           rel="noopener noreferrer"
           className="font-medium text-brand-300 underline decoration-brand-500/30 underline-offset-2 transition hover:text-brand-200 hover:decoration-brand-500/60"

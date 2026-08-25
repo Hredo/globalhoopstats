@@ -134,10 +134,17 @@ describe("buildSystemPrompt", () => {
     }
   })
 
-  it("keeps the shortlist framing off a question that is not about signing", () => {
+  it("keeps the shortlist framing off a genuine basketball question", () => {
+    // The message matters as much as the operation: "I need a scoring wing" is
+    // a signing question however `detectOperation` classifies it, so only a
+    // real knowledge question loses the shortlist.
     for (const locale of ["en", "es"] as const) {
       const prompt = buildSystemPrompt(
-        input(locale, { operation: "general", candidates: withCandidate(locale).candidates }),
+        input(locale, {
+          operation: "general",
+          userMessage: "¿Quién es el mejor base de la ACB?",
+          candidates: withCandidate(locale).candidates,
+        }),
       )
       expect(prompt).not.toContain(promptCopy(locale).candidatesHeading)
       expect(prompt).not.toContain(promptCopy(locale).operationHeading)
@@ -174,5 +181,81 @@ describe("promptCopy", () => {
     expect(Object.keys(promptCopy("es").operation).sort()).toEqual(
       Object.keys(promptCopy("en").operation).sort(),
     )
+  })
+})
+
+/**
+ * The regression that made the advisor look broken: gating the candidate list
+ * on a positive `detectOperation` match. It is a keyword router that misses
+ * most real phrasings, so hand-typed questions reached the model with no
+ * shortlist at all — and the model answered from memory, which is how an NBA
+ * club was recommended a LEB player, with no price and no numbers.
+ */
+describe("looksLikeKnowledgeQuestion", () => {
+  it("lets every one of our own suggested questions keep the shortlist", async () => {
+    const { looksLikeKnowledgeQuestion } = await import("@/lib/ai/intent")
+    for (const q of [
+      "Quiero un defensor fuerte para el equipo",
+      "Necesito un alero anotador",
+      "Busco un base organizador",
+      "Refuerzo para el juego interior",
+      "Una opción económica para la rotación",
+      "Fichaje estrella con impacto inmediato",
+    ]) {
+      expect(looksLikeKnowledgeQuestion(q), q).toBe(false)
+    }
+  })
+
+  it("keeps the shortlist for hand-typed asks the keyword router misses", async () => {
+    const { looksLikeKnowledgeQuestion } = await import("@/lib/ai/intent")
+    for (const q of [
+      "¿Quién me recomiendas para el poste bajo?",
+      "¿Qué opciones tengo para reforzar el perímetro?",
+      "¿Cuál encaja mejor en mi plantilla?",
+      "who should I sign to fix my rebounding",
+    ]) {
+      expect(looksLikeKnowledgeQuestion(q), q).toBe(false)
+    }
+  })
+
+  it("drops it only for a genuine basketball question", async () => {
+    const { looksLikeKnowledgeQuestion } = await import("@/lib/ai/intent")
+    for (const q of [
+      "¿Quién es el mejor base de la ACB?",
+      "¿Cómo funciona el cupo de extracomunitarios?",
+      "¿Cuántos títulos tiene el Madrid?",
+      "who is the best rebounder in the EuroLeague",
+    ]) {
+      expect(looksLikeKnowledgeQuestion(q), q).toBe(true)
+    }
+  })
+
+  it("says no on an empty message rather than guessing", async () => {
+    const { looksLikeKnowledgeQuestion } = await import("@/lib/ai/intent")
+    expect(looksLikeKnowledgeQuestion("   ")).toBe(false)
+  })
+})
+
+describe("a recommendation has to be worth reading", () => {
+  it("asks for alternatives, a club, a price and a number", async () => {
+    // The advisor came back with a single bare name and nothing behind it.
+    for (const locale of ["en", "es"] as const) {
+      const prompt = buildSystemPrompt(withCandidate(locale))
+      expect(prompt).toContain(promptCopy(locale).recommendationShape)
+      expect(prompt).toMatch(/alternativ/i)
+    }
+  })
+
+  it("keeps the shortlist on a question detectOperation cannot classify", () => {
+    for (const locale of ["en", "es"] as const) {
+      const prompt = buildSystemPrompt(
+        input(locale, {
+          operation: "general",
+          userMessage: "¿Cuál encaja mejor en mi plantilla?",
+          candidates: withCandidate(locale).candidates,
+        }),
+      )
+      expect(prompt).toContain(promptCopy(locale).candidatesHeading)
+    }
   })
 })

@@ -1,18 +1,28 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth/current-user"
 import { resolveEngine } from "@/lib/ai/user-provider"
-import { chatComplete } from "@/lib/ai/chat"
+import {
+  answerFailureMessage,
+  generateGroundedAnswer,
+} from "@/lib/ai/answer"
+import { supportsNativeWebSearch } from "@/lib/ai/chat"
 import { aiLanguageDirective, replyLocale } from "@/lib/ai/language"
 import { tradeInstructions } from "@/lib/ai/trade-instructions"
 import { getLocale } from "@/lib/i18n/server"
 import type { Locale } from "@/lib/i18n/config"
-import { cleanLlmOutput, clientIp } from "@/lib/security/ai-advisor"
+import {
+  audit,
+  clientIp,
+  sanitisePromptInput,
+} from "@/lib/security/ai-advisor"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
-import { trimDegeneratedOutput } from "@/lib/ai/degeneration"
 import { formatEur } from "@/lib/market/league-strength"
 import { valuationTierLabel } from "@/lib/market/valuation"
 
 export const dynamic = "force-dynamic"
+
+/** Extra conditions on a trade are a sentence or two, not a document. */
+const MAX_TERMS_LEN = 600
 
 type PlayerInfo = {
   name: string
@@ -55,7 +65,7 @@ type TradeAiBody = {
  * Data-block labels in the reader's language.
  *
  * The block used to be written in English under a Spanish system message and
- * Spanish instructions. A model handed "## Financial summary" and told to write
+ * Spanish instructions. A model handed "Financial summary" and told to write
  * in Spanish copies the heading it was given — which is exactly the mixed-
  * language output this fixes.
  */
@@ -92,10 +102,10 @@ type TradeLabels = {
 
 const LABELS: Record<Locale, TradeLabels> = {
   en: {
-    simHeading: "# Trade simulation",
+    simHeading: "Trade simulation",
     simIntro:
       "These scenarios were generated automatically from our own heuristic valuations.",
-    playerToTrade: (name) => `## Player to trade: ${name}`,
+    playerToTrade: (name) => `Player to trade: ${name}`,
     position: "Position",
     team: "Team",
     league: "League",
@@ -103,18 +113,18 @@ const LABELS: Record<Locale, TradeLabels> = {
     annualSalary: "Estimated annual salary",
     rating: "Rating",
     profile: "Profile",
-    scenarios: "## Scenarios",
+    scenarios: "Scenarios",
     scenario: (n, verdict, balance) =>
-      `### Scenario ${n}: ${verdict} (balance ${balance})`,
+      `Scenario ${n}: ${verdict} (balance ${balance})`,
     combined: "Combined value received",
     includes: "Players included:",
     stats: "Stats",
-    customHeading: "# Trade proposal",
+    customHeading: "Trade proposal",
     customIntro: "The user has put this proposal together:",
-    youGive: "## Players you give",
-    youReceive: "## Players you receive",
+    youGive: "Players you give",
+    youReceive: "Players you receive",
     freeAgent: "free agent",
-    financial: "## The numbers",
+    financial: "The numbers",
     totalGiven: (total, cash) => `Total value given: ${total} (includes ${cash} in cash)`,
     totalReceived: "Total value received",
     balance: (v) =>
@@ -122,13 +132,13 @@ const LABELS: Record<Locale, TradeLabels> = {
     balanced: "Status: balanced",
     giveMore: "Status: you give more value than you receive",
     receiveMore: "Status: you receive more value than you give",
-    terms: "## Additional terms",
+    terms: "Additional terms",
   },
   es: {
-    simHeading: "# Simulación de traspaso",
+    simHeading: "Simulación de traspaso",
     simIntro:
       "Estos escenarios se han generado automáticamente con nuestras propias valoraciones heurísticas.",
-    playerToTrade: (name) => `## Jugador a traspasar: ${name}`,
+    playerToTrade: (name) => `Jugador a traspasar: ${name}`,
     position: "Posición",
     team: "Equipo",
     league: "Liga",
@@ -136,18 +146,18 @@ const LABELS: Record<Locale, TradeLabels> = {
     annualSalary: "Sueldo anual estimado",
     rating: "Rating",
     profile: "Perfil",
-    scenarios: "## Escenarios",
+    scenarios: "Escenarios",
     scenario: (n, verdict, balance) =>
-      `### Escenario ${n}: ${verdict} (balance ${balance})`,
+      `Escenario ${n}: ${verdict} (balance ${balance})`,
     combined: "Valor combinado recibido",
     includes: "Jugadores incluidos:",
     stats: "Estadísticas",
-    customHeading: "# Propuesta de traspaso",
+    customHeading: "Propuesta de traspaso",
     customIntro: "El usuario ha montado esta propuesta:",
-    youGive: "## Jugadores que entregas",
-    youReceive: "## Jugadores que recibes",
+    youGive: "Jugadores que entregas",
+    youReceive: "Jugadores que recibes",
     freeAgent: "agente libre",
-    financial: "## Los números",
+    financial: "Los números",
     totalGiven: (total, cash) => `Valor total entregado: ${total} (incluye ${cash} en efectivo)`,
     totalReceived: "Valor total recibido",
     balance: (v) =>
@@ -155,7 +165,7 @@ const LABELS: Record<Locale, TradeLabels> = {
     balanced: "Situación: equilibrado",
     giveMore: "Situación: entregas más valor del que recibes",
     receiveMore: "Situación: recibes más valor del que entregas",
-    terms: "## Condiciones adicionales",
+    terms: "Condiciones adicionales",
   },
 }
 
@@ -260,20 +270,32 @@ function buildPrompt(body: TradeAiBody, locale: Locale): string {
     lines.push(body.terms)
   }
 
-  lines.push("")
-  lines.push("---")
-  lines.push("")
-
-  lines.push(...tradeInstructions(locale))
-
+  // No instructions past this point. They used to be appended right here, at
+  // the end of the user turn, and a small model treated them as material: one
+  // report came back as "Paso 1: Valor de mercado / Paso 2: Ajuste deportivo /
+  // Paso 3: Riesgo y equilibrio" — our own four required points, turned into
+  // four headings, with every figure invented. They live in the system prompt
+  // now. For the same reason the block above carries no markdown headings: a
+  // model shown a document with "## " titles writes one back.
   return lines.join("\n")
+}
+
+/** Every name in the deal, for the grounding check on the way back. */
+function subjectNames(body: TradeAiBody): string[] {
+  const names = [
+    ...body.outgoing.map((p) => p.name),
+    ...body.incoming.map((p) => p.name),
+    ...(body.scenarios ?? []).flatMap((s) => s.incoming.map((p) => p.name)),
+  ]
+  return names.filter((n) => typeof n === "string" && n.trim().length > 0)
 }
 
 export async function POST(request: Request) {
   // Every other AI route has this; this one did not. Auth is required, so it
   // is not an open door, but a stuck retry loop should not be able to burn a
   // user's own API credit either.
-  const limit = await consumeRateLimit(`ai:${clientIp(request)}`, 30, 5 * 60 * 1000)
+  const ip = clientIp(request)
+  const limit = await consumeRateLimit(`ai:${ip}`, 30, 5 * 60 * 1000)
   if (!limit.ok) {
     return NextResponse.json(
       { error: `Too many requests. Try again in ${limit.retryAfterSec}s.` },
@@ -322,50 +344,74 @@ export async function POST(request: Request) {
     )
   }
 
+  // `terms` is free text from the browser and went into the prompt raw and
+  // uncapped — no length limit, no injection screen.
+  const terms = sanitisePromptInput(body.terms, MAX_TERMS_LEN)
+  if (!terms.ok) {
+    audit("prompt-injection-blocked", {
+      ip,
+      route: "market/trade/ai",
+      findings: terms.findings.slice(0, 5),
+    })
+    return NextResponse.json(
+      {
+        error:
+          "The additional terms contain patterns that are not allowed. Rephrase them as normal trade conditions.",
+      },
+      { status: 400 },
+    )
+  }
+  body.terms = terms.text
+
   // A coach who writes the extra terms in Spanish gets a Spanish report, the
   // same rule the advisor and the playbook follow.
-  const answerLocale = replyLocale(
-    typeof body.terms === "string" ? body.terms : "",
-    locale,
-  )
+  const answerLocale = replyLocale(terms.text, locale)
 
   try {
     const persona =
       answerLocale === "es"
         ? "Eres un director deportivo y scout de baloncesto de élite (NBA, EuroLeague, ACB). Analizas traspasos con criterio: cruzas valor de mercado, ajuste deportivo y riesgo, te mojas con una decisión clara y, si el trato cojea, propones cómo equilibrarlo. Solo usas los datos que se te dan; no inventas cifras."
         : "You are an elite basketball general manager and scout (NBA, EuroLeague, ACB). You analyse trades with judgement: you cross-reference market value, on-court fit and risk, commit to a clear call and, if the deal is lopsided, propose how to balance it. You only use the data you are given; you never invent figures."
-    const system = `${persona}\n\n${aiLanguageDirective(answerLocale)}`
-    const content = buildPrompt(body, answerLocale)
-
-    const result = await chatComplete({
-      provider: engine.provider,
-      model: engine.model,
-      apiKey: engine.apiKey,
+    // The brief goes in the system turn, not appended to the data.
+    const brief = tradeInstructions(answerLocale).join("\n")
+    const system = [
+      persona,
+      "",
+      brief,
+      "",
+      aiLanguageDirective(answerLocale),
+    ].join("\n")
+    const answer = await generateGroundedAnswer({
+      engine,
       system,
-      messages: [{ role: "user", content }],
+      data: buildPrompt(body, answerLocale),
+      subjects: subjectNames(body),
+      locale: answerLocale,
       // Enough room to cover a multi-player package properly now that the
       // report is no longer capped at 180 words, but still short of the cap
       // the advisor gets — a trade note that runs long is a trade note nobody
-      // reads, and the degeneration guard handles the rest.
+      // reads.
       maxTokens: 900,
       temperature: 0.5,
-      // Fail as JSON we control rather than as whatever the platform returns
-      // when it kills a long request.
-      timeoutMs: 55_000,
+      // Let the engine check the contract situation and the rumours if it can.
+      // An outside figure is then only accepted with a citation next to it.
+      webSearch: supportsNativeWebSearch(engine.provider),
     })
 
-    if (!result.ok) {
-      const prefix = locale === "es" ? "Error del proveedor AI" : "AI provider error"
+    if (!answer.ok) {
       return NextResponse.json(
-        { error: `${prefix}: ${result.error}` },
+        {
+          error: answerFailureMessage(answer, answerLocale),
+          aiConfigured: true,
+        },
         { status: 502 },
       )
     }
 
     return NextResponse.json({
-      analysis: cleanLlmOutput(trimDegeneratedOutput(result.content).text),
+      analysis: answer.text,
       provider: engine.provider.id,
-      model: result.model,
+      model: answer.model,
     })
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error"

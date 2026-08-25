@@ -341,6 +341,7 @@ export const es: Messages = {
       model: "Modelo",
       installedOnMachine: "Instalados en este equipo",
       fromProvider: "En directo del proveedor",
+      modelAuto: "Automático — siempre el más reciente",
       loadingModels: "Cargando modelos…",
       catalogueFallback:
         "No se ha podido consultar al proveedor — mostramos nuestra lista",

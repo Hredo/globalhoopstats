@@ -64,11 +64,23 @@ describe("resolveModel", () => {
 
 describe("provider catalogue", () => {
   it("gives every provider a default model that is in its own list", () => {
+    // Only where there IS a list. Providers added after live discovery landed
+    // ship no catalogue on purpose — `resolveBestModel` reads the vendor's own
+    // list and ranks it, and a hand-written id here is exactly what went stale
+    // twice and 404'd at answer time.
     for (const p of AI_PROVIDERS) {
+      if (p.models.length === 0) continue
       expect(
         p.models.some((m) => m.id === p.defaultModel),
         `${p.id} default model ${p.defaultModel} is missing from its catalogue`,
       ).toBe(true)
+    }
+  })
+
+  it("still gives a catalogue-free provider a fallback id to fall back to", () => {
+    for (const p of AI_PROVIDERS) {
+      if (p.models.length > 0) continue
+      expect(p.defaultModel.trim().length, p.id).toBeGreaterThan(0)
     }
   })
 

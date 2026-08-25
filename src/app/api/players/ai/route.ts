@@ -1,23 +1,20 @@
 import { NextResponse } from "next/server"
 import { getPlayerBySlug } from "@/lib/data/players"
 import { getMarketPlayerBySlug } from "@/lib/market/pool"
-import { clientIp, cleanLlmOutput } from "@/lib/security/ai-advisor"
+import { clientIp } from "@/lib/security/ai-advisor"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
 import { getCurrentUser } from "@/lib/auth/current-user"
 import { resolveEngine, resolveDefaultEngine } from "@/lib/ai/user-provider"
-import { chatComplete } from "@/lib/ai/chat"
+import { generateGroundedAnswer } from "@/lib/ai/answer"
 import { getLocale } from "@/lib/i18n/server"
-import { aiLanguageDirective } from "@/lib/ai/language"
-import { buildPlayerPrompt } from "@/lib/ai/player-report"
+import {
+  buildPlayerPrompt,
+  playerReportSystem,
+} from "@/lib/ai/player-report"
 import {
   describeLeagueContext,
   playerLeagueContext,
 } from "@/lib/market/player-context"
-import {
-  trimDegeneratedOutput,
-  isUsableAnswer,
-  isMostlyHeadings,
-} from "@/lib/ai/degeneration"
 import { supportsNativeWebSearch } from "@/lib/ai/chat"
 import type { ShotZonesJson, ShotZoneKey } from "@/lib/db/schema"
 import type { Locale } from "@/lib/i18n/config"
@@ -127,52 +124,35 @@ export async function POST(request: Request) {
           }
         }
 
-        const llm = await chatComplete({
-          provider: engine.provider,
-          model: engine.model,
-          apiKey: engine.apiKey,
-          system: [
-            "You are an experienced basketball scout writing a short note for a coach who has never seen this player.",
-            "Be specific and commit to an opinion. Anchor every claim to the numbers you were given, and never call someone 'solid' or 'versatile' without saying what makes them so.",
-            "Only discuss what you were actually given. Do not invent contracts, injuries, awards or shooting splits.",
-            aiLanguageDirective(locale),
-          ].join("\n"),
-          messages: [
-            {
-              role: "user",
-              content: buildPlayerPrompt(
-                profile.fullName,
-                profile.league.name,
-                profile.team?.name ?? null,
-                profile.position,
-                season,
-                market,
-                shotZones,
-                locale,
-                canBrowse,
-                leagueContext,
-              ),
-            },
-          ],
+        const answer = await generateGroundedAnswer({
+          engine,
+          system: playerReportSystem(locale, {
+            hasShotChart: Boolean(shotZones),
+            canBrowse,
+          }),
+          data: buildPlayerPrompt(
+            profile.fullName,
+            profile.league.name,
+            profile.team?.name ?? null,
+            profile.position,
+            season,
+            market,
+            shotZones,
+            locale,
+            canBrowse,
+            leagueContext,
+          ),
+          subjects: [profile.fullName],
+          locale,
           maxTokens: 650,
           // 0 made every note read identically; a little slack buys natural
-          // sentences without loosening the grounding rules above.
+          // sentences without loosening the grounding rules.
           temperature: 0.35,
           webSearch: canBrowse,
         })
-        if (llm.ok) {
-          // Cut a repetition loop before it reaches the page; if barely
-          // anything survives, show no note rather than a broken one.
-          const guard = trimDegeneratedOutput(llm.content)
-          const broken =
-            isMostlyHeadings(guard.text) ||
-            (guard.looped && !isUsableAnswer(guard.text))
-          if (!broken) {
-            analysis = cleanLlmOutput(guard.text)
-            aiProvider = engine.provider.id
-          } else {
-            aiReason = "ai_error"
-          }
+        if (answer.ok) {
+          analysis = answer.text
+          aiProvider = engine.provider.id
         } else {
           aiReason = "ai_error"
         }

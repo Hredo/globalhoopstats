@@ -160,6 +160,80 @@ export function isUsableAnswer(text: string): boolean {
   return text.trim().length >= 120
 }
 
+/** How many words make a shingle long enough that a match is not a coincidence. */
+const ECHO_SHINGLE_WORDS = 6
+/** How many distinct shingles have to match before we call it an echo. */
+const MIN_ECHO_SHINGLES = 2
+
+function shingles(text: string, size: number): Set<string> {
+  const words = text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    const out = new Set<string>()
+  for (let i = 0; i + size <= words.length; i++) {
+    out.add(words.slice(i, i + size).join(" "))
+  }
+  return out
+}
+
+/**
+ * Did the model answer with our own instructions instead of with an answer?
+ *
+ * The compare surface shipped this to a user: "Primero, voy a analizar algunos
+ * datos… Prose sencillo solo: no listas, no encabezados, no negrita" — a
+ * translated paraphrase of the brief, presented as the analysis. It happens
+ * when instructions sit in the USER turn, where a small model reads them as
+ * material to work with rather than as orders. The fix is to put them in the
+ * system prompt; this is the net for when one still comes back.
+ *
+ * Pass ONLY the instruction text, never the data block: an answer is supposed
+ * to reuse the data's wording, and would trip this on every call.
+ */
+export function echoesInstructions(answer: string, instructions: string): boolean {
+  const fromPrompt = shingles(instructions, ECHO_SHINGLE_WORDS)
+  if (fromPrompt.size === 0) return false
+  let hits = 0
+  for (const s of shingles(answer, ECHO_SHINGLE_WORDS)) {
+    if (fromPrompt.has(s) && ++hits >= MIN_ECHO_SHINGLES) return true
+  }
+  return false
+}
+
+/**
+ * Does the answer actually talk about the people it was given?
+ *
+ * A trade report came back about "Tyrese Baskets (Paso 1)" and "Harrison
+ * Barnes" for a deal involving Tyrese Maxey and Stephen Curry, with every euro
+ * figure invented. An answer that never names a single one of its subjects is
+ * not about them, whatever else it says.
+ *
+ * Matched on the SURNAME, because that is the identifying half: models shorten
+ * "Stephen Curry" to "Curry" constantly and that is a correct answer, while
+ * the failure we are catching kept the first name and invented the rest
+ * ("Tyrese Maxey" came back as "Tyrese Baskets"). A first name on its own is
+ * not evidence the answer is about the right player.
+ */
+function surname(fullName: string): string | null {
+  const parts = fullName
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((p) => p.replace(/[^\p{L}\p{N}]/gu, "").length >= 3)
+  return parts.length > 0 ? parts[parts.length - 1] : null
+}
+
+export function mentionsAnySubject(answer: string, names: string[]): boolean {
+  if (names.length === 0) return true
+  const haystack = answer.toLowerCase()
+  const surnames = names
+    .map(surname)
+    .filter((s): s is string => s !== null)
+  // Nothing usable to match on is not evidence of a bad answer.
+  if (surnames.length === 0) return true
+  return surnames.some((s) => haystack.includes(s))
+}
+
 /** Below this we are not looking at a structured answer, just a heading or two. */
 const MIN_HEADINGS_TO_JUDGE = 3
 

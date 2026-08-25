@@ -115,6 +115,96 @@ const EN: Record<string, ProviderCopy> = {
       "Paste it here — Sonar Pro has web search built in.",
     ],
   },
+  together: {
+    blurb:
+      "Hundreds of open models (Llama, Qwen, DeepSeek) served fast and cheap.",
+    guide: [
+      "Create an account at together.ai and add credit.",
+      "Open api.together.xyz/settings/api-keys and create a key.",
+      "Copy the key.",
+      "Paste it here — we read your model list live, so you always see the newest.",
+    ],
+  },
+  fireworks: {
+    blurb:
+      "Fast inference on open models, at a good price per token.",
+    guide: [
+      "Create an account at fireworks.ai and add billing.",
+      "Open fireworks.ai/account/api-keys and create a key.",
+      "Copy the key.",
+      "Paste it here — we read your model list live, so you always see the newest.",
+    ],
+  },
+  cerebras: {
+    blurb:
+      "The fastest inference on the market, on their own hardware.",
+    guide: [
+      "Create an account at cloud.cerebras.ai (a free tier is available).",
+      "Create an API key from the dashboard.",
+      "Copy the key.",
+      "Paste it here — we read your model list live, so you always see the newest.",
+    ],
+  },
+  qwen: {
+    blurb:
+      "The Qwen models straight from Alibaba, with very long context.",
+    guide: [
+      "Create an Alibaba Cloud Model Studio account (international region).",
+      "Create an API key in the console.",
+      "Copy the key.",
+      "Paste it here — we read your model list live, so you always see the newest.",
+    ],
+  },
+  moonshot: {
+    blurb:
+      "Kimi — very long context and strong reasoning over documents.",
+    guide: [
+      "Create an account at platform.moonshot.ai and add credit.",
+      "Open the API keys page and create a key.",
+      "Copy the key.",
+      "Paste it here — we read your model list live, so you always see the newest.",
+    ],
+  },
+  zai: {
+    blurb:
+      "GLM models from Zhipu — strong reasoning, very cheap per token.",
+    guide: [
+      "Create an account at z.ai and add credit.",
+      "Open the API keys page and create a key.",
+      "Copy the key.",
+      "Paste it here — we read your model list live, so you always see the newest.",
+    ],
+  },
+  sambanova: {
+    blurb:
+      "Open models served at very high speed on their own hardware.",
+    guide: [
+      "Create an account at cloud.sambanova.ai.",
+      "Create an API key from the dashboard.",
+      "Copy the key.",
+      "Paste it here — we read your model list live, so you always see the newest.",
+    ],
+  },
+  deepinfra: {
+    blurb:
+      "A wide catalogue of open models with very low per-token prices.",
+    guide: [
+      "Create an account at deepinfra.com and add credit.",
+      "Open deepinfra.com/dash/api_keys and create a key.",
+      "Copy the key.",
+      "Paste it here — we read your model list live, so you always see the newest.",
+    ],
+  },
+  nebius: {
+    blurb:
+      "Open models hosted in Europe, with a free tier to get started.",
+    guide: [
+      "Create an account at studio.nebius.com.",
+      "Open Settings → API keys and create a key.",
+      "Copy the key.",
+      "Paste it here — we read your model list live, so you always see the newest.",
+    ],
+  },
 }
 
 const ES: Record<string, ProviderCopy> = {
@@ -214,6 +304,96 @@ const ES: Record<string, ProviderCopy> = {
       "Genera una clave API.",
       "Copia la clave (empieza por pplx-…).",
       "Pégala aquí — Sonar Pro tiene búsqueda web integrada.",
+    ],
+  },
+  together: {
+    blurb:
+      "Cientos de modelos abiertos (Llama, Qwen, DeepSeek) servidos rápido y barato.",
+    guide: [
+      "Crea una cuenta en together.ai y añade crédito.",
+      "Abre api.together.xyz/settings/api-keys y crea una clave.",
+      "Copia la clave.",
+      "Pégala aquí — leemos tu lista de modelos en directo, así siempre ves los más nuevos.",
+    ],
+  },
+  fireworks: {
+    blurb:
+      "Inferencia rápida de modelos abiertos, con buen precio por token.",
+    guide: [
+      "Crea una cuenta en fireworks.ai y añade facturación.",
+      "Abre fireworks.ai/account/api-keys y crea una clave.",
+      "Copia la clave.",
+      "Pégala aquí — leemos tu lista de modelos en directo, así siempre ves los más nuevos.",
+    ],
+  },
+  cerebras: {
+    blurb:
+      "La inferencia más rápida del mercado, sobre hardware propio.",
+    guide: [
+      "Crea una cuenta en cloud.cerebras.ai (hay plan gratuito).",
+      "Crea una clave API desde el panel.",
+      "Copia la clave.",
+      "Pégala aquí — leemos tu lista de modelos en directo, así siempre ves los más nuevos.",
+    ],
+  },
+  qwen: {
+    blurb:
+      "Los modelos Qwen directamente de Alibaba, con contexto muy largo.",
+    guide: [
+      "Crea una cuenta de Alibaba Cloud Model Studio (región internacional).",
+      "Crea una clave API en la consola.",
+      "Copia la clave.",
+      "Pégala aquí — leemos tu lista de modelos en directo, así siempre ves los más nuevos.",
+    ],
+  },
+  moonshot: {
+    blurb:
+      "Kimi — contexto muy largo y buen razonamiento sobre documentos.",
+    guide: [
+      "Crea una cuenta en platform.moonshot.ai y añade crédito.",
+      "Abre la página de claves API y crea una clave.",
+      "Copia la clave.",
+      "Pégala aquí — leemos tu lista de modelos en directo, así siempre ves los más nuevos.",
+    ],
+  },
+  zai: {
+    blurb:
+      "Modelos GLM de Zhipu — fuertes en razonamiento y muy económicos.",
+    guide: [
+      "Crea una cuenta en z.ai y añade crédito.",
+      "Abre la página de claves API y crea una clave.",
+      "Copia la clave.",
+      "Pégala aquí — leemos tu lista de modelos en directo, así siempre ves los más nuevos.",
+    ],
+  },
+  sambanova: {
+    blurb:
+      "Modelos abiertos servidos a muy alta velocidad sobre hardware propio.",
+    guide: [
+      "Crea una cuenta en cloud.sambanova.ai.",
+      "Crea una clave API desde el panel.",
+      "Copia la clave.",
+      "Pégala aquí — leemos tu lista de modelos en directo, así siempre ves los más nuevos.",
+    ],
+  },
+  deepinfra: {
+    blurb:
+      "Catálogo amplio de modelos abiertos con precios por token muy bajos.",
+    guide: [
+      "Crea una cuenta en deepinfra.com y añade crédito.",
+      "Abre deepinfra.com/dash/api_keys y crea una clave.",
+      "Copia la clave.",
+      "Pégala aquí — leemos tu lista de modelos en directo, así siempre ves los más nuevos.",
+    ],
+  },
+  nebius: {
+    blurb:
+      "Modelos abiertos alojados en Europa, con plan gratuito para empezar.",
+    guide: [
+      "Crea una cuenta en studio.nebius.com.",
+      "Abre Ajustes → API keys y crea una clave.",
+      "Copia la clave.",
+      "Pégala aquí — leemos tu lista de modelos en directo, así siempre ves los más nuevos.",
     ],
   },
 }
