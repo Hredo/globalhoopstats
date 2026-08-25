@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth/current-user"
 import { resolveEngine } from "@/lib/ai/user-provider"
 import { chatComplete } from "@/lib/ai/chat"
-import { aiLanguageDirective } from "@/lib/ai/language"
+import { aiLanguageDirective, replyLocale } from "@/lib/ai/language"
 import { tradeInstructions } from "@/lib/ai/trade-instructions"
 import { getLocale } from "@/lib/i18n/server"
 import type { Locale } from "@/lib/i18n/config"
@@ -51,92 +51,192 @@ type TradeAiBody = {
   }[]
 }
 
+/**
+ * Data-block labels in the reader's language.
+ *
+ * The block used to be written in English under a Spanish system message and
+ * Spanish instructions. A model handed "## Financial summary" and told to write
+ * in Spanish copies the heading it was given — which is exactly the mixed-
+ * language output this fixes.
+ */
+type TradeLabels = {
+  simHeading: string
+  simIntro: string
+  playerToTrade: (name: string) => string
+  position: string
+  team: string
+  league: string
+  marketValue: string
+  annualSalary: string
+  rating: string
+  profile: string
+  scenarios: string
+  scenario: (n: number, verdict: string, balance: string) => string
+  combined: string
+  includes: string
+  stats: string
+  customHeading: string
+  customIntro: string
+  youGive: string
+  youReceive: string
+  freeAgent: string
+  financial: string
+  totalGiven: (total: string, cash: string) => string
+  totalReceived: string
+  balance: (v: string) => string
+  balanced: string
+  giveMore: string
+  receiveMore: string
+  terms: string
+}
+
+const LABELS: Record<Locale, TradeLabels> = {
+  en: {
+    simHeading: "# Trade simulation",
+    simIntro:
+      "These scenarios were generated automatically from our own heuristic valuations.",
+    playerToTrade: (name) => `## Player to trade: ${name}`,
+    position: "Position",
+    team: "Team",
+    league: "League",
+    marketValue: "Estimated market value",
+    annualSalary: "Estimated annual salary",
+    rating: "Rating",
+    profile: "Profile",
+    scenarios: "## Scenarios",
+    scenario: (n, verdict, balance) =>
+      `### Scenario ${n}: ${verdict} (balance ${balance})`,
+    combined: "Combined value received",
+    includes: "Players included:",
+    stats: "Stats",
+    customHeading: "# Trade proposal",
+    customIntro: "The user has put this proposal together:",
+    youGive: "## Players you give",
+    youReceive: "## Players you receive",
+    freeAgent: "free agent",
+    financial: "## The numbers",
+    totalGiven: (total, cash) => `Total value given: ${total} (includes ${cash} in cash)`,
+    totalReceived: "Total value received",
+    balance: (v) =>
+      `Balance: ${v} (1.00 = an even swap by our estimated values; below 1 means you give up more than you get). This is our own estimate, not an official valuation — say so if you lean on it.`,
+    balanced: "Status: balanced",
+    giveMore: "Status: you give more value than you receive",
+    receiveMore: "Status: you receive more value than you give",
+    terms: "## Additional terms",
+  },
+  es: {
+    simHeading: "# Simulación de traspaso",
+    simIntro:
+      "Estos escenarios se han generado automáticamente con nuestras propias valoraciones heurísticas.",
+    playerToTrade: (name) => `## Jugador a traspasar: ${name}`,
+    position: "Posición",
+    team: "Equipo",
+    league: "Liga",
+    marketValue: "Valor de mercado estimado",
+    annualSalary: "Sueldo anual estimado",
+    rating: "Rating",
+    profile: "Perfil",
+    scenarios: "## Escenarios",
+    scenario: (n, verdict, balance) =>
+      `### Escenario ${n}: ${verdict} (balance ${balance})`,
+    combined: "Valor combinado recibido",
+    includes: "Jugadores incluidos:",
+    stats: "Estadísticas",
+    customHeading: "# Propuesta de traspaso",
+    customIntro: "El usuario ha montado esta propuesta:",
+    youGive: "## Jugadores que entregas",
+    youReceive: "## Jugadores que recibes",
+    freeAgent: "agente libre",
+    financial: "## Los números",
+    totalGiven: (total, cash) => `Valor total entregado: ${total} (incluye ${cash} en efectivo)`,
+    totalReceived: "Valor total recibido",
+    balance: (v) =>
+      `Balance: ${v} (1,00 = intercambio equilibrado según nuestras valoraciones estimadas; por debajo de 1 entregas más de lo que recibes). Es una estimación nuestra, no una valoración oficial — dilo si te apoyas en ella.`,
+    balanced: "Situación: equilibrado",
+    giveMore: "Situación: entregas más valor del que recibes",
+    receiveMore: "Situación: recibes más valor del que entregas",
+    terms: "## Condiciones adicionales",
+  },
+}
+
 function buildPrompt(body: TradeAiBody, locale: Locale): string {
+  const L = LABELS[locale] ?? LABELS.en
   const lines: string[] = []
 
-  lines.push(aiLanguageDirective(locale))
-  lines.push("")
-  lines.push("You are an expert basketball scout with deep knowledge of the NBA, EuroLeague and Liga ACB.")
-  lines.push("")
+  const statLine = (p: PlayerInfo, indent: string): void => {
+    const s = p.stats
+    if (!s) return
+    const parts: string[] = []
+    if (s.pointsPerGame != null) parts.push(`${s.pointsPerGame.toFixed(1)} PPG`)
+    if (s.reboundsPerGame != null) parts.push(`${s.reboundsPerGame.toFixed(1)} RPG`)
+    if (s.assistsPerGame != null) parts.push(`${s.assistsPerGame.toFixed(1)} APG`)
+    if (s.stealsPerGame != null) parts.push(`${s.stealsPerGame.toFixed(1)} SPG`)
+    if (s.blocksPerGame != null) parts.push(`${s.blocksPerGame.toFixed(1)} BPG`)
+    if (parts.length) lines.push(`${indent}${L.stats}: ${parts.join(" · ")}`)
+  }
+
+  const sideList = (players: PlayerInfo[]): void => {
+    players.forEach((p) => {
+      lines.push(
+        `  - ${p.name} (${p.position ?? "?"}, ${p.team ?? L.freeAgent}, ${p.league ?? "?"})`,
+      )
+      if (p.valuation) {
+        lines.push(
+          `    ${L.marketValue}: ${formatEur(p.valuation.eur)} · ${L.rating}: ${p.valuation.rating}/100`,
+        )
+        lines.push(
+          `    ${L.profile}: ${valuationTierLabel(p.valuation.tier as any, p.valuation.leagueSlug, locale)}`,
+        )
+      }
+      statLine(p, "    ")
+    })
+  }
 
   if (body.mode === "simular") {
-    lines.push("# SYSTEM-GENERATED TRADE SIMULATION")
-    lines.push("The system has generated automatic trade scenarios based on heuristic valuations.")
+    lines.push(L.simHeading)
+    lines.push(L.simIntro)
     lines.push("")
 
     const out = body.outgoing[0]
-    lines.push(`## Player to trade: ${out.name}`)
-    if (out.position) lines.push(`- Position: ${out.position}`)
-    if (out.team) lines.push(`- Team: ${out.team}`)
-    if (out.league) lines.push(`- League: ${out.league}`)
+    lines.push(L.playerToTrade(out.name))
+    if (out.position) lines.push(`- ${L.position}: ${out.position}`)
+    if (out.team) lines.push(`- ${L.team}: ${out.team}`)
+    if (out.league) lines.push(`- ${L.league}: ${out.league}`)
     if (out.valuation) {
-      lines.push(`- Estimated market value: ${formatEur(out.valuation.eur)}`)
-      lines.push(`- Estimated annual salary: ${formatEur(out.valuation.annualEur)}`)
-      lines.push(`- Rating: ${out.valuation.rating}/100 (${valuationTierLabel(out.valuation.tier as any, out.valuation.leagueSlug, locale)})`)
+      lines.push(`- ${L.marketValue}: ${formatEur(out.valuation.eur)}`)
+      lines.push(`- ${L.annualSalary}: ${formatEur(out.valuation.annualEur)}`)
+      lines.push(
+        `- ${L.rating}: ${out.valuation.rating}/100 (${valuationTierLabel(out.valuation.tier as any, out.valuation.leagueSlug, locale)})`,
+      )
     }
     lines.push("")
 
     if (body.scenarios && body.scenarios.length > 0) {
-      lines.push("## System-generated scenarios")
+      lines.push(L.scenarios)
       body.scenarios.forEach((s, i) => {
-        lines.push(`### Scenario ${i + 1}: ${s.verdict} (balance ${s.balance.toFixed(2)})`)
-        lines.push(`Combined value received: ${formatEur(s.combinedValueEur)}`)
-        lines.push("Players included:")
+        lines.push(L.scenario(i + 1, s.verdict, s.balance.toFixed(2)))
+        lines.push(`${L.combined}: ${formatEur(s.combinedValueEur)}`)
+        lines.push(L.includes)
         s.incoming.forEach((p) => {
-          const stats = p.stats
-          lines.push(`  - ${p.name} (${p.position ?? "?"}, ${p.team ?? "FA"})`)
-          if (p.valuation) lines.push(`    Value: ${formatEur(p.valuation.eur)}, Rating: ${p.valuation.rating}/100`)
-          if (stats) {
-            const parts = []
-            if (stats.pointsPerGame != null) parts.push(`${stats.pointsPerGame.toFixed(1)} PPG`)
-            if (stats.reboundsPerGame != null) parts.push(`${stats.reboundsPerGame.toFixed(1)} RPG`)
-            if (stats.assistsPerGame != null) parts.push(`${stats.assistsPerGame.toFixed(1)} APG`)
-            if (parts.length) lines.push(`    Stats: ${parts.join(" · ")}`)
+          lines.push(`  - ${p.name} (${p.position ?? "?"}, ${p.team ?? L.freeAgent})`)
+          if (p.valuation) {
+            lines.push(
+              `    ${L.marketValue}: ${formatEur(p.valuation.eur)} · ${L.rating}: ${p.valuation.rating}/100`,
+            )
           }
+          statLine(p, "    ")
         })
       })
     }
   } else {
-    lines.push("# CUSTOM TRADE PROPOSAL")
-    lines.push("The user has created a manual proposal with the following elements:")
+    lines.push(L.customHeading)
+    lines.push(L.customIntro)
     lines.push("")
-
-    lines.push("## Players you give:")
-    body.outgoing.forEach((p) => {
-      lines.push(`  - ${p.name} (${p.position ?? "?"}, ${p.team ?? "FA"}, ${p.league ?? "?"})`)
-      if (p.valuation) {
-        lines.push(`    Market value: ${formatEur(p.valuation.eur)} · Rating: ${p.valuation.rating}/100`)
-        lines.push(`    Profile: ${valuationTierLabel(p.valuation.tier as any, p.valuation.leagueSlug, locale)}`)
-      }
-      if (p.stats) {
-        const parts = []
-        if (p.stats.pointsPerGame != null) parts.push(`${p.stats.pointsPerGame.toFixed(1)} PPG`)
-        if (p.stats.reboundsPerGame != null) parts.push(`${p.stats.reboundsPerGame.toFixed(1)} RPG`)
-        if (p.stats.assistsPerGame != null) parts.push(`${p.stats.assistsPerGame.toFixed(1)} APG`)
-        if (p.stats.stealsPerGame != null) parts.push(`${p.stats.stealsPerGame.toFixed(1)} SPG`)
-        if (p.stats.blocksPerGame != null) parts.push(`${p.stats.blocksPerGame.toFixed(1)} BPG`)
-        if (parts.length) lines.push(`    Stats: ${parts.join(" · ")}`)
-      }
-    })
-
+    lines.push(L.youGive)
+    sideList(body.outgoing)
     lines.push("")
-    lines.push("## Players you receive:")
-    body.incoming.forEach((p) => {
-      lines.push(`  - ${p.name} (${p.position ?? "?"}, ${p.team ?? "FA"}, ${p.league ?? "?"})`)
-      if (p.valuation) {
-        lines.push(`    Market value: ${formatEur(p.valuation.eur)} · Rating: ${p.valuation.rating}/100`)
-        lines.push(`    Profile: ${valuationTierLabel(p.valuation.tier as any, p.valuation.leagueSlug, locale)}`)
-      }
-      if (p.stats) {
-        const parts = []
-        if (p.stats.pointsPerGame != null) parts.push(`${p.stats.pointsPerGame.toFixed(1)} PPG`)
-        if (p.stats.reboundsPerGame != null) parts.push(`${p.stats.reboundsPerGame.toFixed(1)} RPG`)
-        if (p.stats.assistsPerGame != null) parts.push(`${p.stats.assistsPerGame.toFixed(1)} APG`)
-        if (p.stats.stealsPerGame != null) parts.push(`${p.stats.stealsPerGame.toFixed(1)} SPG`)
-        if (p.stats.blocksPerGame != null) parts.push(`${p.stats.blocksPerGame.toFixed(1)} BPG`)
-        if (parts.length) lines.push(`    Stats: ${parts.join(" · ")}`)
-      }
-    })
+    lines.push(L.youReceive)
+    sideList(body.incoming)
   }
 
   const outVal = body.outgoing.reduce((s, p) => s + (p.valuation?.eur ?? 0), 0) + body.cash
@@ -144,19 +244,19 @@ function buildPrompt(body: TradeAiBody, locale: Locale): string {
   const balance = outVal > 0 ? inVal / outVal : 0
 
   lines.push("")
-  lines.push("## Financial summary")
-  lines.push(`Total value given: ${formatEur(outVal)} (includes ${formatEur(body.cash)} in cash)`)
-  lines.push(`Total value received: ${formatEur(inVal)}`)
-  lines.push(
-    `Balance: ${balance.toFixed(2)} (1.00 = an even swap by our estimated values; below 1 means you give up more than you get). This is our own estimate, not an official valuation — say so if you lean on it.`,
-  )
-  if (balance >= 0.95 && balance <= 1.08) lines.push("Status: Balanced")
-  else if (balance < 0.95) lines.push("⚠ Status: You give more value than you receive")
-  else lines.push("⚠ Status: You receive more value than you give")
+  lines.push(L.financial)
+  lines.push(L.totalGiven(formatEur(outVal), formatEur(body.cash)))
+  lines.push(`${L.totalReceived}: ${formatEur(inVal)}`)
+  lines.push(L.balance(balance.toFixed(2)))
+  // No warning glyph: the house style forbids emoji in the answer, and a model
+  // shown one in its data reliably copies it back out.
+  if (balance >= 0.95 && balance <= 1.08) lines.push(L.balanced)
+  else if (balance < 0.95) lines.push(L.giveMore)
+  else lines.push(L.receiveMore)
 
   if (body.terms) {
     lines.push("")
-    lines.push("## Additional terms")
+    lines.push(L.terms)
     lines.push(body.terms)
   }
 
@@ -222,12 +322,20 @@ export async function POST(request: Request) {
     )
   }
 
+  // A coach who writes the extra terms in Spanish gets a Spanish report, the
+  // same rule the advisor and the playbook follow.
+  const answerLocale = replyLocale(
+    typeof body.terms === "string" ? body.terms : "",
+    locale,
+  )
+
   try {
-    const system =
-      locale === "es"
-        ? "Eres un director deportivo y scout de baloncesto de élite (NBA, EuroLeague, ACB). Analizas traspasos con criterio: cruzas valor de mercado, ajuste deportivo y riesgo, te mojas con un veredicto claro y, si el trato cojea, propones cómo equilibrarlo. Solo usas los datos que se te dan; no inventas cifras."
-        : "You are an elite basketball general manager and scout (NBA, EuroLeague, ACB). You analyse trades with judgement: you cross-reference market value, on-court fit and risk, commit to a clear verdict and, if the deal is lopsided, propose how to balance it. You only use the data you are given; you never invent figures."
-    const content = buildPrompt(body, locale)
+    const persona =
+      answerLocale === "es"
+        ? "Eres un director deportivo y scout de baloncesto de élite (NBA, EuroLeague, ACB). Analizas traspasos con criterio: cruzas valor de mercado, ajuste deportivo y riesgo, te mojas con una decisión clara y, si el trato cojea, propones cómo equilibrarlo. Solo usas los datos que se te dan; no inventas cifras."
+        : "You are an elite basketball general manager and scout (NBA, EuroLeague, ACB). You analyse trades with judgement: you cross-reference market value, on-court fit and risk, commit to a clear call and, if the deal is lopsided, propose how to balance it. You only use the data you are given; you never invent figures."
+    const system = `${persona}\n\n${aiLanguageDirective(answerLocale)}`
+    const content = buildPrompt(body, answerLocale)
 
     const result = await chatComplete({
       provider: engine.provider,
@@ -235,9 +343,11 @@ export async function POST(request: Request) {
       apiKey: engine.apiKey,
       system,
       messages: [{ role: "user", content }],
-      // A 180-word report needs nowhere near 1100 tokens, and a smaller cap
-      // is a smaller window for a weak model to wander off in.
-      maxTokens: 500,
+      // Enough room to cover a multi-player package properly now that the
+      // report is no longer capped at 180 words, but still short of the cap
+      // the advisor gets — a trade note that runs long is a trade note nobody
+      // reads, and the degeneration guard handles the rest.
+      maxTokens: 900,
       temperature: 0.5,
       // Fail as JSON we control rather than as whatever the platform returns
       // when it kills a long request.

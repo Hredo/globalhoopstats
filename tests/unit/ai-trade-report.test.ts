@@ -10,14 +10,19 @@ import { LOCALES } from "@/lib/i18n/config"
  */
 describe("trade report instructions", () => {
   for (const locale of LOCALES) {
-    it(`${locale}: pins one structure so two reports can be compared`, () => {
+    it(`${locale}: pins the substance rather than the shape`, () => {
       const text = tradeInstructions(locale).join("\n")
-      expect(text).toMatch(/^1\./m)
-      expect(text).toMatch(/^2\./m)
-      expect(text).toMatch(/^3\./m)
-      expect(text).toMatch(/(Veredicto|Verdict)/)
-      // A hard word cap: a small model given room to ramble does.
-      expect(text).toMatch(/180/)
+      // What the report must cover — who wins, what changes, what it risks,
+      // and a decision. The four-part numbered template that used to sit here
+      // (plus a 180-word cap and a line starting exactly with "Verdict:") is
+      // what made the output read like a filled-in form.
+      expect(text).toMatch(/(balance)/i)
+      expect(text).toMatch(/(riesgo|risk)/i)
+      expect(text).toMatch(
+        /(aceptar, rechazar o renegociar|accept, reject or renegotiate)/i,
+      )
+      expect(text).not.toMatch(/^\d\.\s/m)
+      expect(text).not.toMatch(/\b180\b/)
     })
 
     it(`${locale}: forbids any number that is not in the data block`, () => {

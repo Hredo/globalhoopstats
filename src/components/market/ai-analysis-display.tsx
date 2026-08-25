@@ -1,128 +1,19 @@
 "use client"
 
-import type { ReactNode } from "react"
-
-/** Render inline **bold** spans inside a line of AI text. */
-function renderInline(text: string): ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g)
-  return parts.map((p, i) =>
-    p.startsWith("**") && p.endsWith("**") ? (
-      <strong key={i} className="font-semibold text-ink-50">
-        {p.slice(2, -2)}
-      </strong>
-    ) : (
-      <span key={i}>{p}</span>
-    ),
-  )
-}
+import { AiMarkdown } from "@/components/ai/markdown"
 
 /**
- * Lightweight Markdown renderer for the trade AI analyses. Handles the subset
- * the prompts actually emit: ## / ### headings, "- " bullet lists, **bold**,
- * and plain paragraphs — without pulling in a full markdown dependency.
+ * The AI analyses shown in side panels: trade reports, play breakdowns and
+ * player scouting notes.
+ *
+ * This used to be a second, weaker markdown parser — no ordered lists, no
+ * tables, no code, `##` rendered as a bold paragraph, and every line shaped
+ * like `**Label** text` promoted into a bulleted label row whether the model
+ * meant a list or not. So the same answer looked like one thing in the chat
+ * and something else in a panel. It now renders through the shared renderer,
+ * one size smaller; the only difference between the two surfaces is the body
+ * text scale.
  */
 export function AiAnalysisDisplay({ text }: { text: string }) {
-  const lines = text.split("\n")
-  const blocks: ReactNode[] = []
-  let listItems: string[] = []
-
-  const flushList = (key: string) => {
-    if (listItems.length === 0) return
-    const items = listItems
-    listItems = []
-    blocks.push(
-      <ul key={key} className="space-y-1.5">
-        {items.map((it, i) => (
-          <li key={i} className="flex gap-2 text-ink-200">
-            <span
-              aria-hidden
-              className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-brand-400"
-            />
-            <span>{renderInline(it)}</span>
-          </li>
-        ))}
-      </ul>,
-    )
-  }
-
-  lines.forEach((raw, i) => {
-    const line = raw.trim()
-    if (!line) {
-      flushList(`fl-${i}`)
-      return
-    }
-    if (line.startsWith("### ")) {
-      flushList(`fl-${i}`)
-      blocks.push(
-        <p key={i} className="pt-2 text-sm font-semibold text-ink-50">
-          {renderInline(line.slice(4))}
-        </p>,
-      )
-      return
-    }
-    if (line.startsWith("## ")) {
-      flushList(`fl-${i}`)
-      blocks.push(
-        <p key={i} className="pt-2 text-[15px] font-bold text-ink-50">
-          {renderInline(line.slice(3))}
-        </p>,
-      )
-      return
-    }
-    if (line.startsWith("- ") || line.startsWith("* ")) {
-      listItems.push(line.slice(2))
-      return
-    }
-    // A line that is entirely bold acts as a sub-heading.
-    if (/^\*\*[^*]+\*\*\s*[:.]?\s*$/.test(line)) {
-      flushList(`fl-${i}`)
-      blocks.push(
-        <p key={i} className="pt-2 font-semibold text-ink-50">
-          {line.replace(/\*\*/g, "").replace(/[:.]$/, "").trim()}
-        </p>,
-      )
-      return
-    }
-    // Line starting with **Label.** followed by content text.
-    // Accepts **Label.** text, **Label:** text, **Label** text, with any punctuation after.
-    const labelled = /^\*\*([^*]+)\*\*\s*[:.]?\s+([\s\S]*)$/.exec(line)
-    if (labelled) {
-      flushList(`fl-${i}`)
-      // Capture groups rather than indexOf: searching for "**" found the
-      // OPENING marker, so the label came out empty and the closing "**" was
-      // left sitting in the middle of the rendered sentence.
-      const label = labelled[1].replace(/[:.\s]+$/, "")
-      const afterBold = labelled[2].trimStart()
-      const punctMatch = afterBold.match(/^[:.]\s*|^[—–-]\s*/)
-      const rest = punctMatch
-        ? afterBold.slice(punctMatch[0].length)
-        : afterBold
-      blocks.push(
-        <div key={i} className="flex gap-2 pt-1.5 first:pt-0">
-          <span
-            aria-hidden
-            className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500/60"
-          />
-          <div>
-            <span className="text-sm font-semibold text-ink-50">{label}.</span>
-            {rest ? (
-              <span className="text-sm text-ink-200"> {renderInline(rest)}</span>
-            ) : null}
-          </div>
-        </div>,
-      )
-      return
-    }
-    flushList(`fl-${i}`)
-    blocks.push(
-      <p key={i} className="text-sm text-ink-200">
-        {renderInline(line)}
-      </p>,
-    )
-  })
-  flushList("fl-end")
-
-  return (
-    <div className="space-y-2 text-sm leading-relaxed text-ink-200">{blocks}</div>
-  )
+  return <AiMarkdown text={text} size="panel" />
 }

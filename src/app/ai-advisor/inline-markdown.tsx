@@ -4,7 +4,7 @@ import type { ReactNode } from "react"
 // (its inner class excludes `*`), so without this the outer markers were left
 // on screen as literal asterisks.
 const INLINE_PATTERN =
-  /(\*\*\*[^*\n]+\*\*\*|\*\*[^*\n]+\*\*|\*[^*\n]+\*|`[^`\n]+`|\[[^\]]+\]\([^)]+\))/g
+  /(\*\*\*[^*\n]+\*\*\*|\*\*[^*\n]+\*\*|\*[^*\n]+\*|__[^_\n]+__|~~[^~\n]+~~|`[^`\n]+`|\[[^\]]+\]\([^)]+\))/g
 
 const LINK_PATTERN = /^\[([^\]]+)\]\(([^)]+)\)$/
 
@@ -31,6 +31,12 @@ export function renderInline(text: string): ReactNode[] {
     }
     if (part.startsWith("**") && part.endsWith("**")) {
       return <strong key={i}>{part.slice(2, -2)}</strong>
+    }
+    if (part.startsWith("__") && part.endsWith("__")) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>
+    }
+    if (part.startsWith("~~") && part.endsWith("~~")) {
+      return <s key={i}>{part.slice(2, -2)}</s>
     }
     if (part.startsWith("*") && part.endsWith("*") && part.length > 1) {
       return <em key={i}>{part.slice(1, -1)}</em>
