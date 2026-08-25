@@ -85,6 +85,22 @@ export function detectOperation(q: string): MarketOperation {
   return "general"
 }
 
+/**
+ * Is the user actually trying to move a player, or just asking about
+ * basketball?
+ *
+ * The advisor used to treat every message as a transfer request: it attached a
+ * six-player shortlist, a budget ceiling and a "you may only name these
+ * players" rule to questions like "¿quién es el mejor base de la ACB?". The
+ * answer that came back was either six replacement signings nobody asked for
+ * or a refusal to name anyone. `scouting` is deliberately on the non-market
+ * side: "¿qué tal es Llull?" wants an opinion about him, not a shortlist of
+ * people to sign instead of him.
+ */
+export function isMarketOperation(op: MarketOperation): boolean {
+  return op !== "general" && op !== "scouting"
+}
+
 export const OPERATION_LABELS_ES: Record<MarketOperation, string> = {
   signing: "Fichaje",
   trade: "Traspaso",

@@ -229,11 +229,11 @@ export function cleanLlmOutput(raw: string): string {
           "<\\s*(script|iframe|object|embed|svg)[^>]*>[\\s\\S]*?<\\s*/\\s*\\1\\s*>",
           "gi",
         ),
-        "[contenido bloqueado]",
+        "[blocked]",
       )
       .replace(
         /<\s*(script|iframe|object|embed|svg)[^>]*\/?>/gi,
-        "[contenido bloqueado]",
+        "[blocked]",
       )
       .replace(/(href|src)\s*=\s*["']?\s*javascript:/gi, "$1=")
       .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "")

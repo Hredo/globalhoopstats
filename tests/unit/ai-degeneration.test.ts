@@ -108,11 +108,11 @@ describe("the sampler is configured against repetition", () => {
   })
 
   it("tells every AI surface not to repeat itself", async () => {
-    const { promptCopy } = await import("@/lib/ai/prompt-copy")
+    // The rule sits in the format half of the house style, so assert on the
+    // block that actually reaches the model rather than on one of its halves.
+    const { houseStyle } = await import("@/lib/ai/prompt-copy")
     for (const locale of ["en", "es"] as const) {
-      expect(promptCopy(locale).plainLanguage.join(" ")).toMatch(
-        /repeat|repitas/i,
-      )
+      expect(houseStyle(locale)).toMatch(/repeat|repitas/i)
     }
   })
 })

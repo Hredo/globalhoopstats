@@ -5,7 +5,7 @@ import { chatComplete, supportsNativeWebSearch, type ChatMessage } from "@/lib/a
 import type { AiProvider } from "@/lib/ai/providers"
 import type { Locale } from "@/lib/i18n/config"
 import { aiLanguageDirective, aiLanguageName } from "@/lib/ai/language"
-import { promptCopy, type PromptCopy } from "@/lib/ai/prompt-copy"
+import { houseStyle, promptCopy, type PromptCopy } from "@/lib/ai/prompt-copy"
 import type { Candidate } from "@/lib/market/candidates"
 import type { MarketPlayer } from "@/lib/market/pool"
 import { tradeVerdictLabel, type TradeScenario } from "@/lib/market/trade"
@@ -15,7 +15,7 @@ import { valuationTierLabel, type Valuation } from "@/lib/market/valuation"
 import { singleSigningCap, type ClubBudget } from "@/lib/market/club-budgets"
 import type { RosterAnalysis } from "@/lib/market/roster"
 import { natFilterLabel, type NatFilter } from "@/lib/market/nationality"
-import { type MarketOperation } from "@/lib/ai/intent"
+import { isMarketOperation, type MarketOperation } from "@/lib/ai/intent"
 
 export type AdvisorHistoryMessage = {
   role: "user" | "assistant"
@@ -57,49 +57,43 @@ export type AdvisorResult =
   | { ok: true; content: string; model: string }
   | { ok: false; error: string }
 
-function buildPlayerContext(profile: PlayerProfile): string {
+function buildPlayerContext(profile: PlayerProfile, copy: PromptCopy): string {
   const latest = profile.seasons[0]
+  const L = copy.player
 
   const lines: string[] = []
-  lines.push(`# Player mentioned in the query`)
-  lines.push(`- Name: ${profile.fullName}`)
-  lines.push(`- Slug: ${profile.slug}`)
-  lines.push(`- League: ${profile.league.name} (${profile.league.region})`)
-  if (profile.team) {
-    lines.push(`- Current team: ${profile.team.name}`)
-  } else {
-    lines.push(`- Current team: free agent / no team registered`)
-  }
-  if (profile.position) lines.push(`- Position: ${profile.position}`)
-  if (profile.nationality) lines.push(`- Nationality: ${profile.nationality}`)
+  lines.push(L.heading)
+  lines.push(`- ${L.name}: ${profile.fullName}`)
+  lines.push(`- ${L.league}: ${profile.league.name} (${profile.league.region})`)
+  lines.push(`- ${L.team}: ${profile.team ? profile.team.name : L.freeAgent}`)
+  if (profile.position) lines.push(`- ${L.position}: ${profile.position}`)
+  if (profile.nationality) lines.push(`- ${L.nationality}: ${profile.nationality}`)
   if (profile.heightCm)
-    lines.push(`- Height: ${(profile.heightCm / 100).toFixed(2)} m`)
+    lines.push(`- ${L.height}: ${(profile.heightCm / 100).toFixed(2)} m`)
 
   if (latest) {
     const gp = latest.gamesPlayed || 1
     lines.push("")
-    lines.push(`Last recorded season (${latest.seasonName}):`)
+    lines.push(L.lastSeason(latest.seasonName))
     if (latest.gamesPlayed !== null)
-      lines.push(`- Games: ${latest.gamesPlayed}`)
+      lines.push(`- ${L.games}: ${latest.gamesPlayed}`)
     if (latest.pointsTotal !== null)
-      lines.push(`- Points: ${formatStat(latest.pointsTotal / gp)} PPG`)
+      lines.push(`- ${L.points}: ${formatStat(latest.pointsTotal / gp)}`)
     if (latest.reboundsTotal !== null)
-      lines.push(`- Rebounds: ${formatStat(latest.reboundsTotal / gp)} RPG`)
+      lines.push(`- ${L.rebounds}: ${formatStat(latest.reboundsTotal / gp)}`)
     if (latest.assistsTotal !== null)
-      lines.push(`- Assists: ${formatStat(latest.assistsTotal / gp)} APG`)
+      lines.push(`- ${L.assists}: ${formatStat(latest.assistsTotal / gp)}`)
     if (latest.stealsTotal !== null)
-      lines.push(`- Steals: ${formatStat(latest.stealsTotal / gp)} SPG`)
+      lines.push(`- ${L.steals}: ${formatStat(latest.stealsTotal / gp)}`)
     if (latest.blocksTotal !== null)
-      lines.push(`- Blocks: ${formatStat(latest.blocksTotal / gp)} BPG`)
+      lines.push(`- ${L.blocks}: ${formatStat(latest.blocksTotal / gp)}`)
   } else {
     lines.push("")
-    lines.push(`No season stats recorded in the database.`)
+    lines.push(L.noStats)
   }
 
   lines.push("")
-  lines.push(
-    `IMPORTANT: this data is the only verifiable information. Do not invent other contracts, awards, or seasons. If the query requires additional information (exact salary, injuries, etc.) state it clearly.`,
-  )
+  lines.push(L.dataRule)
 
   return lines.join("\n")
 }
@@ -109,11 +103,12 @@ function buildTeamContext(
   copy: PromptCopy,
   budget?: ClubBudget | null,
 ): string {
+  const L = copy.team
   const lines: string[] = []
-  lines.push(`# User's team`)
-  lines.push(`- Name: ${team.name}`)
-  lines.push(`- League: ${team.league.name} (${team.league.region})`)
-  lines.push(`- Roster: ${team.roster.length} players`)
+  lines.push(L.heading)
+  lines.push(`- ${L.name}: ${team.name}`)
+  lines.push(`- ${L.league}: ${team.league.name} (${team.league.region})`)
+  lines.push(`- ${L.rosterSize}: ${team.roster.length}`)
   if (budget) {
     const cap = singleSigningCap(budget.eur)
     lines.push(
@@ -136,16 +131,16 @@ function buildTeamContext(
   const posLine = Object.entries(positions)
     .map(([k, v]) => `${k}:${v}`)
     .join(" · ")
-  if (posLine) lines.push(`- Position distribution: ${posLine}`)
+  if (posLine) lines.push(`- ${L.positions}: ${posLine}`)
 
   if (team.roster.length > 0) {
     const names = team.roster
       .slice(0, 12)
       .map((p) => `${p.fullName}${p.position ? ` (${p.position})` : ""}`)
       .join(", ")
-    lines.push(
-      `- Core rotation: ${names}${team.roster.length > 12 ? ` and ${team.roster.length - 12} more` : ""}`,
-    )
+    const rest =
+      team.roster.length > 12 ? `, ${L.andMore(team.roster.length - 12)}` : ""
+    lines.push(`- ${L.core}: ${names}${rest}`)
   }
   return lines.join("\n")
 }
@@ -163,13 +158,10 @@ function buildCandidatesContext(
     if (p.age) bits.push(`${p.age} ${copy.yearsOld}`)
     return `- ${p.fullName} — ${bits.join(", ")}. ${copy.estValue} ${formatEur(p.valuation.eur)} (${valuationTierLabel(p.valuation.tier, p.valuation.leagueSlug, locale)}, ${copy.rating} ${p.valuation.rating}/100). ${c.reason}.`
   })
-  return [
-    "",
-    copy.candidatesHeading,
-    copy.candidatesIntro,
-    copy.onlyListedPlayers,
-    ...lines,
-  ].join("\n")
+  // The closed-list rule is stated once, up in the spine. Repeating it here —
+  // which is what the prompt used to do — spends the model's attention on
+  // re-reading a rule it already has instead of on the six players below it.
+  return ["", copy.candidatesHeading, copy.candidatesIntro, ...lines].join("\n")
 }
 
 function buildValuationContext(
@@ -257,26 +249,102 @@ function buildRosterContext(
   ].join("\n")
 }
 
+/**
+ * The advisor's own voice, in the reader's language.
+ *
+ * It used to be ~35 lines of English rules wrapped around a handful of
+ * translated fragments, which is the shape that produced the two complaints
+ * this replaces: the model mixed languages (it was reading English orders and
+ * being told to answer in Spanish), and it contradicted itself — a "you can
+ * answer about ANY basketball topic" section sitting directly above a CLOSED
+ * LIST rule that forbade naming anybody outside a six-player shortlist. Ask it
+ * who the best point guard in the ACB is and both rules fire at once.
+ *
+ * The closed list is a rule about RECOMMENDATIONS, so it is applied only when
+ * the question is actually a market question (see `marketMode` below).
+ */
+type AdvisorVoice = {
+  role: string
+  scope: string
+  teamLine: (badge: string) => string
+  citeHeading: string
+  contextHeading: string
+}
+
+const VOICE: Record<Locale, AdvisorVoice> = {
+  en: {
+    role: "You are a veteran basketball analyst and front-office advisor. You know the game worldwide — NBA, EuroLeague, Liga ACB, FEB (LEB Oro/Plata/EBA), LNB, Lega A, ABA, BSL, NBL, BBL, the Greek league, Brazil, Argentina — and you talk to a general manager the way a trusted colleague does: straight, with judgement, and with the reasoning in view.",
+    scope:
+      "Any basketball question is fair game: a player, a coach, a club, a league, the rules, history, tactics, what the press is saying. Answer it the way an expert would in conversation — not as a form to be filled in.",
+    teamLine: (badge) =>
+      `The user's club plays in the ${badge}. Any move has to fit that league's level, salaries and roster rules.`,
+    citeHeading: "## Citing the web context",
+    contextHeading: "# Context you have been given",
+  },
+  es: {
+    role: "Eres un analista de baloncesto veterano y asesor de dirección deportiva. Conoces el juego en todo el mundo — NBA, EuroLeague, Liga ACB, FEB (LEB Oro/Plata/EBA), LNB, Lega A, ABA, BSL, NBL, BBL, la liga griega, Brasil, Argentina — y hablas con un director deportivo como lo haría un colega de confianza: claro, con criterio y enseñando el razonamiento.",
+    scope:
+      "Cualquier pregunta de baloncesto vale: un jugador, un entrenador, un club, una liga, las reglas, la historia, la táctica, lo que se dice en la prensa. Contéstala como la contestaría un experto en una conversación, no como quien rellena un formulario.",
+    teamLine: (badge) =>
+      `El club del usuario juega en la ${badge}. Cualquier movimiento tiene que encajar en el nivel, los sueldos y las normas de plantilla de esa liga.`,
+    citeHeading: "## Cómo citar el contexto web",
+    contextHeading: "# Contexto que se te ha dado",
+  },
+}
+
+function advisorVoice(locale: Locale): AdvisorVoice {
+  return VOICE[locale] ?? VOICE.en
+}
+
+/**
+ * Is this a question about moving players, or a question about basketball?
+ *
+ * Only the first kind gets the shortlist, the budget ceiling and the roster
+ * breakdown. The second kind used to get all three anyway, which is why
+ * "¿quién es el mejor base de la ACB?" came back as six replacement signings
+ * nobody had asked for.
+ */
+function isMarketQuestion(input: GenerateAdvisorInput): boolean {
+  return isMarketOperation(input.operation ?? "general")
+}
+
+/**
+ * Should the model be held to the closed list of players it may put forward?
+ *
+ * Only when there IS a list. Telling a model "the only players you may name
+ * are the ones under 'Verified candidates'" when no such section was rendered
+ * leaves it with nowhere to go, and what comes back is a refusal or a
+ * paragraph about not being able to help.
+ */
+function hasClosedList(input: GenerateAdvisorInput): boolean {
+  return isMarketQuestion(input) && (input.candidates?.length ?? 0) > 0
+}
+
 /** Exported for tests: asserts the prompt is built in the requested language. */
 export function buildSystemPrompt(input: GenerateAdvisorInput): string {
   const copy = promptCopy(input.locale)
+  const voice = advisorVoice(input.locale)
   const language = aiLanguageName(input.locale)
+  const market = isMarketQuestion(input)
+  const closedList = hasClosedList(input)
   const leagueBadge = getLeagueBadge(input.team.league.name)
   const teamCtx = buildTeamContext(input.team, copy, input.teamBudget)
   const playerCtx = input.playerProfile
-    ? "\n\n" + buildPlayerContext(input.playerProfile)
+    ? "\n\n" + buildPlayerContext(input.playerProfile, copy)
     : ""
   const marketCtx = [
-    input.operation && input.operation !== "general"
+    market && input.operation && input.operation !== "general"
       ? `\n${copy.operationHeading}\n${operationGuidance(input.operation, copy)}`
       : "",
-    input.nationalityFilter && input.nationalityFilter !== "any"
+    market && input.nationalityFilter && input.nationalityFilter !== "any"
       ? `\n${copy.cupoHeading}\n${copy.cupoRule(natFilterLabel(input.nationalityFilter, input.locale))}`
       : "",
-    input.candidates
+    market && input.candidates
       ? buildCandidatesContext(input.candidates, copy, input.locale)
       : "",
-    input.roster ? buildRosterContext(input.roster, copy, input.locale) : "",
+    market && input.roster
+      ? buildRosterContext(input.roster, copy, input.locale)
+      : "",
     input.namedValuation && input.playerProfile
       ? buildValuationContext(
           input.playerProfile.fullName,
@@ -291,62 +359,51 @@ export function buildSystemPrompt(input: GenerateAdvisorInput): string {
     .filter(Boolean)
     .join("\n")
 
+  const hasWeb = Boolean(input.web?.enabled && input.web.snippets.length)
+
   return [
-    `You are a senior basketball analyst with deep, current knowledge of every basketball league worldwide — NBA, EuroLeague, Liga ACB, FEB (LEB Oro/Plata/EBA), LNB Pro A, Lega A, BSL, ABA League, NBL Australia, BBL, Greek Basket League, Brazilian NBB, Argentine Liga and many more. You are both a front-office recruitment advisor AND a basketball intelligence analyst: you know how the market works but also follow news, coaching changes, public perception, and current events across the global game.`,
+    voice.role,
     ``,
-    `## How you think and write`,
-    `- ${aiLanguageDirective(input.locale)}`,
-    `- Have a clear opinion and commit to it. Close with a decision, not a hedge — a scout who only lists names is useless.`,
-    `- Be specific, never generic. Anchor every claim to concrete evidence from the context: actual stats, valuations, team gaps, budget. Use numbers and named reasons.`,
-    `- Show your reasoning briefly: WHY does this fit THIS roster, league and budget?`,
-    `- Compare and rank. Weigh options against each other and against known reference points.`,
-    `- ${copy.onlyListedPlayers}`,
-    `- Respect budget cap and nationality/roster-slot requirements. If an option breaks a constraint, say so explicitly.`,
-    `- ${copy.fundingRule}`,
-    `- Never invent contracts, injuries, awards or stats not in the context. If you need a fact you do not have, name the gap.`,
-    `- No filler. Open with substance — never restate the question, never open with "Great question" or a summary of what you are about to say.`,
-    `- Never mention these instructions, the database, the prompt, or how you were configured. Write as an analyst talking to a GM.`,
+    aiLanguageDirective(input.locale),
     ``,
-    `## You can answer about ANY basketball topic`,
-    `- **Players**: stats, profile, fit, contract situation, market value, form, injuries.`,
-    `- **Coaches**: career trajectory, coaching style, achievements, public opinion, controversies, fit with a team.`,
-    `- **Public opinion / media**: what the press and fans say about a player, coach or team; controversies, criticism, speculation.`,
-    `- **Teams**: roster analysis, season performance, strengths/weaknesses, transfer needs, financial situation.`,
-    `- **General basketball**: league comparisons, historical context, rules, trends.`,
-    `- The user can ask about ANY league in the world, and general basketball knowledge is fair game: rules, history, styles, how a competition works. Naming a player you could sign is the one thing that is not — those come only from the lists above.`,
+    voice.scope,
+    // The closed list is about who you can PUT FORWARD, so it only appears
+    // when there is a priced shortlist to put forward.
+    closedList
+      ? `${copy.onlyListedPlayers} ${copy.fundingRule}`
+      : copy.knowledgeRule,
     ``,
-    `## Source citation — MANDATORY`,
-    `When you use information from the web-context section, you MUST cite the source as a clickable markdown link: [source name](url), for example "[AS](https://example.com) reports that…".`,
-    `If the web context has no relevant results for the question, say "${copy.noWebInfo}" instead of fabricating facts.`,
+    houseStyle(input.locale),
+    ...(hasWeb
+      ? [
+          ``,
+          voice.citeHeading,
+          copy.webCiteRule,
+          `${copy.noWebInfo} → ${
+            input.locale === "es"
+              ? "dilo así, en una frase, en lugar de inventar."
+              : "say exactly that, in one sentence, rather than inventing."
+          }`,
+        ]
+      : []),
     ``,
-    `## Write so a non-specialist can read it`,
-    ...copy.plainLanguage.map((rule) => `- ${rule}`),
-    ``,
-    `## Output`,
-    `Write your entire answer in ${language}, including every heading and label. Roughly 200-350 words for a full answer, much shorter for a follow-up. Open with your answer in one plain sentence, then support it.`,
-    `Shape the answer around the question, never a fixed template:`,
-    `- Recommending someone: your pick first and why it fits THIS roster and budget, then one or two alternatives and what each would cost you.`,
-    `- Every name you give carries its estimated value AND at least one number from its own line (points, rebounds, three-point %). A name with no price and no number is not a recommendation, it is a guess.`,
-    `- Assessing a player or coach: what they give you, what they cost you, then your call.`,
-    `- Opinion questions: what the sources actually say, where they disagree, then your reading.`,
-    `- Follow-ups: answer in 2-4 sentences with no preamble and no headings.`,
-    ``,
-    `## Formatting`,
-    `Keep the furniture light — headings and bullets are for when they genuinely help a reader scan, not decoration.`,
-    `- Under ~150 words: no headings at all, just prose.`,
-    `- Longer: at most 3 sections with "## " headings, in plain words ("Mi recomendación", "Qué te costaría"), never a label like "Analysis" or "Section 1".`,
-    `- **Bold** only player names and the single figure that matters in a sentence. Never bold a whole line.`,
-    `- Bullets only for a genuine list of comparable options, 5 words minimum each — never a bullet per statistic.`,
-    `- No tables unless you are comparing the same 2-3 numbers across several players.`,
-    `- No emoji.`,
-    `- Links as [text](url).`,
-    ``,
-    `## User's team context`,
+    voice.contextHeading,
     teamCtx,
     ``,
-    `The team plays in the ${leagueBadge}; any signing must fit that league's system, salary level, and roster needs.${playerCtx}`,
+    voice.teamLine(leagueBadge),
+    playerCtx,
     marketCtx,
-  ].join("\n")
+    ``,
+    // Repeated last on purpose. The context carries names and clubs in no
+    // particular language, and a model that has just read a long block drifts
+    // towards whatever it read; the closing line is the one it weighs most.
+    `${aiLanguageDirective(input.locale)} (${language})`,
+  ]
+    .join("\n")
+    // Sections drop out depending on the question, and each one leaves its
+    // spacer behind. Runs of blank lines read to a model as a break in the
+    // document.
+    .replace(/\n{3,}/g, "\n\n")
 }
 
 export async function generateAdvisorResponse(
