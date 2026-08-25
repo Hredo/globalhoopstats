@@ -254,3 +254,62 @@ export function isMostlyHeadings(text: string): boolean {
   }
   return headings >= MIN_HEADINGS_TO_JUDGE && headings > prose
 }
+
+
+/**
+ * Did the model ask the user for information instead of answering?
+ *
+ * Three surfaces shipped this on the same afternoon. Compare, handed two
+ * players the database had recorded under the same first name, replied "Por
+ * favor, proporciona el nombre de cada Aaron para que pueda ayudarte y no
+ * confundir a los jugadores". The advisor, asked for an unstoppable interior
+ * defender, replied by asking the coach where one might be found. A player
+ * report signed off with "Cualquier otra información sobre el jugador, por
+ * favor, enviándola directamente."
+ *
+ * None of those are answers, and none of them tripped any existing check: they
+ * are the right length, they name the right people, they invent no figures.
+ * There is also nowhere for the user to reply — Compare and the player report
+ * are one-shot buttons, so a question is a dead end by construction.
+ *
+ * Two independent signals, either of which is enough:
+ *   - an explicit request for data ("proporciona…", "please provide…"),
+ *   - an answer made mostly of questions.
+ */
+
+/** Asking for material to work with, rather than working with what it has. */
+const REQUESTS_INPUT = [
+  // Spanish: "por favor, proporciona/facilita/envíame/dime …"
+  /\b(?:por\s+favor|porfavor)\b[^.?!\n]{0,60}\b(?:proporcion|facilit|indic|env[ií]|manda|comparte|dime|dame|especifi|aclara)/i,
+  /\b(?:proporci[oó]na|facil[ií]tame|ind[ií]came|env[ií]ame|m[aá]ndame|comp[aá]rteme|especif[ií]came)\b/i,
+  /\bnecesit\w*\s+(?:m[aá]s|saber|conocer|que\s+me)\b[^.\n]{0,40}\b(?:informaci|datos|detalles|contexto|nombre)/i,
+  /\bno\s+(?:tengo|dispongo\s+de|cuento\s+con)\b[^.\n]{0,40}\b(?:informaci|datos|suficiente)/i,
+  // English
+  /\bplease\s+(?:provide|share|send|tell|give|specify|clarify|confirm)\b/i,
+  /\b(?:i|we)\s+(?:need|require|would\s+need)\b[^.\n]{0,40}\b(?:more\s+)?(?:information|data|details|context|the\s+name)/i,
+  /\bcould\s+you\s+(?:please\s+)?(?:provide|share|send|tell|specify|clarify|confirm)\b/i,
+]
+
+/** Below this we are looking at one rhetorical question, not an interrogation. */
+const MIN_QUESTIONS = 2
+/** Share of sentences that must be questions before the answer is one. */
+const MAX_QUESTION_SHARE = 0.4
+
+export function asksForInput(text: string): boolean {
+  if (REQUESTS_INPUT.some((re) => re.test(text))) return true
+
+  // Whitespace is flattened BEFORE splitting, so a sentence that happens to
+  // wrap across two lines stays one sentence. Splitting on newlines as well
+  // counted every wrapped fragment as a statement and quietly diluted the
+  // share of questions below the threshold.
+  const sentences = text
+    .replace(/\s+/g, " ")
+    .split(/(?<=[.!?…])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+  if (sentences.length === 0) return false
+  const questions = sentences.filter((s) => s.endsWith("?")).length
+  return (
+    questions >= MIN_QUESTIONS && questions / sentences.length > MAX_QUESTION_SHARE
+  )
+}

@@ -20,13 +20,14 @@
 import { chatComplete, type ChatMessage } from "@/lib/ai/chat"
 import type { AiProvider } from "@/lib/ai/providers"
 import {
+  asksForInput,
   echoesInstructions,
   isMostlyHeadings,
   isUsableAnswer,
   mentionsAnySubject,
   trimDegeneratedOutput,
 } from "@/lib/ai/degeneration"
-import { inventsFigures, unsupportedFigures } from "@/lib/ai/grounding"
+import { inventsFigures, isDataDump, unsupportedFigures } from "@/lib/ai/grounding"
 import { cleanLlmOutput } from "@/lib/security/ai-advisor"
 import type { Locale } from "@/lib/i18n/config"
 
@@ -74,13 +75,40 @@ export type GroundedRequest = {
   checkFigures?: boolean
   /** Minimum answer length. Follow-ups in a chat are legitimately short. */
   requireLength?: boolean
+  /**
+   * Total wall-clock budget for the answer, retry included. Defaults to
+   * `ANSWER_BUDGET_MS`; pass less on a surface that has other work to do in
+   * the same request.
+   */
+  budgetMs?: number
 }
 
+/**
+ * How long the whole answer may take, RETRY INCLUDED.
+ *
+ * This exists because verification made every answer potentially two provider
+ * calls, and the per-call ceiling was 120s. Two of those is four minutes; the
+ * proxy in front of the app gives up at a minute and the browser gets a 502
+ * with an HTML body. That is what `/api/market/trade/ai` was returning.
+ *
+ * 45s leaves clear room under both the origin's nginx timeout and
+ * Cloudflare's 100s, and no model we support needs longer for 900 tokens.
+ */
+const ANSWER_BUDGET_MS = 45_000
+
+/**
+ * Below this there is no point starting another call — it cannot finish, and
+ * an aborted retry costs the user the wait and still shows them nothing.
+ */
+const MIN_ATTEMPT_MS = 12_000
+
 export type FailureReason =
-  /** The provider itself errored — bad key, model gone, timeout. */
+  /** The provider itself errored — bad key, model gone, refused. */
   | "provider"
   /** The model answered, but with something we will not show a user. */
   | "unusable"
+  /** We ran out of time before the model finished. */
+  | "timeout"
 
 export type GroundedAnswer =
   | { ok: true; text: string; model: string; retried: boolean }
@@ -94,6 +122,8 @@ type Rejection =
   | "echoed-brief"
   | "wrong-subject"
   | "invented-figures"
+  | "data-dump"
+  | "asks-for-input"
 
 function groundingSource(req: GroundedRequest): string {
   return req.groundingSource ?? req.data
@@ -109,6 +139,12 @@ function verify(
   if (isMostlyHeadings(text)) return "outline"
   if (req.requireLength !== false && !isUsableAnswer(text)) return "too-short"
   if (echoesInstructions(text, req.system)) return "echoed-brief"
+  // Every one of these surfaces is a button, not a conversation. A question
+  // back to the user is a dead end even when it is a reasonable question.
+  if (asksForInput(text)) return "asks-for-input"
+  // The data read back to us, translated. Passes every other check: real
+  // figures, right names, right length, no echoed instructions.
+  if (isDataDump(text)) return "data-dump"
   if (!mentionsAnySubject(text, req.subjects ?? [])) return "wrong-subject"
 
   if (req.checkFigures === false) return null
@@ -153,6 +189,10 @@ function correction(rejection: Rejection, locale: Locale, detail: string): strin
         "wrong-subject":
           "no hablaste de las personas sobre las que te preguntaron. Usa sus nombres tal y como aparecen en los datos.",
         "invented-figures": `te inventaste cifras que no están en los datos${detail}. Cada número que escribas tiene que salir del bloque de datos, tal cual o redondeado; si lo sacas de una fuente externa, cita el enlace con [nombre](url).`,
+        "data-dump":
+          "te limitaste a copiar los datos que te pasaron en lugar de interpretarlos. No hagas listas de \"etiqueta: valor\". Escribe frases que digan qué significan esos números para el equipo, y usa como mucho tres o cuatro cifras en toda la respuesta.",
+        "asks-for-input":
+          "le pediste información al lector en vez de contestarle. No puede responderte: esto es un botón, no una conversación. Contesta con lo que tienes y, si algo te falta, dilo en media frase y sigue.",
       }
     : {
         empty: "you wrote nothing.",
@@ -164,6 +204,10 @@ function correction(rejection: Rejection, locale: Locale, detail: string): strin
         "wrong-subject":
           "you did not write about the people you were asked about. Use their names exactly as they appear in the data.",
         "invented-figures": `you invented figures that are not in the data${detail}. Every number you write has to come from the data block, exactly or rounded; if it comes from an outside source, cite the link as [name](url).`,
+        "data-dump":
+          "you copied the data back instead of interpreting it. No \"label: value\" lists. Write sentences that say what those numbers mean for the team, and use three or four figures in the whole answer at most.",
+        "asks-for-input":
+          "you asked the reader for information instead of answering them. They cannot reply — this is a button, not a conversation. Answer with what you have, and if something is missing say so in half a sentence and move on.",
       }
   return `${lead} ${fixes[rejection]}`
 }
@@ -178,6 +222,9 @@ function correction(rejection: Rejection, locale: Locale, detail: string): strin
 export async function generateGroundedAnswer(
   req: GroundedRequest,
 ): Promise<GroundedAnswer> {
+  const deadline = Date.now() + (req.budgetMs ?? ANSWER_BUDGET_MS)
+  const remaining = () => deadline - Date.now()
+
   const attempt = async (
     system: string,
     temperature: number,
@@ -194,6 +241,9 @@ export async function generateGroundedAnswer(
       maxTokens: req.maxTokens ?? 900,
       temperature,
       webSearch: req.webSearch,
+      // Whatever is left of the budget, so the second call cannot run past a
+      // deadline the first one already ate most of.
+      timeoutMs: Math.max(1_000, remaining()),
     })
     if (!result.ok) return { kind: "provider-error", error: result.error }
     const text = trimDegeneratedOutput(result.content).text
@@ -219,7 +269,16 @@ export async function generateGroundedAnswer(
     }
   }
 
-  // Second and last attempt: same brief, plus what went wrong, colder.
+  // Second and last attempt: same brief, plus what went wrong, colder — but
+  // only if it can actually finish. Starting a call that the proxy will kill
+  // mid-flight turns a bad answer into a 502.
+  if (remaining() < MIN_ATTEMPT_MS) {
+    console.error(
+      `[ai] ${req.engine.provider.id}/${req.engine.model} rejected (${first.rejection}) with no budget left to retry`,
+    )
+    return { ok: false, reason: "timeout", error: first.rejection }
+  }
+
   const bad =
     first.rejection === "invented-figures"
       ? ` (${unsupportedFigures(first.text, groundingSource(req))
@@ -256,17 +315,87 @@ export async function generateGroundedAnswer(
  * provider error is a key or a model id, an unusable answer is the engine
  * being too small for the job.
  */
+/**
+ * Turn a raw provider error into something a person can act on.
+ *
+ * What used to reach the screen was the vendor's own JSON: `Groq 429:
+ * {"error":{"message":"Rate limit reached for model \`allam-2-7b\` in
+ * organization org_01k… on tokens per minute (TPM): Limit 6000, Used 3112…`.
+ * That is English, it is truncated mid-word, and it tells a coach nothing
+ * about what to do next. The status code carries all the meaning we need.
+ */
+function describeProviderError(raw: string, locale: Locale): string {
+  const es = locale === "es"
+  const text = raw.toLowerCase()
+
+  if (/\b429\b|rate.?limit|quota|too many requests/.test(text)) {
+    // The vendor usually says how long to wait; if it did, pass that on.
+    const wait = raw.match(/try again in ([\d.]+)\s*s/i)
+    const when = wait
+      ? es
+        ? ` Vuelve a intentarlo en unos ${Math.ceil(Number(wait[1]))} segundos.`
+        : ` Try again in about ${Math.ceil(Number(wait[1]))} seconds.`
+      : es
+        ? " Espera un momento y vuelve a intentarlo."
+        : " Wait a moment and try again."
+    return (
+      (es
+        ? "Has llegado al límite de uso de tu proveedor de IA."
+        : "You have hit your AI provider's usage limit.") + when
+    )
+  }
+  if (/model_not_found|\b404\b|does not exist|no such model|decommissioned/.test(text)) {
+    return es
+      ? "El modelo que tienes seleccionado ya no existe en tu proveedor. Elige otro en tus ajustes de IA."
+      : "The model you have selected no longer exists at your provider. Pick another one in your AI settings."
+  }
+  if (/\b401\b|\b403\b|invalid.?api.?key|unauthorized|authentication/.test(text)) {
+    return es
+      ? "Tu clave de API no es válida o no tiene permiso para este modelo. Revísala en tus ajustes de IA."
+      : "Your API key is not valid, or has no access to this model. Check it in your AI settings."
+  }
+  if (/\b402\b|insufficient|credit|billing|payment/.test(text)) {
+    return es
+      ? "Tu proveedor de IA ha rechazado la petición por saldo o facturación."
+      : "Your AI provider refused the request over credit or billing."
+  }
+  if (/abort|timeout|timed out|took too long|econnreset|network/.test(text)) {
+    return es
+      ? "El proveedor de IA ha tardado demasiado en responder."
+      : "The AI provider took too long to answer."
+  }
+  if (/\b5\d{2}\b|overloaded|unavailable|capacity/.test(text)) {
+    return es
+      ? "El proveedor de IA no está disponible ahora mismo. Inténtalo de nuevo en un minuto."
+      : "The AI provider is unavailable right now. Try again in a minute."
+  }
+  return es
+    ? "El proveedor de IA ha fallado al responder."
+    : "The AI provider failed to answer."
+}
+
+/**
+ * What to tell the user when the model could not produce a usable answer.
+ *
+ * Says which of the three things happened, because the fix is different: a
+ * provider error is a key, a quota or a model id; a timeout is a model too
+ * slow for a web request; an unusable answer is the engine being too small
+ * for the job.
+ */
 export function answerFailureMessage(
   answer: Extract<GroundedAnswer, { ok: false }>,
   locale: Locale,
 ): string {
   const es = locale === "es"
   if (answer.reason === "provider") {
+    return describeProviderError(answer.error, locale)
+  }
+  if (answer.reason === "timeout") {
     return es
-      ? `El proveedor de IA ha fallado: ${answer.error}`
-      : `The AI provider failed: ${answer.error}`
+      ? "El modelo que tienes seleccionado ha tardado demasiado. Prueba con uno más rápido en tus ajustes de IA."
+      : "The model you have selected took too long. Try a faster one in your AI settings."
   }
   return es
-    ? "El modelo que tienes seleccionado no ha sido capaz de dar una respuesta fiable — lo ha intentado dos veces y las dos ha respondido con un guion vacío o con cifras que no salen de tus datos. Elige un modelo más grande en Ajustes."
-    : "The model you have selected could not produce a reliable answer — it tried twice and both times came back with an empty outline or with figures that are not in your data. Pick a larger model in Settings."
+    ? "El modelo que tienes seleccionado no ha sido capaz de dar una respuesta fiable — lo ha intentado dos veces y las dos ha respondido con un guion vacío, con un volcado de los datos o con cifras que no salen de tus datos. Elige un modelo más grande en Ajustes."
+    : "The model you have selected could not produce a reliable answer — it tried twice and both times came back with an empty outline, a dump of the data, or figures that are not in your data. Pick a larger model in Settings."
 }

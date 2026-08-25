@@ -154,10 +154,17 @@ export async function POST(request: Request) {
       checkFigures: false,
     })
     if (!answer.ok) {
-      return NextResponse.json(
-        { error: answerFailureMessage(answer, answerLocale), aiConfigured: true },
-        { status: 502 },
-      )
+      // 200, not 502. The request was valid, our server is healthy, and the
+      // body carries the explanation the user needs to act on — but a 5xx
+      // travels through Cloudflare, which may replace the body with its own
+      // error page, and then the browser gets HTML where it expected JSON and
+      // the reader is told only "failed to load resource". The failure is in
+      // the payload, where every other AI surface on the site puts it.
+      return NextResponse.json({
+        analysis: null,
+        error: answerFailureMessage(answer, answerLocale),
+        aiConfigured: true,
+      })
     }
     return NextResponse.json({
       analysis: answer.text,

@@ -42,6 +42,15 @@ const REPORT_LABELS: Record<Locale, Record<string, string>> = {
   },
 }
 
+/**
+ * Section labels for the data block.
+ *
+ * Deliberately NOT markdown headings. A model shown a document made of "## "
+ * titles writes one back — a playbook answer came out as "Frame 1 — 2-player
+ * Pick & Roll / Frame 2 — 3-player Pick & Roll", the frame headings copied
+ * across with the coach's actual question never answered. The same reasoning
+ * as the trade route's data block, applied here.
+ */
 export function buildPlayerPrompt(
   name: string,
   league: string,
@@ -102,23 +111,23 @@ export function buildPlayerPrompt(
   const shotChartStr = describeShotZones(shotZones)
 
   return [
-    "## Player profile",
+    "PLAYER —",
     `Name: ${name}`,
     `League: ${league}`,
     `Team: ${team ?? "Free agent"}`,
     `Position: ${position ?? "N/A"}`,
     `Season: ${season.seasonName} · ${season.gamesPlayed} GP`,
     "",
-    "## Per-game stats",
+    "PER-GAME STATS —",
     `Points: ${ppg} · Rebounds: ${rpg} · Assists: ${apg} · Steals: ${spg} · Blocks: ${bpg}`,
     "",
-    "## Shooting",
+    "SHOOTING —",
     `FG: ${fmtPct(season.fgPct)} · 3P: ${fmtPct(season.threePct)} · FT: ${fmtPct(season.ftPct)}`,
     "",
-    "## Advanced metrics",
+    "ADVANCED METRICS —",
     advancedStr,
     "",
-    "## Market valuation",
+    "MARKET VALUATION —",
     valStr,
     leagueContext ? "" : null,
     leagueContext,
@@ -170,8 +179,8 @@ export function playerReportSystem(
       : `- ${labels.value} — is the estimated price fair for that production?`,
     opts.hasShotChart
       ? es
-        ? `- ${labels.shooting} — desde dónde anota, según los datos por zonas.`
-        : `- ${labels.shooting} — where on the floor he scores from, based on the zone data.`
+        ? `- ${labels.shooting} — la conclusión que sacas de las zonas: desde dónde hace daño de verdad y desde dónde no. Como mucho dos porcentajes, y solo si sostienen esa conclusión. No enumeres las zonas una por una — el entrenador ya tiene ese gráfico delante.`
+        : `- ${labels.shooting} — the conclusion you draw from the zones: where he really hurts you and where he does not. Two percentages at most, and only if they carry that conclusion. Do not list the zones one by one — the coach already has that chart in front of him.`
       : null,
     opts.canBrowse
       ? es
@@ -231,7 +240,7 @@ function describeShotZones(zones: ShotZonesJson | null): string {
     lines.push(`  ${label}: ${fmtPct(z.m / z.a)} (${z.m}/${z.a})`)
   }
   if (lines.length === 0) return ""
-  return ["## Shooting by zone (real, from shot-location data)", ...lines].join(
+  return ["SHOOTING BY ZONE (real shot-location data) —", ...lines].join(
     "\n",
   )
 }

@@ -154,8 +154,8 @@ export function describeLeagueContext(
   const labels = LABELS[locale] ?? LABELS.en
 
   const header = es
-    ? `## Cómo se compara con el resto de ${ctx.leagueLabel} (${ctx.qualified} jugadores medidos esta temporada)`
-    : `## How he compares in ${ctx.leagueLabel} (${ctx.qualified} measured players this season)`
+    ? `COMPARACIÓN CON EL RESTO DE ${ctx.leagueLabel} (${ctx.qualified} jugadores medidos esta temporada) —`
+    : `HOW HE COMPARES IN ${ctx.leagueLabel} (${ctx.qualified} measured players this season) —`
 
   const lines = ctx.ranks.map((r) => {
     const value = fmtValue(r.key, r.value)

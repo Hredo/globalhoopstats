@@ -262,10 +262,14 @@ function RecruitCard({
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-ink-400">
             <span>{rec.position}</span>
-            <span className="text-ink-600">·</span>
-            <span>
-              {rec.age} {t("aiAdvisor.yearsOld")}
-            </span>
+            {rec.age != null && rec.age > 0 ? (
+              <>
+                <span className="text-ink-600">·</span>
+                <span>
+                  {rec.age} {t("aiAdvisor.yearsOld")}
+                </span>
+              </>
+            ) : null}
           </div>
         </div>
         <div className="shrink-0 text-right">

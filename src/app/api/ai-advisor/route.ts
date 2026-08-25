@@ -592,7 +592,8 @@ function candidatesToRecruits(
       name: p.fullName,
       position: p.position ?? "N/A",
       league: p.league.name,
-      age: p.age ?? 0,
+      // Same rule as the stats two lines up: unknown is dropped, not zeroed.
+      age: p.age ?? null,
       contractValue: formatEur(p.valuation.eur),
       annual:
         p.valuation.annualEur != null

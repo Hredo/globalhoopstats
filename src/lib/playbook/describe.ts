@@ -128,7 +128,11 @@ export function describePlay(play: Play): string {
   lines.push("")
 
   play.frames.forEach((frame, i) => {
-    lines.push(`## Frame ${i + 1}${frame.note ? ` — ${frame.note}` : ""}`)
+    // Not a "## " heading: shown a document of markdown titles, a small model
+    // copies the titles instead of answering. One breakdown came back as
+    // "Frame 1 — 2-player Pick & Roll / Frame 2 — 3-player Pick & Roll", the
+    // coach's own question untouched.
+    lines.push(`FRAME ${i + 1}${frame.note ? ` (${frame.note})` : ""} —`)
 
     const ballLine = ballLocation(play, frame)
     if (ballLine) lines.push(`Ball position:`, ballLine)

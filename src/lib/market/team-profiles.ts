@@ -152,8 +152,8 @@ export function describeTeamProfiles(
   const es = locale === "es"
 
   const header = es
-    ? `# Equipos reales de ${league} (datos medidos de esta temporada)`
-    : `# Real ${league} clubs (measured, this season)`
+    ? `EQUIPOS REALES DE ${league} (datos medidos de esta temporada) —`
+    : `REAL ${league} CLUBS (measured, this season) —`
   const rule = es
     ? `Si la pregunta es qué equipo encaja, elige SOLO entre estos y justifícalo con estos números. No menciones clubes que no estén en la lista. "Tiradores" = jugadores por encima del ${SHOOTER_THREE_PCT * 100}% en triples; "altos" = ${BIG_HEIGHT_CM} cm o más.`
     : `If the question is which club fits, choose ONLY from these and justify it with these numbers. Never name a club that is not listed. "Shooters" = players above ${SHOOTER_THREE_PCT * 100}% from three; "bigs" = ${BIG_HEIGHT_CM} cm or taller.`
