@@ -84,6 +84,41 @@ export function readRateLimit(
   return { ok: true }
 }
 
+/**
+ * Burst allowance for the AI endpoints, per IP.
+ *
+ * Sized so that nobody using the site can feel it. A coach opening a dozen
+ * player reports in a row, running three comparisons and holding an advisor
+ * conversation spends a fraction of this.
+ */
+const AI_BURST = 240
+/** Sustained ceiling once the burst is spent: 60 a minute, 3 600 an hour. */
+const AI_REFILL_PER_SEC = 1
+
+/**
+ * The ceiling on the AI endpoints (advisor, player report, compare, trade,
+ * playbook).
+ *
+ * The product is freemium and the model calls are billed to the reader's OWN
+ * provider key, so a usage cap here protected nothing the owner pays for while
+ * cutting real sessions short — 30 requests per five minutes, SHARED across
+ * all five surfaces, is about ten minutes of ordinary browsing.
+ *
+ * What is left is an anti-runaway backstop, not a quota: it exists so that a
+ * loop in the front end, or a script, cannot pin the server and the database
+ * indefinitely. Every advisor call still reads candidates, roster and team
+ * rows, and that traffic IS the owner's bill.
+ *
+ * In-memory on purpose, the same call the `track/*` endpoints make and for the
+ * same reason: `consumeRateLimit` costs two database round trips of its own,
+ * which is a silly price to pay for a limit designed never to trigger. The
+ * app runs as one long-lived Node process, so the buckets persist between
+ * requests.
+ */
+export function aiRateLimit(ip: string): RateLimitResult {
+  return readRateLimit(ip, "ai", AI_BURST, AI_REFILL_PER_SEC)
+}
+
 export function jsonTooManyRequests(retryAfterSec: number): NextResponse {
   return NextResponse.json(
     { error: "Demasiadas solicitudes. Intenta de nuevo en unos segundos." },

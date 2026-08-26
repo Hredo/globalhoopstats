@@ -19,6 +19,7 @@ import { natFilterLabel, type NatFilter } from "@/lib/market/nationality"
 import {
   isMarketOperation,
   looksLikeKnowledgeQuestion,
+  looksLikeSmallTalk,
   type MarketOperation,
 } from "@/lib/ai/intent"
 
@@ -312,6 +313,11 @@ function advisorVoice(locale: Locale): AdvisorVoice {
  * candidates in the prompt at all.
  */
 function isMarketQuestion(input: GenerateAdvisorInput): boolean {
+  // A greeting is not a transfer request. Before this line, "hola" fell
+  // through to `true` — it matches no knowledge opener — and the model was
+  // handed a shortlist, a budget ceiling, the whole roster valuation and an
+  // order to only name players from the list, to answer a hello.
+  if (looksLikeSmallTalk(input.userMessage)) return false
   if (isMarketOperation(input.operation ?? "general")) return true
   return !looksLikeKnowledgeQuestion(input.userMessage)
 }
@@ -328,8 +334,39 @@ function hasClosedList(input: GenerateAdvisorInput): boolean {
   return isMarketQuestion(input) && (input.candidates?.length ?? 0) > 0
 }
 
+/**
+ * What to say when the coach just said hello.
+ *
+ * Deliberately tiny. The full brief is ~90 lines of persona, house style,
+ * roster valuations and a closed player list, and a small model handed all of
+ * that in answer to "hola" does the only thing it can: it writes the report
+ * the brief describes. Give it nothing to report on and it says hello back.
+ */
+function smallTalkPrompt(input: GenerateAdvisorInput): string {
+  const voice = advisorVoice(input.locale)
+  const es = input.locale === "es"
+  return [
+    voice.role,
+    ``,
+    aiLanguageDirective(input.locale),
+    ``,
+    es
+      ? `El usuario solo te está saludando o dándote las gracias. No te ha pedido ningún análisis.`
+      : `The user is only greeting you or thanking you. They have not asked for any analysis.`,
+    es
+      ? `Contéstale en una o dos frases, como le contestarías a un compañero que entra por la puerta. Di en media línea que llevas la dirección deportiva del ${input.team.name} y pregúntale qué necesita.`
+      : `Answer in one or two sentences, the way you would answer a colleague walking in. Say in half a line that you cover the front office at ${input.team.name}, and ask what they need.`,
+    es
+      ? `Nada de titulares, listas, viñetas, negritas, cifras ni nombres de jugadores. Ningún análisis: todavía no sabes de qué va la consulta.`
+      : `No headings, lists, bullets, bold, figures or player names. No analysis: you do not yet know what the question is.`,
+    ``,
+    `${aiLanguageDirective(input.locale)} (${aiLanguageName(input.locale)})`,
+  ].join("\n")
+}
+
 /** Exported for tests: asserts the prompt is built in the requested language. */
 export function buildSystemPrompt(input: GenerateAdvisorInput): string {
+  if (looksLikeSmallTalk(input.userMessage)) return smallTalkPrompt(input)
   const copy = promptCopy(input.locale)
   const voice = advisorVoice(input.locale)
   const language = aiLanguageName(input.locale)
@@ -420,6 +457,7 @@ export async function generateAdvisorResponse(
 ): Promise<AdvisorResult> {
   const system = buildSystemPrompt(input)
   const canBrowse = supportsNativeWebSearch(engine.provider)
+  const smallTalk = looksLikeSmallTalk(input.userMessage)
 
   const answer = await generateGroundedAnswer({
     engine,
@@ -434,10 +472,13 @@ export async function generateAdvisorResponse(
     // answers.
     subjects: input.playerProfile ? [input.playerProfile.fullName] : [],
     locale: input.locale,
-    maxTokens: 1100,
+    // A hello does not need a thousand tokens, and giving a small model room
+    // it does not need is an invitation to fill it.
+    maxTokens: smallTalk ? 160 : 1100,
     temperature: 0.7,
-    // Let Anthropic/Gemini browse with the user's own key (no Tavily needed).
-    webSearch: canBrowse,
+    // Nothing to look up when the message is "hola", and a search on it burns
+    // the user's own credit.
+    webSearch: canBrowse && !smallTalk,
     // Check the figures when the shortlist IS the source of truth. On a
     // general basketball question the model answers from training, and there
     // is nothing of ours to check it against. When it can browse, an outside

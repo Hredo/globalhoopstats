@@ -113,6 +113,71 @@ const KNOWLEDGE_OPENERS =
 const MARKET_WORDS =
   /necesit|busc|fich|refuerz|recomien|recomend|sugier|contrat|traspas|cort(?:ar|e)|renov|plantilla|roster|cubrir|reforzar|mejorar|encaj|presupuest|budget|\bsign\b|\btrade\b|\bcut\b|\bneed\b|\blooking for\b/i
 
+/**
+ * Words that can make up an entire message without the message asking for
+ * anything. A greeting, an acknowledgement, a thank-you, someone checking the
+ * box works.
+ */
+const SMALL_TALK_WORDS = new Set([
+  // Greetings
+  "hola", "holaa", "holaaa", "buenas", "buenos", "dias", "días", "tardes",
+  "noches", "saludos", "ey", "hey", "hi", "hello", "yo", "hiya",
+  "good", "morning", "afternoon", "evening", "there",
+  // "¿qué tal?", "¿cómo va todo?"
+  "que", "qué", "tal", "como", "cómo", "va", "vas", "estas", "estás", "esta",
+  "está", "todo", "bien", "ahi", "ahí", "andas", "how", "are", "you", "s",
+  "up", "doing", "it", "going",
+  // Thanks / acknowledgement
+  "gracias", "muchas", "mil", "thanks", "thank", "thx", "ok", "okay", "okey",
+  "vale", "genial", "perfecto", "guay", "entendido", "recibido", "correcto",
+  // Sign-off
+  "adios", "adiós", "hasta", "luego", "pronto", "bye", "chao", "ciao", "nos",
+  "vemos", "cuidate", "cuídate",
+  // Someone poking the box to see if it answers
+  "test", "testing", "prueba", "probando", "funciona", "funcionas", "ping",
+])
+
+/**
+ * A message made only of small talk needs at least one of these. Without the
+ * anchor, "todo bien" or "ok" alone could be a coach answering a question the
+ * advisor just asked, and that deserves a real reply with the history behind
+ * it.
+ */
+const SMALL_TALK_ANCHORS = new Set([
+  "hola", "holaa", "holaaa", "buenas", "buenos", "saludos", "ey", "hey", "hi",
+  "hello", "hiya", "gracias", "thanks", "thank", "thx", "adios", "adiós",
+  "bye", "chao", "ciao", "test", "testing", "prueba", "probando", "ping",
+  "morning", "afternoon", "evening",
+])
+
+/** Longer than this and it is not a greeting, whatever words it uses. */
+const MAX_SMALL_TALK_WORDS = 8
+
+/**
+ * Is the coach saying hello rather than asking anything?
+ *
+ * This existed nowhere, and the consequence was the complaint that started
+ * this: typing "hola" returned a full front-office report — a diagnosis of a
+ * gap in the roster, three signings priced at €60M each and a checklist about
+ * salary space — because every message that was not recognisably a knowledge
+ * question was treated as a transfer request. A greeting is neither.
+ *
+ * Matched on the whole message, not on a prefix: "hola, ¿a quién ficho para el
+ * poste?" is a market question with a greeting glued to the front, and it must
+ * keep every piece of context it would otherwise get.
+ */
+export function looksLikeSmallTalk(message: string): boolean {
+  const words = message
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  if (words.length === 0 || words.length > MAX_SMALL_TALK_WORDS) return false
+  if (!words.some((w) => SMALL_TALK_ANCHORS.has(w))) return false
+  return words.every((w) => SMALL_TALK_WORDS.has(w))
+}
+
 export function looksLikeKnowledgeQuestion(message: string): boolean {
   const s = message.trim()
   if (s.length === 0) return false

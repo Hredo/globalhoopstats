@@ -5,11 +5,11 @@ import {
   type ComparisonOutput,
 } from "@/lib/ai/player-comparator"
 import {
+  aiRateLimit,
   audit,
   clientIp,
   sanitisePromptInput,
 } from "@/lib/security/ai-advisor"
-import { consumeRateLimit } from "@/lib/security/rate-limit"
 import { getCurrentUser } from "@/lib/auth/current-user"
 import { resolveEngine, resolveDefaultEngine } from "@/lib/ai/user-provider"
 import { generateGroundedAnswer } from "@/lib/ai/answer"
@@ -91,7 +91,7 @@ function buildCompareSystem(locale: Locale): string {
 
 export async function POST(request: Request) {
   const ip = clientIp(request)
-  const limit = await consumeRateLimit(`ai:${ip}`, 30, 5 * 60 * 1000)
+  const limit = aiRateLimit(ip)
   if (!limit.ok) {
     return NextResponse.json(
       {

@@ -17,7 +17,11 @@
  *   2. The answer is verified against that data before it is returned.
  *   3. A failed verification is retried once, tightened, and then given up on.
  */
-import { chatComplete, type ChatMessage } from "@/lib/ai/chat"
+import {
+  chatComplete,
+  REASONING_ONLY_ERROR,
+  type ChatMessage,
+} from "@/lib/ai/chat"
 import type { AiProvider } from "@/lib/ai/providers"
 import {
   asksForInput,
@@ -101,6 +105,27 @@ const ANSWER_BUDGET_MS = 45_000
  * an aborted retry costs the user the wait and still shows them nothing.
  */
 const MIN_ATTEMPT_MS = 12_000
+
+/**
+ * How much bigger the second attempt gets when the first one was all thinking.
+ *
+ * A reasoning model needs the deliberation AND the answer inside one cap. 2.5x
+ * covers the local 8B distills, which think for roughly as long as they write.
+ */
+const REASONING_HEADROOM = 2.5
+
+/**
+ * Told to a model that deliberated on the page instead of answering on it.
+ *
+ * Worth saying even though the reasoning is stripped anyway: a model that
+ * skips the deliberation spends its whole budget on the answer, which is the
+ * outcome we actually want.
+ */
+function noDeliberation(locale: Locale): string {
+  return locale === "es"
+    ? "No escribas tu razonamiento ni tus pasos intermedios. Empieza directamente por la respuesta."
+    : "Do not write out your reasoning or your intermediate steps. Start directly with the answer."
+}
 
 export type FailureReason =
   /** The provider itself errored — bad key, model gone, refused. */
@@ -225,9 +250,12 @@ export async function generateGroundedAnswer(
   const deadline = Date.now() + (req.budgetMs ?? ANSWER_BUDGET_MS)
   const remaining = () => deadline - Date.now()
 
+  const baseTokens = req.maxTokens ?? 900
+
   const attempt = async (
     system: string,
     temperature: number,
+    maxTokens: number = baseTokens,
   ): Promise<
     | { kind: "provider-error"; error: string }
     | { kind: "candidate"; text: string; model: string; rejection: Rejection | null }
@@ -238,7 +266,7 @@ export async function generateGroundedAnswer(
       apiKey: req.engine.apiKey,
       system,
       messages: [...(req.history ?? []), { role: "user", content: req.data }],
-      maxTokens: req.maxTokens ?? 900,
+      maxTokens,
       temperature,
       webSearch: req.webSearch,
       // Whatever is left of the budget, so the second call cannot run past a
@@ -256,7 +284,29 @@ export async function generateGroundedAnswer(
   }
 
   const baseTemp = req.temperature ?? 0.6
-  const first = await attempt(req.system, baseTemp)
+  let first = await attempt(req.system, baseTemp)
+
+  // The model spent the whole cap deliberating and never got to the answer.
+  // Its reasoning is stripped at the provider boundary (see ai/reasoning.ts),
+  // so what used to be a wall of the model talking to itself is now nothing at
+  // all — and on a 650-token player report a thinking model hits this every
+  // time. Give it room for the thinking AND the answer, and ask it plainly not
+  // to deliberate on the page. Vendor-agnostic: no provider flag to guess at.
+  if (
+    first.kind === "provider-error" &&
+    first.error === REASONING_ONLY_ERROR &&
+    remaining() >= MIN_ATTEMPT_MS
+  ) {
+    console.warn(
+      `[ai] ${req.engine.provider.id}/${req.engine.model} answered with reasoning only — retrying with ${Math.round(baseTokens * REASONING_HEADROOM)} tokens`,
+    )
+    first = await attempt(
+      `${req.system}\n\n${noDeliberation(req.locale)}`,
+      baseTemp,
+      Math.round(baseTokens * REASONING_HEADROOM),
+    )
+  }
+
   if (first.kind === "provider-error") {
     return { ok: false, reason: "provider", error: first.error }
   }
@@ -358,6 +408,14 @@ function describeProviderError(raw: string, locale: Locale): string {
     return es
       ? "Tu proveedor de IA ha rechazado la petición por saldo o facturación."
       : "Your AI provider refused the request over credit or billing."
+  }
+  // A reasoning model that hit the token cap mid-thought. Nothing is wrong
+  // with the key, the quota or the network, so none of the messages below fit,
+  // and "the provider failed" would send the user looking in the wrong place.
+  if (/internal reasoning/.test(text)) {
+    return es
+      ? "El modelo que tienes seleccionado se ha gastado toda la respuesta razonando por dentro y no ha llegado a escribir nada. Elige en Ajustes un modelo que no piense en voz alta (los que llevan «thinking», «reasoning» o «-r1» en el nombre son los que hacen esto)."
+      : "The model you have selected spent its whole response reasoning internally and never wrote an answer. Pick a model that does not think out loud in your AI settings — the ones with \"thinking\", \"reasoning\" or \"-r1\" in the name are the ones that do this."
   }
   if (/abort|timeout|timed out|took too long|econnreset|network/.test(text)) {
     return es

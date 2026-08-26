@@ -4,7 +4,11 @@ import {
   answerFailureMessage,
   generateGroundedAnswer,
 } from "@/lib/ai/answer"
-import { aiLanguageDirective, replyLocale } from "@/lib/ai/language"
+import {
+  aiLanguageDirective,
+  aiLanguageName,
+  replyLocale,
+} from "@/lib/ai/language"
 import { houseStyle } from "@/lib/ai/prompt-copy"
 import { playbookInstructions } from "@/lib/ai/playbook-instructions"
 import { supportsNativeWebSearch } from "@/lib/ai/chat"
@@ -18,13 +22,13 @@ import { getLocale } from "@/lib/i18n/server"
 import { describePlay } from "@/lib/playbook/describe"
 import { parsePlay } from "@/lib/playbook/types"
 import {
+  aiRateLimit,
   audit,
   clientIp,
   jsonError,
   sanitisePromptInput,
   screenPromptFields,
 } from "@/lib/security/ai-advisor"
-import { consumeRateLimit } from "@/lib/security/rate-limit"
 
 export const dynamic = "force-dynamic"
 
@@ -34,7 +38,7 @@ const MAX_PLAY_TEXT_LEN = 400
 
 export async function POST(request: Request) {
   const ip = clientIp(request)
-  const limit = await consumeRateLimit(`ai:${ip}`, 30, 5 * 60 * 1000)
+  const limit = aiRateLimit(ip)
   if (!limit.ok) {
     return NextResponse.json(
       { error: `Too many requests. Try again in ${limit.retryAfterSec}s.` },
@@ -118,8 +122,14 @@ export async function POST(request: Request) {
   }
 
   // The play description is machine-generated English (it names court zones and
-  // action types), so the question is labelled in the coach's own language and
-  // the language directive is repeated last — the position a model weighs most.
+  // action types), so the question is labelled in the coach's own language.
+  //
+  // The language directive used to be appended here, at the end of the user
+  // turn. That is the one thing the rest of the pipeline forbids: a small model
+  // reads the user turn as MATERIAL, not as orders, and hands the orders back
+  // as the answer — which is how the compare screen once shipped a translation
+  // of its own brief as the analysis. It lives in `system` below, twice, where
+  // instructions belong.
   const questionLabel =
     answerLocale === "es"
       ? "Pregunta concreta del entrenador"
@@ -128,8 +138,6 @@ export async function POST(request: Request) {
     describePlay(play),
     question ? `\n${questionLabel}: ${question}` : "",
     clubs ? `\n${clubs}` : "",
-    "",
-    aiLanguageDirective(answerLocale),
   ].join("\n")
 
   try {
@@ -138,7 +146,9 @@ export async function POST(request: Request) {
       "",
       houseStyle(answerLocale),
       "",
-      aiLanguageDirective(answerLocale),
+      // Repeated last on purpose: the closing line is the one a model that has
+      // just read a long block of English court coordinates weighs most.
+      `${aiLanguageDirective(answerLocale)} (${aiLanguageName(answerLocale)})`,
     ].join("\n")
     const answer = await generateGroundedAnswer({
       engine,

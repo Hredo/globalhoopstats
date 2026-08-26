@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server"
 import { getPlayerBySlug } from "@/lib/data/players"
 import { getMarketPlayerBySlug } from "@/lib/market/pool"
-import { clientIp } from "@/lib/security/ai-advisor"
-import { consumeRateLimit } from "@/lib/security/rate-limit"
+import { aiRateLimit, clientIp } from "@/lib/security/ai-advisor"
 import { getCurrentUser } from "@/lib/auth/current-user"
 import { resolveEngine, resolveDefaultEngine } from "@/lib/ai/user-provider"
 import { generateGroundedAnswer } from "@/lib/ai/answer"
@@ -29,7 +28,7 @@ type Body = {
 
 export async function POST(request: Request) {
   const ip = clientIp(request)
-  const limit = await consumeRateLimit(`ai:${ip}`, 30, 5 * 60 * 1000)
+  const limit = aiRateLimit(ip)
   if (!limit.ok) {
     return NextResponse.json(
       {

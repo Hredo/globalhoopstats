@@ -8,6 +8,7 @@
  * via safeOllamaBaseUrl.
  */
 import type { AiProvider } from "@/lib/ai/providers"
+import { splitReasoning } from "@/lib/ai/reasoning"
 import { safeOllamaBaseUrl } from "@/lib/security/ai-advisor"
 
 /**
@@ -64,6 +65,43 @@ export function supportsNativeWebSearch(provider: AiProvider): boolean {
 export type ChatResult =
   | { ok: true; content: string; model: string }
   | { ok: false; error: string; status?: number }
+
+/**
+ * The model opened a reasoning block and hit the token cap before closing it,
+ * so there is no answer to show.
+ *
+ * A named constant rather than a string match on the prose: `answer.ts` reacts
+ * to this by retrying with a bigger budget, and that behaviour should not hinge
+ * on nobody rewording an error message.
+ */
+export const REASONING_ONLY_ERROR =
+  "The model used its whole response on internal reasoning and never wrote an answer."
+
+/**
+ * Turn a raw completion into a result, with the model's scratch work removed.
+ *
+ * Every transport funnels through here. A reasoning model marks its
+ * deliberation (`<think>…</think>`, a Harmony `analysis` channel) and every
+ * chat product in the world hides it; ours did not, on any surface, which is
+ * why a "hola" came back as five paragraphs of the model interrogating its own
+ * instructions in English. See `ai/reasoning.ts`.
+ *
+ * When the model spent its whole budget thinking there is no answer to show,
+ * and that is a distinct failure from an empty response: the fix is a bigger
+ * token cap or a model that does not think out loud, so it says so.
+ */
+function completion(raw: string | undefined, model: string): ChatResult {
+  const text = raw?.trim() ?? ""
+  if (!text) return { ok: false, error: "Empty response." }
+  const { answer, hadReasoning } = splitReasoning(text)
+  if (!answer) return { ok: false, error: REASONING_ONLY_ERROR }
+  if (hadReasoning) {
+    // Not an error — it is the normal shape of a reasoning model — but worth a
+    // line when someone is working out why an answer arrived truncated.
+    console.info(`[ai] stripped reasoning block from ${model}`)
+  }
+  return { ok: true, content: answer, model }
+}
 
 function localBaseUrl(provider: AiProvider): string | null {
   const raw = process.env.OLLAMA_BASE_URL ?? provider.baseUrl
@@ -170,9 +208,11 @@ async function chatOpenAiCompatible(input: ChatInput): Promise<ChatResult> {
     const json = (await res.json()) as {
       choices?: Array<{ message?: { content?: string } }>
     }
-    const content = json.choices?.[0]?.message?.content?.trim()
-    if (!content) return { ok: false, error: "Empty response." }
-    return { ok: true, content, model: input.model }
+    // `reasoning_content` / `reasoning` (DeepSeek, OpenRouter, newer Ollama)
+    // is deliberately not read: it is the scratch work, and the vendors that
+    // split it out have already kept it out of `content`. The ones that do not
+    // leave it inline, tagged, and `completion` takes it from there.
+    return completion(json.choices?.[0]?.message?.content, input.model)
   }, input.timeoutMs)
 }
 
@@ -214,13 +254,13 @@ async function chatAnthropic(input: ChatInput): Promise<ChatResult> {
     const json = (await res.json()) as {
       content?: Array<{ type: string; text?: string }>
     }
+    // `thinking` blocks are a separate block type and are dropped by the
+    // filter, which is why Anthropic never leaked reasoning here.
     const content = json.content
       ?.filter((b) => b.type === "text" && b.text)
       .map((b) => b.text)
       .join("")
-      .trim()
-    if (!content) return { ok: false, error: "Empty response." }
-    return { ok: true, content, model: input.model }
+    return completion(content, input.model)
   }, input.timeoutMs)
 }
 
@@ -261,15 +301,17 @@ async function chatGoogle(input: ChatInput): Promise<ChatResult> {
     }
     const json = (await res.json()) as {
       candidates?: Array<{
-        content?: { parts?: Array<{ text?: string }> }
+        content?: { parts?: Array<{ text?: string; thought?: boolean }> }
       }>
     }
+    // Gemini 2.5 and up return their thinking as ordinary text parts flagged
+    // `thought: true`. Joining every part, which is what this did, printed the
+    // model's deliberation above its answer.
     const content = json.candidates?.[0]?.content?.parts
-      ?.map((p) => p.text ?? "")
+      ?.filter((p) => p.thought !== true)
+      .map((p) => p.text ?? "")
       .join("")
-      .trim()
-    if (!content) return { ok: false, error: "Empty response." }
-    return { ok: true, content, model: input.model }
+    return completion(content, input.model)
   }, input.timeoutMs)
 }
 
