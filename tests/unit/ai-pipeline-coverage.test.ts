@@ -122,3 +122,53 @@ describe("the pipeline verifies before it returns", () => {
     expect(src).toContain("cleanLlmOutput")
   })
 })
+
+/**
+ * The AI ceilings are one policy in one place.
+ *
+ * They used to be five copies of `consumeRateLimit("ai:" + ip, 30, 5 * 60 *
+ * 1000)` — 30 requests per five minutes, SHARED across every AI screen, which
+ * is roughly ten minutes of ordinary use before a paying-nothing visitor is
+ * told to come back later. The site is freemium and the model call is billed
+ * to the reader's own provider key, so that cap protected nothing and cost
+ * sessions.
+ *
+ * What is left is an anti-runaway backstop in `aiRateLimit`. This test exists
+ * so the next AI route added by copy-paste cannot quietly reintroduce a quota.
+ */
+describe("the AI surfaces share one generous ceiling", () => {
+  const SURFACES = [
+    "ai-advisor/route.ts",
+    "compare/ai/route.ts",
+    "market/trade/ai/route.ts",
+    "playbooks/ai/route.ts",
+    "players/ai/route.ts",
+  ]
+
+  for (const rel of SURFACES) {
+    it(`${rel} uses aiRateLimit and nothing else`, () => {
+      const src = readFileSync(join(API_ROOT, ...rel.split("/")), "utf8")
+      expect(src, `${rel} lost its ceiling entirely`).toContain("aiRateLimit(ip)")
+      expect(
+        src.includes("consumeRateLimit"),
+        `${rel} reintroduced a per-window quota — the AI ceiling lives in aiRateLimit`,
+      ).toBe(false)
+      // A refused request still has to say so properly.
+      expect(src).toContain("429")
+    })
+  }
+
+  it("keeps the ceiling far above anything a person can produce", () => {
+    const src = readFileSync(
+      join(process.cwd(), "src", "lib", "security", "ai-advisor.ts"),
+      "utf8",
+    )
+    const burst = Number(src.match(/const AI_BURST = (\d+)/)?.[1])
+    const refill = Number(src.match(/const AI_REFILL_PER_SEC = ([\d.]+)/)?.[1])
+    // A heavy human session is a few dozen requests over an hour. Anything
+    // under this and a real coach would feel the limit, which is the whole
+    // thing this replaced.
+    expect(burst).toBeGreaterThanOrEqual(200)
+    expect(refill * 3600).toBeGreaterThanOrEqual(3000)
+  })
+})

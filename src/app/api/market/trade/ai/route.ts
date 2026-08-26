@@ -11,11 +11,11 @@ import { tradeInstructions } from "@/lib/ai/trade-instructions"
 import { getLocale } from "@/lib/i18n/server"
 import type { Locale } from "@/lib/i18n/config"
 import {
+  aiRateLimit,
   audit,
   clientIp,
   sanitisePromptInput,
 } from "@/lib/security/ai-advisor"
-import { consumeRateLimit } from "@/lib/security/rate-limit"
 import { formatEur } from "@/lib/market/league-strength"
 import { valuationTierLabel } from "@/lib/market/valuation"
 
@@ -295,7 +295,7 @@ export async function POST(request: Request) {
   // is not an open door, but a stuck retry loop should not be able to burn a
   // user's own API credit either.
   const ip = clientIp(request)
-  const limit = await consumeRateLimit(`ai:${ip}`, 30, 5 * 60 * 1000)
+  const limit = aiRateLimit(ip)
   if (!limit.ok) {
     return NextResponse.json(
       { error: `Too many requests. Try again in ${limit.retryAfterSec}s.` },

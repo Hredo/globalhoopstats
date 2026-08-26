@@ -149,11 +149,19 @@ export async function POST(request: Request) {
   const user = await getCurrentUser(request.headers.get("cookie"))
 
   // Signed-in users get their own bucket (and a higher cap) so a shared IP
-  // can't exhaust it; anonymous traffic is throttled harder because every
-  // request here fans out to a paid vision model.
+  // can't exhaust it; anonymous traffic is throttled harder because it is the
+  // only traffic here that can reach the OWNER's default key rather than the
+  // reader's own.
+  //
+  // Raised with the rest of the AI ceilings — 12 imports per five minutes is
+  // one afternoon of digitising a whiteboard, and a coach doing exactly what
+  // the feature is for should never see a 429. This one keeps the
+  // database-backed limiter and stays tighter than `aiRateLimit`: each request
+  // carries an uploaded image, so the cost being contained is bandwidth and a
+  // vision call, not a text completion.
   const limit = user
-    ? await consumeRateLimit(`photo-import:user:${user.id}`, 12, 5 * 60 * 1000)
-    : await consumeRateLimit(`photo-import:ip:${ip}`, 5, 5 * 60 * 1000)
+    ? await consumeRateLimit(`photo-import:user:${user.id}`, 120, 5 * 60 * 1000)
+    : await consumeRateLimit(`photo-import:ip:${ip}`, 40, 5 * 60 * 1000)
   if (!limit.ok) {
     return NextResponse.json(
       { error: `Too many requests. Try again in ${limit.retryAfterSec}s.` },

@@ -4,7 +4,6 @@ import { getDb } from "@/lib/db/client"
 import { conversations, messages } from "@/lib/db/schema"
 import { getTeamBySlug } from "@/lib/data/teams"
 import {
-  assembleAdvice,
   buildLocalAdvice,
   findPlayerInQuery,
   type AdvisorOutput,
@@ -14,8 +13,7 @@ import { generateAdvisorResponse } from "@/lib/ai/llm"
 import {
   detectIntent,
   detectOperation,
-  isMarketOperation,
-  looksLikeKnowledgeQuestion,
+  looksLikeSmallTalk,
 } from "@/lib/ai/intent"
 import { findCandidates, type Candidate } from "@/lib/market/candidates"
 import { getMarketPlayerBySlug } from "@/lib/market/pool"
@@ -42,6 +40,7 @@ import {
 // import { getAdvisorFreeUsage } from "@/lib/auth/free-usage"
 // import { userPlan } from "@/lib/db/schema"
 import {
+  aiRateLimit,
   audit,
   clientIp,
   cleanLlmOutput,
@@ -54,7 +53,6 @@ import {
   redactSecrets,
   securityHeaders,
 } from "@/lib/security/ai-advisor"
-import { consumeRateLimit } from "@/lib/security/rate-limit"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -80,8 +78,10 @@ export async function POST(request: Request) {
   // NOTE: plan check disabled until re-enabled later.
   // const plan = userPlan(user)
 
-  // 1. Rate limit per IP (persistent, serverless-safe).
-  const limit = await consumeRateLimit(`ai:${ip}`, 30, 5 * 60 * 1000)
+  // 1. Anti-runaway ceiling per IP. Not a usage quota — the site is freemium
+  //    and the model call is billed to the reader's own provider key. See
+  //    `aiRateLimit`.
+  const limit = aiRateLimit(ip)
   if (!limit.ok) {
     audit("rate-limit", { ip, retryAfterSec: limit.retryAfterSec })
     return new NextResponse(
@@ -312,12 +312,21 @@ export async function POST(request: Request) {
     }
   }
 
+  // A greeting needs none of what follows. Every block below this line is a
+  // database read or an outbound HTTP call made to ground a market answer, and
+  // running all of them to reply "hola" is both the reason the answer arrived
+  // wearing three signings nobody asked for and a pile of queries against a
+  // quota we have already blown once.
+  const smallTalk = looksLikeSmallTalk(userMessage)
+
   // 11. Optional: find player profile for richer context.
   let playerProfile = null
-  try {
-    playerProfile = await findPlayerInQuery(userMessage)
-  } catch (err) {
-    audit("player-lookup-error", { ip, err: String(err) })
+  if (!smallTalk) {
+    try {
+      playerProfile = await findPlayerInQuery(userMessage)
+    } catch (err) {
+      audit("player-lookup-error", { ip, err: String(err) })
+    }
   }
 
   // 11b. Market intelligence (DB-grounded). Real candidates for the detected
@@ -332,32 +341,35 @@ export async function POST(request: Request) {
   // Draft / youth questions look for prospects, not finished products.
   const draftMaxAge = operation === "draft" ? 22 : undefined
   let candidates: Candidate[] = []
-  try {
-    candidates = await findCandidates({
-      leagueSlug: body.leagueSlug,
-      intent,
-      excludeTeamId: team.id,
-      maxValueEur: signingCap,
-      nationality: nationalityFilter,
-      maxAge: draftMaxAge,
-      limit: 6,
-      locale: answerLocale,
-    })
-    // If the budget/cupo filters leave nothing, retry without the budget cap so
-    // we still ground the advisor on real players rather than the hardcoded list.
-    if (candidates.length === 0) {
+  if (!smallTalk) {
+    try {
       candidates = await findCandidates({
         leagueSlug: body.leagueSlug,
         intent,
         excludeTeamId: team.id,
+        maxValueEur: signingCap,
         nationality: nationalityFilter,
         maxAge: draftMaxAge,
         limit: 6,
         locale: answerLocale,
       })
+      // If the budget/cupo filters leave nothing, retry without the budget cap
+      // so we still ground the advisor on real players rather than the
+      // hardcoded list.
+      if (candidates.length === 0) {
+        candidates = await findCandidates({
+          leagueSlug: body.leagueSlug,
+          intent,
+          excludeTeamId: team.id,
+          nationality: nationalityFilter,
+          maxAge: draftMaxAge,
+          limit: 6,
+          locale: answerLocale,
+        })
+      }
+    } catch (err) {
+      audit("candidates-error", { ip, err: String(err) })
     }
-  } catch (err) {
-    audit("candidates-error", { ip, err: String(err) })
   }
 
   // Own-roster analysis. Always, not just for release/renewal questions: it is
@@ -365,10 +377,12 @@ export async function POST(request: Request) {
   // is the second half of the closed list of players it may name. Reads the
   // cached league pool, so it costs nothing extra.
   let roster: RosterAnalysis | null = null
-  try {
-    roster = await analyzeRoster(body.leagueSlug, team.id)
-  } catch (err) {
-    audit("roster-analysis-error", { ip, err: String(err) })
+  if (!smallTalk) {
+    try {
+      roster = await analyzeRoster(body.leagueSlug, team.id)
+    } catch (err) {
+      audit("roster-analysis-error", { ip, err: String(err) })
+    }
   }
 
   let namedValuation = null
@@ -395,7 +409,7 @@ export async function POST(request: Request) {
   // Web context — always fetched when Tavily is available, regardless of provider.
   // The system prompt tells the AI to cite source URLs inline for attribution.
   let web = null
-  if (webResearchEnabled()) {
+  if (webResearchEnabled() && !smallTalk) {
     try {
       const searchQuery = buildSearchQuery(userMessage, {
         teamName: team.name,
@@ -473,35 +487,25 @@ export async function POST(request: Request) {
         if (!broken) {
           const safe = cleanLlmOutput(guard.text)
           await persistAssistant(db, conversationId!, safe, llm.model, "llm")
-          // The model's words come with the same shortlist of real players the
-          // rule-based path shows: name, age, club, our valuation and the
-          // season line behind it. Connecting an AI used to REMOVE those cards,
-          // leaving prose whose numbers nobody could check.
-          // Only when the coach is actually shopping, though. "What do you
-          // think of Curry?" wants an opinion, and "who is the best point
-          // guard in the ACB?" wants an answer — neither wants six signings.
-          // Everything else keeps the cards: this must match the gate in
-          // buildSystemPrompt, or the prose and the cards disagree.
-          const marketQuestion =
-            isMarketOperation(operation) ||
-            !looksLikeKnowledgeQuestion(userMessage)
-          const recs =
-            playerProfile || !marketQuestion
-              ? []
-              : candidatesToRecruits(candidates, answerLocale)
+          // No `data`, so no card deck under the answer.
+          //
+          // The cards were added to stop a connected AI from replacing
+          // checkable numbers with unverifiable prose, and they solved that by
+          // bolting a shortlist onto EVERY reply — a diagnosis, three players
+          // priced at €60M and a four-point checklist, printed under a
+          // one-line hello. The owner's call, and it is the right one: an
+          // advisor answers in sentences.
+          //
+          // The grounding did not go with them. The shortlist is still built
+          // and still goes into the prompt, the closed-list rule still forbids
+          // naming anyone we cannot price, and `recommendationShape` still
+          // requires the club, the valuation and a real stat next to every
+          // name — inside the prose, where a reader actually reads it. The
+          // rule-based fallback below keeps its cards: with no AI configured
+          // they are the whole answer, not a decoration on one.
           return NextResponse.json(
             {
               content: safe,
-              data:
-                recs.length > 0
-                  ? assembleAdvice({
-                      team,
-                      intent,
-                      locale: answerLocale,
-                      recs,
-                      analysis: safe,
-                    })
-                  : undefined,
               model: llm.model,
               provider: engine.provider.id,
               mode: "llm" as const,
