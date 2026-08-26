@@ -14,11 +14,6 @@ type Props = {
   onDislike: () => void
   onRedo: () => void
   canRedo: boolean
-  /**
-   * False when the caller renders its own action bar below — the advisor puts
-   * one under the whole answer, cards included, not under the prose alone.
-   */
-  showActions?: boolean
 }
 
 
@@ -31,7 +26,6 @@ export function MessageBubble({
   onDislike,
   onRedo,
   canRedo,
-  showActions = true,
 }: Props) {
   const isUser = type === "user"
 
@@ -60,17 +54,15 @@ export function MessageBubble({
       <div className="w-full max-w-3xl">
         <div className="rounded-2xl border border-white/[0.06] bg-ink-800/30 px-4 py-3 backdrop-blur-sm sm:px-5 sm:py-4">
           <AiMarkdown text={content} />
-          {showActions && (
-            <MessageActions
-              content={content}
-              reaction={reaction}
-              onCopy={onCopy}
-              onLike={onLike}
-              onDislike={onDislike}
-              onRedo={onRedo}
-              canRedo={canRedo}
-            />
-          )}
+          <MessageActions
+            content={content}
+            reaction={reaction}
+            onCopy={onCopy}
+            onLike={onLike}
+            onDislike={onDislike}
+            onRedo={onRedo}
+            canRedo={canRedo}
+          />
         </div>
       </div>
     </motion.div>

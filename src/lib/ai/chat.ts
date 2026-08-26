@@ -333,8 +333,14 @@ export async function chatComplete(input: ChatInput): Promise<ChatResult> {
     if (err instanceof Error && err.name === "AbortError") {
       return { ok: false, error: "The model took too long to respond." }
     }
-    const code = (err as NodeJS.ErrnoException)?.code
-    if (code === "ECONNREFUSED") {
+    // Undici does not throw the socket error itself — it throws `TypeError:
+    // fetch failed` and hangs the real one off `cause`. Reading only the top
+    // level meant a local Ollama that was simply not running reported "fetch
+    // failed" to the user, which names nothing they can act on.
+    const code =
+      (err as NodeJS.ErrnoException)?.code ??
+      ((err as { cause?: NodeJS.ErrnoException })?.cause?.code || undefined)
+    if (code === "ECONNREFUSED" || code === "ECONNRESET" || code === "ENOTFOUND") {
       return {
         ok: false,
         error:

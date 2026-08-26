@@ -18,22 +18,44 @@ import { AdvisorTour, TOUR_EVENT } from "@/app/ai-advisor/tour"
 // NOTE: Import kept for when paywall is re-enabled.
 // import { PaywallModal } from "@/components/auth/paywall-modal"
 import type { TeamOption } from "@/types/teams"
-import type { AdvisorOutput } from "@/lib/ai/local-advisor"
 import type { Reaction } from "@/app/ai-advisor/message-actions"
 
 type Message = {
   id: number
   type: "user" | "ai"
   content: string
-  data?: AdvisorOutput
-  mode?: "llm" | "local"
+  /**
+   * "llm" when a model wrote `content`. "error" when nothing could be reached
+   * and `content` is us saying so — never an answer, and never sent back as
+   * conversation history.
+   */
+  mode?: "llm" | "error"
   model?: string
+}
+
+/**
+ * The turns worth sending back to the model.
+ *
+ * "Tu motor de IA ha fallado" is a notice from us, not something the advisor
+ * said, and feeding it back as a prior assistant turn teaches the model that
+ * the conversation contains an apology it now has to account for. Dropped, so
+ * a question retried after Ollama comes back up sees the thread as it should
+ * have been.
+ */
+function conversationHistory(
+  messages: Message[],
+): Array<{ role: "user" | "assistant"; content: string }> {
+  return messages
+    .filter((m) => m.mode !== "error")
+    .map((m) => ({
+      role: m.type === "user" ? ("user" as const) : ("assistant" as const),
+      content: m.content,
+    }))
 }
 
 type AdvisorApiResult = {
   content?: string
-  data?: AdvisorOutput
-  mode?: "llm" | "local"
+  mode?: "llm" | "error"
   model?: string
   provider?: string
   aiConfigured?: boolean
@@ -217,7 +239,15 @@ export default function AIAdvisorClient() {
           id: ++idRef.current,
           type: m.role === "user" ? "user" : "ai",
           content: m.content,
-          mode: (m.mode as "llm" | "local" | undefined) ?? undefined,
+          // Saved rows predate this: `mode` may still be the old "local",
+          // written when a failed model fell through to the rule-based
+          // advisor. Those rows hold a real answer, so they stay in the
+          // thread and in the history as ordinary assistant turns; only
+          // "error" is a notice from us and gets filtered out.
+          mode:
+            m.mode === "llm" || m.mode === "error"
+              ? (m.mode as "llm" | "error")
+              : undefined,
           model: m.model ?? undefined,
         }))
         setMessages(next)
@@ -276,10 +306,7 @@ export default function AIAdvisorClient() {
           teamSlug: selectedTeam.slug,
           leagueSlug: selectedTeam.leagueSlug,
           userMessage: content,
-          history: messages.map((m) => ({
-            role: m.type === "user" ? "user" : "assistant",
-            content: m.content,
-          })),
+          history: conversationHistory(messages),
         }
         if (activeConversationId) {
           body.conversationId = activeConversationId
@@ -326,7 +353,6 @@ export default function AIAdvisorClient() {
           id: aiId,
           type: "ai",
           content: result.content || "",
-          data: result.data,
           mode: result.mode,
           model: result.model,
         }
@@ -381,10 +407,7 @@ export default function AIAdvisorClient() {
 
       const userContent = prevUser.content
       const before = messages.slice(0, idx)
-      const history = before.slice(0, -1).map((m) => ({
-        role: m.type === "user" ? "user" : "assistant",
-        content: m.content,
-      }))
+      const history = conversationHistory(before.slice(0, -1))
 
       setMessages(before)
       setLoading(true)
@@ -424,7 +447,6 @@ export default function AIAdvisorClient() {
             id: newAiId,
             type: "ai",
             content: result.content || "",
-            data: result.data,
             mode: result.mode,
             model: result.model,
           },

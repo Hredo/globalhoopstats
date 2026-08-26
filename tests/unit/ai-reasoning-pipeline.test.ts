@@ -159,3 +159,61 @@ describe("no transport can skip the strip", () => {
     expect((src.match(/ok: true, content/g) ?? []).length).toBe(1)
   })
 })
+
+describe("the advisor says it failed instead of inventing an answer", () => {
+  const route = readFileSync(
+    join(process.cwd(), "src", "app", "api", "ai-advisor", "route.ts"),
+    "utf8",
+  )
+
+  it("has no rule-based substitute left", () => {
+    // Ollama went down mid-conversation and the advisor carried on: a roster
+    // diagnosis for Real Madrid and three Primera FEB signings, assembled from
+    // a template, with nothing saying the model had never been reached.
+    // The call, not the name: the comment above the replacement explains what
+    // used to be here and would otherwise trip this.
+    expect(
+      /\bbuildLocalAdvice\s*\(/.test(route),
+      "the advisor fell back to the rule-based advisor again — a failure must be reported, not papered over",
+    ).toBe(false)
+    expect(route).not.toContain("candidatesToRecruits")
+    expect(route).not.toMatch(/import[\s\S]{0,120}buildLocalAdvice/)
+  })
+
+  it("returns no card deck on any path", () => {
+    // `data` is what the UI renders the candidate cards from.
+    expect(route).not.toMatch(/^\s*data:/m)
+  })
+
+  it("marks the notice so it never becomes conversation history", () => {
+    expect(route).toContain('mode: "error"')
+  })
+
+  it("names Ollama when the engine is simply not running", async () => {
+    const { answerFailureMessage } = await import("@/lib/ai/answer")
+    const message = answerFailureMessage(
+      {
+        ok: false,
+        reason: "provider",
+        error:
+          "Could not reach the model. If you use Ollama, make sure it is running.",
+      },
+      "es",
+    )
+    expect(message).toMatch(/Ollama/)
+    // Not the generic "the provider failed", which sends the reader to check
+    // an API key when the fix is to start the app.
+    expect(message).not.toMatch(/ha fallado al responder/)
+  })
+
+  it("recognises undici's wrapped connection error", async () => {
+    // Node throws `TypeError: fetch failed` and hangs the real ECONNREFUSED
+    // off `cause`, so the top-level message carries no code at all.
+    const { answerFailureMessage } = await import("@/lib/ai/answer")
+    const message = answerFailureMessage(
+      { ok: false, reason: "provider", error: "fetch failed" },
+      "es",
+    )
+    expect(message).toMatch(/Ollama/)
+  })
+})
