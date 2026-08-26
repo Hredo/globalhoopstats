@@ -3,12 +3,7 @@ import { and, eq } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
 import { conversations, messages } from "@/lib/db/schema"
 import { getTeamBySlug } from "@/lib/data/teams"
-import {
-  buildLocalAdvice,
-  findPlayerInQuery,
-  type AdvisorOutput,
-  type Recruit,
-} from "@/lib/ai/local-advisor"
+import { findPlayerInQuery } from "@/lib/ai/local-advisor"
 import { generateAdvisorResponse } from "@/lib/ai/llm"
 import {
   detectIntent,
@@ -19,8 +14,6 @@ import { findCandidates, type Candidate } from "@/lib/market/candidates"
 import { getMarketPlayerBySlug } from "@/lib/market/pool"
 import { buildTradeScenarios } from "@/lib/market/trade"
 import { buildSearchQuery, researchMarket, webResearchEnabled } from "@/lib/market/web-research"
-import { formatEur } from "@/lib/market/league-strength"
-import { valuationTierLabel } from "@/lib/market/valuation"
 import { estimateClubBudget, singleSigningCap } from "@/lib/market/club-budgets"
 import { detectNationalityFilter } from "@/lib/market/nationality"
 import { analyzeRoster, type RosterAnalysis } from "@/lib/market/roster"
@@ -28,8 +21,6 @@ import { resolveDefaultEngine, resolveEngine } from "@/lib/ai/user-provider"
 import { getProvider, resolveModel } from "@/lib/ai/providers"
 import { getCurrentUser } from "@/lib/auth/current-user"
 import { getLocale } from "@/lib/i18n/server"
-import type { Locale } from "@/lib/i18n/config"
-import { promptCopy } from "@/lib/ai/prompt-copy"
 import { replyLocale } from "@/lib/ai/language"
 import {
   trimDegeneratedOutput,
@@ -534,84 +525,44 @@ export async function POST(request: Request) {
     }
   }
 
-  // 13. Fallback (rule-based). Always available, even with no AI configured —
-  // now grounded on the same real DB candidates as the LLM path.
-  try {
-    const fallback: AdvisorOutput = await buildLocalAdvice(
-      team,
-      userMessage,
-      answerLocale,
-      candidatesToRecruits(candidates, answerLocale),
-    )
-    const safe = cleanLlmOutput(fallback.analysis)
-    await persistAssistant(db, conversationId!, safe, null, "local")
-    return NextResponse.json(
-      {
-        content: safe,
-        data: fallback,
-        mode: "local" as const,
-        aiConfigured: engine.ok,
-        aiReason,
-        aiError,
-        aiProvider: engine.ok ? engine.provider.name : null,
-        aiModel: engine.ok ? engine.model : null,
-        conversationId,
-      },
-      { headers: securityHeaders() },
-    )
-  } catch (err) {
-    audit("fallback-failed", { ip, err: String(err) })
-    return jsonError(
-      "Something went wrong while processing your query. Please try again.",
-      500,
-    )
-  }
-}
+  // 13. No answer. Say so, and stop.
+  //
+  // This used to fall through to `buildLocalAdvice`: a deterministic
+  // rule-based "analysis" plus the candidate card deck, returned as though it
+  // were the advisor answering. The owner watched Ollama go down mid
+  // conversation and the advisor carry straight on — a roster diagnosis for
+  // Real Madrid and three Primera FEB signings, assembled from a template,
+  // with nothing on screen saying the model had never been reached. "Si no
+  // puede responder, que lo ponga y punto."
+  //
+  // So there is no substitute answer any more, and no `data`, so no cards.
+  // `aiConfigured` / `aiReason` / `aiError` still drive the banner the UI
+  // already has; the bubble carries a line that still reads correctly once
+  // that banner is dismissed and the conversation is reloaded tomorrow.
+  const message = engine.ok
+    ? (aiError ??
+      (answerLocale === "es"
+        ? "No he podido responderte: tu motor de IA ha fallado."
+        : "I could not answer: your AI engine failed."))
+    : answerLocale === "es"
+      ? "No hay ningún motor de IA conectado, así que no puedo responderte. Conecta uno en Ajustes → IA y claves."
+      : "There is no AI engine connected, so I cannot answer. Connect one under Settings → AI & keys."
 
-/** Shape DB candidates into the Recruit cards the fallback UI renders. */
-function candidatesToRecruits(
-  candidates: Candidate[],
-  locale: Locale,
-): Recruit[] {
-  const es = locale === "es"
-  return candidates.map((c) => {
-    const p = c.player
-    const gp = p.stats.gamesPlayed
-    const perGame = (total: number | null): string | null =>
-      total == null || gp <= 0 ? null : (total / gp).toFixed(1)
-    const pct = (v: number | null): string | null =>
-      v == null ? null : `${(v * 100).toFixed(0)}%`
-
-    // Only what we actually measured. A missing stat is dropped, never zeroed:
-    // "0.0 asistencias" and "no lo sabemos" are very different claims.
-    const stats = [
-      { label: es ? "PTS" : "PTS", value: perGame(p.stats.pointsTotal) },
-      { label: es ? "REB" : "REB", value: perGame(p.stats.reboundsTotal) },
-      { label: es ? "AST" : "AST", value: perGame(p.stats.assistsTotal) },
-      { label: es ? "T3" : "3P", value: pct(p.stats.threePct) },
-      { label: es ? "PJ" : "GP", value: gp > 0 ? String(gp) : null },
-    ].filter((s): s is { label: string; value: string } => s.value !== null)
-
-    return {
-      name: p.fullName,
-      position: p.position ?? "N/A",
-      league: p.league.name,
-      // Same rule as the stats two lines up: unknown is dropped, not zeroed.
-      age: p.age ?? null,
-      contractValue: formatEur(p.valuation.eur),
-      annual:
-        p.valuation.annualEur != null
-          ? `${formatEur(p.valuation.annualEur)}${es ? "/año" : "/yr"}`
-          : null,
-      strengths: [
-        valuationTierLabel(p.valuation.tier, p.valuation.leagueSlug, locale),
-        `Rating ${p.valuation.rating}/100`,
-      ],
-      fit: c.reason,
-      market: p.team ? p.team.name : promptCopy(locale).freeAgent,
-      stats,
-    }
-  })
+  const safe = cleanLlmOutput(message)
+  await persistAssistant(db, conversationId!, safe, null, "error")
+  return NextResponse.json(
+    {
+      content: safe,
+      mode: "error" as const,
+      aiConfigured: engine.ok,
+      aiReason,
+      aiError,
+      aiProvider: engine.ok ? engine.provider.name : null,
+      aiModel: engine.ok ? engine.model : null,
+      conversationId,
+    },
+    { headers: securityHeaders() },
+  )
 }
 
 async function persistAssistant(
@@ -619,7 +570,7 @@ async function persistAssistant(
   conversationId: string,
   content: string,
   model: string | null,
-  mode: "llm" | "local",
+  mode: "llm" | "error",
 ): Promise<void> {
   try {
     await db.insert(messages).values({

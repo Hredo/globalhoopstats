@@ -417,6 +417,15 @@ function describeProviderError(raw: string, locale: Locale): string {
       ? "El modelo que tienes seleccionado se ha gastado toda la respuesta razonando por dentro y no ha llegado a escribir nada. Elige en Ajustes un modelo que no piense en voz alta (los que llevan «thinking», «reasoning» o «-r1» en el nombre son los que hacen esto)."
       : "The model you have selected spent its whole response reasoning internally and never wrote an answer. Pick a model that does not think out loud in your AI settings — the ones with \"thinking\", \"reasoning\" or \"-r1\" in the name are the ones that do this."
   }
+  // The engine is not answering the door at all. Nearly always a local Ollama
+  // that is not running, and it used to come out as the generic "the provider
+  // failed" — which sends someone looking at their API key when the fix is to
+  // start the app.
+  if (/could not reach the model|fetch failed|econnrefused/.test(text)) {
+    return es
+      ? "No se ha podido conectar con tu motor de IA. Si usas Ollama en tu ordenador, compruébalo: normalmente es que no está arrancado."
+      : "Could not connect to your AI engine. If you run Ollama on your own machine, check it — usually it simply is not running."
+  }
   if (/abort|timeout|timed out|took too long|econnreset|network/.test(text)) {
     return es
       ? "El proveedor de IA ha tardado demasiado en responder."

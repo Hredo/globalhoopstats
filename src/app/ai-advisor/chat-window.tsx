@@ -3,17 +3,17 @@
 import { useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 import { MessageBubble } from "./message-bubble"
-import { AdvisorResponse } from "./advisor-response"
 import type { Reaction } from "./message-actions"
-import type { AdvisorOutput } from "@/lib/ai/local-advisor"
 
 type Msg = {
   id: number
   type: "user" | "ai"
   content: string
-  data?: AdvisorOutput
-  /** "llm" when a model wrote `content`; "local" for the rule-based answer. */
-  mode?: "llm" | "local"
+  /**
+   * "llm" when a model wrote `content`; "error" when no model could be
+   * reached and `content` is the notice saying so.
+   */
+  mode?: "llm" | "error"
 }
 
 type Props = {
@@ -199,47 +199,6 @@ export function ChatWindow({
         const prev = idx > 0 ? messages[idx - 1] : null
         const canRedo = isLastAi && prev?.type === "user"
 
-        if (msg.type === "ai" && msg.data) {
-          // With a model connected the answer is the model's prose, rendered
-          // as markdown above the cards; the cards carry the real numbers
-          // behind it. Without one, the rule-based summary lives inside the
-          // diagnosis card and there is nothing to render twice.
-          const fromModel = msg.mode === "llm"
-          return (
-            <div
-              key={msg.id}
-              ref={isLastAi ? internalLastRef : undefined}
-              tabIndex={isLastAi ? -1 : undefined}
-              aria-label={isLastAi ? "Latest advisor response" : undefined}
-              className="focus:outline-none space-y-3"
-            >
-              {fromModel && (
-                <MessageBubble
-                  type="ai"
-                  content={msg.content}
-                  reaction={null}
-                  onCopy={() => onCopy(msg.id)}
-                  onLike={() => onLike(msg.id)}
-                  onDislike={() => onDislike(msg.id)}
-                  onRedo={() => onRedo(msg.id)}
-                  canRedo={canRedo}
-                  showActions={false}
-                />
-              )}
-              <AdvisorResponse data={msg.data} showAnalysis={!fromModel} />
-              <BubbleActions
-                content={msg.data.analysis}
-                reaction={reactions[msg.id] ?? null}
-                onCopy={() => onCopy(msg.id)}
-                onLike={() => onLike(msg.id)}
-                onDislike={() => onDislike(msg.id)}
-                onRedo={() => onRedo(msg.id)}
-                canRedo={canRedo}
-              />
-            </div>
-          )
-        }
-
         return (
           <div
             key={msg.id}
@@ -323,183 +282,5 @@ export function ChatWindow({
 
       <div ref={bottomRef} />
     </div>
-  )
-}
-
-type BubbleActionsProps = {
-  content: string
-  reaction: Reaction
-  onCopy: () => void
-  onLike: () => void
-  onDislike: () => void
-  onRedo: () => void
-  canRedo: boolean
-}
-
-function BubbleActions({
-  content,
-  reaction,
-  onCopy,
-  onLike,
-  onDislike,
-  onRedo,
-  canRedo,
-}: BubbleActionsProps) {
-  return (
-    <div className="mt-1.5 flex items-center gap-1.5 px-1">
-      <CopyAction content={content} onCopy={onCopy} />
-      <LikeAction active={reaction === "up"} onClick={onLike} />
-      <DislikeAction active={reaction === "down"} onClick={onDislike} />
-      <RedoAction disabled={!canRedo} onClick={onRedo} />
-    </div>
-  )
-}
-
-function CopyAction({
-  content,
-  onCopy,
-}: {
-  content: string
-  onCopy: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={async () => {
-        try {
-          if (navigator.clipboard?.writeText) {
-            await navigator.clipboard.writeText(content)
-          } else {
-            const ta = document.createElement("textarea")
-            ta.value = content
-            ta.style.position = "fixed"
-            ta.style.opacity = "0"
-            document.body.appendChild(ta)
-            ta.select()
-            document.execCommand("copy")
-            document.body.removeChild(ta)
-          }
-        } catch (err) {
-          console.error("Copy failed:", err)
-        }
-        onCopy()
-      }}
-      aria-label="Copy response"
-      title="Copy"
-      className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/[0.03] text-ink-300 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-ink-100"
-    >
-      <svg
-        className="h-3.5 w-3.5"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        aria-hidden
-      >
-        <rect x="9" y="9" width="11" height="11" rx="2" />
-        <path d="M5 15V5a2 2 0 0 1 2-2h10" />
-      </svg>
-    </button>
-  )
-}
-
-function LikeAction({
-  active,
-  onClick,
-}: {
-  active: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label="Like this response"
-      aria-pressed={active}
-      title="Like"
-      className={`inline-flex h-7 w-7 items-center justify-center rounded-md border transition ${
-        active
-          ? "border-brand-400/50 bg-brand-500/15 text-brand-200"
-          : "border-white/10 bg-white/[0.03] text-ink-300 hover:border-white/20 hover:bg-white/[0.07] hover:text-ink-100"
-      }`}
-    >
-      <svg
-        className="h-3.5 w-3.5"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        aria-hidden
-      >
-        <path d="M7 10v11" />
-        <path d="M21 11.5a2.5 2.5 0 0 0-2.5-2.5h-5l.8-4.2a1.7 1.7 0 0 0-.4-1.5 1.5 1.5 0 0 0-2.4.3L8 10H4a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12.4a2 2 0 0 0 2-1.6l1.5-7.4a2 2 0 0 0 .1-.5Z" />
-      </svg>
-    </button>
-  )
-}
-
-function DislikeAction({
-  active,
-  onClick,
-}: {
-  active: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label="Dislike this response"
-      aria-pressed={active}
-      title="Dislike"
-      className={`inline-flex h-7 w-7 items-center justify-center rounded-md border transition ${
-        active
-          ? "border-brand-400/50 bg-brand-500/15 text-brand-200"
-          : "border-white/10 bg-white/[0.03] text-ink-300 hover:border-white/20 hover:bg-white/[0.07] hover:text-ink-100"
-      }`}
-    >
-      <svg
-        className="h-3.5 w-3.5"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        aria-hidden
-      >
-        <path d="M17 14V3" />
-        <path d="M3 12.5A2.5 2.5 0 0 0 5.5 15h5l-.8 4.2a1.7 1.7 0 0 0 .4 1.5 1.5 1.5 0 0 0 2.4-.3L16 14h4a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H7.6a2 2 0 0 0-2 1.6L4.1 12a2 2 0 0 0-.1.5Z" />
-      </svg>
-    </button>
-  )
-}
-
-function RedoAction({
-  disabled,
-  onClick,
-}: {
-  disabled: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label="Regenerate response"
-      title="Regenerate"
-      className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/[0.03] text-ink-300 transition hover:border-white/20 hover:bg-white/[0.07] hover:text-ink-100 disabled:cursor-not-allowed disabled:opacity-30"
-    >
-      <svg
-        className="h-3.5 w-3.5"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        aria-hidden
-      >
-        <path d="M21 7v6h-6" />
-        <path d="M3 17a9 9 0 0 1 15-6.7L21 13" />
-      </svg>
-    </button>
   )
 }
