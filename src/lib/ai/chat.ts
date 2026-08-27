@@ -64,7 +64,13 @@ export function supportsNativeWebSearch(provider: AiProvider): boolean {
 
 export type ChatResult =
   | { ok: true; content: string; model: string }
-  | { ok: false; error: string; status?: number }
+  | {
+      ok: false
+      error: string
+      status?: number
+      /** How long the vendor asked us to wait, when it said. See `chatComplete`. */
+      retryAfterMs?: number
+    }
 
 /**
  * The model opened a reasoning block and hit the token cap before closing it,
@@ -118,6 +124,119 @@ async function withTimeout<T>(
     return await fn(controller.signal)
   } finally {
     clearTimeout(timer)
+  }
+}
+
+/**
+ * Statuses that mean "not now" rather than "no".
+ *
+ * 429 is the vendor's own throttle. A free Groq key is 6 000 tokens a minute
+ * and one advisor question carrying a shortlist can be most of that, so a
+ * coach asking two questions in a row hits it through no fault of their own.
+ * 503 and Anthropic's 529 are the same shape: the model is up, the door is
+ * momentarily shut. Everything else — a bad key, a retired model id, no
+ * credit — is a "no", and retrying it just wastes the user's wait.
+ */
+const RETRYABLE_STATUS = new Set([429, 503, 529])
+
+/** Waits per call. Past this the key is out of budget, not merely busy. */
+const MAX_THROTTLE_RETRIES = 2
+
+/**
+ * A retry needs enough of the budget left to actually finish. Waiting out a
+ * throttle and then being killed mid-answer costs the user the wait AND shows
+ * them nothing, which is worse than passing the 429 through.
+ */
+const RETRY_HEADROOM_MS = 8_000
+
+/** Backoff when the vendor throttled us without saying for how long. */
+const BLIND_BACKOFF_MS = 2_000
+
+/**
+ * How long the vendor says to wait, in ms, or undefined if it did not say.
+ *
+ * Two forms, both common. `Retry-After` is the standard one (a count of
+ * seconds, or an HTTP date). The rest write it into the error body: Groq sends
+ * "Please try again in 6.017s", and "in 2m30s" once a daily cap is involved.
+ */
+export function vendorRetryDelayMs(
+  res: Response,
+  body: string,
+): number | undefined {
+  const header = res.headers.get("retry-after")
+  if (header) {
+    const secs = Number(header)
+    if (Number.isFinite(secs) && secs >= 0) return Math.ceil(secs * 1000)
+    const when = Date.parse(header)
+    if (Number.isFinite(when)) return Math.max(0, when - Date.now())
+  }
+  const m = body.match(/try again in\s+(?:(\d+)m)?([\d.]+)\s*(ms|s)\b/i)
+  if (m) {
+    const value = Number(m[2])
+    if (!Number.isFinite(value)) return undefined
+    const minutes = m[1] ? Number(m[1]) : 0
+    const rest = m[3].toLowerCase() === "ms" ? value : value * 1000
+    return Math.ceil(minutes * 60_000 + rest)
+  }
+  return undefined
+}
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+
+/** The shape `withThrottleRetry` needs to see. Both dispatchers return it. */
+export type ThrottleAware = {
+  ok: boolean
+  status?: number
+  retryAfterMs?: number
+}
+
+/**
+ * Run a provider call, waiting out the vendor's throttle rather than reporting
+ * it.
+ *
+ * Nothing here is billed to us: every call runs on the reader's own API key,
+ * so the product has no reason to hold an opinion about how often they ask.
+ * The only ceiling that exists is their provider's, and the honest answer to
+ * it is to do what the provider says — wait the interval it names, then ask
+ * again — not to hand a coach "you have hit your usage limit" in the middle of
+ * a scouting session. That message was the whole failure: a free Groq key is
+ * 6 000 tokens a minute, one advisor question with a shortlist in it is most
+ * of that, and the second question of the session got a 429 that a six-second
+ * pause would have made go away.
+ *
+ * The wait is bounded by the CALLER's budget, not by a count of tries. If the
+ * vendor asks for longer than there is time to serve an answer in, the failure
+ * goes through untouched and `describeProviderError` tells the user what it
+ * means — at that point waiting really would be worse than saying so.
+ *
+ * Shared by text and vision so a 429 means the same thing on every AI surface.
+ */
+export async function withThrottleRetry<T extends ThrottleAware>(
+  label: string,
+  totalMs: number,
+  expired: () => T,
+  call: (remainingMs: number) => Promise<T>,
+): Promise<T> {
+  const deadline = Date.now() + totalMs
+
+  for (let attempt = 0; ; attempt++) {
+    const remaining = deadline - Date.now()
+    if (remaining <= 0) return expired()
+
+    const result = await call(remaining)
+    if (result.ok) return result
+    if (attempt >= MAX_THROTTLE_RETRIES) return result
+    if (result.status === undefined || !RETRYABLE_STATUS.has(result.status)) {
+      return result
+    }
+
+    const wait = result.retryAfterMs ?? BLIND_BACKOFF_MS * 2 ** attempt
+    if (Date.now() + wait + RETRY_HEADROOM_MS > deadline) return result
+
+    console.warn(
+      `[ai] ${label} throttled (${result.status}) — waiting ${(wait / 1000).toFixed(1)}s`,
+    )
+    await sleep(wait)
   }
 }
 
@@ -198,11 +317,12 @@ async function chatOpenAiCompatible(input: ChatInput): Promise<ChatResult> {
       if (detail.includes("penalty")) res = await post(base)
     }
     if (!res.ok) {
-      const detail = (await res.text().catch(() => "")).slice(0, 300)
+      const raw = await res.text().catch(() => "")
       return {
         ok: false,
         status: res.status,
-        error: `${input.provider.name} ${res.status}: ${detail || res.statusText}`,
+        retryAfterMs: vendorRetryDelayMs(res, raw),
+        error: `${input.provider.name} ${res.status}: ${raw.slice(0, 300) || res.statusText}`,
       }
     }
     const json = (await res.json()) as {
@@ -244,11 +364,12 @@ async function chatAnthropic(input: ChatInput): Promise<ChatResult> {
       body: JSON.stringify(body),
     })
     if (!res.ok) {
-      const detail = (await res.text().catch(() => "")).slice(0, 300)
+      const raw = await res.text().catch(() => "")
       return {
         ok: false,
         status: res.status,
-        error: `Anthropic ${res.status}: ${detail || res.statusText}`,
+        retryAfterMs: vendorRetryDelayMs(res, raw),
+        error: `Anthropic ${res.status}: ${raw.slice(0, 300) || res.statusText}`,
       }
     }
     const json = (await res.json()) as {
@@ -292,11 +413,12 @@ async function chatGoogle(input: ChatInput): Promise<ChatResult> {
       body: JSON.stringify(body),
     })
     if (!res.ok) {
-      const detail = (await res.text().catch(() => "")).slice(0, 300)
+      const raw = await res.text().catch(() => "")
       return {
         ok: false,
         status: res.status,
-        error: `Gemini ${res.status}: ${detail || res.statusText}`,
+        retryAfterMs: vendorRetryDelayMs(res, raw),
+        error: `Gemini ${res.status}: ${raw.slice(0, 300) || res.statusText}`,
       }
     }
     const json = (await res.json()) as {
@@ -315,7 +437,7 @@ async function chatGoogle(input: ChatInput): Promise<ChatResult> {
   }, input.timeoutMs)
 }
 
-export async function chatComplete(input: ChatInput): Promise<ChatResult> {
+async function dispatch(input: ChatInput): Promise<ChatResult> {
   try {
     switch (input.provider.kind) {
       case "anthropic":
@@ -352,4 +474,31 @@ export async function chatComplete(input: ChatInput): Promise<ChatResult> {
       error: err instanceof Error ? err.message : "Unknown chat error.",
     }
   }
+}
+
+/**
+ * One completion, waiting out the vendor's throttle rather than reporting it.
+ *
+ * Nothing here is billed to us: every call runs on the reader's own API key,
+ * so the product has no reason to hold an opinion about how often they ask.
+ * The only ceiling that exists is their provider's, and the honest answer to
+ * it is to do what the provider says — wait the interval it names, then ask
+ * again — not to hand a coach "you have hit your usage limit" in the middle of
+ * a scouting session. That message was the whole failure: a free Groq key is
+ * 6 000 tokens a minute, one advisor question with a shortlist in it is most
+ * of that, and the second question of the session got a 429 that a six-second
+ * pause would have made go away.
+ *
+ * The wait is bounded by the CALLER's budget, not by a count of tries. If the
+ * vendor asks for longer than there is time to serve an answer in, the error
+ * goes through untouched and `describeProviderError` tells the user what it
+ * means — because at that point waiting really would be worse than saying so.
+ */
+export async function chatComplete(input: ChatInput): Promise<ChatResult> {
+  return withThrottleRetry<ChatResult>(
+    `${input.provider.id}/${input.model}`,
+    input.timeoutMs ?? TIMEOUT_MS,
+    () => ({ ok: false, error: "The model took too long to respond." }),
+    (remaining) => dispatch({ ...input, timeoutMs: remaining }),
+  )
 }

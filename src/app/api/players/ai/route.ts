@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getPlayerBySlug } from "@/lib/data/players"
 import { getMarketPlayerBySlug } from "@/lib/market/pool"
-import { aiRateLimit, clientIp } from "@/lib/security/ai-advisor"
+import { aiOwnerKeyGuard, clientIp } from "@/lib/security/ai-advisor"
 import { getCurrentUser } from "@/lib/auth/current-user"
 import { resolveEngine, resolveDefaultEngine } from "@/lib/ai/user-provider"
 import { generateGroundedAnswer } from "@/lib/ai/answer"
@@ -28,18 +28,6 @@ type Body = {
 
 export async function POST(request: Request) {
   const ip = clientIp(request)
-  const limit = aiRateLimit(ip)
-  if (!limit.ok) {
-    return NextResponse.json(
-      {
-        error: `Too many requests. Try again in ${limit.retryAfterSec}s.`,
-      },
-      {
-        status: 429,
-        headers: { "Retry-After": String(limit.retryAfterSec) },
-      },
-    )
-  }
 
   let body: Body
   try {
@@ -81,6 +69,8 @@ export async function POST(request: Request) {
     let aiReason: string | null = null
 
     const user = await getCurrentUser(request.headers.get("cookie"))
+    const guarded = aiOwnerKeyGuard(ip, user)
+    if (guarded) return guarded
     const engine = user
       ? await resolveEngine(user.id, "compare")
       : await resolveDefaultEngine()

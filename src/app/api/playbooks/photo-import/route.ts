@@ -4,8 +4,11 @@ import { getCurrentUser } from "@/lib/auth/current-user"
 import { chatCompleteVision } from "@/lib/ai/chat-vision"
 import { resolveDefaultEngine, resolveEngine } from "@/lib/ai/user-provider"
 import { getLocale } from "@/lib/i18n/server"
-import { consumeRateLimit } from "@/lib/security/rate-limit"
-import { clientIp, cleanLlmOutput } from "@/lib/security/ai-advisor"
+import {
+  aiOwnerKeyGuard,
+  clientIp,
+  cleanLlmOutput,
+} from "@/lib/security/ai-advisor"
 import {
   newId,
   createEmptyPlay,
@@ -148,26 +151,12 @@ export async function POST(request: Request) {
   const ip = clientIp(request)
   const user = await getCurrentUser(request.headers.get("cookie"))
 
-  // Signed-in users get their own bucket (and a higher cap) so a shared IP
-  // can't exhaust it; anonymous traffic is throttled harder because it is the
-  // only traffic here that can reach the OWNER's default key rather than the
-  // reader's own.
-  //
-  // Raised with the rest of the AI ceilings — 12 imports per five minutes is
-  // one afternoon of digitising a whiteboard, and a coach doing exactly what
-  // the feature is for should never see a 429. This one keeps the
-  // database-backed limiter and stays tighter than `aiRateLimit`: each request
-  // carries an uploaded image, so the cost being contained is bandwidth and a
-  // vision call, not a text completion.
-  const limit = user
-    ? await consumeRateLimit(`photo-import:user:${user.id}`, 120, 5 * 60 * 1000)
-    : await consumeRateLimit(`photo-import:ip:${ip}`, 40, 5 * 60 * 1000)
-  if (!limit.ok) {
-    return NextResponse.json(
-      { error: `Too many requests. Try again in ${limit.retryAfterSec}s.` },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfterSec) } },
-    )
-  }
+  // No import quota: the vision call is billed to the reader's own key, and a
+  // coach digitising an afternoon of whiteboards is the feature working. The
+  // guard below only applies to anonymous traffic, which spends the owner's
+  // fallback key instead of its own.
+  const guarded = aiOwnerKeyGuard(ip, user)
+  if (guarded) return guarded
 
   let raw: unknown
   try {

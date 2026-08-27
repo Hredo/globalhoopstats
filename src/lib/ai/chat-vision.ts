@@ -1,4 +1,5 @@
 import type { AiProvider } from "@/lib/ai/providers"
+import { vendorRetryDelayMs, withThrottleRetry } from "@/lib/ai/chat"
 
 const TIMEOUT_MS = 180_000
 
@@ -20,13 +21,14 @@ export type VisionInput = {
 
 export type VisionResult =
   | { ok: true; content: string }
-  | { ok: false; error: string }
+  | { ok: false; error: string; status?: number; retryAfterMs?: number }
 
 async function withTimeout<T>(
   fn: (signal: AbortSignal) => Promise<T>,
+  ms: number = TIMEOUT_MS,
 ): Promise<T> {
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+  const timer = setTimeout(() => controller.abort(), ms)
   try {
     return await fn(controller.signal)
   } finally {
@@ -71,8 +73,13 @@ async function visionOpenAiCompatible(
       }),
     })
     if (!res.ok) {
-      const detail = (await res.text().catch(() => "")).slice(0, 300)
-      return { ok: false, error: `${input.provider.name} ${res.status}: ${detail || res.statusText}` }
+      const raw = await res.text().catch(() => "")
+      return {
+        ok: false,
+        status: res.status,
+        retryAfterMs: vendorRetryDelayMs(res, raw),
+        error: `${input.provider.name} ${res.status}: ${raw.slice(0, 300) || res.statusText}`,
+      }
     }
     const json = (await res.json()) as {
       choices?: Array<{ message?: { content?: string } }>
@@ -120,8 +127,13 @@ async function visionAnthropic(input: VisionInput): Promise<VisionResult> {
       }),
     })
     if (!res.ok) {
-      const detail = (await res.text().catch(() => "")).slice(0, 300)
-      return { ok: false, error: `Anthropic ${res.status}: ${detail || res.statusText}` }
+      const raw = await res.text().catch(() => "")
+      return {
+        ok: false,
+        status: res.status,
+        retryAfterMs: vendorRetryDelayMs(res, raw),
+        error: `Anthropic ${res.status}: ${raw.slice(0, 300) || res.statusText}`,
+      }
     }
     const json = (await res.json()) as {
       content?: Array<{ type: string; text?: string }>
@@ -169,8 +181,13 @@ async function visionGoogle(input: VisionInput): Promise<VisionResult> {
       }),
     })
     if (!res.ok) {
-      const detail = (await res.text().catch(() => "")).slice(0, 300)
-      return { ok: false, error: `Gemini ${res.status}: ${detail || res.statusText}` }
+      const raw = await res.text().catch(() => "")
+      return {
+        ok: false,
+        status: res.status,
+        retryAfterMs: vendorRetryDelayMs(res, raw),
+        error: `Gemini ${res.status}: ${raw.slice(0, 300) || res.statusText}`,
+      }
     }
     const json = (await res.json()) as {
       candidates?: Array<{
@@ -186,9 +203,7 @@ async function visionGoogle(input: VisionInput): Promise<VisionResult> {
   })
 }
 
-export async function chatCompleteVision(
-  input: VisionInput,
-): Promise<VisionResult> {
+async function dispatchVision(input: VisionInput): Promise<VisionResult> {
   try {
     switch (input.provider.kind) {
       case "anthropic":
@@ -211,4 +226,16 @@ export async function chatCompleteVision(
       error: err instanceof Error ? err.message : "Unknown vision error.",
     }
   }
+}
+
+/** Same throttle policy as the text surfaces. See `withThrottleRetry`. */
+export async function chatCompleteVision(
+  input: VisionInput,
+): Promise<VisionResult> {
+  return withThrottleRetry<VisionResult>(
+    `${input.provider.id}/${input.model} (vision)`,
+    TIMEOUT_MS,
+    () => ({ ok: false, error: "The model took too long to respond." }),
+    () => dispatchVision(input),
+  )
 }

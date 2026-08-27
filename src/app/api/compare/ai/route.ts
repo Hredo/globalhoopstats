@@ -5,7 +5,7 @@ import {
   type ComparisonOutput,
 } from "@/lib/ai/player-comparator"
 import {
-  aiRateLimit,
+  aiOwnerKeyGuard,
   audit,
   clientIp,
   sanitisePromptInput,
@@ -91,18 +91,6 @@ function buildCompareSystem(locale: Locale): string {
 
 export async function POST(request: Request) {
   const ip = clientIp(request)
-  const limit = aiRateLimit(ip)
-  if (!limit.ok) {
-    return NextResponse.json(
-      {
-        error: `Too many requests. Try again in ${limit.retryAfterSec}s.`,
-      },
-      {
-        status: 429,
-        headers: { "Retry-After": String(limit.retryAfterSec) },
-      },
-    )
-  }
 
   let body: Body
   try {
@@ -187,6 +175,8 @@ export async function POST(request: Request) {
     let aiReason: string | null = null
 
     const user = await getCurrentUser(request.headers.get("cookie"))
+    const guarded = aiOwnerKeyGuard(ip, user)
+    if (guarded) return guarded
     const engine = user
       ? await resolveEngine(user.id, "compare")
       : await resolveDefaultEngine()
