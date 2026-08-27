@@ -31,7 +31,7 @@ import {
 // import { getAdvisorFreeUsage } from "@/lib/auth/free-usage"
 // import { userPlan } from "@/lib/db/schema"
 import {
-  aiRateLimit,
+  aiOwnerKeyGuard,
   audit,
   clientIp,
   cleanLlmOutput,
@@ -69,25 +69,12 @@ export async function POST(request: Request) {
   // NOTE: plan check disabled until re-enabled later.
   // const plan = userPlan(user)
 
-  // 1. Anti-runaway ceiling per IP. Not a usage quota — the site is freemium
-  //    and the model call is billed to the reader's own provider key. See
-  //    `aiRateLimit`.
-  const limit = aiRateLimit(ip)
-  if (!limit.ok) {
-    audit("rate-limit", { ip, retryAfterSec: limit.retryAfterSec })
-    return new NextResponse(
-      JSON.stringify({
-        content: `Too many requests. Try again in ${limit.retryAfterSec}s.`,
-        error: true,
-      }),
-      {
-        status: 429,
-        headers: securityHeaders({
-          "Retry-After": String(limit.retryAfterSec),
-        }),
-      },
-    )
-  }
+  // 1. No usage ceiling. The model call is billed to the reader's own provider
+  //    key, so how often they ask is between them and their vendor — see
+  //    `aiOwnerKeyGuard`, which only bites when the credit at stake is not
+  //    theirs.
+  const guarded = aiOwnerKeyGuard(ip, user)
+  if (guarded) return guarded
 
   // 2. Content-Type guard.
   const ct = request.headers.get("content-type") ?? ""

@@ -22,7 +22,7 @@ import { getLocale } from "@/lib/i18n/server"
 import { describePlay } from "@/lib/playbook/describe"
 import { parsePlay } from "@/lib/playbook/types"
 import {
-  aiRateLimit,
+  aiOwnerKeyGuard,
   audit,
   clientIp,
   jsonError,
@@ -38,13 +38,6 @@ const MAX_PLAY_TEXT_LEN = 400
 
 export async function POST(request: Request) {
   const ip = clientIp(request)
-  const limit = aiRateLimit(ip)
-  if (!limit.ok) {
-    return NextResponse.json(
-      { error: `Too many requests. Try again in ${limit.retryAfterSec}s.` },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfterSec) } },
-    )
-  }
 
   let body: { play?: unknown; question?: unknown }
   try {
@@ -90,6 +83,8 @@ export async function POST(request: Request) {
   // the site language is set to.
   const answerLocale = replyLocale(question, locale)
   const user = await getCurrentUser(request.headers.get("cookie"))
+  const guarded = aiOwnerKeyGuard(ip, user)
+  if (guarded) return guarded
   const engine = user
     ? await resolveEngine(user.id, "advisor")
     : await resolveDefaultEngine()

@@ -124,51 +124,51 @@ describe("the pipeline verifies before it returns", () => {
 })
 
 /**
- * The AI ceilings are one policy in one place.
+ * The AI surfaces carry no usage quota, and that is the policy.
  *
- * They used to be five copies of `consumeRateLimit("ai:" + ip, 30, 5 * 60 *
- * 1000)` — 30 requests per five minutes, SHARED across every AI screen, which
- * is roughly ten minutes of ordinary use before a paying-nothing visitor is
- * told to come back later. The site is freemium and the model call is billed
- * to the reader's own provider key, so that cap protected nothing and cost
- * sessions.
+ * They used to share one: 30 requests per five minutes across every AI screen,
+ * later a 240-token burst bucket. Both rationed something the owner does not
+ * pay for — every model call in this product runs on the READER'S own provider
+ * key. What the cap actually did was stop a coach asking two questions in a
+ * row, on top of whatever their own vendor already had to say about it.
  *
- * What is left is an anti-runaway backstop in `aiRateLimit`. This test exists
- * so the next AI route added by copy-paste cannot quietly reintroduce a quota.
+ * What is left is `aiOwnerKeyGuard`, which fires in exactly one case — an
+ * anonymous request spending the owner's `AI_DEFAULT_API_KEY` — plus the
+ * blanket `edgeRateLimit` in the middleware for the runaway-script case. This
+ * test exists so the next AI route added by copy-paste cannot quietly bring a
+ * quota on the reader back with it.
  */
-describe("the AI surfaces share one generous ceiling", () => {
+describe("the AI surfaces do not ration the reader's own key", () => {
   const SURFACES = [
     "ai-advisor/route.ts",
     "compare/ai/route.ts",
     "market/trade/ai/route.ts",
     "playbooks/ai/route.ts",
+    "playbooks/photo-import/route.ts",
     "players/ai/route.ts",
   ]
 
   for (const rel of SURFACES) {
-    it(`${rel} uses aiRateLimit and nothing else`, () => {
+    it(`${rel} carries no usage quota`, () => {
       const src = readFileSync(join(API_ROOT, ...rel.split("/")), "utf8")
-      expect(src, `${rel} lost its ceiling entirely`).toContain("aiRateLimit(ip)")
-      expect(
-        src.includes("consumeRateLimit"),
-        `${rel} reintroduced a per-window quota — the AI ceiling lives in aiRateLimit`,
-      ).toBe(false)
-      // A refused request still has to say so properly.
-      expect(src).toContain("429")
+      for (const limiter of ["aiRateLimit", "consumeRateLimit", "readRateLimit"]) {
+        expect(
+          src.includes(limiter),
+          `${rel} reintroduced a quota (${limiter}) on a call the reader pays for`,
+        ).toBe(false)
+      }
     })
   }
 
-  it("keeps the ceiling far above anything a person can produce", () => {
+  it("guards the owner's fallback key, and nothing else", () => {
     const src = readFileSync(
       join(process.cwd(), "src", "lib", "security", "ai-advisor.ts"),
       "utf8",
     )
-    const burst = Number(src.match(/const AI_BURST = (\d+)/)?.[1])
-    const refill = Number(src.match(/const AI_REFILL_PER_SEC = ([\d.]+)/)?.[1])
-    // A heavy human session is a few dozen requests over an hour. Anything
-    // under this and a real coach would feel the limit, which is the whole
-    // thing this replaced.
-    expect(burst).toBeGreaterThanOrEqual(200)
-    expect(refill * 3600).toBeGreaterThanOrEqual(3000)
+    expect(src).not.toContain("export function aiRateLimit")
+    // Signed in, or no fallback key configured: nothing to protect, no limit.
+    expect(src).toContain(
+      "if (user || !process.env.AI_DEFAULT_API_KEY) return null",
+    )
   })
 })

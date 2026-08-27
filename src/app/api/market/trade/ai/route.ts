@@ -11,7 +11,6 @@ import { tradeInstructions } from "@/lib/ai/trade-instructions"
 import { getLocale } from "@/lib/i18n/server"
 import type { Locale } from "@/lib/i18n/config"
 import {
-  aiRateLimit,
   audit,
   clientIp,
   sanitisePromptInput,
@@ -291,18 +290,6 @@ function subjectNames(body: TradeAiBody): string[] {
 }
 
 export async function POST(request: Request) {
-  // Every other AI route has this; this one did not. Auth is required, so it
-  // is not an open door, but a stuck retry loop should not be able to burn a
-  // user's own API credit either.
-  const ip = clientIp(request)
-  const limit = aiRateLimit(ip)
-  if (!limit.ok) {
-    return NextResponse.json(
-      { error: `Too many requests. Try again in ${limit.retryAfterSec}s.` },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfterSec) } },
-    )
-  }
-
   let body: TradeAiBody
   try {
     body = await request.json()
@@ -314,6 +301,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "mode is required." }, { status: 400 })
   }
 
+  const ip = clientIp(request)
   const user = await getCurrentUser(request.headers.get("cookie"))
   if (!user) {
     return NextResponse.json({ error: "Authentication required." }, { status: 401 })

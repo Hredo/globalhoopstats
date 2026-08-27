@@ -85,38 +85,33 @@ export function readRateLimit(
 }
 
 /**
- * Burst allowance for the AI endpoints, per IP.
+ * The only ceiling left on the AI surfaces, and it guards the OWNER's wallet
+ * rather than the reader's usage.
  *
- * Sized so that nobody using the site can feel it. A coach opening a dozen
- * player reports in a row, running three comparisons and holding an advisor
- * conversation spends a fraction of this.
+ * Every AI call in this product runs on the reader's own provider key: their
+ * key, their quota, their bill. A cap here protected nothing anybody pays for
+ * and cut real sessions short — a coach could not ask two questions in a row
+ * without the product telling them to come back later, on top of whatever
+ * their own provider already had to say about it. Rationing someone else's
+ * credit is not a security control.
+ *
+ * One request does not fit that: an anonymous one, which falls back to
+ * `AI_DEFAULT_API_KEY`. That credit IS the owner's, and nobody is accountable
+ * for spending it. When no fallback key is configured — the normal deployment,
+ * where an anonymous visitor is simply asked to set a provider up — there is
+ * nothing to spend and this returns null on every call.
+ *
+ * The runaway case the old ceiling was really aimed at (a front-end loop, a
+ * script) is covered by `edgeRateLimit` in the middleware, which sees every
+ * API path and costs nothing to run.
  */
-const AI_BURST = 240
-/** Sustained ceiling once the burst is spent: 60 a minute, 3 600 an hour. */
-const AI_REFILL_PER_SEC = 1
-
-/**
- * The ceiling on the AI endpoints (advisor, player report, compare, trade,
- * playbook).
- *
- * The product is freemium and the model calls are billed to the reader's OWN
- * provider key, so a usage cap here protected nothing the owner pays for while
- * cutting real sessions short — 30 requests per five minutes, SHARED across
- * all five surfaces, is about ten minutes of ordinary browsing.
- *
- * What is left is an anti-runaway backstop, not a quota: it exists so that a
- * loop in the front end, or a script, cannot pin the server and the database
- * indefinitely. Every advisor call still reads candidates, roster and team
- * rows, and that traffic IS the owner's bill.
- *
- * In-memory on purpose, the same call the `track/*` endpoints make and for the
- * same reason: `consumeRateLimit` costs two database round trips of its own,
- * which is a silly price to pay for a limit designed never to trigger. The
- * app runs as one long-lived Node process, so the buckets persist between
- * requests.
- */
-export function aiRateLimit(ip: string): RateLimitResult {
-  return readRateLimit(ip, "ai", AI_BURST, AI_REFILL_PER_SEC)
+export function aiOwnerKeyGuard(
+  ip: string,
+  user: { id: string } | null | undefined,
+): NextResponse | null {
+  if (user || !process.env.AI_DEFAULT_API_KEY) return null
+  const limit = readRateLimit(ip, "ai:owner-key", 60, 0.5)
+  return limit.ok ? null : jsonTooManyRequests(limit.retryAfterSec)
 }
 
 export function jsonTooManyRequests(retryAfterSec: number): NextResponse {

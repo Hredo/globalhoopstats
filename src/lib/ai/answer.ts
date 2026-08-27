@@ -379,15 +379,18 @@ function describeProviderError(raw: string, locale: Locale): string {
   const text = raw.toLowerCase()
 
   if (/\b429\b|rate.?limit|quota|too many requests/.test(text)) {
-    // The vendor usually says how long to wait; if it did, pass that on.
+    // By the time this reaches a screen, `chatComplete` has already waited out
+    // the pause the vendor asked for and asked again — twice. Repeating "try
+    // again in six seconds" without saying that reads as if nothing had been
+    // attempted, and the coach retries by hand into the same wall.
     const wait = raw.match(/try again in ([\d.]+)\s*s/i)
     const when = wait
       ? es
-        ? ` Vuelve a intentarlo en unos ${Math.ceil(Number(wait[1]))} segundos.`
-        : ` Try again in about ${Math.ceil(Number(wait[1]))} seconds.`
+        ? ` Hemos esperado y reintentado sin suerte; vuelve a probar en unos ${Math.ceil(Number(wait[1]))} segundos.`
+        : ` We waited and retried without luck — try again in about ${Math.ceil(Number(wait[1]))} seconds.`
       : es
-        ? " Espera un momento y vuelve a intentarlo."
-        : " Wait a moment and try again."
+        ? " Hemos esperado y reintentado sin suerte; prueba dentro de un momento, o elige en Ajustes un modelo con más cuota."
+        : " We waited and retried without luck — try again shortly, or pick a model with more headroom in Settings."
     return (
       (es
         ? "Has llegado al límite de uso de tu proveedor de IA."
