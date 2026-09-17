@@ -62,8 +62,8 @@
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "mysql2": "^3.23.2",
-    "next": "^15.5.22",
-    "nodemailer": "^9.0.1",
+    "next": "^15.5.24",
+    "nodemailer": "^9.1.1",
     "p-limit": "^7.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -101,6 +101,6 @@
     "tailwindcss": "^4.0.0",
     "tsx": "^4.22.4",
     "typescript": "^5.7.0",
-    "vitest": "^3.0.0"
+    "vitest": "^4.1.11"
   }
 }

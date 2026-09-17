@@ -9,10 +9,12 @@ describe("StatCounter", () => {
       cb(performance.now() + 9999)
       return 1
     }))
-    vi.stubGlobal("IntersectionObserver", vi.fn(() => ({
-      observe: vi.fn(),
-      disconnect: vi.fn(),
-    })))
+    // A `function`, not an arrow: the component calls `new IntersectionObserver`,
+    // and since Vitest 4 a vi.fn() with an arrow implementation is not
+    // constructible.
+    vi.stubGlobal("IntersectionObserver", vi.fn(function () {
+      return { observe: vi.fn(), disconnect: vi.fn() }
+    }))
   })
 
   afterEach(() => {
