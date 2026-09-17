@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { listTeams, type ListTeamsInput } from "@/lib/data/teams"
+import { listSeasons, resolveSeasonName } from "@/lib/data/seasons"
 import { DirectoryControls } from "@/components/ui/directory-controls"
 import { TeamsInfiniteView } from "@/components/teams/teams-infinite-view"
 import { DirectoryHero } from "@/components/ui/directory-hero"
@@ -8,13 +9,16 @@ import { PageTransition } from "@/components/ui/page-transition"
 import { getT } from "@/lib/i18n/server"
 import { pageSeo } from "@/lib/seo/metadata"
 
-type SearchParams = Partial<Record<keyof ListTeamsInput | "q" | "page", string>>
+type SearchParams = Partial<
+  Record<keyof ListTeamsInput | "q" | "page" | "season", string>
+>
 
 export const revalidate = 300
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { t } = await getT()
+  const { t, locale } = await getT()
   return pageSeo({
+    locale,
     path: "/teams",
     title: t("directory.teams.metaTitle"),
     description: t("directory.teams.metaDescription"),
@@ -59,7 +63,11 @@ export default async function TeamsPage(props: {
 }) {
   const sp = await props.searchParams
   const input = parseInput(sp)
-  const result = await listTeams(input)
+  const [season, seasons] = await Promise.all([
+    resolveSeasonName(sp.season, input.league),
+    listSeasons(input.league),
+  ])
+  const result = await listTeams({ ...input, season })
   const { t, locale } = await getT()
 
   return (
@@ -85,6 +93,8 @@ export default async function TeamsPage(props: {
           kind="teams"
           total={result.total}
           showing={result.items.length}
+          seasons={seasons.map((s) => s.name)}
+          season={season}
         />
       </StickyFilterBar>
 
@@ -95,12 +105,13 @@ export default async function TeamsPage(props: {
         order={input.order ?? "asc"}
       >
         <TeamsInfiniteView
-          key={`${input.query ?? ""}|${input.league ?? ""}|${input.sort ?? "name"}|${input.order ?? "asc"}`}
+          key={`${season}|${input.query ?? ""}|${input.league ?? ""}|${input.sort ?? "name"}|${input.order ?? "asc"}`}
           initial={result}
           query={input.query ?? ""}
           league={input.league ?? ""}
           sort={input.sort ?? "name"}
           order={input.order ?? "asc"}
+          season={season}
         />
       </PageTransition>
       </div>

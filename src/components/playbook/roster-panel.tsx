@@ -35,6 +35,10 @@ export function RosterPanel({
   const [teams, setTeams] = useState<TeamOption[]>([])
   const [league, setLeague] = useState("")
   const [teamSlug, setTeamSlug] = useState("")
+  // Empty means "newest", which is what the API defaults to. A coach drawing a
+  // play for last year's squad can pick that season instead.
+  const [seasons, setSeasons] = useState<string[]>([])
+  const [season, setSeason] = useState("")
   const [players, setPlayers] = useState<RosterHit[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -45,6 +49,19 @@ export function RosterPanel({
       .then((data: TeamOption[]) => setTeams(Array.isArray(data) ? data : []))
       .catch(() => setError(t("playbook.roster.loadError")))
   }, [t])
+
+  useEffect(() => {
+    fetch("/api/seasons")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((data: { seasons?: string[] }) => {
+        const list = Array.isArray(data.seasons) ? data.seasons : []
+        setSeasons(list)
+        setSeason(list[0] ?? "")
+      })
+      // A missing season list is not worth an error banner: every request then
+      // falls back to the newest season, which is the default anyway.
+      .catch(() => setSeasons([]))
+  }, [])
 
   const leagues = useMemo(() => {
     const set = new Set(teams.map((x) => x.leagueSlug))
@@ -75,6 +92,7 @@ export function RosterPanel({
       order: "asc",
       pageSize: "50",
     })
+    if (season) params.set("season", season)
     fetch(`/api/players/list?${params}`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data: { items?: RosterHit[] }) => {
@@ -90,7 +108,7 @@ export function RosterPanel({
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTeam?.slug, selectedTeam?.leagueSlug])
+  }, [selectedTeam?.slug, selectedTeam?.leagueSlug, season])
 
   const assignedSlugs = new Set(
     state.play.elements
@@ -124,6 +142,22 @@ export function RosterPanel({
 
   return (
     <div className="flex flex-col gap-3">
+      {seasons.length > 1 ? (
+        <select
+          value={season}
+          onChange={(e) => setSeason(e.target.value)}
+          aria-label={t("playbook.roster.season")}
+          className="gh-input w-full text-sm"
+        >
+          {seasons.map((sname, i) => (
+            <option key={sname} value={sname}>
+              {i === 0
+                ? t("playbook.roster.seasonCurrent", { season: sname })
+                : t("playbook.roster.seasonLabel", { season: sname })}
+            </option>
+          ))}
+        </select>
+      ) : null}
       <div className="grid grid-cols-2 gap-2">
         <select
           value={league}

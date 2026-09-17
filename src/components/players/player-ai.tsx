@@ -9,9 +9,11 @@ import { AiAnalysisDisplay } from "@/components/market/ai-analysis-display"
 type Props = {
   slug: string
   name: string
+  /** Season shown on the profile, so the note analyses the same one. */
+  season?: string | null
 }
 
-export function PlayerAi({ slug, name }: Props) {
+export function PlayerAi({ slug, name, season }: Props) {
   const [analysis, setAnalysis] = useState<string | null>(null)
   const [aiProvider, setAiProvider] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -26,7 +28,7 @@ export function PlayerAi({ slug, name }: Props) {
       const res = await fetch("/api/players/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug }),
+        body: JSON.stringify({ slug, season: season ?? undefined }),
       })
       const payload = await res.json()
       if (!res.ok) {
@@ -46,7 +48,7 @@ export function PlayerAi({ slug, name }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [slug, t])
+  }, [slug, season, t])
 
   return (
     <section id="player-ai" className="rounded-2xl border border-white/5 bg-gradient-to-br from-brand-500/5 via-white/[0.02] to-accent-cyan/5 p-4 sm:p-6">

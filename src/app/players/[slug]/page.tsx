@@ -1,10 +1,16 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
-import { and, eq, sql } from "drizzle-orm"
+import { and, eq, inArray, sql } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
 import { players, playerSeasonStats, seasons } from "@/lib/db/schema"
-import { getPlayerBySlug, pickPlayerLeague } from "@/lib/data/players"
+import {
+  getPlayerBySlug,
+  pickPlayerLeague,
+  pickPlayerSeason,
+  type PlayerSeasonLine,
+} from "@/lib/data/players"
+import { parseSeasonParam, seasonNameVariants } from "@/lib/seasons"
 import { getMarketPlayerBySlug } from "@/lib/market/pool"
 import { PctBar } from "@/components/ui/pct-bar"
 import { FadeIn } from "@/components/animations/fade-in"
@@ -16,9 +22,10 @@ import { Eyebrow } from "@/components/ui/eyebrow"
 import { leagueAccent } from "@/components/ui/league-badge"
 import { MarketValueCard } from "@/components/market/market-value-card"
 import { PlayerLeagueSwitcher } from "@/components/ui/league-switcher"
+import { SeasonSwitcher } from "@/components/ui/season-select"
 import { JsonLd } from "@/components/marketing/json-ld"
 import { breadcrumbJsonLd, playerJsonLd } from "@/lib/seo/structured-data"
-import { SITE } from "@/lib/site"
+import { pageSeo } from "@/lib/seo/metadata"
 import { HighlightsSection } from "./highlights"
 import { PlayerAi } from "@/components/players/player-ai"
 import { ShotChart } from "@/components/players/shot-chart"
@@ -31,28 +38,59 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const { t } = await getT()
+  const { t, locale } = await getT()
   const profile = await getPlayerBySlug(slug)
   if (!profile) return { title: t("playerProfile.notFound") }
-  const season0 = profile.seasons[0]
-  const ppg =
-    season0 && season0.pointsTotal != null && season0.gamesPlayed > 0
-      ? season0.pointsTotal / season0.gamesPlayed
-      : null
-  const base = t("playerProfile.metaDescription", {
+  const vars = {
     name: profile.fullName,
     position: profile.position ?? t("playerProfile.playerFallback"),
     team: profile.team?.name ?? t("playerProfile.metaFreeAgent"),
     league: profile.league.name,
-  })
-  const description = ppg
-    ? `${base} ${t("playerProfile.averaging", { ppg: ppg.toFixed(1) })}`
-    : base
-  return {
-    title: profile.fullName,
-    description,
-    alternates: { canonical: `${SITE.url}/players/${slug}` },
   }
+  // "<name> estadísticas" is how people search for a player, and for most of
+  // the FEB catalogue this page is the only one on the web with their numbers
+  // — so the title leads with that, and the snippet carries the real line.
+  const title = profile.team
+    ? t("playerProfile.metaTitle", vars)
+    : t("playerProfile.metaTitleNoTeam", vars)
+  const description = [
+    t("playerProfile.metaDescription", vars),
+    seasonMetaLine(profile.seasons[0], t),
+    t("playerProfile.metaTail"),
+  ]
+    .filter(Boolean)
+    .join(" ")
+  return pageSeo({
+    path: `/players/${slug}`,
+    title,
+    description,
+    locale,
+    type: "profile",
+  })
+}
+
+/** "2026-27 season: 14.2 points, 5.1 rebounds and 3.0 assists per game…" */
+function seasonMetaLine(
+  season: PlayerSeasonLine | undefined,
+  t: (path: string, vars?: Record<string, string | number>) => string,
+): string | null {
+  if (!season || season.gamesPlayed <= 0 || season.pointsTotal == null) {
+    return null
+  }
+  const per = (total: number) => (total / season.gamesPlayed).toFixed(1)
+  const base = {
+    season: season.seasonName,
+    games: season.gamesPlayed,
+    ppg: per(season.pointsTotal),
+  }
+  if (season.reboundsTotal == null || season.assistsTotal == null) {
+    return t("playerProfile.metaSeasonPoints", base)
+  }
+  return t("playerProfile.metaSeasonFull", {
+    ...base,
+    rpg: per(season.reboundsTotal),
+    apg: per(season.assistsTotal),
+  })
 }
 
 function formatHeight(cm: number | null): string {
@@ -95,6 +133,7 @@ function ageFrom(bd: string | null): number | null {
 async function findComparisonCandidates(
   leagueId: string,
   excludePlayerId: string,
+  seasonName: string,
 ): Promise<
   Array<{ id: string; slug: string; fullName: string; points: number | null }>
 > {
@@ -115,7 +154,9 @@ async function findComparisonCandidates(
     .where(
       and(
         eq(playerSeasonStats.leagueId, leagueId),
-        eq(seasons.isCurrent, true),
+        // The season being VIEWED, not the flagged current one: opening a 2024-25
+        // profile should suggest people who played in 2024-25.
+        inArray(seasons.name, seasonNameVariants(seasonName)),
         sql`${players.id} <> ${excludePlayerId}`,
       ),
     )
@@ -146,11 +187,16 @@ export default async function PlayerPage({ params, searchParams }: Props) {
   const selLeague = selected.league
   const selTeam = selected.team
 
-  const candidates = await findComparisonCandidates(
-    selLeague.id,
-    profile.id,
+  // Newest season by default; `?season=` picks another one the player actually
+  // played, and anything else falls back to the newest rather than 404ing.
+  const seasonParam = parseSeasonParam(
+    typeof sp.season === "string" ? sp.season : null,
   )
-  const season = selected.seasons[0]
+  const season = pickPlayerSeason(selected, seasonParam)
+  const seasonOptions = selected.seasons.map((s) => s.seasonName)
+  const candidates = season
+    ? await findComparisonCandidates(selLeague.id, profile.id, season.seasonName)
+    : []
   const accent = leagueAccent(selLeague.slug)
 
   const marketPlayer = await getMarketPlayerBySlug(slug)
@@ -165,10 +211,11 @@ export default async function PlayerPage({ params, searchParams }: Props) {
       weightKg: profile.weightKg,
       photoUrl: profile.imageUrl,
       teamName: selTeam?.name ?? null,
+      teamPath: selTeam ? `/teams/${selLeague.slug}/${selTeam.slug}` : null,
       leagueName: selLeague.name,
     }),
     breadcrumbJsonLd([
-      { name: "Players", path: "/players" },
+      { name: t("nav.players"), path: "/players" },
       { name: profile.fullName, path: `/players/${profile.slug}` },
     ]),
   ]
@@ -236,9 +283,14 @@ export default async function PlayerPage({ params, searchParams }: Props) {
                   k={t("playerProfile.team")}
                   v={
                     selTeam ? (
-                      <span className="font-semibold text-ink-100">
+                      // A real link, not a label: it is the path a crawler
+                      // (and a reader) takes from a player to the club.
+                      <Link
+                        href={`/teams/${selLeague.slug}/${selTeam.slug}`}
+                        className="font-semibold text-ink-100 transition hover:text-brand-300"
+                      >
                         {selTeam.name}
-                      </span>
+                      </Link>
                     ) : (
                       t("playerProfile.freeAgent")
                     )
@@ -272,6 +324,10 @@ export default async function PlayerPage({ params, searchParams }: Props) {
                   leagues={profile.leagues.map((l) => l.league)}
                   activeSlug={selLeague.slug}
                   ariaLabel={t("playerProfile.switchLeague")}
+                />
+                <SeasonSwitcher
+                  seasons={seasonOptions}
+                  active={season?.seasonName ?? seasonOptions[0] ?? ""}
                 />
                 {season ? (
                   <p className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-400">
@@ -390,7 +446,11 @@ export default async function PlayerPage({ params, searchParams }: Props) {
             </LeagueTransition>
           ) : null}
 
-          <PlayerAi slug={profile.slug} name={profile.fullName} />
+          <PlayerAi
+            slug={profile.slug}
+            name={profile.fullName}
+            season={season?.seasonName ?? null}
+          />
         </div>
       </div>
     </div>

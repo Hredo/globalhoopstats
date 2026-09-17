@@ -1,4 +1,8 @@
-import { fetchJson, fetchText } from "@/lib/sources/fetcher"
+import {
+  fetchJson,
+  fetchText,
+  fetchTextIfPublished,
+} from "@/lib/sources/fetcher"
 import {
   type ExtractedPlayerStat,
   type SourceAdapter,
@@ -68,6 +72,19 @@ async function fetchHtml(url: string): Promise<string> {
   return fetchText(url, { headers: { "Accept-Language": "en-US,en;q=0.9" } })
 }
 
+/**
+ * A Basketball-Reference season page, or null when that season has no page yet.
+ *
+ * BR publishes `NBA_2027*.html` once the season is under way. In preseason it
+ * 404s, which is a season that has not started — not a scrape failure — so the
+ * caller returns an empty list and the roster ingest carries on.
+ */
+async function fetchBrHtml(url: string): Promise<string | null> {
+  return fetchTextIfPublished(url, {
+    headers: { "Accept-Language": "en-US,en;q=0.9" },
+  })
+}
+
 function decodeEntities(s: string): string {
   return s
     .replace(/&amp;/g, "&")
@@ -107,14 +124,34 @@ function rowsFromTable(tableHtml: string): string[] {
   return tableHtml.match(/<tr\b[^>]*>[\s\S]*?<\/tr>/g) ?? []
 }
 
+/**
+ * Basketball-Reference labels an NBA season by its END year: 2026-27 lives at
+ * `/leagues/NBA_2027.html`. Derived from the season start year rather than
+ * parsed out of the code so it cannot drift when the code format changes.
+ */
 function nbaSeasonYearEnd(): number {
-  const code = SOURCE_META.nba.seasonCode
-  const m = code.match(/(\d{4})-(\d{2})/)
-  if (m) return 2000 + Number(m[2])
-  return new Date().getFullYear()
+  return SOURCE_META.nba.season + 1
 }
 
 const SEASON_END_YEAR = nbaSeasonYearEnd()
+
+/** playerindex height, e.g. "6-8" (feet-inches) → centimetres. */
+function parseFeetInches(raw: unknown): number | undefined {
+  if (raw == null) return undefined
+  const m = String(raw).trim().match(/^(\d+)\s*-\s*(\d+(?:\.\d+)?)$/)
+  if (!m) return undefined
+  const inches = Number(m[1]) * 12 + Number(m[2])
+  return inches > 0 ? Math.round(inches * 2.54) : undefined
+}
+
+/** playerindex weight, e.g. "243" (pounds) → kilograms. */
+function parseLbs(raw: unknown): number | undefined {
+  if (raw == null) return undefined
+  const lbs = Number(String(raw).trim())
+  return Number.isFinite(lbs) && lbs > 0
+    ? Math.round(lbs * 0.453592)
+    : undefined
+}
 
 function normalizeName(s: string): string {
   return s
@@ -131,6 +168,7 @@ export const nbaAdapter: SourceAdapter = {
   country: SOURCE_META.nba.country,
   season: SOURCE_META.nba.season,
   seasonCode: SOURCE_META.nba.seasonCode,
+  seasonLabel: SOURCE_META.nba.seasonLabel,
 
   async fetchTeams(): Promise<SourceTeam[]> {
     const season = SOURCE_META.nba.seasonCode
@@ -221,56 +259,79 @@ export const nbaAdapter: SourceAdapter = {
     return out
   },
 
+  /**
+   * The league's rosters.
+   *
+   * `playerindex` is the ROSTER of record and `leaguedashplayerbiostats` is a
+   * STATS endpoint, and the difference only shows in preseason: asked for a
+   * season that has not tipped off, playerindex returns all 580 players with
+   * their new clubs while bio stats returns zero rows. Building the roster off
+   * bio stats — which is what this used to do — therefore reported an empty
+   * league every summer, the quality gate blocked the sync, and no new season
+   * could ever be ingested before its first game.
+   *
+   * So playerindex is the spine, and bio stats is merged in for the extras it
+   * alone carries (age, exact height in inches) whenever it has rows.
+   */
   async fetchPlayers(): Promise<SourcePlayer[]> {
     const season = SOURCE_META.nba.seasonCode
-    const url =
-      `${BASE_URL}/leaguedashplayerbiostats?Season=${season}` +
-      `&SeasonType=Regular+Season&LeagueID=00&PerMode=PerGame`
-    const payload = await fetchJson<NbaEnvelope>(url, {
+
+    const indexUrl =
+      `${BASE_URL}/playerindex?College=&Country=&DraftPick=&DraftRound=` +
+      `&DraftYear=&Height=&Historical=0&LeagueID=00&Season=${season}` +
+      `&SeasonType=Regular+Season&TeamID=0&Weight=`
+    const indexPayload = await fetchJson<NbaEnvelope>(indexUrl, {
       headers: NBA_HEADERS,
       timeoutMs: 60_000,
     })
-    const rows = readResultSet(payload, "LeagueDashPlayerBioStats")
+    const indexRows = readResultSet(indexPayload, "PlayerIndex")
 
-    // Bio stats carry no position; playerindex does, in a single request.
-    const positionById = new Map<string, string>()
+    // Optional enrichment; a failure here must not cost us the roster.
+    type Bio = { age?: number; heightCm?: number; weightKg?: number; country?: string }
+    const bioById = new Map<string, Bio>()
     try {
-      const indexUrl =
-        `${BASE_URL}/playerindex?College=&Country=&DraftPick=&DraftRound=` +
-        `&DraftYear=&Height=&Historical=0&LeagueID=00&Season=${season}` +
-        `&SeasonType=Regular+Season&TeamID=0&Weight=`
-      const indexPayload = await fetchJson<NbaEnvelope>(indexUrl, {
+      const bioUrl =
+        `${BASE_URL}/leaguedashplayerbiostats?Season=${season}` +
+        `&SeasonType=Regular+Season&LeagueID=00&PerMode=PerGame`
+      const bioPayload = await fetchJson<NbaEnvelope>(bioUrl, {
         headers: NBA_HEADERS,
         timeoutMs: 60_000,
       })
-      for (const r of readResultSet(indexPayload, "PlayerIndex")) {
-        if (r.PERSON_ID != null && r.POSITION) {
-          positionById.set(String(r.PERSON_ID), String(r.POSITION))
-        }
+      for (const r of readResultSet(bioPayload, "LeagueDashPlayerBioStats")) {
+        if (r.PLAYER_ID == null) continue
+        const heightInches = Number(r.PLAYER_HEIGHT_INCHES ?? 0)
+        const weightLbs = Number(r.PLAYER_WEIGHT ?? 0)
+        bioById.set(String(r.PLAYER_ID), {
+          age: r.AGE != null ? Number(r.AGE) : undefined,
+          heightCm: heightInches > 0 ? Math.round(heightInches * 2.54) : undefined,
+          weightKg: weightLbs > 0 ? Math.round(weightLbs * 0.453592) : undefined,
+          country: r.COUNTRY ? String(r.COUNTRY) : undefined,
+        })
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      console.warn(
-        `[nba] playerindex unavailable, positions skipped — ${message}`,
-      )
+      console.warn(`[nba] bio stats unavailable, roster only — ${message}`)
     }
 
     const out: SourcePlayer[] = []
-    for (const r of rows) {
-      const id = r.PLAYER_ID
-      const name = r.PLAYER_NAME
-      if (id == null || !name) continue
-      const heightInches = Number(r.PLAYER_HEIGHT_INCHES ?? 0)
-      const weightLbs = Number(r.PLAYER_WEIGHT ?? 0)
+    for (const r of indexRows) {
+      const id = r.PERSON_ID
+      const first = r.PLAYER_FIRST_NAME ? String(r.PLAYER_FIRST_NAME).trim() : ""
+      const last = r.PLAYER_LAST_NAME ? String(r.PLAYER_LAST_NAME).trim() : ""
+      const fullName = `${first} ${last}`.trim()
+      if (id == null || !fullName) continue
+      const bio = bioById.get(String(id)) ?? {}
       out.push({
         sourceId: String(id),
-        fullName: String(name).trim(),
-        nationality: r.COUNTRY ? String(r.COUNTRY) : undefined,
-        age: r.AGE != null ? Number(r.AGE) : undefined,
-        position: positionById.get(String(id)),
-        heightCm:
-          heightInches > 0 ? Math.round(heightInches * 2.54) : undefined,
-        weightKg: weightLbs > 0 ? Math.round(weightLbs * 0.453592) : undefined,
+        fullName,
+        nationality: bio.country ?? (r.COUNTRY ? String(r.COUNTRY) : undefined),
+        age: bio.age,
+        position: r.POSITION ? String(r.POSITION) : undefined,
+        jerseyNumber: r.JERSEY_NUMBER ? String(r.JERSEY_NUMBER) : undefined,
+        // playerindex gives height as feet-inches ("6-8"); bio stats gives it
+        // in decimal inches, which is the more precise of the two.
+        heightCm: bio.heightCm ?? parseFeetInches(r.HEIGHT),
+        weightKg: bio.weightKg ?? parseLbs(r.WEIGHT),
         teamSourceId: r.TEAM_ID ? String(r.TEAM_ID) : undefined,
         photoUrl: photoUrl(id),
       })
@@ -371,8 +432,8 @@ export const nbaAdapter: SourceAdapter = {
       { per: number | null; winShares: number | null; bpm: number | null }
     >()
     try {
-      const brHtml = await fetchHtml(brAdvancedUrl)
-      const advTableHtml = extractTableById(brHtml, "advanced")
+      const brHtml = await fetchBrHtml(brAdvancedUrl)
+      const advTableHtml = brHtml ? extractTableById(brHtml, "advanced") : ""
       for (const row of rowsFromTable(advTableHtml)) {
         const cells = getRowCells(row)
         const playerName = cells.get("player") ?? cells.get("name_display")
@@ -437,7 +498,11 @@ export const nbaAdapter: SourceAdapter = {
 
   async fetchCoaches(): Promise<SourceCoach[]> {
     const url = `${BR_BASE}/leagues/NBA_${SEASON_END_YEAR}_coaches.html`
-    const html = await fetchHtml(url)
+    const html = await fetchBrHtml(url)
+    if (!html) {
+      console.warn(`[nba] ${SEASON_END_YEAR} coaches page not published yet`)
+      return []
+    }
     const tableHtml = extractTableById(html, "NBA_coaches")
     const rows = rowsFromTable(tableHtml)
     const out: SourceCoach[] = []
@@ -470,7 +535,11 @@ export const nbaAdapter: SourceAdapter = {
 
   async fetchTeamStats(): Promise<SourceTeamStats[]> {
     const url = `${BR_BASE}/leagues/NBA_${SEASON_END_YEAR}.html`
-    const html = await fetchHtml(url)
+    const html = await fetchBrHtml(url)
+    if (!html) {
+      console.warn(`[nba] ${SEASON_END_YEAR} season page not published yet`)
+      return []
+    }
 
     const advancedHtml = extractTableById(html, "advanced-team")
     const advancedByCode = new Map<

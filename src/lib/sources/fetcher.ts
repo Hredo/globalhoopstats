@@ -183,6 +183,31 @@ export async function fetchText(
   return politeFetch(url, init)
 }
 
+/**
+ * Like `fetchText`, but returns null when the page does not exist (404).
+ *
+ * Season-scoped pages are published when a competition opens its season, not
+ * before: Basketball-Reference has no `/2027_per_game.html` in August 2026, and
+ * asking for one is a 404, not a failure. An adapter that lets that 404 escape
+ * aborts the whole league sync, which is how a preseason roster ingest — the
+ * one thing that has to work at the turn of a season — got taken down by a page
+ * that simply is not out yet.
+ *
+ * Only 404 is swallowed. A timeout, a 5xx or a 429 is a real problem and still
+ * throws, so a source outage can never be mistaken for an empty season.
+ */
+export async function fetchTextIfPublished(
+  url: string,
+  init: FetchInit = {},
+): Promise<string | null> {
+  try {
+    return await politeFetch(url, init)
+  } catch (err) {
+    if (err instanceof FetchError && err.status === 404) return null
+    throw err
+  }
+}
+
 /** Polite fetch that parses the response body as JSON. */
 export async function fetchJson<T>(
   url: string,

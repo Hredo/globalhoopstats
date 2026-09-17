@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { listCoaches, type ListCoachesInput } from "@/lib/data/staff"
+import { parseSeasonParam } from "@/lib/seasons"
 import {
   clientIp,
   jsonTooManyRequests,
@@ -38,7 +39,12 @@ export async function GET(req: Request) {
   const pageRaw = Number(sp.get("page") ?? 1)
   const pageSizeRaw = Number(sp.get("pageSize") ?? 36)
 
+  // Invalid values resolve to the newest season downstream rather than
+  // filtering the response down to nothing.
+  const season = parseSeasonParam(sp.get("season"))
+
   const input: ListCoachesInput = {
+    season,
     league: LEAGUES.has(leagueRaw) ? leagueRaw : undefined,
     role: ROLES.has(roleRaw)
       ? (roleRaw as ListCoachesInput["role"])

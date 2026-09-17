@@ -85,6 +85,11 @@ export function PlayerSearchPopover({
       abortRef.current = ac
       setLoading(true)
       try {
+        // No `season` parameter on purpose: the search then defaults to the
+        // newest season, which is the only one the trade engine can price.
+        // Valuations come from the current-season market pool, so offering a
+        // past-season player here would hand back somebody with no value at
+        // all and a trade that cannot be balanced.
         const res = await fetch(
           `/api/players/search?q=${encodeURIComponent(query)}&limit=12`,
           { signal: ac.signal },

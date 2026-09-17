@@ -21,9 +21,17 @@ type Props = {
   query: string
   league: string
   role: string
+  /** Season the first page was rendered for; every next page must match. */
+  season: string
 }
 
-export function CoachesInfiniteView({ initial, query, league, role }: Props) {
+export function CoachesInfiniteView({
+  initial,
+  query,
+  league,
+  role,
+  season,
+}: Props) {
   const [pages, setPages] = useState<PageResult[]>([initial])
   const [loading, setLoading] = useState(false)
   const isFirstRender = useRef(true)
@@ -54,6 +62,8 @@ export function CoachesInfiniteView({ initial, query, league, role }: Props) {
     })
     if (query) params.set("q", query)
     if (role) params.set("role", role)
+    // Keeps every page of the scroll on the same season as the first.
+    if (season) params.set("season", season)
     try {
       const res = await fetch(`/api/coaches/list?${params.toString()}`)
       if (!res.ok) throw new Error("Failed to load")
@@ -64,7 +74,7 @@ export function CoachesInfiniteView({ initial, query, league, role }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [current, hasMore, loading, league, query, role])
+  }, [current, hasMore, loading, league, query, role, season])
 
   const sentinelRef = useInfiniteScroll({
     onIntersect: loadMore,

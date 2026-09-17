@@ -42,6 +42,8 @@ type Props = {
   side: "a" | "b"
   current: ComparePlayer | null
   otherSlug: string | null
+  /** Season in the URL, carried through so picking a player keeps it. */
+  season?: string
 }
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -53,7 +55,7 @@ const SOURCE_LABEL: Record<string, string> = {
   eba: "Tercera FEB",
 }
 
-export function CompareSearch({ side, current, otherSlug }: Props) {
+export function CompareSearch({ side, current, otherSlug, season }: Props) {
   const router = useRouter()
   const t = useT()
   const [, startTransition] = useTransition()
@@ -115,6 +117,9 @@ export function CompareSearch({ side, current, otherSlug }: Props) {
         const params = new URLSearchParams()
         if (term) params.set("q", term)
         params.set("limit", "16")
+        // Search the season on screen, so the dropdown offers this season's
+        // squads and not whoever once had the best numbers.
+        if (season) params.set("season", season)
         const r = await fetch(
           `/api/compare/players/search?${params.toString()}`,
           { signal: ctl.signal },
@@ -135,7 +140,7 @@ export function CompareSearch({ side, current, otherSlug }: Props) {
         if (myReq === requestIdRef.current) setLoading(false)
       }
     },
-    [otherSlug],
+    [otherSlug, season],
   )
 
   useEffect(() => {
@@ -200,6 +205,8 @@ export function CompareSearch({ side, current, otherSlug }: Props) {
       if (otherSlug) params.set("a", otherSlug)
       params.set("b", slug)
     }
+    // Picking a player must not silently reset the season back to the newest.
+    if (season) params.set("season", season)
     setQ("")
     setOpen(false)
     startTransition(() => {

@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server"
 import { and, asc, eq, inArray, like, sql } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
-import { leagues, playerSeasonStats, players, teams } from "@/lib/db/schema"
+import { leagues, playerSeasonStats, players, seasons, teams } from "@/lib/db/schema"
 import { leagueSlugsFor } from "@/lib/league-groups"
+import { latestSeasonName } from "@/lib/data/seasons"
+import { ALL_SEASONS, parseSeasonParam, seasonNameVariants } from "@/lib/seasons"
 import { rateLimit, clientIp } from "@/lib/security/ai-advisor"
 
 export const dynamic = "force-dynamic"
@@ -79,6 +81,13 @@ export async function GET(req: Request) {
     const slugs = leagueSlugsFor(league)
     if (slugs) conditions.push(inArray(leagues.slug, slugs))
   }
+  // Default to the newest season so the compare picker offers current squads;
+  // an explicit `season` (including "all") lets a coach reach the archive.
+  const requestedSeason = parseSeasonParam(url.searchParams.get("season"))
+  const season = requestedSeason ?? (await latestSeasonName(league || undefined))
+  if (season !== ALL_SEASONS) {
+    conditions.push(inArray(seasons.name, seasonNameVariants(season)))
+  }
   const where = conditions.length ? and(...conditions) : undefined
 
   const rows: Row[] = await db
@@ -102,6 +111,7 @@ export async function GET(req: Request) {
     .from(players)
     .innerJoin(playerSeasonStats, eq(playerSeasonStats.playerId, players.id))
     .innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
+    .innerJoin(seasons, eq(playerSeasonStats.seasonId, seasons.id))
     .leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
     .where(where)
     .orderBy(asc(sql`concat(${players.firstName}, ' ', ${players.lastName})`))
@@ -144,6 +154,7 @@ export async function GET(req: Request) {
     })),
     q,
     league: LEAGUES.has(league) ? league : null,
+    season,
   })
 }
 

@@ -7,7 +7,7 @@ import {
   type ExtractedPlayerStat,
   SOURCE_META,
 } from "@/lib/sources/types"
-import { fetchText } from "@/lib/sources/fetcher"
+import { fetchText, fetchTextIfPublished } from "@/lib/sources/fetcher"
 import { parseBirthdate, parseHeightToCm } from "@/lib/sync/slug"
 
 const ACB_BASE = "https://www.acb.com"
@@ -419,6 +419,7 @@ export const acbAdapter: SourceAdapter = {
   country: SOURCE_META.acb.country,
   season: SEASON_YEAR,
   seasonCode: SEASON,
+  seasonLabel: SOURCE_META.acb.seasonLabel,
 
   async fetchTeams(): Promise<SourceTeam[]> {
     const teams = await fetchTeamsList()
@@ -493,15 +494,24 @@ export const acbAdapter: SourceAdapter = {
   },
 
   async fetchStats(): Promise<ExtractedPlayerStat[]> {
-    const brYear = SEASON.endsWith("-25")
-      ? "2025"
-      : SEASON.endsWith("-24")
-        ? "2024"
-        : SEASON.endsWith("-26")
-          ? "2026"
-          : SEASON
+    // Basketball-Reference files an ACB season under its END year, so 2026-27
+    // is `/2027_per_game.html`. The old hand-written ladder had to gain a
+    // branch every summer and silently fell through to the raw label when it
+    // did not, which returned a 404 and an empty stat set.
+    const brYear = String(SEASON_YEAR + 1)
     const brUrl = `https://www.basketball-reference.com/international/spain-liga-acb/${brYear}_per_game.html`
-    const brHtml = await fetchHtml(brUrl)
+    // Basketball-Reference publishes a season's page once it starts. Before
+    // then this 404s, and that is a preseason with confirmed squads and no
+    // stats — not a broken scrape. Rosters still sync; stats arrive later.
+    const brHtml = await fetchTextIfPublished(brUrl, {
+      headers: { "Accept-Language": "es-ES,es;q=0.9,en;q=0.8" },
+    })
+    if (brHtml === null) {
+      console.warn(
+        `[acb] ${brYear} stats page is not published yet — rosters only`,
+      )
+      return []
+    }
     const brRe = new RegExp(
       `<table[^>]*\\bid="per_game-stats-${brYear}"[\\s\\S]*?<\\/table>`,
       "i",

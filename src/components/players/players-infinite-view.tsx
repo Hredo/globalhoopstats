@@ -50,6 +50,8 @@ type Props = {
   league: string
   sort: string
   order: string
+  /** Season the first page was rendered for; every next page must match. */
+  season: string
 }
 
 export function PlayersInfiniteView({
@@ -58,6 +60,7 @@ export function PlayersInfiniteView({
   league,
   sort,
   order,
+  season,
 }: Props) {
   const [pages, setPages] = useState<PageResult[]>([initial])
   const [loading, setLoading] = useState(false)
@@ -87,6 +90,9 @@ export function PlayersInfiniteView({
       pageSize: String(current.pageSize),
     })
     if (query) params.set("q", query)
+    // Without this the second page would fall back to the newest season and
+    // splice two different seasons into one scrolling list.
+    if (season) params.set("season", season)
     try {
       const res = await fetch(`/api/players/list?${params.toString()}`)
       if (!res.ok) throw new Error("Failed to load")
@@ -97,7 +103,7 @@ export function PlayersInfiniteView({
     } finally {
       setLoading(false)
     }
-  }, [current, hasMore, loading, league, sort, order, query])
+  }, [current, hasMore, loading, league, sort, order, query, season])
 
   const sentinelRef = useInfiniteScroll({
     onIntersect: loadMore,

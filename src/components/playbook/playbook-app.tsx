@@ -24,6 +24,7 @@ import {
   type PlayTemplate,
 } from "@/lib/playbook/types"
 import { EXTRA_TEMPLATES } from "@/lib/playbook/templates.extra"
+import { PHOTO_IMPORT_ENABLED } from "@/lib/playbook/features"
 import { PlayEditor, Timeline, Toolbar, ToolRail, type Tool } from "@/components/playbook/editor"
 import { usePlayState } from "@/components/playbook/play-state"
 import { RosterPanel } from "@/components/playbook/roster-panel"
@@ -557,7 +558,7 @@ export function PlaybookApp() {
     const json = files.find((f) => /\.json$/i.test(f.name) || f.type === "application/json")
     const images = files.filter((f) => f.type.startsWith("image/"))
     if (json) importFile(json)
-    else if (images.length > 0) void importPhoto(images)
+    else if (images.length > 0 && PHOTO_IMPORT_ENABLED) void importPhoto(images)
     else flash(t("playbook.library.importError"), "err")
   }
 
@@ -815,8 +816,10 @@ export function PlaybookApp() {
 
         <input ref={fileRef} type="file" accept=".json,application/json" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) importFile(f); e.target.value = "" }} />
-        <input ref={photoRef} type="file" accept="image/*" multiple className="hidden"
-          onChange={(e) => { const files = e.target.files; if (files && files.length > 0) importPhoto(files); e.target.value = "" }} />
+        {PHOTO_IMPORT_ENABLED ? (
+          <input ref={photoRef} type="file" accept="image/*" multiple className="hidden"
+            onChange={(e) => { const files = e.target.files; if (files && files.length > 0) importPhoto(files); e.target.value = "" }} />
+        ) : null}
       </div>
 
       {/* Main area — 3-column grid on desktop; board-first stack on touch.
@@ -1126,10 +1129,12 @@ function ActionsMenu({
               <svg {...MENU_ICON}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" /></svg>
               {t("playbook.library.import")}
             </MenuItem>
-            <MenuItem onClick={run(onImportPhoto)} disabled={photoImporting} hint={t("playbook.library.importPhotoHint")}>
-              <svg {...MENU_ICON}><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" /><circle cx="12" cy="13" r="4" /></svg>
-              {photoImporting ? `${t("playbook.library.importPhoto")}…` : t("playbook.library.importPhoto")}
-            </MenuItem>
+            {PHOTO_IMPORT_ENABLED ? (
+              <MenuItem onClick={run(onImportPhoto)} disabled={photoImporting} hint={t("playbook.library.importPhotoHint")}>
+                <svg {...MENU_ICON}><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" /><circle cx="12" cy="13" r="4" /></svg>
+                {photoImporting ? `${t("playbook.library.importPhoto")}…` : t("playbook.library.importPhoto")}
+              </MenuItem>
+            ) : null}
           </motion.div>
         ) : null}
       </AnimatePresence>

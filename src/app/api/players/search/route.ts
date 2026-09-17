@@ -10,6 +10,7 @@ import {
   jsonTooManyRequests,
   readRateLimit,
 } from "@/lib/security/ai-advisor"
+import { parseSeasonParam } from "@/lib/seasons"
 
 export const dynamic = "force-dynamic"
 
@@ -44,11 +45,25 @@ export async function GET(req: Request) {
     MAX_LIMIT,
   )
 
-  const options: AutocompleteOptions = { league, sort, limit: cappedLimit }
+  // Undefined resolves to the newest season in the data layer, which is what
+  // every picker in the app should show by default.
+  const season = parseSeasonParam(url.searchParams.get("season"))
+  const options: AutocompleteOptions = {
+    league,
+    sort,
+    limit: cappedLimit,
+    season,
+  }
   const results =
     q.length >= 1
       ? rankByQuery(await searchPlayersAutocomplete(q, options), q)
       : await searchPlayersAutocomplete(q, options)
 
-  return NextResponse.json({ results, q, league: league ?? null, sort })
+  return NextResponse.json({
+    results,
+    q,
+    league: league ?? null,
+    sort,
+    season: season ?? null,
+  })
 }

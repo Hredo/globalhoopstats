@@ -1,4 +1,5 @@
 import {
+  SOURCE_META,
   type SourceAdapter,
   type SourceCoach,
   type SourcePlayer,
@@ -10,8 +11,12 @@ import { fetchText as politeFetch } from "@/lib/sources/fetcher"
 import { parseBirthdate, parseHeightToCm, parseWeightToKg } from "@/lib/sync/slug"
 
 const BASE = "https://baloncestoenvivo.feb.es"
-const SEASON_YEAR = 2025
-const SEASON_T = "2025"
+// Both derived from SOURCE_META so the FEB competitions roll over with every
+// other league. They used to be typed in here by hand, which is how the three
+// FEB divisions ended up a season behind the rest of the site.
+const SEASON_YEAR = SOURCE_META["leb-oro"].season
+// The rankings page selects a season with the bare start year.
+const SEASON_T = String(SEASON_YEAR)
 
 // Enrichment adds one Equipo.aspx request per team plus one Jugador.aspx
 // request per leftover player, so pace those at roughly one every 2-3s.
@@ -549,7 +554,8 @@ export function createFebAdapter(cfg: FebConfig): SourceAdapter {
     displayName: cfg.displayName,
     country: "ES",
     season: SEASON_YEAR,
-    seasonCode: `${SEASON_YEAR}-${String(SEASON_YEAR + 1).slice(-2)}`,
+    seasonCode: SOURCE_META[cfg.id].seasonCode,
+    seasonLabel: SOURCE_META[cfg.id].seasonLabel,
 
     async fetchTeams(): Promise<SourceTeam[]> {
       const { players, teamMeta } = await data()

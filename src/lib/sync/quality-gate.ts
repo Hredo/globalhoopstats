@@ -68,7 +68,21 @@ export function judgeBatch(batch: ScrapeBatch, baseline: number): GateVerdict {
   /* 1. Hard floors: a batch missing a whole structural layer is broken. */
   if (batch.teams.length === 0) reasons.push("0 teams scraped")
   if (batch.players.length === 0) reasons.push("0 players scraped")
-  if (batch.stats.length === 0) reasons.push("0 stat lines scraped")
+  // A stat-free batch is normally the signature of a broken parser — but not
+  // in preseason. When a new season opens, clubs have announced their squads
+  // and not a single game has been played, so the honest scrape is "these
+  // teams, these players, no numbers". Treating that as a failure is what
+  // would have blocked every league from ingesting a new season at all.
+  // The exemption is narrow: it only applies when we have nothing stored for
+  // this league+season yet, so a mid-season parser break still trips the gate.
+  const preseasonRosterLoad =
+    batch.stats.length === 0 &&
+    baseline === 0 &&
+    batch.teams.length > 0 &&
+    batch.players.length > 0
+  if (batch.stats.length === 0 && !preseasonRosterLoad) {
+    reasons.push("0 stat lines scraped")
+  }
 
   /* 2. Blank-line share: parser returning empty rows for played games. */
   const played = batch.stats.filter((s) => s.gamesPlayed > 0)

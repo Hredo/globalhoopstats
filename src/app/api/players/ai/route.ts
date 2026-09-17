@@ -15,6 +15,8 @@ import {
   playerLeagueContext,
 } from "@/lib/market/player-context"
 import { supportsNativeWebSearch } from "@/lib/ai/chat"
+import { frameSeason, seasonPromptBlock } from "@/lib/ai/season-context"
+import { parseSeasonParam } from "@/lib/seasons"
 import type { ShotZonesJson, ShotZoneKey } from "@/lib/db/schema"
 import type { Locale } from "@/lib/i18n/config"
 
@@ -24,6 +26,8 @@ const MAX_SLUG_LEN = 100
 
 type Body = {
   slug?: string
+  /** Season the profile is showing; the note must analyse THAT season. */
+  season?: string
 }
 
 export async function POST(request: Request) {
@@ -80,7 +84,16 @@ export async function POST(request: Request) {
       // look it up. Otherwise the report used to spend two of its six lines
       // apologising for not having internet access.
       const canBrowse = supportsNativeWebSearch(engine.provider)
-      const season = profile.seasons[0] ?? null
+      // Analyse the season the visitor is looking at. Falls back to the newest
+      // one, which is what the profile opens on.
+      const requestedSeason = parseSeasonParam(body.season)
+      const seasonLines = profile.seasons
+      const season =
+        (requestedSeason
+          ? seasonLines.find((s) => s.seasonName === requestedSeason)
+          : null) ??
+        seasonLines[0] ??
+        null
       if (season) {
         // Real shot-location data only. These used to be derived from the
         // player's overall FG%/3P%, so the model described invented per-zone
@@ -130,6 +143,16 @@ export async function POST(request: Request) {
             locale,
             canBrowse,
             leagueContext,
+            // A brand-new season has confirmed squads and no games. Without
+            // this the model either invents a verdict from three games or
+            // silently answers about last season as if it were this one.
+            seasonPromptBlock(
+              // The career, so a summer transfer to another competition still
+              // has last season's numbers to fall back on.
+              frameSeason(season, profile.allSeasons),
+              season.gamesPlayed,
+              locale,
+            ),
           ),
           subjects: [profile.fullName],
           locale,

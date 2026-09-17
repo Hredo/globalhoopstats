@@ -32,6 +32,8 @@ export function playerJsonLd(p: {
   weightKg?: number | null
   photoUrl?: string | null
   teamName?: string | null
+  /** Site path of the team page, e.g. "/teams/acb/real-madrid". */
+  teamPath?: string | null
   leagueName: string
 }): JsonLdObject {
   const data: JsonLdObject = {
@@ -65,8 +67,33 @@ export function playerJsonLd(p: {
       "@type": "SportsTeam",
       name: p.teamName,
       sport: "Basketball",
+      ...(p.teamPath ? { url: `${SITE.url}${p.teamPath}` } : {}),
+      memberOf: {
+        "@type": "SportsOrganization",
+        name: p.leagueName,
+        sport: "Basketball",
+      },
     }
   }
+  return data
+}
+
+/** schema.org SportsOrganization for a league page. */
+export function leagueJsonLd(l: {
+  name: string
+  slug: string
+  alternateName?: string | null
+  logoUrl?: string | null
+}): JsonLdObject {
+  const data: JsonLdObject = {
+    "@context": "https://schema.org",
+    "@type": "SportsOrganization",
+    name: l.name,
+    sport: "Basketball",
+    url: `${SITE.url}/leagues/${l.slug}`,
+  }
+  if (l.alternateName) data.alternateName = l.alternateName
+  if (l.logoUrl) data.logo = l.logoUrl
   return data
 }
 

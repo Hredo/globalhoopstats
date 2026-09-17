@@ -11,6 +11,17 @@ import {
 import { cached } from "@/lib/data/cache"
 import { leagueSlugsFor } from "@/lib/league-groups"
 import { resolveLeagueName } from "@/lib/sources/types"
+import { latestSeasonName } from "@/lib/data/seasons"
+import {
+  ALL_SEASONS,
+  canonicalSeasonLabel,
+  compareSeasonsDesc,
+  seasonNameVariants,
+} from "@/lib/seasons"
+
+// Re-exported so the data layer stays the single import site for callers that
+// already reach for player queries.
+export { ALL_SEASONS }
 import { inArray } from "drizzle-orm"
 
 /**
@@ -27,6 +38,22 @@ import { inArray } from "drizzle-orm"
  */
 const foldAccentsSql = (expr: SQL | string) =>
   sql`(${typeof expr === "string" ? sql.raw(expr) : expr}) collate utf8mb4_unicode_ci`
+
+/**
+ * `WHERE` fragment restricting a seasons alias to one season label.
+ *
+ * Written against an alias rather than the Drizzle table so it can be dropped
+ * into the hand-written CTEs below, and it matches every stored spelling of the
+ * season (see `seasonNameVariants`) so a EuroLeague row written as "E2026" is
+ * not silently excluded from the 2026-27 view.
+ */
+const seasonNameSql = (alias: string, seasonName: string) => {
+  const variants = seasonNameVariants(seasonName)
+  return sql`${sql.raw(alias)}.name in (${sql.join(
+    variants.map((v) => sql`${v}`),
+    sql`, `,
+  )})`
+}
 
 export type PlayerListItem = {
   id: string
@@ -63,9 +90,20 @@ export type ListPlayersInput = {
   order?: "asc" | "desc"
   page?: number
   pageSize?: number
-  // Restrict to the current season — used by team rosters so departed players
-  // (who only have prior-season stat rows) don't linger on the squad.
-  currentSeasonOnly?: boolean
+  /**
+   * Season label to read ("2026-27"). Omit and the newest season with data is
+   * used: a directory must never mix seasons, or the name-dedupe below would
+   * pick whichever season a player happened to log most games in and the same
+   * page would show 2024-25 and 2026-27 lines side by side.
+   *
+   * Pass `"all"` to opt out entirely — only career-wide lookups want that.
+   */
+  season?: string
+}
+
+export type ListPlayersResolved = ListPlayersResult & {
+  /** The season actually queried, so callers can label what they rendered. */
+  season: string
 }
 
 export type ListPlayersResult = {
@@ -78,7 +116,7 @@ export type ListPlayersResult = {
 
 async function listPlayersUncached(
   input: ListPlayersInput = {},
-): Promise<ListPlayersResult> {
+): Promise<ListPlayersResolved> {
   const db = getDb()
   const page = Math.max(1, input.page ?? 1)
   const pageSize = Math.max(1, Math.min(input.pageSize ?? 24, 200))
@@ -111,7 +149,9 @@ async function listPlayersUncached(
   const leagueFilter = leagueSlugs
     ? sql`l.slug in (${sql.join(leagueSlugs.map((s) => sql`${s}`), sql`, `)})`
     : sql`1=1`
-  const seasonFilter = input.currentSeasonOnly ? sql`s.is_current` : sql`1=1`
+  const season = input.season ?? (await latestSeasonName(input.league))
+  const seasonFilter =
+    season === ALL_SEASONS ? sql`1=1` : seasonNameSql("s", season)
 
   const fullSql = sql`
     with memberships as (
@@ -305,7 +345,7 @@ async function listPlayersUncached(
             ? null
             : {
                 seasonId: r.season_id!,
-                seasonName: r.season_name ?? "",
+                seasonName: canonicalSeasonLabel(r.season_name ?? ""),
                 gamesPlayed: r.games_played,
                 pointsTotal: r.points_total,
                 reboundsTotal: r.rebounds_total,
@@ -322,6 +362,7 @@ async function listPlayersUncached(
       page,
       pageSize,
       totalPages,
+      season,
     }
   } catch (error) {
     console.warn("[listPlayers] falling back to empty result", error)
@@ -331,24 +372,32 @@ async function listPlayersUncached(
       page,
       pageSize,
       totalPages: 1,
+      season,
     }
   }
 }
 
 const listPlayersCached = cached(
   listPlayersUncached,
-  "players-list",
+  // v2: results are season-scoped; the old key held cross-season rows.
+  "players-list:v2",
   ["players", "player-stats"],
   300,
 )
 
-export function listPlayers(
+export async function listPlayers(
   input: ListPlayersInput = {},
-): Promise<ListPlayersResult> {
+): Promise<ListPlayersResolved> {
+  // Resolve the season BEFORE the cache wrapper: `unstable_cache` keys on the
+  // arguments, so leaving `season` undefined would let a request served during
+  // the first sync of a new season poison the cache for the rest of its TTL.
+  const season =
+    input.season ?? (await latestSeasonName(input.league))
+  const resolved: ListPlayersInput = { ...input, season }
   // Free-text searches have unbounded cardinality; cache only the browsable
-  // permutations (league × sort × order × page) that every visitor hits.
-  if (input.query || input.team) return listPlayersUncached(input)
-  return listPlayersCached(input)
+  // permutations (season × league × sort × order × page) that every visitor hits.
+  if (input.query || input.team) return listPlayersUncached(resolved)
+  return listPlayersCached(resolved)
 }
 
 export type PlayerSeasonLine = {
@@ -374,6 +423,12 @@ export type PlayerLeagueStats = {
   seasons: PlayerSeasonLine[]
 }
 
+/** One season of a career, carrying the league it was played in. */
+export type PlayerCareerLine = PlayerSeasonLine & {
+  league: { name: string; slug: string }
+  team: { name: string; slug: string } | null
+}
+
 export type PlayerProfile = {
   id: string
   fullName: string
@@ -388,10 +443,19 @@ export type PlayerProfile = {
   league: { id: string; name: string; slug: string; region: string }
   team: { id: string; name: string; slug: string; logoUrl: string | null } | null
   seasons: PlayerSeasonLine[]
-  // One entry per league the player has stats in, most-active league first.
+  // One entry per league the player has stats in, MOST RECENT league first.
   // A multi-league player (e.g. plays EuroLeague + ACB for the same club) gets
   // several entries, which the profile renders behind a league switcher.
   leagues: PlayerLeagueStats[]
+  /**
+   * Every season of the career in one list, newest first, across leagues.
+   *
+   * Careers cross competitions: a player can be in the ACB one season and the
+   * EuroLeague — or a different country entirely — the next. Anything that
+   * needs "what did this player do before?" has to read this rather than the
+   * selected league's own seasons, or a transfer erases their history.
+   */
+  allSeasons: PlayerCareerLine[]
 }
 
 export const getPlayerBySlug = cached(
@@ -460,6 +524,8 @@ export const getPlayerBySlug = cached(
     seasons: PlayerSeasonLine[]
   }
   const byLeague = new Map<string, Acc>()
+  const career: PlayerCareerLine[] = []
+  const careerSeen = new Set<string>()
   for (const row of rows) {
     let acc = byLeague.get(row.leagueSlug)
     if (!acc) {
@@ -493,12 +559,13 @@ export const getPlayerBySlug = cached(
       }
     }
     // Keep one line per season + team identity (preserves mid-season transfers).
-    const key = `${row.seasonName}::${(row.teamName ?? "").trim().toLowerCase()}`
+    const seasonName = canonicalSeasonLabel(row.seasonName)
+    const key = `${seasonName}::${(row.teamName ?? "").trim().toLowerCase()}`
     if (acc.seenLines.has(key)) continue
     acc.seenLines.add(key)
-    acc.seasons.push({
+    const line = {
       seasonId: row.seasonId,
-      seasonName: row.seasonName,
+      seasonName,
       gamesPlayed: row.gamesPlayed,
       pointsTotal: row.pointsTotal,
       reboundsTotal: row.reboundsTotal,
@@ -510,13 +577,51 @@ export const getPlayerBySlug = cached(
       ftPct: row.ftMade != null && row.ftAttempted != null && row.ftAttempted > 0 ? row.ftMade / row.ftAttempted : null,
       per: row.per,
       shotZones: (row.shotZones as ShotZonesJson | null) ?? null,
-    })
+    }
+    acc.seasons.push(line)
+    // Same line, filed under the career instead of under one league, so a
+    // season played elsewhere is still reachable after a transfer.
+    const careerKey = `${seasonName}::${row.leagueSlug}::${(row.teamName ?? "").trim().toLowerCase()}`
+    if (!careerSeen.has(careerKey)) {
+      careerSeen.add(careerKey)
+      career.push({
+        ...line,
+        league: {
+          name: resolveLeagueName(row.leagueSlug, row.leagueName),
+          slug: row.leagueSlug,
+        },
+        team:
+          row.teamName && row.teamSlug
+            ? { name: row.teamName, slug: row.teamSlug }
+            : null,
+      })
+    }
   }
   if (byLeague.size === 0) return null
 
+  // Most RECENT league first, falling back to career volume as the tie-break.
+  //
+  // Sorting purely on total games meant a player who moved competition — ACB to
+  // EuroLeague, LEB to ACB — kept opening on the league they had played most
+  // games in, which after a summer transfer is the one they just left. The
+  // profile then greeted every visitor with a club the player no longer plays
+  // for, in a season that was over.
   const leaguesList = [...byLeague.values()]
-    .sort((a, b) => b.totalGames - a.totalGames)
-    .map((a) => ({ league: a.league, team: a.team, seasons: a.seasons }))
+    .sort((a, b) => {
+      const ra = a.seasons[0]?.seasonName ?? ""
+      const rb = b.seasons[0]?.seasonName ?? ""
+      const byRecency = compareSeasonsDesc(ra, rb)
+      return byRecency !== 0 ? byRecency : b.totalGames - a.totalGames
+    })
+    .map((a) => ({
+      league: a.league,
+      team: a.team,
+      // `ORDER BY seasons.name DESC` sorts "E2025" after "2026-27"; re-sort on
+      // the parsed start year so the newest season is always seasons[0].
+      seasons: [...a.seasons].sort((x, y) =>
+        compareSeasonsDesc(x.seasonName, y.seasonName),
+      ),
+    }))
   const primary = leaguesList[0]
 
   return {
@@ -532,13 +637,35 @@ export const getPlayerBySlug = cached(
     team: primary.team,
     seasons: primary.seasons,
     leagues: leaguesList,
+    allSeasons: [...career].sort((x, y) =>
+      compareSeasonsDesc(x.seasonName, y.seasonName),
+    ),
   }
   },
-  // v3: per-league grouping replaced the single-league `league`/`seasons` shape.
-  "getPlayerBySlug:v3",
+  // v5: leagues ordered by recency + a cross-league career list.
+  "getPlayerBySlug:v5",
   ["players", "player-season-stats"],
   3600,
 )
+
+/**
+ * Pick the requested season's line out of a league block.
+ *
+ * Falls back to the newest line the player actually has, so a profile opened
+ * with `?season=` pointing at a season they did not play still renders their
+ * most recent production rather than an empty card.
+ */
+export function pickPlayerSeason(
+  stats: PlayerLeagueStats,
+  seasonName?: string | null,
+): PlayerSeasonLine | undefined {
+  if (seasonName) {
+    const wanted = canonicalSeasonLabel(seasonName)
+    const match = stats.seasons.find((s) => s.seasonName === wanted)
+    if (match) return match
+  }
+  return stats.seasons[0]
+}
 
 /** Pick the requested league's stats for a profile, falling back to primary. */
 export function pickPlayerLeague(
@@ -648,6 +775,13 @@ export type AutocompleteOptions = {
   league?: string
   sort?: AutocompleteSort
   limit?: number
+  /**
+   * Season to search within. Defaults to the newest one with data, so every
+   * picker in the app (global palette, compare, trade, playbook) offers the
+   * squads as they stand today rather than whoever once scored the most.
+   * `ALL_SEASONS` searches the whole archive.
+   */
+  season?: string
 }
 
 const VALID_SORTS = new Set<AutocompleteSort>([
@@ -789,6 +923,10 @@ async function runAutocomplete(
     const slugs = leagueSlugsFor(options.league)
     if (slugs) conditions.push(inArray(leagues.slug, slugs))
   }
+  const season = options.season ?? (await latestSeasonName(options.league))
+  if (season !== ALL_SEASONS) {
+    conditions.push(inArray(seasons.name, seasonNameVariants(season)))
+  }
   const where = conditions.length ? and(...conditions) : undefined
 
   const orderBy = (() => {
@@ -811,7 +949,9 @@ async function runAutocomplete(
     )
     .innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
     .leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
-    .leftJoin(seasons, eq(playerSeasonStats.seasonId, seasons.id))
+    // Inner, not left: the season filter above lives in the WHERE clause, and a
+    // left join would let a row with a dangling season_id survive it as NULL.
+    .innerJoin(seasons, eq(playerSeasonStats.seasonId, seasons.id))
     .where(where)
     .orderBy(orderBy, desc(sql`coalesce(${playerSeasonStats.gamesPlayed}, 0)`))
     .limit(limit * 3)
@@ -886,16 +1026,26 @@ export const listLeagues = cached(
     })
     .from(leagues)
 
+  // Counts describe the league AS IT IS NOW. Summing every season turned a
+  // 18-club league into "63 teams" because each departed franchise and every
+  // archived roster kept counting.
+  const season = await latestSeasonName()
+  const seasonScope = and(
+    inArray(seasons.name, seasonNameVariants(season)),
+  )
+
   const out: LeagueSummary[] = []
   for (const lg of rows) {
     const [t] = await db
-      .select({ count: sql<number>`count(distinct team_id)` })
+      .select({ count: sql<number>`count(distinct ${playerSeasonStats.teamId})` })
       .from(playerSeasonStats)
-      .where(eq(playerSeasonStats.leagueId, lg.id))
+      .innerJoin(seasons, eq(playerSeasonStats.seasonId, seasons.id))
+      .where(and(eq(playerSeasonStats.leagueId, lg.id), seasonScope))
     const [p] = await db
-      .select({ count: sql<number>`count(distinct player_id)` })
+      .select({ count: sql<number>`count(distinct ${playerSeasonStats.playerId})` })
       .from(playerSeasonStats)
-      .where(eq(playerSeasonStats.leagueId, lg.id))
+      .innerJoin(seasons, eq(playerSeasonStats.seasonId, seasons.id))
+      .where(and(eq(playerSeasonStats.leagueId, lg.id), seasonScope))
     out.push({
       id: lg.id,
       name: lg.name,
@@ -908,8 +1058,9 @@ export const listLeagues = cached(
   }
   return out
   },
-  "listLeagues",
-  ["leagues"],
+  // v2: counts are scoped to the newest season instead of the whole archive.
+  "listLeagues:v2",
+  ["leagues", "player-season-stats"],
   600,
 )
 

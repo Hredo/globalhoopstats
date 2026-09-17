@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, sql, type SQL } from "drizzle-orm"
+import { and, eq, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm"
 import pLimit from "p-limit"
 import { getDb } from "@/lib/db/client"
 import {
@@ -11,6 +11,7 @@ import {
 } from "@/lib/db/schema"
 import { resolveLeagueName } from "@/lib/sources/types"
 import { cached } from "@/lib/data/cache"
+import { canonicalSeasonLabel, compareSeasonsDesc } from "@/lib/seasons"
 
 export type LeagueTeamLogo = {
   name: string
@@ -71,7 +72,9 @@ type LeagueRow = {
 
 function formatSeasonLabel(name: string | null): string | null {
   if (!name) return null
-  return name
+  // A legacy EuroLeague row is stored as "E2025"; the league card must still
+  // read "2025-26" like every other competition.
+  return canonicalSeasonLabel(name)
 }
 
 async function fetchLatestSeason(
@@ -95,27 +98,48 @@ async function fetchLatestSeason(
       ),
     )
     .groupBy(seasons.id, seasons.name)
-    .orderBy(desc(seasons.name), sql`count(*) desc`)
-    .limit(1)
-  return rows[0] ? { id: rows[0].id, name: rows[0].name } : null
+  // Sorted here rather than in SQL: `ORDER BY name DESC` puts the legacy
+  // "E2025" ahead of "2026-27" (the letter beats the digit), which would pin
+  // the EuroLeague card to a season two years stale.
+  const sorted = [...rows].sort(
+    (a, b) =>
+      compareSeasonsDesc(a.name, b.name) ||
+      Number(b.statRows ?? 0) - Number(a.statRows ?? 0),
+  )
+  return sorted[0] ? { id: sorted[0].id, name: sorted[0].name } : null
 }
 
 async function fetchCounts(
   db: ReturnType<typeof getDb>,
   leagueId: string,
+  seasonId: string | null,
 ): Promise<{ teamCount: number; playerCount: number; coachCount: number }> {
+  // Scoped to the season on the card. Counting every season turned a league
+  // into the sum of its history — 40+ "teams" for an 18-club competition.
+  const seasonScope = seasonId
+    ? eq(playerSeasonStats.seasonId, seasonId)
+    : undefined
   const [t] = await db
-    .select({ c: sql<number>`count(distinct team_id)` })
+    .select({ c: sql<number>`count(distinct ${playerSeasonStats.teamId})` })
     .from(playerSeasonStats)
-    .where(eq(playerSeasonStats.leagueId, leagueId))
+    .where(and(eq(playerSeasonStats.leagueId, leagueId), seasonScope))
   const [p] = await db
-    .select({ c: sql<number>`count(distinct player_id)` })
+    .select({ c: sql<number>`count(distinct ${playerSeasonStats.playerId})` })
     .from(playerSeasonStats)
-    .where(eq(playerSeasonStats.leagueId, leagueId))
+    .where(and(eq(playerSeasonStats.leagueId, leagueId), seasonScope))
   const [c] = await db
     .select({ c: sql<number>`count(*)` })
     .from(coaches)
-    .where(eq(coaches.leagueId, leagueId))
+    .where(
+      and(
+        eq(coaches.leagueId, leagueId),
+        // Null season = row written before coaches were season-scoped; counting
+        // it keeps the card honest until the rollover backfill runs.
+        seasonId
+          ? or(eq(coaches.seasonId, seasonId), isNull(coaches.seasonId))
+          : undefined,
+      ),
+    )
   return {
     teamCount: Number(t?.c ?? 0),
     playerCount: Number(p?.c ?? 0),
@@ -181,6 +205,7 @@ async function fetchTopScorers(
 async function fetchTeamLogos(
   db: ReturnType<typeof getDb>,
   leagueId: string,
+  seasonId: string | null,
 ): Promise<LeagueTeamLogo[]> {
   const rows = await db
     .select({
@@ -190,7 +215,13 @@ async function fetchTeamLogos(
     })
     .from(teams)
     .innerJoin(playerSeasonStats, eq(playerSeasonStats.teamId, teams.id))
-    .where(eq(playerSeasonStats.leagueId, leagueId))
+    .where(
+      and(
+        eq(playerSeasonStats.leagueId, leagueId),
+        // The badge strip is this season's field, not a club museum.
+        seasonId ? eq(playerSeasonStats.seasonId, seasonId) : undefined,
+      ),
+    )
     .groupBy(teams.id, teams.name, teams.slug, teams.logoUrl)
     .orderBy(teams.name)
   return rows
@@ -270,10 +301,12 @@ export const listLeagueOverviews = cached(
   const overviews = await Promise.all(
     baseRows.map((row) =>
       limit(async (): Promise<LeagueOverview> => {
-        const [counts, season, teamLogos] = await Promise.all([
-          fetchCounts(db, row.id),
-          fetchLatestSeason(db, row.id),
-          fetchTeamLogos(db, row.id),
+        // The season has to be resolved first: counts and badges are scoped
+        // to it, so they cannot be fetched in the same parallel batch.
+        const season = await fetchLatestSeason(db, row.id)
+        const [counts, teamLogos] = await Promise.all([
+          fetchCounts(db, row.id, season?.id ?? null),
+          fetchTeamLogos(db, row.id, season?.id ?? null),
         ])
         const [topScorers, topAssists, topRebounds, topThreePtPct] = season
           ? await Promise.all([
@@ -304,7 +337,25 @@ export const listLeagueOverviews = cached(
   )
   return overviews
   },
-  "listLeagueOverviews",
+  // v2: counts, badges and the season label are scoped to the newest season.
+  "listLeagueOverviews:v2",
+  ["leagues", "seasons", "player-season-stats", "teams", "coaches"],
+  600,
+)
+
+/**
+ * A league's scoring leaders (points per game, 5+ games) in its newest season,
+ * for the leaders table on /leagues/[slug]. Same query as the overview card's
+ * top three, just longer.
+ */
+export const listLeagueTopScorers = cached(
+  async (leagueId: string, limit: number): Promise<LeagueScorer[]> => {
+    const db = getDb()
+    const season = await fetchLatestSeason(db, leagueId)
+    if (!season) return []
+    return fetchTopScorers(db, leagueId, season.id, limit)
+  },
+  "listLeagueTopScorers:v1",
   ["leagues", "seasons", "player-season-stats", "teams"],
   600,
 )

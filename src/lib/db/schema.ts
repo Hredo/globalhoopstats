@@ -212,6 +212,13 @@ export const coaches = mysqlTable(
     leagueId: uuidCol("league_id")
       .notNull()
       .references(() => leagues.id, { onDelete: "cascade" }),
+    // Nullable ONLY so the column can be added to a populated table without a
+    // default. `scripts/rollover-season.ts` backfills every existing row to the
+    // season it was scraped in; until it runs, a null-season coach is treated
+    // as belonging to every season so /coaches never goes blank mid-deploy.
+    seasonId: uuidCol("season_id").references(() => seasons.id, {
+      onDelete: "cascade",
+    }),
     fullName: varchar("full_name", { length: IDX_LEN }).notNull(),
     slug: varchar("slug", { length: IDX_LEN }).notNull(),
     role: text("role").notNull(),
@@ -226,8 +233,17 @@ export const coaches = mysqlTable(
       .default(nowDefault),
   },
   (t) => [
-    uniqueIndex("coaches_team_role_idx").on(t.teamId, t.leagueId, t.slug),
+    // Season is part of the identity: the same coach leads the same club in
+    // consecutive seasons and each of those is its own row, so a new season's
+    // sync must not overwrite last season's staff.
+    uniqueIndex("coaches_team_role_idx").on(
+      t.teamId,
+      t.leagueId,
+      t.seasonId,
+      t.slug,
+    ),
     index("coaches_league_name_idx").on(t.leagueId, t.fullName),
+    index("coaches_season_idx").on(t.seasonId),
   ],
 )
 

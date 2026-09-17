@@ -5,6 +5,7 @@ import {
   localeCookie,
   LOCALE_COOKIE,
   DEFAULT_LOCALE,
+  CRAWLER_LOCALE,
 } from "@/lib/i18n/config"
 
 describe("isLocale", () => {
@@ -18,9 +19,18 @@ describe("isLocale", () => {
 })
 
 describe("pickFromAcceptLanguage", () => {
-  it("returns default for missing header", () => {
-    expect(pickFromAcceptLanguage(null)).toBe(DEFAULT_LOCALE)
-    expect(pickFromAcceptLanguage("")).toBe(DEFAULT_LOCALE)
+  // No header at all is a crawler (Googlebot sends none), and what it sees is
+  // what gets indexed on the .es domain — Spanish.
+  it("returns the crawler locale for a missing header", () => {
+    expect(CRAWLER_LOCALE).toBe("es")
+    expect(pickFromAcceptLanguage(null)).toBe(CRAWLER_LOCALE)
+    expect(pickFromAcceptLanguage(undefined)).toBe(CRAWLER_LOCALE)
+    expect(pickFromAcceptLanguage("")).toBe(CRAWLER_LOCALE)
+    expect(pickFromAcceptLanguage("   ")).toBe(CRAWLER_LOCALE)
+  })
+
+  it("keeps English as the fallback for a browser that states a language", () => {
+    expect(pickFromAcceptLanguage("*")).toBe(DEFAULT_LOCALE)
   })
 
   it("picks Spanish when prioritised", () => {

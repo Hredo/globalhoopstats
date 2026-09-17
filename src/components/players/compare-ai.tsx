@@ -13,6 +13,8 @@ import { useT } from "@/lib/i18n/provider"
 type Props = {
   aSlug: string
   bSlug: string
+  /** Season both players are being read from. */
+  season?: string
   aName: string
   bName: string
 }
@@ -43,7 +45,7 @@ const INSIGHT_META: Record<
   },
 }
 
-export function CompareAi({ aSlug, bSlug, aName, bName }: Props) {
+export function CompareAi({ aSlug, bSlug, aName, bName, season }: Props) {
   const [data, setData] = useState<ComparisonOutput | null>(null)
   const [aiSummary, setAiSummary] = useState<string | null>(null)
   const [aiConfigured, setAiConfigured] = useState<boolean | null>(null)
@@ -52,7 +54,7 @@ export function CompareAi({ aSlug, bSlug, aName, bName }: Props) {
   const lastKeyRef = useRef<string | null>(null)
   const t = useT()
 
-  const requestKey = `${aSlug}::${bSlug}`
+  const requestKey = `${aSlug}::${bSlug}::${season ?? ""}`
 
   const fetchAnalysis = useCallback(async () => {
     if (!aSlug || !bSlug) return
@@ -62,7 +64,7 @@ export function CompareAi({ aSlug, bSlug, aName, bName }: Props) {
       const res = await fetch("/api/compare/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ aSlug, bSlug, aName, bName }),
+        body: JSON.stringify({ aSlug, bSlug, aName, bName, season }),
       })
       const payload = await res.json()
       if (!res.ok) {
@@ -81,7 +83,7 @@ export function CompareAi({ aSlug, bSlug, aName, bName }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [aSlug, bSlug, aName, bName, requestKey, t])
+  }, [aSlug, bSlug, aName, bName, season, requestKey, t])
 
   useEffect(() => {
     if (lastKeyRef.current && lastKeyRef.current !== requestKey) {

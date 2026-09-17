@@ -17,6 +17,8 @@ import { supportsNativeWebSearch } from "@/lib/ai/chat"
 import { getLocale } from "@/lib/i18n/server"
 import { aiLanguageDirective } from "@/lib/ai/language"
 import { houseStyle } from "@/lib/ai/prompt-copy"
+import { parseSeasonParam, THIN_SEASON_GAMES } from "@/lib/seasons"
+import type { ComparePlayer } from "@/lib/data/compare"
 import type { Locale } from "@/lib/i18n/config"
 
 export const dynamic = "force-dynamic"
@@ -29,6 +31,66 @@ type Body = {
   bSlug?: string
   aName?: string
   bName?: string
+  /** Season the compare screen is showing; both players are read from it. */
+  season?: string
+}
+
+/**
+ * Tell the model which season it is comparing, and when that season is too
+ * young to decide anything.
+ *
+ * Two players three games into a new campaign cannot be separated on this
+ * season's numbers, and a model given only those numbers will happily separate
+ * them anyway. Naming the earlier season each player's evidence comes from is
+ * what keeps the verdict honest — and makes the answer say so to the reader.
+ */
+function buildSeasonNote(
+  a: ComparePlayer,
+  b: ComparePlayer,
+  season: string,
+  locale: Locale,
+): string {
+  const es = locale === "es"
+  const thin = (p: ComparePlayer) =>
+    (p.stats?.gamesPlayed ?? 0) < THIN_SEASON_GAMES
+  const lines: string[] = [
+    es ? "TEMPORADA —" : "SEASON —",
+    es
+      ? `Los datos de arriba son de la temporada ${season}.`
+      : `The numbers above are from the ${season} season.`,
+  ]
+  const thinOnes = [a, b].filter(thin)
+  if (thinOnes.length > 0) {
+    const names = thinOnes.map((p) => p.fullName).join(es ? " y " : " and ")
+    lines.push(
+      es
+        ? `${names}: apenas ha${thinOnes.length > 1 ? "n" : ""} jugado esta temporada, así que sus cifras actuales no bastan para decidir.`
+        : `${names}: barely played this season, so the current figures are not enough to decide on.`,
+    )
+    for (const p of thinOnes) {
+      if (!p.fallbackStats || !p.fallbackSeason) continue
+      const gp = p.fallbackStats.gamesPlayed || 1
+      const pts = p.fallbackStats.pointsTotal
+      const reb = p.fallbackStats.reboundsTotal
+      const ast = p.fallbackStats.assistsTotal
+      const per = (v: number | null) => (v == null ? "—" : (v / gp).toFixed(1))
+      // Name the competition too: the fallback season may have been played in
+      // a different league after a transfer, and 18 points in Tercera FEB is
+      // not 18 points in the EuroLeague.
+      const where = p.fallbackLeague ? `, ${p.fallbackLeague}` : ""
+      lines.push(
+        es
+          ? `${p.fullName} en ${p.fallbackSeason}${where} (${p.fallbackStats.gamesPlayed} PJ): ${per(pts)} pts, ${per(reb)} reb, ${per(ast)} as por partido.`
+          : `${p.fullName} in ${p.fallbackSeason}${where} (${p.fallbackStats.gamesPlayed} GP): ${per(pts)} pts, ${per(reb)} reb, ${per(ast)} ast per game.`,
+      )
+    }
+    lines.push(
+      es
+        ? "Decide apoyándote en esas temporadas anteriores y dilo abiertamente en la respuesta."
+        : "Decide on those earlier seasons and say so openly in the answer.",
+    )
+  }
+  return lines.join("\n")
 }
 
 /**
@@ -123,9 +185,12 @@ export async function POST(request: Request) {
     )
   }
 
+  // Both players are read from the SAME season, otherwise the comparison silently
+  // pits one player's 2026-27 against another's 2024-25.
+  const season = parseSeasonParam(body.season)
   const [a, b] = await Promise.all([
-    getPlayerForCompare(aSlug),
-    getPlayerForCompare(bSlug),
+    getPlayerForCompare(aSlug, season),
+    getPlayerForCompare(bSlug, season),
   ])
 
   if (!a) {
@@ -189,7 +254,11 @@ export async function POST(request: Request) {
       const answer = await generateGroundedAnswer({
         engine,
         system: buildCompareSystem(locale),
-        data: buildCompareData(aName, bName, result, locale),
+        data: [
+          buildCompareData(aName, bName, result, locale),
+          "",
+          buildSeasonNote(a, b, a.season ?? b.season ?? "", locale),
+        ].join("\n"),
         subjects: [aName, bName],
         locale,
         maxTokens: 320,

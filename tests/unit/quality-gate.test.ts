@@ -79,6 +79,26 @@ describe("quality gate — judgeBatch", () => {
     expect(v.reasons.some((r) => r.includes("collapsed"))).toBe(true)
   })
 
+  it("allows a stat-free roster load when the season has not started", () => {
+    // Preseason: squads are confirmed, no game has been played, nothing stored.
+    const v = judgeBatch(batch({ stats: [] }), 0)
+    expect(v.ok).toBe(true)
+    expect(v.reasons).toHaveLength(0)
+  })
+
+  it("still blocks a stat-free batch once the season has data", () => {
+    // Mid-season parser break: the league already had stat lines stored.
+    const v = judgeBatch(batch({ stats: [] }), 250)
+    expect(v.ok).toBe(false)
+    expect(v.reasons).toContain("0 stat lines scraped")
+  })
+
+  it("blocks a stat-free batch that also lost its rosters", () => {
+    const v = judgeBatch({ teams: [], players: [], stats: [] }, 0)
+    expect(v.ok).toBe(false)
+    expect(v.reasons).toContain("0 stat lines scraped")
+  })
+
   it("ignores the shrink check when there is no real baseline", () => {
     // First-ever sync: baseline below the minimum, so a small batch is fine.
     const v = judgeBatch(batch({ stats: [statLine()] }), 0)

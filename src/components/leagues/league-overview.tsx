@@ -79,7 +79,12 @@ export async function LeagueOverview({ data, index, lastSyncAt = null }: Props) 
             ) : null}
           </p>
           <h2 className="mt-1 font-display text-2xl font-bold leading-tight text-ink-50 sm:text-[1.7rem]">
-            {data.name}
+            <Link
+              href={`/leagues/${data.slug}`}
+              className="transition hover:text-brand-300"
+            >
+              {data.name}
+            </Link>
           </h2>
         </div>
         <span

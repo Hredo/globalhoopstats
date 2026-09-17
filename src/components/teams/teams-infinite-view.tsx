@@ -22,6 +22,8 @@ type Props = {
   league: string
   sort: string
   order: string
+  /** Season the first page was rendered for; every next page must match. */
+  season: string
 }
 
 export function TeamsInfiniteView({
@@ -30,6 +32,7 @@ export function TeamsInfiniteView({
   league,
   sort,
   order,
+  season,
 }: Props) {
   const [pages, setPages] = useState<PageResult[]>([initial])
   const [loading, setLoading] = useState(false)
@@ -66,6 +69,7 @@ export function TeamsInfiniteView({
       pageSize: String(current.pageSize),
     })
     if (query) params.set("q", query)
+    if (season) params.set("season", season)
     try {
       const res = await fetch(`/api/teams/list?${params.toString()}`)
       if (!res.ok) throw new Error("Failed to load")
@@ -76,7 +80,7 @@ export function TeamsInfiniteView({
     } finally {
       setLoading(false)
     }
-  }, [current, hasMore, loading, league, sort, order, query])
+  }, [current, hasMore, loading, league, sort, order, query, season])
 
   const sentinelRef = useInfiniteScroll({
     onIntersect: loadMore,

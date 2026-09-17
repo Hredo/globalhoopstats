@@ -7,6 +7,8 @@ import { and, eq, gte, inArray } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
 import { leagues, playerSeasonStats, players, seasons, teams } from "@/lib/db/schema"
 import { cached } from "@/lib/data/cache"
+import { latestSeasonName } from "@/lib/data/seasons"
+import { seasonNameVariants } from "@/lib/seasons"
 import {
   estimateValuation,
   ageFromBirthdate,
@@ -37,9 +39,11 @@ function pct(made: number | null, att: number | null): number | null {
 async function loadPool(
   leagueSlugs: string[],
   minGames: number,
+  season?: string,
 ): Promise<MarketPlayer[]> {
   if (leagueSlugs.length === 0) return []
   const db = getDb()
+  const wanted = season ?? (await latestSeasonName())
 
   const rows = await db
     .select({
@@ -84,7 +88,10 @@ async function loadPool(
     .leftJoin(teams, eq(playerSeasonStats.teamId, teams.id))
     .where(
       and(
-        eq(seasons.isCurrent, true),
+        // The newest season with data, not `seasons.is_current`: that flag is
+        // sync-written and has been true for two seasons at once before, which
+        // would silently price players off last year's numbers.
+        inArray(seasons.name, seasonNameVariants(wanted)),
         inArray(leagues.slug, leagueSlugs),
         gte(playerSeasonStats.gamesPlayed, minGames),
       ),
@@ -164,7 +171,12 @@ async function loadMarketPlayer(slug: string): Promise<MarketPlayer | null> {
     .innerJoin(playerSeasonStats, eq(playerSeasonStats.playerId, players.id))
     .innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
     .innerJoin(seasons, eq(playerSeasonStats.seasonId, seasons.id))
-    .where(and(eq(players.slug, slug), eq(seasons.isCurrent, true)))
+    .where(
+      and(
+        eq(players.slug, slug),
+        inArray(seasons.name, seasonNameVariants(await latestSeasonName())),
+      ),
+    )
     .limit(1)
   const leagueSlug = row[0]?.leagueSlug
   if (!leagueSlug) return null

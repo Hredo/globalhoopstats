@@ -5,6 +5,13 @@ import type { CoachListItem } from "@/lib/data/staff"
 import { cached } from "@/lib/data/cache"
 import { leagueSlugsFor } from "@/lib/league-groups"
 import { resolveLeagueName } from "@/lib/sources/types"
+import { ALL_SEASONS } from "@/lib/data/players"
+import { latestSeasonName } from "@/lib/data/seasons"
+import {
+  canonicalSeasonLabel,
+  compareSeasonsDesc,
+  seasonNameVariants,
+} from "@/lib/seasons"
 
 export type TeamListItem = {
   id: string
@@ -23,6 +30,13 @@ export type ListTeamsInput = {
   order?: "asc" | "desc"
   page?: number
   pageSize?: number
+  /**
+   * Season label to read ("2026-27"). Omitted means the newest season with
+   * data — a club that has left the competition must not keep a card in the
+   * directory, and its roster count has to be that season's, not a lifetime
+   * total. `ALL_SEASONS` shows every club that ever appeared.
+   */
+  season?: string
 }
 
 export type ListTeamsResult = {
@@ -33,9 +47,14 @@ export type ListTeamsResult = {
   totalPages: number
 }
 
+export type ListTeamsResolved = ListTeamsResult & {
+  /** The season actually queried. */
+  season: string
+}
+
 async function listTeamsUncached(
   input: ListTeamsInput = {},
-): Promise<ListTeamsResult> {
+): Promise<ListTeamsResolved> {
   const db = getDb()
   const page = Math.max(1, input.page ?? 1)
   const pageSize = Math.max(1, Math.min(input.pageSize ?? 24, 200))
@@ -44,23 +63,41 @@ async function listTeamsUncached(
   const offset = (page - 1) * pageSize
 
   const leagueSlugs = leagueSlugsFor(input.league)
+  const season = input.season ?? (await latestSeasonName(input.league))
+  const allSeasons = season === ALL_SEASONS
+  // Season predicate against a `seasons` alias, used by every EXISTS below.
+  const seasonOn = (alias: string) =>
+    allSeasons
+      ? sql`1=1`
+      : sql`${sql.raw(alias)}.name in (${sql.join(
+          seasonNameVariants(season).map((v) => sql`${v}`),
+          sql`, `,
+        )})`
   const conditions: (SQL | undefined)[] = []
 
+  // A club earns a card by fielding a roster IN THE SEASON BEING VIEWED. The
+  // old predicate only asked whether the club had ever appeared, so every
+  // relegated or folded team stayed in the directory forever.
   conditions.push(
-    sql`exists (select 1 from ${playerSeasonStats} where team_id = ${teams.id})`,
+    sql`exists (
+      select 1 from ${playerSeasonStats} pss_any
+      inner join ${seasons} s_any on s_any.id = pss_any.season_id
+      where pss_any.team_id = ${teams.id} and ${seasonOn("s_any")}
+    )`,
   )
 
   if (leagueSlugs) {
-    // Require a CURRENT-season roster in the league, so a club that only has
+    // Require a roster in this league for this season, so a club that only has
     // archived stats for it (e.g. Valencia, which sits in the EuroLeague feed
     // from a past season) doesn't surface as an empty 0-player card.
     const orParts = leagueSlugs.map((slug) =>
       sql`exists (
         select 1 from ${playerSeasonStats} pss_l
         inner join ${leagues} l_l on l_l.id = pss_l.league_id
-        inner join ${seasons} s_l on s_l.id = pss_l.season_id and s_l.is_current
+        inner join ${seasons} s_l on s_l.id = pss_l.season_id
         where pss_l.team_id = ${teams.id}
         and l_l.slug = ${slug}
+        and ${seasonOn("s_l")}
       )`,
     )
     conditions.push(
@@ -102,9 +139,9 @@ async function listTeamsUncached(
     select count(distinct lower(concat(p_pc.first_name, ' ', p_pc.last_name)) collate utf8mb4_unicode_ci)
     from ${playerSeasonStats} pss
     inner join ${players} p_pc on p_pc.id = pss.player_id
-    inner join ${seasons} s_pc on s_pc.id = pss.season_id and s_pc.is_current
+    inner join ${seasons} s_pc on s_pc.id = pss.season_id
     ${leagueScope}
-    where pss.team_id = ${teamId}
+    where pss.team_id = ${teamId} and ${seasonOn("s_pc")}
   )`
 
   const countResult = await db
@@ -151,10 +188,14 @@ async function listTeamsUncached(
       })
       .from(playerSeasonStats)
       .innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
+      .innerJoin(seasons, eq(playerSeasonStats.seasonId, seasons.id))
       .where(
         and(
           inArray(playerSeasonStats.teamId, teamIds),
           leagueSlugs ? inArray(leagues.slug, leagueSlugs) : undefined,
+          allSeasons
+            ? undefined
+            : inArray(seasons.name, seasonNameVariants(season)),
         ),
       )
 
@@ -191,36 +232,59 @@ async function listTeamsUncached(
     page,
     pageSize,
     totalPages,
+    season,
   }
 }
 
 const listTeamsCached = cached(
   listTeamsUncached,
-  "teams-list",
-  ["teams", "team-stats"],
+  // v2: results are season-scoped.
+  "teams-list:v2",
+  ["teams", "team-stats", "player-season-stats"],
   300,
 )
 
-export function listTeams(
+export async function listTeams(
   input: ListTeamsInput = {},
-): Promise<ListTeamsResult> {
+): Promise<ListTeamsResolved> {
+  // Resolved before caching so the season is part of the cache key.
+  const season = input.season ?? (await latestSeasonName(input.league))
+  const resolved: ListTeamsInput = { ...input, season }
   // Free-text searches have unbounded cardinality; cache only the browsable
-  // permutations (league × sort × order × page) that every visitor hits.
-  if (input.query) return listTeamsUncached(input)
-  return listTeamsCached(input)
+  // permutations (season × league × sort × order × page) that every visitor hits.
+  if (input.query) return listTeamsUncached(resolved)
+  return listTeamsCached(resolved)
 }
 
 export type TeamOption = { id: string; name: string; slug: string; leagueSlug: string }
 
-export async function listTeamOptions(limit = 300): Promise<TeamOption[]> {
+/**
+ * Team picker options.
+ *
+ * `season` defaults to the newest one, so the AI advisor, the playbook roster
+ * panel and the trade screen offer the clubs that exist NOW. Callers that must
+ * cover history — the sitemap and `generateStaticParams`, which have to keep
+ * archived team pages reachable — pass `ALL_SEASONS`.
+ */
+export async function listTeamOptions(
+  limit = 300,
+  season?: string,
+): Promise<TeamOption[]> {
   const db = getDb()
+  const wanted = season ?? (await latestSeasonName())
+  const seasonCondition =
+    wanted === ALL_SEASONS
+      ? undefined
+      : inArray(seasons.name, seasonNameVariants(wanted))
   const tl = db.$with("tl").as(
     db
       .selectDistinct({
         teamId: playerSeasonStats.teamId,
         leagueId: playerSeasonStats.leagueId,
       })
-      .from(playerSeasonStats),
+      .from(playerSeasonStats)
+      .innerJoin(seasons, eq(playerSeasonStats.seasonId, seasons.id))
+      .where(seasonCondition),
   )
   const rows = await db
     .with(tl)
@@ -277,13 +341,24 @@ export type TeamProfile = {
   // Every league this club competes in, for the league switcher. Includes the
   // current one; the UI only renders a switch when there are 2+.
   availableLeagues: { name: string; slug: string; region: string }[]
+  /** Season the roster and staff below belong to. */
+  season: string
+  /** Every season this club has a roster for, newest first. */
+  availableSeasons: string[]
   roster: RosterPlayer[]
   staff: CoachListItem[]
 }
 
 export const getTeamBySlug = cached(
-  async (leagueSlug: string, slug: string): Promise<TeamProfile | null> => {
+  async (
+    leagueSlug: string,
+    slug: string,
+    season?: string,
+  ): Promise<TeamProfile | null> => {
   const db = getDb()
+  // Club identity is season-independent: a team page must still resolve when
+  // the club has no roster in the requested season, so the lookup below spans
+  // every season and only the roster/staff reads are scoped.
   const tl = db.$with("tl").as(
     db
       .selectDistinct({
@@ -317,6 +392,21 @@ export const getTeamBySlug = cached(
   const { listPlayers } = await import("@/lib/data/players")
   const { listCoachesByTeam } = await import("@/lib/data/staff")
 
+  // Seasons this club actually has a roster for, so the page's switcher never
+  // offers a season that renders an empty squad.
+  const seasonRows = await db
+    .selectDistinct({ name: seasons.name })
+    .from(playerSeasonStats)
+    .innerJoin(seasons, eq(playerSeasonStats.seasonId, seasons.id))
+    .where(eq(playerSeasonStats.teamId, r.id))
+  const availableSeasons = [
+    ...new Set(seasonRows.map((row) => canonicalSeasonLabel(row.name))),
+  ].sort(compareSeasonsDesc)
+  const wantedSeason = season ?? availableSeasons[0] ?? (await latestSeasonName(leagueSlug))
+  const activeSeason = availableSeasons.includes(wantedSeason)
+    ? wantedSeason
+    : (availableSeasons[0] ?? wantedSeason)
+
   const [roster, staff, availableLeagues] = await Promise.all([
     listPlayers({
       league: leagueSlug,
@@ -324,9 +414,9 @@ export const getTeamBySlug = cached(
       sort: "name",
       order: "asc",
       pageSize: 200,
-      currentSeasonOnly: true,
+      season: activeSeason,
     }),
-    listCoachesByTeam(r.id, leagueSlug),
+    listCoachesByTeam(r.id, leagueSlug, activeSeason),
     db
       .selectDistinct({
         name: leagues.name,
@@ -361,6 +451,8 @@ export const getTeamBySlug = cached(
       region: r.leagueRegion,
     },
     availableLeagues,
+    season: activeSeason,
+    availableSeasons,
     roster: roster.items.map((p) => ({
       id: p.id,
       fullName: p.fullName,
@@ -391,8 +483,8 @@ export const getTeamBySlug = cached(
     staff,
   }
   },
-  // v3: added availableLeagues for the league switcher.
-  "getTeamBySlug:v3",
-  ["teams", "players"],
+  // v4: roster and staff are season-scoped; adds season/availableSeasons.
+  "getTeamBySlug:v4",
+  ["teams", "players", "coaches", "player-season-stats"],
   3600,
 )
