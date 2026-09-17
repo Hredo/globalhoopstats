@@ -4,9 +4,10 @@ import { FadeIn } from "@/components/animations/fade-in"
 import { BackLink } from "@/components/ui/back-link"
 import { TeamDetailView } from "@/components/teams/team-detail-view"
 import { getTeamBySlug, listTeamOptions } from "@/lib/data/teams"
+import { ALL_SEASONS, parseSeasonParam } from "@/lib/seasons"
 import { JsonLd } from "@/components/marketing/json-ld"
 import { breadcrumbJsonLd, teamJsonLd } from "@/lib/seo/structured-data"
-import { SITE } from "@/lib/site"
+import { pageSeo } from "@/lib/seo/metadata"
 import { getT } from "@/lib/i18n/server"
 
 type Params = { league: string; slug: string }
@@ -22,7 +23,10 @@ export async function generateStaticParams(): Promise<
   // did once, when DATABASE_URL still pointed at the remote MySQL hostname
   // that the build server is not allowed to reach.
   try {
-    const options = await listTeamOptions(2000)
+    // Every season, not just the newest: a club that has left the competition
+    // still has a page worth pre-rendering, and `dynamicParams` would render
+    // it on demand anyway.
+    const options = await listTeamOptions(2000, ALL_SEASONS)
     return options.map((t) => ({ league: t.leagueSlug, slug: t.slug }))
   } catch (err) {
     console.warn(
@@ -39,30 +43,53 @@ export async function generateMetadata({
   params: Promise<Params>
 }): Promise<Metadata> {
   const { league, slug } = await params
-  const { t } = await getT()
+  const { t, locale } = await getT()
   const team = await getTeamBySlug(league, slug)
   if (!team) return { title: t("teamProfile.notFound") }
-  const description = t("teamProfile.metaDescription", {
+  const vars = {
     name: team.name,
     league: team.league.name,
+    season: team.season,
     players: team.roster.length,
-    staff: team.staff.length,
-  })
-  return {
-    title: team.name,
-    description,
-    alternates: { canonical: `${SITE.url}/teams/${league}/${slug}` },
   }
+  // Head coach first: "<club> entrenador" is a query this snippet can answer.
+  const staffNames = [...team.staff]
+    .sort(
+      (a, b) =>
+        Number(b.role === "head_coach") - Number(a.role === "head_coach"),
+    )
+    .slice(0, 3)
+    .map((c) => c.fullName)
+    .join(", ")
+  const description = [
+    t("teamProfile.metaDescription", vars),
+    staffNames ? t("teamProfile.metaStaff", { staff: staffNames }) : null,
+  ]
+    .filter(Boolean)
+    .join(" ")
+  return pageSeo({
+    path: `/teams/${league}/${slug}`,
+    title: t("teamProfile.metaTitle", vars),
+    description,
+    locale,
+  })
 }
 
 export default async function TeamDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<Params>
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const { league, slug } = await params
+  const sp = searchParams ? await searchParams : {}
   const { t } = await getT()
-  const team = await getTeamBySlug(league, slug)
+  // Newest season by default; `?season=` shows that season's squad and staff.
+  const season = parseSeasonParam(
+    typeof sp.season === "string" ? sp.season : null,
+  )
+  const team = await getTeamBySlug(league, slug, season)
   if (!team) notFound()
 
   const structuredData = [
@@ -75,7 +102,7 @@ export default async function TeamDetailPage({
       city: team.city,
     }),
     breadcrumbJsonLd([
-      { name: "Teams", path: "/teams" },
+      { name: t("nav.teams"), path: "/teams" },
       { name: team.name, path: `/teams/${team.league.slug}/${team.slug}` },
     ]),
   ]

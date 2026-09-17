@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useRef, useState, useTransition } from "react"
 import { useT, useLocale } from "@/lib/i18n/provider"
 import { LeagueSelect, SelectControl } from "@/components/ui/filter-controls"
+import { SeasonSelect } from "@/components/ui/season-select"
 import { leagueAccent } from "@/components/ui/league-badge"
 
 const SORTS_PLAYERS = [
@@ -30,9 +31,20 @@ type Props = {
   kind: "players" | "teams" | "coaches"
   total: number
   showing: number
+  /** Season labels offered by the switcher, newest first. */
+  seasons?: string[]
+  /** Season currently rendered — resolved server-side, so never empty. */
+  season?: string
 }
 
-export function DirectoryControls({ basePath, kind, total, showing }: Props) {
+export function DirectoryControls({
+  basePath,
+  kind,
+  total,
+  showing,
+  seasons,
+  season,
+}: Props) {
   return (
     <Suspense
       fallback={
@@ -44,12 +56,21 @@ export function DirectoryControls({ basePath, kind, total, showing }: Props) {
         kind={kind}
         total={total}
         showing={showing}
+        seasons={seasons}
+        season={season}
       />
     </Suspense>
   )
 }
 
-function DirectoryControlsInner({ basePath, kind, total, showing }: Props) {
+function DirectoryControlsInner({
+  basePath,
+  kind,
+  total,
+  showing,
+  seasons = [],
+  season = "",
+}: Props) {
   const router = useRouter()
   const search = useSearchParams()
   const t = useT()
@@ -175,6 +196,15 @@ function DirectoryControlsInner({ basePath, kind, total, showing }: Props) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 lg:ml-auto lg:flex-nowrap">
+        <SeasonSelect
+          seasons={seasons}
+          value={season}
+          // The newest season is the default view, so selecting it drops the
+          // param instead of pinning a URL that will go stale next summer.
+          onChange={(v) => apply({ season: v === seasons[0] ? null : v })}
+          t={t}
+        />
+
         <LeagueSelect
           value={urlLeague}
           onChange={(v) => apply({ league: v || null })}

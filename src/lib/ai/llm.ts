@@ -6,6 +6,7 @@ import { answerFailureMessage, generateGroundedAnswer } from "@/lib/ai/answer"
 import type { AiProvider } from "@/lib/ai/providers"
 import type { Locale } from "@/lib/i18n/config"
 import { aiLanguageDirective, aiLanguageName } from "@/lib/ai/language"
+import { THIN_SEASON_GAMES } from "@/lib/seasons"
 import { houseStyle, promptCopy, type PromptCopy } from "@/lib/ai/prompt-copy"
 import type { Candidate } from "@/lib/market/candidates"
 import type { MarketPlayer } from "@/lib/market/pool"
@@ -16,6 +17,7 @@ import { valuationTierLabel, type Valuation } from "@/lib/market/valuation"
 import { singleSigningCap, type ClubBudget } from "@/lib/market/club-budgets"
 import type { RosterAnalysis } from "@/lib/market/roster"
 import { natFilterLabel, type NatFilter } from "@/lib/market/nationality"
+import { frameSeason, seasonPromptBlock } from "@/lib/ai/season-context"
 import {
   isMarketOperation,
   looksLikeKnowledgeQuestion,
@@ -63,7 +65,11 @@ export type AdvisorResult =
   | { ok: true; content: string; model: string }
   | { ok: false; error: string }
 
-function buildPlayerContext(profile: PlayerProfile, copy: PromptCopy): string {
+function buildPlayerContext(
+  profile: PlayerProfile,
+  copy: PromptCopy,
+  locale: Locale,
+): string {
   const latest = profile.seasons[0]
   const L = copy.player
 
@@ -98,6 +104,43 @@ function buildPlayerContext(profile: PlayerProfile, copy: PromptCopy): string {
     lines.push(L.noStats)
   }
 
+  // A season that has barely started cannot carry a verdict. Say which season
+  // this is, and — when it is only a handful of games old — which earlier one
+  // the answer should lean on and that it must admit to doing so.
+  const framing = seasonPromptBlock(
+    frameSeason(latest ?? null, profile.allSeasons),
+    latest?.gamesPlayed ?? null,
+    locale,
+  )
+  if (framing) {
+    lines.push("")
+    lines.push(framing)
+  }
+  if (latest && (latest.gamesPlayed ?? 0) < THIN_SEASON_GAMES) {
+    // Read the CAREER, not the selected league. A player who moved competition
+    // over the summer has no earlier line in their new league, and scoping the
+    // fallback to it left the model with a bare season name and no numbers.
+    const prior = profile.allSeasons
+      .filter((x) => x.seasonName !== latest.seasonName && x.gamesPlayed > 0)
+      .sort((a, b) => b.gamesPlayed - a.gamesPlayed)[0]
+    if (prior) {
+      const gp = prior.gamesPlayed || 1
+      lines.push(L.lastSeason(prior.seasonName))
+      // Name the club and competition: "18.4 points" means something different
+      // in the EuroLeague than it does in Tercera FEB.
+      lines.push(
+        `- ${L.league}: ${prior.league.name}${prior.team ? ` (${prior.team.name})` : ""}`,
+      )
+      lines.push(`- ${L.games}: ${prior.gamesPlayed}`)
+      if (prior.pointsTotal !== null)
+        lines.push(`- ${L.points}: ${formatStat(prior.pointsTotal / gp)}`)
+      if (prior.reboundsTotal !== null)
+        lines.push(`- ${L.rebounds}: ${formatStat(prior.reboundsTotal / gp)}`)
+      if (prior.assistsTotal !== null)
+        lines.push(`- ${L.assists}: ${formatStat(prior.assistsTotal / gp)}`)
+    }
+  }
+
   lines.push("")
   lines.push(L.dataRule)
 
@@ -108,13 +151,29 @@ function buildTeamContext(
   team: TeamProfile,
   copy: PromptCopy,
   budget?: ClubBudget | null,
+  locale: Locale = "en",
 ): string {
   const L = copy.team
   const lines: string[] = []
   lines.push(L.heading)
   lines.push(`- ${L.name}: ${team.name}`)
   lines.push(`- ${L.league}: ${team.league.name} (${team.league.region})`)
+  // Which season this squad IS. Without it the model treats a preseason roster
+  // as a mid-season one and talks about form nobody has shown yet.
+  lines.push(
+    locale === "es"
+      ? `- Temporada: ${team.season}`
+      : `- Season: ${team.season}`,
+  )
   lines.push(`- ${L.rosterSize}: ${team.roster.length}`)
+  const played = team.roster.filter((p) => (p.stats?.gamesPlayed ?? 0) > 0)
+  if (team.roster.length > 0 && played.length === 0) {
+    lines.push(
+      locale === "es"
+        ? `- La plantilla ${team.season} está confirmada pero todavía no se ha jugado ningún partido: no hay estadísticas de esta temporada. Habla de encaje, posiciones y lo que hicieron en temporadas anteriores, no de rendimiento actual.`
+        : `- The ${team.season} squad is confirmed but no games have been played yet: there are no stats for this season. Talk about fit, positions and what these players did in previous seasons, not about current form.`,
+    )
+  }
   if (budget) {
     const cap = singleSigningCap(budget.eur)
     lines.push(
@@ -373,9 +432,14 @@ export function buildSystemPrompt(input: GenerateAdvisorInput): string {
   const market = isMarketQuestion(input)
   const closedList = hasClosedList(input)
   const leagueBadge = getLeagueBadge(input.team.league.name)
-  const teamCtx = buildTeamContext(input.team, copy, input.teamBudget)
+  const teamCtx = buildTeamContext(
+    input.team,
+    copy,
+    input.teamBudget,
+    input.locale,
+  )
   const playerCtx = input.playerProfile
-    ? "\n\n" + buildPlayerContext(input.playerProfile, copy)
+    ? "\n\n" + buildPlayerContext(input.playerProfile, copy, input.locale)
     : ""
   const marketCtx = [
     market && input.operation && input.operation !== "general"

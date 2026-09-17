@@ -4,8 +4,9 @@ import { getT } from "@/lib/i18n/server"
 import { pageSeo } from "@/lib/seo/metadata"
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { t } = await getT()
+  const { t, locale } = await getT()
   return pageSeo({
+    locale,
     path: "/install",
     title: t("home.mobileInstall.titleA"),
     description: t("home.mobileInstall.description"),

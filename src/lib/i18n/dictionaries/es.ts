@@ -82,7 +82,7 @@ export const es: Messages = {
   },
   home: {
     metaTitle:
-      "globalhoopstats — Estadísticas de baloncesto NBA, EuroLeague y ACB",
+      "globalhoopstats — Estadísticas de baloncesto: Liga ACB, FEB, EuroLeague y NBA",
     hero: {
       eyebrow: "Seis ligas, un motor",
       titleLine1: "Comparativa de",
@@ -466,6 +466,9 @@ export const es: Messages = {
     searchAria: "Buscar",
     clearSearch: "Borrar búsqueda",
     filterByLeague: "Filtrar por liga",
+    filterBySeason: "Filtrar por temporada",
+    seasonPrefix: "Temporada {season}",
+    seasonCurrent: "{season} · actual",
     filterByRole: "Filtrar por rol",
     sortByAria: "Ordenar por",
     sortAscending: "Orden ascendente",
@@ -524,9 +527,9 @@ export const es: Messages = {
       description:
         "Cada atleta de seis ligas, normalizado a una sola escala. Busca, filtra y ordena por los números que importan.",
       statLabel: "Jugadores indexados",
-      metaTitle: "Jugadores",
+      metaTitle: "Estadísticas de jugadores de baloncesto — ACB, FEB, EuroLeague y NBA",
       metaDescription:
-        "Explora cada jugador de todas las ligas cubiertas. Filtra por liga, ordena por puntos, rebotes o asistencias y profundiza en perfiles avanzados.",
+        "Estadísticas de cada jugador de la Liga ACB, Primera, Segunda y Tercera FEB (antiguas LEB Oro, LEB Plata y Liga EBA), EuroLeague y NBA. Filtra por liga y temporada, ordena por puntos, rebotes o asistencias y abre perfiles avanzados.",
     },
     teams: {
       eyebrow: "Directorio · Equipos",
@@ -534,9 +537,9 @@ export const es: Messages = {
       description:
         "Cada club de la NBA, EuroLeague, ACB y el escalafón FEB de España — abre cualquier escudo para ver su plantilla y cuerpo técnico al completo.",
       statLabel: "Equipos cubiertos",
-      metaTitle: "Equipos",
+      metaTitle: "Equipos y plantillas de baloncesto — ACB, FEB, EuroLeague y NBA",
       metaDescription:
-        "Explora cada equipo de todas las ligas cubiertas. Filtra por liga, ordena por nombre o tamaño de plantilla y abre la plantilla y el cuerpo técnico con un clic.",
+        "Todos los clubes de la Liga ACB, Primera, Segunda y Tercera FEB (LEB Oro, LEB Plata, EBA), EuroLeague y NBA, con su plantilla completa, las estadísticas de cada jugador y el cuerpo técnico de cada temporada.",
     },
     coaches: {
       eyebrow: "Directorio · Cuerpo técnico",
@@ -544,9 +547,9 @@ export const es: Messages = {
       description:
         "Entrenadores principales, asistentes y cuerpo técnico de la NBA, EuroLeague y Liga ACB — filtrados por rol y liga.",
       statLabel: "Cuerpo técnico indexado",
-      metaTitle: "Entrenadores y cuerpo técnico",
+      metaTitle: "Entrenadores de baloncesto y cuerpos técnicos — ACB, EuroLeague y NBA",
       metaDescription:
-        "Explora cada entrenador principal, asistente y miembro del cuerpo técnico de la NBA, EuroLeague y Liga ACB.",
+        "Cada entrenador principal, asistente y miembro del cuerpo técnico de la Liga ACB, EuroLeague y NBA, filtrable por rol y liga y enlazado a la plantilla de su club.",
     },
     leagues: {
       eyebrow: "Cobertura",
@@ -554,9 +557,9 @@ export const es: Messages = {
       titleB: "de un vistazo.",
       description:
         "Seis ligas profesionales, un solo motor de scouting. Cada tarjeta combina la temporada en vivo con el número de equipos, jugadores y entrenadores y los líderes por partido en puntos, asistencias, rebotes y triples — además de accesos directos a cada plantilla y jugador.",
-      metaTitle: "Ligas",
+      metaTitle: "Ligas de baloncesto — Liga ACB, Primera FEB, EuroLeague y NBA",
       metaDescription:
-        "Explora todas las ligas que cubrimos — NBA, EuroLeague, Liga ACB y la escalera FEB de España (Primera FEB, Segunda FEB, Tercera FEB). Líderes por partido en puntos, asistencias, rebotes y triples, con conteos de equipos, jugadores y entrenadores.",
+        "Liga ACB, la escalera FEB (Primera FEB, Segunda FEB y Tercera FEB — antiguas LEB Oro, LEB Plata y Liga EBA), EuroLeague y NBA: máximos anotadores, asistentes, reboteadores y triplistas de la temporada, con todos sus equipos y jugadores.",
       statLeaguesLive: "ligas en vivo",
       statPlayersIndexed: "jugadores indexados",
       statTeamsTracked: "equipos registrados",
@@ -575,9 +578,10 @@ export const es: Messages = {
     },
   },
   compare: {
-    metaTitle: "Comparar",
+    seasonScope: "Ambos jugadores · {season}",
+    metaTitle: "Comparar jugadores de baloncesto cara a cara",
     metaDescription:
-      "Pon a dos jugadores cara a cara — puntos, rebotes, asistencias, porcentajes de tiro y más.",
+      "Pon a dos jugadores de la Liga ACB, FEB, EuroLeague o NBA cara a cara — puntos, rebotes, asistencias, porcentajes de tiro y métricas avanzadas, incluso entre ligas distintas.",
     eyebrow: "Enfrentamiento",
     titleA: "Scouting",
     titleB: "cara a cara.",
@@ -686,8 +690,13 @@ export const es: Messages = {
     freeAgent: "Agente libre",
     playerFallback: "Jugador",
     metaFreeAgent: "agente libre",
-    metaDescription: "{name} — {position} en {team} ({league}).",
-    averaging: "Promedia {ppg} PPG.",
+    metaTitle: "{name}: estadísticas · {team} ({league})",
+    metaTitleNoTeam: "{name}: estadísticas ({league})",
+    metaDescription: "Estadísticas de {name} — {position} en {team} ({league}).",
+    metaSeasonFull:
+      "Temporada {season}: {ppg} puntos, {rpg} rebotes y {apg} asistencias por partido en {games} partidos.",
+    metaSeasonPoints: "Temporada {season}: {ppg} puntos por partido en {games} partidos.",
+    metaTail: "Porcentajes de tiro, métricas avanzadas y comparativas.",
     seasonGames: "Temporada {season} · {games} partidos",
     production: "Producción",
     points: "Puntos",
@@ -725,12 +734,37 @@ export const es: Messages = {
     shotLegendNote:
       "Cada zona se colorea según un rango realista para ese tipo de tiro; las zonas más sólidas indican más intentos.",
   },
+  leaguePage: {
+    notFound: "Liga no encontrada",
+    metaTitle: "Estadísticas {league} {season}: máximos anotadores, equipos y jugadores",
+    metaDescription:
+      "Estadísticas de la {league}{legacy} en la temporada {season}: máximos anotadores, reboteadores y asistentes, los {teams} equipos con sus plantillas y los {players} jugadores de la competición.",
+    legacySuffix: " (antigua {legacy})",
+    eyebrow: "Liga · temporada {season}",
+    intro:
+      "Estadísticas de la {league} en la temporada {season}: {teams} equipos y {players} jugadores, con promedios por partido, porcentajes de tiro y métricas avanzadas de cada uno.",
+    introLegacy: "La {league} es la competición antes conocida como {legacy}.",
+    introLeader: "Máximo anotador: {name} ({team}), con {ppg} puntos por partido.",
+    statTeams: "Equipos",
+    statPlayers: "Jugadores",
+    scorersTitle: "Máximos anotadores · {season}",
+    scorersNote: "Puntos por partido, mínimo 5 partidos jugados.",
+    colPlayer: "Jugador",
+    colTeam: "Equipo",
+    colPpg: "PPG",
+    teamsTitle: "Equipos de la {league} · {season}",
+    allPlayers: "Todos los jugadores de la {league}",
+    allLeagues: "Todas las ligas",
+  },
   teamProfile: {
     notFound: "Equipo no encontrado",
+    metaTitle: "{name}: plantilla y estadísticas {season} ({league})",
     metaDescription:
-      "{name} — plantilla de {league} con {players} jugadores y {staff} miembros del cuerpo técnico.",
+      "Plantilla {season} de {name} en {league}: {players} jugadores con sus estadísticas por partido.",
+    metaStaff: "Cuerpo técnico: {staff}.",
     backToTeams: "Volver a equipos",
     roster: "Plantilla",
+    seasonLabel: "Temporada {season}",
     currentSeason: "Temporada actual",
     switchLeague: "Cambiar de liga",
     noPlayers:
@@ -1237,6 +1271,9 @@ export const es: Messages = {
       league: "Liga",
       team: "Equipo",
       allLeagues: "Todas las ligas",
+      season: "Temporada",
+      seasonCurrent: "{season} · actual",
+      seasonLabel: "Temporada {season}",
       pickTeam: "Elige un equipo…",
       pickTeamHint: "Elige un equipo para cargar su plantilla real y arrastrar jugadores a la pizarra.",
       dragHint: "Arrastra un jugador a la pizarra, o haz clic para asignarlo a una ficha",

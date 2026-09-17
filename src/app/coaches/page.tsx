@@ -4,18 +4,20 @@ import { CoachesInfiniteView } from "@/components/staff/coaches-infinite-view"
 import { DirectoryHero } from "@/components/ui/directory-hero"
 import { StickyFilterBar } from "@/components/ui/sticky-filter-bar"
 import { listCoaches, type ListCoachesInput } from "@/lib/data/staff"
+import { listSeasons, resolveSeasonName } from "@/lib/data/seasons"
 import { getT } from "@/lib/i18n/server"
 import { pageSeo } from "@/lib/seo/metadata"
 
 type SearchParams = Partial<
-  Record<keyof ListCoachesInput | "q" | "page", string>
+  Record<keyof ListCoachesInput | "q" | "page" | "season", string>
 >
 
 export const revalidate = 300
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { t } = await getT()
+  const { t, locale } = await getT()
   return pageSeo({
+    locale,
     path: "/coaches",
     title: t("directory.coaches.metaTitle"),
     description: t("directory.coaches.metaDescription"),
@@ -58,7 +60,11 @@ export default async function CoachesPage(props: {
 }) {
   const sp = await props.searchParams
   const input = parseInput(sp)
-  const result = await listCoaches(input)
+  const [season, seasons] = await Promise.all([
+    resolveSeasonName(sp.season, input.league),
+    listSeasons(input.league),
+  ])
+  const result = await listCoaches({ ...input, season })
   const { t, locale } = await getT()
 
   return (
@@ -83,15 +89,18 @@ export default async function CoachesPage(props: {
           kind="coaches"
           total={result.total}
           showing={result.items.length}
+          seasons={seasons.map((s) => s.name)}
+          season={season}
         />
       </StickyFilterBar>
 
       <CoachesInfiniteView
-        key={`${input.query ?? ""}|${input.league ?? ""}|${input.role ?? ""}`}
+        key={`${season}|${input.query ?? ""}|${input.league ?? ""}|${input.role ?? ""}`}
         initial={result}
         query={input.query ?? ""}
         league={input.league ?? ""}
         role={input.role ?? ""}
+        season={season}
       />
       </div>
     </div>

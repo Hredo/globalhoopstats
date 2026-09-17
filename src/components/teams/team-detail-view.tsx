@@ -4,6 +4,7 @@ import { TeamRosterGrid } from "@/components/teams/team-roster-grid"
 import { TeamStaffList } from "@/components/teams/team-staff-list"
 import { TeamThemeScope } from "@/components/teams/team-theme-scope"
 import { buildTeamPalette, LEAGUE_BASE_COLORS } from "@/lib/theme/team-color"
+import { SeasonSwitcher } from "@/components/ui/season-select"
 import { getT } from "@/lib/i18n/server"
 
 type Props = {
@@ -15,6 +16,10 @@ type Props = {
     city: string | null
     league: { name: string; slug: string; region: string }
     availableLeagues: { name: string; slug: string; region: string }[]
+    /** Season the roster and staff below belong to. */
+    season: string
+    /** Every season this club has a roster for, newest first. */
+    availableSeasons: string[]
     roster: Array<{
       id: string
       fullName: string
@@ -90,9 +95,17 @@ export async function TeamDetailView({ team }: Props) {
                   </span>{" "}
                   <span className="text-ink-300">· {team.roster.length}</span>
                 </h2>
-                <span className="text-xs uppercase tracking-widest text-ink-400">
-                  {t("teamProfile.currentSeason")}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs uppercase tracking-widest text-ink-400">
+                    {team.availableSeasons[0] === team.season
+                      ? t("teamProfile.currentSeason")
+                      : t("teamProfile.seasonLabel", { season: team.season })}
+                  </span>
+                  <SeasonSwitcher
+                    seasons={team.availableSeasons}
+                    active={team.season}
+                  />
+                </div>
               </header>
               <TeamRosterGrid players={team.roster} />
             </section>

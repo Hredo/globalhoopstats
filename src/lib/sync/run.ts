@@ -1,5 +1,5 @@
 import { eq, sql } from "drizzle-orm"
-import { getDb, closeDb } from "@/lib/db/client"
+import { getDb, closeDb, rawRows } from "@/lib/db/client"
 import {
   coaches,
   leagues,
@@ -21,6 +21,14 @@ import { slugify, uniqueSlug } from "@/lib/sync/slug"
 import { tierForSlug, type LeagueTier } from "@/lib/leagues-tier"
 import { normalizeName } from "@/lib/sync/entity-matcher"
 import { isSyncCancelled } from "@/lib/sync/controller"
+import { CURRENT_SEASON_LABEL } from "@/lib/seasons"
+import {
+  chunkIds,
+  findDepartedIds,
+  MIN_COACHES_TO_PRUNE,
+  MIN_PAIRS_TO_PRUNE,
+  pruneVerdict,
+} from "@/lib/sync/reconcile"
 
 function scorePlayerRecord(p: {
   imageUrl: string | null
@@ -68,7 +76,17 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
     })
     .$returningId()
 
-  const totals = { teams: 0, players: 0, stats: 0, coaches: 0, teamStats: 0 }
+  const totals = {
+    teams: 0,
+    players: 0,
+    stats: 0,
+    coaches: 0,
+    teamStats: 0,
+    // Squad members carried without a stat line yet, and rows dropped because
+    // the player or coach is no longer at that club this season.
+    rosterOnly: 0,
+    departures: 0,
+  }
 
   try {
     /* ---- League ---- */
@@ -95,10 +113,14 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
     const leagueId = league.id
 
     /* ---- Season ---- */
+    // The LABEL ("2026-27"), never the feed code: a season name has to be
+    // shared by every league or the site cannot filter on it. Writing
+    // "E2026" here is what produced the split EuroLeague season rows.
+    const seasonName = adapter.seasonLabel
     const [existingSeason] = await db
       .select({ id: seasons.id })
       .from(seasons)
-      .where(eq(seasons.name, adapter.seasonCode))
+      .where(eq(seasons.name, seasonName))
       .limit(1)
     let seasonId: string
     if (existingSeason) {
@@ -107,7 +129,11 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
       seasonId = newId()
       await db
         .insert(seasons)
-        .values({ id: seasonId, name: adapter.seasonCode, isCurrent: true })
+        .values({ id: seasonId, name: seasonName, isCurrent: false })
+    }
+    // `is_current` is a singleton flag; promoting one season demotes the rest.
+    if (seasonName === CURRENT_SEASON_LABEL) {
+      await db.execute(sql`UPDATE seasons SET is_current = (id = ${seasonId})`)
     }
 
     /* ---- Fetch the full batch before writing anything ---- */
@@ -396,8 +422,78 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
         totals.stats++
       }
 
+      /* ---- Roster rows for squad members with no stat line ---- */
+      // Rosters are read out of player_season_stats, so a confirmed squad with
+      // no games played yet needs a row of its own — otherwise a new season
+      // renders every club empty until the first box score arrives.
+      const rosterPairs = new Set<string>()
+      for (const st of sourceStats) {
+        const playerId = playerIdBySourceId.get(st.playerSourceId)
+        const teamId = st.teamSourceId
+          ? teamIdBySourceId.get(st.teamSourceId)
+          : undefined
+        if (playerId && teamId) rosterPairs.add(`${playerId}::${teamId}`)
+      }
+      for (const sp of sourcePlayers) {
+        const playerId = playerIdBySourceId.get(sp.sourceId)
+        const teamId = sp.teamSourceId
+          ? teamIdBySourceId.get(sp.teamSourceId)
+          : undefined
+        if (!playerId || !teamId) continue
+        const key = `${playerId}::${teamId}`
+        if (rosterPairs.has(key)) continue
+        rosterPairs.add(key)
+        await db
+          .insert(playerSeasonStats)
+          .values({ playerId, teamId, leagueId, seasonId, gamesPlayed: 0 })
+          // Never overwrite a real line with an empty placeholder.
+          .onDuplicateKeyUpdate({ set: { teamId } })
+        totals.rosterOnly++
+      }
+
+      /* ---- Departures: this season's squads are exactly what was scraped ---- */
+      // Last season's rows are history and stay untouched; only the season
+      // being synced is reconciled, so a player who changed club disappears
+      // from the old squad for THIS season and appears on the new one.
+      const squadVerdict = pruneVerdict(rosterPairs.size, MIN_PAIRS_TO_PRUNE)
+      if (squadVerdict.prune) {
+        const stored = await rawRows<{
+          id: string
+          player_id: string
+          team_id: string
+        }>(
+          db.execute(sql`
+            SELECT id, player_id, team_id
+            FROM player_season_stats
+            WHERE league_id = ${leagueId} AND season_id = ${seasonId}
+          `),
+        )
+        const departed = findDepartedIds(
+          stored,
+          (row) => `${row.player_id}::${row.team_id}`,
+          rosterPairs,
+        )
+        for (const chunk of chunkIds(departed)) {
+          await db.execute(sql`
+            DELETE FROM player_season_stats
+            WHERE id IN (${sql.join(chunk.map((id) => sql`${id}`), sql`, `)})
+          `)
+        }
+        totals.departures += departed.length
+        console.log(
+          `[${adapter.displayName}] squad reconciled — ${rosterPairs.size} ` +
+            `current, ${departed.length} departure(s) removed from this season`,
+        )
+      } else {
+        console.warn(
+          `[${adapter.displayName}] squad reconciliation SKIPPED — ` +
+            squadVerdict.reason,
+        )
+      }
+
       /* ---- Coaches ---- */
       const usedCoachSlugs = new Set<string>()
+      const coachSlots = new Set<string>()
       for (const sc of sourceCoaches) {
         const teamId = sc.teamSourceId
           ? (teamIdBySourceId.get(sc.teamSourceId) ?? null)
@@ -414,11 +510,15 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
           usedCoachSlugs.add(candidate)
           return candidate
         })()
+        coachSlots.add(`${teamId}::${slug}`)
         await db
           .insert(coaches)
           .values({
             leagueId,
             teamId,
+            // Staff is per season, so last season's bench is preserved rather
+            // than overwritten by this season's.
+            seasonId,
             fullName: sc.fullName,
             slug,
             role: sc.role,
@@ -436,6 +536,33 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
             },
           })
         totals.coaches++
+      }
+
+      /* ---- Staff departures for this season ---- */
+      if (pruneVerdict(coachSlots.size, MIN_COACHES_TO_PRUNE).prune) {
+        const storedCoaches = await rawRows<{
+          id: string
+          team_id: string
+          slug: string
+        }>(
+          db.execute(sql`
+            SELECT id, team_id, slug
+            FROM coaches
+            WHERE league_id = ${leagueId} AND season_id = ${seasonId}
+          `),
+        )
+        const goneIds = findDepartedIds(
+          storedCoaches,
+          (row) => `${row.team_id}::${row.slug}`,
+          coachSlots,
+        )
+        for (const chunk of chunkIds(goneIds)) {
+          await db.execute(sql`
+            DELETE FROM coaches
+            WHERE id IN (${sql.join(chunk.map((id) => sql`${id}`), sql`, `)})
+          `)
+        }
+        totals.departures += goneIds.length
       }
 
       /* ---- Team Stats ---- */

@@ -87,6 +87,11 @@ export function buildPlayerPrompt(
    * too little of the league measured to rank anybody honestly.
    */
   leagueContext = "",
+  /**
+   * Season framing from `seasonPromptBlock` — which season this is about and,
+   * when it has barely started, which earlier season to lean on instead.
+   */
+  seasonContext = "",
 ): string {
   const copy = promptCopy(locale)
   const labels = REPORT_LABELS[locale] ?? REPORT_LABELS.en
@@ -129,6 +134,8 @@ export function buildPlayerPrompt(
     "",
     "MARKET VALUATION —",
     valStr,
+    seasonContext ? "" : null,
+    seasonContext,
     leagueContext ? "" : null,
     leagueContext,
     shotChartStr ? "" : null,

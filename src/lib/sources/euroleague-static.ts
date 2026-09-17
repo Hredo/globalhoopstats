@@ -297,6 +297,14 @@ export const EUROLEAGUE_COACHES_2024_25: Record<string, EuroleagueCoach[]> = {
   ],
 }
 
+/**
+ * The feed season code this coach table describes.
+ *
+ * The adapter compares its own `seasonCode` against this before falling back to
+ * the table, so a new season never inherits last season's benches.
+ */
+export const EUROLEAGUE_COACHES_SEASON = "E2025"
+
 // Coach data for EuroLeague 2025-26 (E2025), fetched from incrowdsports API
 export const EUROLEAGUE_COACHES_2025_26: Record<string, EuroleagueCoach[]> = {
   MAD: [{ fullName: "Sergio Scariolo", role: "head_coach", nationality: "Italy" }],

@@ -80,7 +80,8 @@ export const en = {
       "Cross-league basketball intelligence across the NBA, EuroLeague, Liga ACB and Spain's FEB pyramid (Primera, Segunda, Tercera): box scores, advanced splits, side-by-side comparisons, player market valuations, trade simulator and AI scouting advisor — all in one console.",
   },
   home: {
-    metaTitle: "globalhoopstats — NBA, EuroLeague & ACB basketball stats",
+    metaTitle:
+      "globalhoopstats — Basketball stats: Liga ACB, FEB, EuroLeague & NBA",
     hero: {
       eyebrow: "Six leagues, one engine",
       titleLine1: "AI-driven player",
@@ -459,6 +460,9 @@ export const en = {
     searchAria: "Search",
     clearSearch: "Clear search",
     filterByLeague: "Filter by league",
+    filterBySeason: "Filter by season",
+    seasonPrefix: "Season {season}",
+    seasonCurrent: "{season} · current",
     filterByRole: "Filter by role",
     sortByAria: "Sort by",
     sortAscending: "Sort ascending",
@@ -516,9 +520,9 @@ export const en = {
       description:
         "Every athlete across six leagues, normalized to one scale. Search, filter and rank by the numbers that matter.",
       statLabel: "Players indexed",
-      metaTitle: "Players",
+      metaTitle: "Basketball player stats — Liga ACB, FEB, EuroLeague & NBA",
       metaDescription:
-        "Browse every player across all covered leagues. Filter by league, sort by points, rebounds or assists and dig into advanced profiles.",
+        "Stats for every player in Liga ACB, Spain's FEB leagues (Primera, Segunda and Tercera FEB — formerly LEB Oro, LEB Plata and EBA), EuroLeague and NBA. Filter by league and season, rank by points, rebounds or assists and open advanced profiles.",
     },
     teams: {
       eyebrow: "Directory · Teams",
@@ -526,9 +530,9 @@ export const en = {
       description:
         "Every club across the NBA, EuroLeague, ACB and Spain's FEB ladder — open any crest for its full roster and staff.",
       statLabel: "Teams covered",
-      metaTitle: "Teams",
+      metaTitle: "Basketball teams & rosters — Liga ACB, FEB, EuroLeague & NBA",
       metaDescription:
-        "Browse every team across all covered leagues. Filter by league, sort by name or roster size and open the full roster and staff with a click.",
+        "Every club in Liga ACB, Primera, Segunda and Tercera FEB (LEB Oro, LEB Plata, EBA), EuroLeague and NBA, with its full roster, per-player stats and coaching staff for every season.",
     },
     coaches: {
       eyebrow: "Directory · Staff",
@@ -536,9 +540,9 @@ export const en = {
       description:
         "Head coaches, assistants and staff across the NBA, EuroLeague and Liga ACB — filtered by role and league.",
       statLabel: "Staff indexed",
-      metaTitle: "Coaches & Staff",
+      metaTitle: "Basketball coaches & staff — Liga ACB, EuroLeague & NBA",
       metaDescription:
-        "Browse every head coach, assistant and staff member across the NBA, EuroLeague and Liga ACB.",
+        "Every head coach, assistant and staff member in Liga ACB, EuroLeague and the NBA, filterable by role and league, each linked to their club's roster.",
     },
     leagues: {
       eyebrow: "Coverage",
@@ -546,9 +550,9 @@ export const en = {
       titleB: "at a glance.",
       description:
         "Six pro leagues, one scouting engine. Each card pairs the live season with team, player and coach counts and the current per-game leaders in points, assists, rebounds and three-point shooting — plus one-tap links into every roster and player.",
-      metaTitle: "Leagues",
+      metaTitle: "Basketball leagues — Liga ACB, Primera FEB, EuroLeague & NBA",
       metaDescription:
-        "Explore every league we cover — NBA, EuroLeague, Liga ACB and Spain's FEB ladder (Primera FEB, Segunda FEB, Tercera FEB). Per-game leaders in points, assists, rebounds and three-point shooting, with team, player and coach counts.",
+        "Liga ACB, Spain's FEB ladder (Primera FEB, Segunda FEB, Tercera FEB — formerly LEB Oro, LEB Plata and EBA), EuroLeague and NBA: this season's per-game leaders in points, assists, rebounds and three-point shooting, with every team and player.",
       statLeaguesLive: "leagues live",
       statPlayersIndexed: "players indexed",
       statTeamsTracked: "teams tracked",
@@ -567,9 +571,10 @@ export const en = {
     },
   },
   compare: {
-    metaTitle: "Compare",
+    seasonScope: "Both players · {season}",
+    metaTitle: "Compare basketball players side by side",
     metaDescription:
-      "Put any two players side by side — points, rebounds, assists, shooting splits and more.",
+      "Put any two players from Liga ACB, FEB, EuroLeague or NBA side by side — points, rebounds, assists, shooting splits and advanced metrics, even across leagues.",
     eyebrow: "Matchup",
     titleA: "Side-by-side",
     titleB: "scouting.",
@@ -678,8 +683,13 @@ export const en = {
     freeAgent: "Free agent",
     playerFallback: "Player",
     metaFreeAgent: "free agent",
-    metaDescription: "{name} — {position} at {team} in {league}.",
-    averaging: "Averaging {ppg} PPG.",
+    metaTitle: "{name} stats · {team} ({league})",
+    metaTitleNoTeam: "{name} stats ({league})",
+    metaDescription: "{name} stats — {position} at {team} in {league}.",
+    metaSeasonFull:
+      "{season} season: {ppg} points, {rpg} rebounds and {apg} assists per game over {games} games.",
+    metaSeasonPoints: "{season} season: {ppg} points per game over {games} games.",
+    metaTail: "Shooting splits, advanced metrics and head-to-head comparisons.",
     seasonGames: "Season {season} · {games} games",
     production: "Production",
     points: "Points",
@@ -717,12 +727,37 @@ export const en = {
     shotLegendNote:
       "Each zone is shaded against a realistic range for that shot type; more solid tiles mean more attempts.",
   },
+  leaguePage: {
+    notFound: "League not found",
+    metaTitle: "{league} stats {season}: top scorers, teams & players",
+    metaDescription:
+      "{league}{legacy} stats for the {season} season: scoring, rebounding and assist leaders, all {teams} teams with their rosters and the {players} players in the competition.",
+    legacySuffix: " (formerly {legacy})",
+    eyebrow: "League · {season} season",
+    intro:
+      "{league} stats for the {season} season: {teams} teams and {players} players, with per-game averages, shooting splits and advanced metrics for every one of them.",
+    introLegacy: "{league} is the competition formerly known as {legacy}.",
+    introLeader: "Top scorer: {name} ({team}), with {ppg} points per game.",
+    statTeams: "Teams",
+    statPlayers: "Players",
+    scorersTitle: "Top scorers · {season}",
+    scorersNote: "Points per game, minimum 5 games played.",
+    colPlayer: "Player",
+    colTeam: "Team",
+    colPpg: "PPG",
+    teamsTitle: "{league} teams · {season}",
+    allPlayers: "All {league} players",
+    allLeagues: "All leagues",
+  },
   teamProfile: {
     notFound: "Team not found",
+    metaTitle: "{name} roster & stats {season} ({league})",
     metaDescription:
-      "{name} — {league} roster with {players} players and {staff} staff members.",
+      "{name} {season} roster in {league}: {players} players with their per-game stats.",
+    metaStaff: "Coaching staff: {staff}.",
     backToTeams: "Back to teams",
     roster: "Roster",
+    seasonLabel: "Season {season}",
     currentSeason: "Current season",
     switchLeague: "Switch league",
     noPlayers: "No players found for this team in the current season.",
@@ -1225,6 +1260,9 @@ export const en = {
       league: "League",
       team: "Team",
       allLeagues: "All leagues",
+      season: "Season",
+      seasonCurrent: "{season} · current",
+      seasonLabel: "Season {season}",
       pickTeam: "Pick a team…",
       pickTeamHint: "Pick a team to load its real roster and drag players onto the board.",
       dragHint: "Drag a player onto the board, or click to fill a token",

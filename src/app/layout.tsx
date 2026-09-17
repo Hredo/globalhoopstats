@@ -73,9 +73,10 @@ export async function generateMetadata(): Promise<Metadata> {
   authors: [{ name: SITE.author, url: SITE.url }],
   creator: SITE.author,
   publisher: SITE.author,
-  alternates: {
-    canonical: "/",
-  },
+  // No `alternates.canonical` here. Next inherits it into every route that does
+  // not set its own, so a root `canonical: "/"` declared the 404 page, the
+  // password flows and any future page a duplicate of the homepage. Pages set
+  // their own through pageSeo(); a page without one is better than a wrong one.
   category: "Sports Analytics",
   classification: "Sports, Analytics, Basketball",
   openGraph: {
@@ -192,7 +193,8 @@ export default async function RootLayout({
               "@type": "Organization",
               name: SITE.name,
               url: SITE.url,
-              logo: `${SITE.url}/icon`,
+              // Google ignores an Organization logo under 112×112; /icon is 32×32.
+              logo: `${SITE.url}/icon-512`,
               description: SITE.description,
               sameAs: SITE_SOCIAL,
               contactPoint: [

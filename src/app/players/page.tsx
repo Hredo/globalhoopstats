@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { listPlayers, type ListPlayersInput } from "@/lib/data/players"
+import { listSeasons, resolveSeasonName } from "@/lib/data/seasons"
 import { DirectoryControls } from "@/components/ui/directory-controls"
 import { PlayersInfiniteView } from "@/components/players/players-infinite-view"
 import { DirectoryHero } from "@/components/ui/directory-hero"
@@ -8,14 +9,15 @@ import { getT } from "@/lib/i18n/server"
 import { pageSeo } from "@/lib/seo/metadata"
 
 type SearchParams = Partial<
-  Record<keyof ListPlayersInput | "q" | "page", string>
+  Record<keyof ListPlayersInput | "q" | "page" | "season", string>
 >
 
 export const revalidate = 300
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { t } = await getT()
+  const { t, locale } = await getT()
   return pageSeo({
+    locale,
     path: "/players",
     title: t("directory.players.metaTitle"),
     description: t("directory.players.metaDescription"),
@@ -64,7 +66,13 @@ export default async function PlayersPage(props: {
 }) {
   const sp = await props.searchParams
   const input = parseInput(sp)
-  const result = await listPlayers(input)
+  // Resolved server-side so an unknown or stale `?season=` silently falls back
+  // to the newest one instead of rendering an empty directory.
+  const [season, seasons] = await Promise.all([
+    resolveSeasonName(sp.season, input.league),
+    listSeasons(input.league),
+  ])
+  const result = await listPlayers({ ...input, season })
   const { t, locale } = await getT()
 
   return (
@@ -89,16 +97,19 @@ export default async function PlayersPage(props: {
           kind="players"
           total={result.total}
           showing={result.items.length}
+          seasons={seasons.map((s) => s.name)}
+          season={season}
         />
       </StickyFilterBar>
 
       <PlayersInfiniteView
-        key={`${input.query ?? ""}|${input.league ?? ""}|${input.sort ?? "points"}|${input.order ?? "desc"}`}
+        key={`${season}|${input.query ?? ""}|${input.league ?? ""}|${input.sort ?? "points"}|${input.order ?? "desc"}`}
         initial={result}
         query={input.query ?? ""}
         league={input.league ?? ""}
         sort={input.sort ?? "points"}
         order={input.order ?? "desc"}
+        season={season}
       />
       </div>
     </div>

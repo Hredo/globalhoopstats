@@ -1,9 +1,28 @@
-import { and, asc, eq, inArray, like, sql } from "drizzle-orm"
+import { and, asc, eq, inArray, isNull, like, or, sql } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
-import { coaches, leagues, teams } from "@/lib/db/schema"
+import { coaches, leagues, seasons, teams } from "@/lib/db/schema"
 import { cached } from "@/lib/data/cache"
 import { resolveLeagueName } from "@/lib/sources/types"
 import { leagueSlugsFor } from "@/lib/league-groups"
+import { ALL_SEASONS } from "@/lib/data/players"
+import { latestSeasonName } from "@/lib/data/seasons"
+import { seasonNameVariants } from "@/lib/seasons"
+
+/**
+ * Restrict a coaches query to one season.
+ *
+ * The "season_id IS NULL" arm covers rows written before coaches carried a
+ * season. Those are backfilled by scripts/rollover-season.ts; keeping them
+ * visible in the meantime is much better than shipping an empty staff
+ * directory, and the arm becomes a no-op as soon as the backfill has run.
+ */
+function coachSeasonCondition(season: string) {
+  if (season === ALL_SEASONS) return undefined
+  return or(
+    inArray(seasons.name, seasonNameVariants(season)),
+    isNull(coaches.seasonId),
+  )
+}
 
 export type CoachListItem = {
   id: string
@@ -24,6 +43,8 @@ export type ListCoachesInput = {
   role?: "head_coach" | "assistant_coach" | "staff"
   page?: number
   pageSize?: number
+  /** Season label to read ("2026-27"); defaults to the newest with data. */
+  season?: string
 }
 
 export type ListCoachesResult = {
@@ -34,6 +55,11 @@ export type ListCoachesResult = {
   totalPages: number
 }
 
+export type ListCoachesResolved = ListCoachesResult & {
+  /** The season actually queried. */
+  season: string
+}
+
 const ROLE_PRIORITY: Record<CoachListItem["role"], number> = {
   head_coach: 0,
   assistant_coach: 1,
@@ -42,15 +68,18 @@ const ROLE_PRIORITY: Record<CoachListItem["role"], number> = {
 
 async function listCoachesUncached(
   input: ListCoachesInput = {},
-): Promise<ListCoachesResult> {
+): Promise<ListCoachesResolved> {
   const db = getDb()
   const page = Math.max(1, input.page ?? 1)
   const pageSize = Math.max(1, Math.min(input.pageSize ?? 24, 200))
   const offset = (page - 1) * pageSize
 
+  const season = input.season ?? (await latestSeasonName(input.league))
   const conditions = []
   const leagueSlugs = leagueSlugsFor(input.league)
   if (leagueSlugs) conditions.push(inArray(leagues.slug, leagueSlugs))
+  const seasonCondition = coachSeasonCondition(season)
+  if (seasonCondition) conditions.push(seasonCondition)
   if (input.team) {
     const tq = `%${input.team.toLowerCase()}%`
     conditions.push(like(sql`lower(${teams.name})`, tq))
@@ -67,6 +96,7 @@ async function listCoachesUncached(
     .from(coaches)
     .innerJoin(leagues, eq(coaches.leagueId, leagues.id))
     .innerJoin(teams, eq(coaches.teamId, teams.id))
+    .leftJoin(seasons, eq(coaches.seasonId, seasons.id))
     .where(where)
   const total = Number(countRow[0]?.c ?? 0)
 
@@ -91,6 +121,9 @@ async function listCoachesUncached(
     .from(coaches)
     .innerJoin(leagues, eq(coaches.leagueId, leagues.id))
     .innerJoin(teams, eq(coaches.teamId, teams.id))
+    // Left, not inner: a legacy row with a null season must survive the join
+    // so the null arm of coachSeasonCondition can still match it.
+    .leftJoin(seasons, eq(coaches.seasonId, seasons.id))
     .where(where)
     .orderBy(asc(teams.name), asc(coaches.role), asc(coaches.fullName))
     .limit(pageSize)
@@ -124,23 +157,27 @@ async function listCoachesUncached(
     page,
     pageSize,
     totalPages,
+    season,
   }
 }
 
 const listCoachesCached = cached(
   listCoachesUncached,
-  "coaches-list",
+  // v2: results are season-scoped.
+  "coaches-list:v2",
   ["coaches"],
   300,
 )
 
-export function listCoaches(
+export async function listCoaches(
   input: ListCoachesInput = {},
-): Promise<ListCoachesResult> {
+): Promise<ListCoachesResolved> {
   // Free-text searches have unbounded cardinality; cache only the browsable
   // permutations (league × role × page) that every visitor hits.
-  if (input.query || input.team) return listCoachesUncached(input)
-  return listCoachesCached(input)
+  const season = input.season ?? (await latestSeasonName(input.league))
+  const resolved: ListCoachesInput = { ...input, season }
+  if (input.query || input.team) return listCoachesUncached(resolved)
+  return listCoachesCached(resolved)
 }
 
 export type CoachGroup = {
@@ -173,13 +210,18 @@ export function groupCoachesByTeam(items: CoachListItem[]): CoachGroup[] {
 export async function listCoachesByTeam(
   teamId: string,
   leagueSlug?: string,
+  season?: string,
 ): Promise<CoachListItem[]> {
   const db = getDb()
   // A club shared across leagues keeps a coaching staff per league; scope to the
-  // league being viewed so the team page's staff matches its league switch.
-  const where = leagueSlug
-    ? and(eq(coaches.teamId, teamId), eq(leagues.slug, leagueSlug))
-    : eq(coaches.teamId, teamId)
+  // league being viewed so the team page's staff matches its league switch, and
+  // to the season being viewed so last year's bench does not reappear.
+  const wanted = season ?? (await latestSeasonName(leagueSlug))
+  const where = and(
+    eq(coaches.teamId, teamId),
+    leagueSlug ? eq(leagues.slug, leagueSlug) : undefined,
+    coachSeasonCondition(wanted),
+  )
   const rows = await db
     .select({
       id: coaches.id,
@@ -201,6 +243,7 @@ export async function listCoachesByTeam(
     .from(coaches)
     .innerJoin(leagues, eq(coaches.leagueId, leagues.id))
     .innerJoin(teams, eq(coaches.teamId, teams.id))
+    .leftJoin(seasons, eq(coaches.seasonId, seasons.id))
     .where(where)
     .orderBy(asc(coaches.role), asc(coaches.fullName))
 

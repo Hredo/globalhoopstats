@@ -8,6 +8,18 @@ export type Locale = (typeof LOCALES)[number]
 
 export const DEFAULT_LOCALE: Locale = "en"
 
+/**
+ * Language served to a request that states none — no cookie and no
+ * `Accept-Language`. Every browser sends that header, so in practice this is
+ * the locale search-engine crawlers see: Googlebot sends neither, and it is
+ * what gets indexed. One URL serves both languages, so only one of them can be
+ * in Google, and on a `.es` domain whose audience searches in Spanish
+ * ("estadísticas Primera FEB") that one is Spanish. Visitors are unaffected:
+ * an English browser still gets English, and so does any unsupported language
+ * (DEFAULT_LOCALE).
+ */
+export const CRAWLER_LOCALE: Locale = "es"
+
 /** Cookie that carries the active language. Readable by the client (not HttpOnly). */
 export const LOCALE_COOKIE = "ghs_locale"
 
@@ -17,11 +29,12 @@ export function isLocale(value: unknown): value is Locale {
 
 /**
  * Pick the best supported locale from an `Accept-Language` header value.
- * Returns the highest-priority tag that maps to a supported language, or the
- * default locale when nothing matches.
+ * Returns the highest-priority tag that maps to a supported language, the
+ * default locale when nothing matches, and CRAWLER_LOCALE when there is no
+ * header at all.
  */
 export function pickFromAcceptLanguage(header: string | null | undefined): Locale {
-  if (!header) return DEFAULT_LOCALE
+  if (!header?.trim()) return CRAWLER_LOCALE
   const ranked = header
     .split(",")
     .map((part) => {

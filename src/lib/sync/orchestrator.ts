@@ -1,6 +1,6 @@
 import pLimit from "p-limit"
 import { and, eq, lt, sql } from "drizzle-orm"
-import { getDb } from "@/lib/db/client"
+import { getDb, rawRows } from "@/lib/db/client"
 import {
   coaches,
   leagues,
@@ -28,6 +28,14 @@ import { revalidateCacheTags } from "@/lib/sync/revalidate"
 import { slugify, uniqueSlug } from "@/lib/sync/slug"
 import { tierForName, tierForSlug, type LeagueTier } from "@/lib/leagues-tier"
 import { isSyncCancelled } from "@/lib/sync/controller"
+import { CURRENT_SEASON_LABEL } from "@/lib/seasons"
+import {
+  chunkIds,
+  findDepartedIds,
+  MIN_COACHES_TO_PRUNE,
+  MIN_PAIRS_TO_PRUNE,
+  pruneVerdict,
+} from "@/lib/sync/reconcile"
 
 /**
  * Central ingestion orchestrator: runs every league adapter (NBA, EuroLeague,
@@ -52,6 +60,10 @@ export type LeagueSyncTotals = {
   statsUpserted: number
   statsSkipped: number
   coaches: number
+  /** Roster rows written for squad members with no stat line yet. */
+  rosterOnly: number
+  /** Season rows dropped because the player/coach is no longer on that club. */
+  departures: number
 }
 
 export type LeagueSyncResult = {
@@ -88,8 +100,12 @@ function emptyTotals(): LeagueSyncTotals {
     statsUpserted: 0,
     statsSkipped: 0,
     coaches: 0,
+    rosterOnly: 0,
+    departures: 0,
   }
 }
+
+
 
 function statColumns(s: ExtractedPlayerStat) {
   return {
@@ -156,7 +172,10 @@ async function syncLeague(
       .limit(1)
     if (!league) throw new Error(`league ${adapter.id} vanished after upsert`)
     const leagueId = league.id
-    const seasonId = await ctx.ensureSeason(adapter.seasonCode)
+    // The LABEL, never the feed code: "E2026" as a season name would give the
+    // EuroLeague a private season row that no other league shares, which is
+    // exactly how the legacy "E2025" split happened.
+    const seasonId = await ctx.ensureSeason(adapter.seasonLabel)
 
     /* ---- Fetch the full batch before writing anything ---- */
     // The quality gate needs to see teams, players and stats together and
@@ -284,11 +303,84 @@ async function syncLeague(
       `${tag} stats upserted (${totals.statsUpserted}, skipped ${totals.statsSkipped})`,
     )
 
+    /* ---- Roster rows for squad members with no stat line ---- */
+    // A confirmed squad exists before a single game is played, and a season's
+    // rosters are read out of player_season_stats. Without this, a brand-new
+    // season shows every club as empty until the first box score lands — and a
+    // summer signing stays invisible on their new team for weeks.
+    //
+    // The row carries gamesPlayed 0 and null counters, which every read path
+    // already renders as "no stats yet"; the real numbers overwrite it on the
+    // first sync after tip-off.
+    const rosterPairs = new Set<string>()
+    for (const stat of sourceStats) {
+      const playerId = playerIdBySourceId.get(stat.playerSourceId)
+      const teamId = stat.teamSourceId
+        ? teamIdBySourceId.get(stat.teamSourceId)
+        : undefined
+      if (playerId && teamId) rosterPairs.add(`${playerId}::${teamId}`)
+    }
+    for (const sp of sourcePlayers) {
+      const playerId = playerIdBySourceId.get(sp.sourceId)
+      const teamId = sp.teamSourceId
+        ? teamIdBySourceId.get(sp.teamSourceId)
+        : undefined
+      if (!playerId || !teamId) continue
+      const key = `${playerId}::${teamId}`
+      if (rosterPairs.has(key)) continue
+      rosterPairs.add(key)
+      await db
+        .insert(playerSeasonStats)
+        .values({ playerId, teamId, leagueId, seasonId, gamesPlayed: 0 })
+        // Never clobber a real line: if a row already exists for this squad
+        // slot it is either this sync's stats or a previous one's, and both
+        // beat an empty placeholder.
+        .onDuplicateKeyUpdate({ set: { teamId } })
+      totals.rosterOnly++
+    }
+    console.log(
+      `${tag} roster rows for squad members without stats (${totals.rosterOnly})`,
+    )
+
+    /* ---- Departures: this season's squads are exactly what was scraped ---- */
+    // A player who was at a club last season and is not in its squad now must
+    // stop appearing on that club FOR THIS SEASON — while last season's row
+    // stays untouched, because it is history and still true.
+    const squadVerdict = pruneVerdict(rosterPairs.size, MIN_PAIRS_TO_PRUNE)
+    if (squadVerdict.prune) {
+      const stored = await rawRows<{ id: string; player_id: string; team_id: string }>(
+        db.execute(sql`
+          SELECT id, player_id, team_id
+          FROM player_season_stats
+          WHERE league_id = ${leagueId} AND season_id = ${seasonId}
+        `),
+      )
+      const departed = findDepartedIds(
+        stored,
+        (row) => `${row.player_id}::${row.team_id}`,
+        rosterPairs,
+      )
+      for (const chunk of chunkIds(departed)) {
+        await db.execute(sql`
+          DELETE FROM player_season_stats
+          WHERE id IN (${sql.join(chunk.map((id) => sql`${id}`), sql`, `)})
+        `)
+      }
+      totals.departures += departed.length
+      console.log(
+        `${tag} squad reconciled — ${rosterPairs.size} current, ` +
+          `${departed.length} departure(s) removed from this season`,
+      )
+    } else {
+      console.warn(`${tag} squad reconciliation SKIPPED — ${squadVerdict.reason}`)
+    }
+
     /* ---- Coaches ---- */
     const sourceCoaches = await adapter.fetchCoaches()
     // Same inline slug as run.ts (no accent stripping) so upserts land on the
     // coach rows previous syncs created instead of inserting near-duplicates.
     const usedCoachSlugs = new Set<string>()
+    const coachSlots = new Set<string>()
     for (const sc of sourceCoaches) {
       const teamId = sc.teamSourceId
         ? teamIdBySourceId.get(sc.teamSourceId)
@@ -300,11 +392,16 @@ async function syncLeague(
       let i = 2
       while (usedCoachSlugs.has(coachSlug)) coachSlug = `${baseSlug}-${i++}`
       usedCoachSlugs.add(coachSlug)
+      coachSlots.add(`${teamId}::${coachSlug}`)
       await db
         .insert(coaches)
         .values({
           leagueId,
           teamId,
+          // Staff is per season: without this the same row was overwritten
+          // every year, so a club's bench had no history and last season's
+          // coaches silently became this season's.
+          seasonId,
           fullName: sc.fullName,
           slug: coachSlug,
           role: sc.role,
@@ -329,6 +426,37 @@ async function syncLeague(
       totals.coaches++
     }
     console.log(`${tag} coaches upserted (${totals.coaches})`)
+
+    /* ---- Staff departures for this season ---- */
+    // Same rule as the squad: a coach who left is gone from THIS season only.
+    if (coachSlots.size >= MIN_COACHES_TO_PRUNE) {
+      const storedCoaches = await rawRows<{
+        id: string
+        team_id: string
+        slug: string
+      }>(
+        db.execute(sql`
+          SELECT id, team_id, slug
+          FROM coaches
+          WHERE league_id = ${leagueId} AND season_id = ${seasonId}
+        `),
+      )
+      const goneIds = findDepartedIds(
+        storedCoaches,
+        (row) => `${row.team_id}::${row.slug}`,
+        coachSlots,
+      )
+      for (const chunk of chunkIds(goneIds)) {
+        await db.execute(sql`
+          DELETE FROM coaches
+          WHERE id IN (${sql.join(chunk.map((id) => sql`${id}`), sql`, `)})
+        `)
+      }
+      totals.departures += goneIds.length
+      if (goneIds.length > 0) {
+        console.log(`${tag} staff reconciled — ${goneIds.length} departure(s)`)
+      }
+    }
 
     /* ---- Finalize ---- */
     const rowsWritten =
@@ -504,8 +632,8 @@ export async function startGlobalSync(
         pending = (async () => {
           // The DB currently holds duplicate season rows per name (legacy
           // syncs); deterministically converge on the one with most stats.
-          const existing = (await db.execute(
-            sql`
+          const existing = await rawRows<{ id: string }>(
+            db.execute(sql`
               SELECT s.id
               FROM seasons s
               LEFT JOIN player_season_stats p ON p.season_id = s.id
@@ -513,13 +641,24 @@ export async function startGlobalSync(
               GROUP BY s.id
               ORDER BY count(p.id) DESC, s.id
               LIMIT 1
-            `,
-          )) as unknown as { id: string }[]
-          if (existing[0]) return existing[0].id
-          const seasonId = newId()
-          await db
-            .insert(seasons)
-            .values({ id: seasonId, name: code, isCurrent: true })
+            `),
+          )
+          const seasonId = existing[0]?.id ?? newId()
+          if (!existing[0]) {
+            await db
+              .insert(seasons)
+              .values({ id: seasonId, name: code, isCurrent: false })
+          }
+          // `is_current` is a SINGLETON, and nothing used to enforce that:
+          // every insert set it to true and never demoted the previous season,
+          // so after a rollover two seasons claimed to be live at once and any
+          // query filtering on the flag returned both. Only the configured
+          // current season may hold it, and holding it demotes everyone else.
+          if (code === CURRENT_SEASON_LABEL) {
+            await db.execute(
+              sql`UPDATE seasons SET is_current = (id = ${seasonId})`,
+            )
+          }
           return seasonId
         })()
         seasonPromises.set(code, pending)

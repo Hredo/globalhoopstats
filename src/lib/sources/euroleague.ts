@@ -7,12 +7,15 @@ import {
   type SourceTeamStats,
   SOURCE_META,
 } from "@/lib/sources/types"
-import { fetchText } from "@/lib/sources/fetcher"
+import { fetchTextIfPublished } from "@/lib/sources/fetcher"
 import {
   brSlugToEuroleagueCode,
   euroleagueTeamLogoUrl,
 } from "@/lib/sources/euroleague-teams"
-import { EUROLEAGUE_COACHES_2025_26 } from "@/lib/sources/euroleague-static"
+import {
+  EUROLEAGUE_COACHES_2025_26,
+  EUROLEAGUE_COACHES_SEASON,
+} from "@/lib/sources/euroleague-static"
 import {
   parseBirthdate,
   parseHeightToCm,
@@ -35,11 +38,28 @@ const SEASON_START_YEAR = (() => {
 const BR_YEAR = SEASON_START_YEAR + 1
 const BR_SEASON_SUFFIX = String(BR_YEAR)
 
-async function fetchHtml(url: string): Promise<string> {
+/**
+ * A Basketball-Reference EuroLeague page, or null when it is not published.
+ *
+ * Every EuroLeague read in this adapter is a season page, so before BR opens
+ * the season all of them 404. That is a competition whose data is not out yet,
+ * and each caller returns an empty list: the quality gate then blocks the write
+ * with "0 teams scraped" and last season's rows are left exactly as they were.
+ */
+async function fetchHtml(url: string): Promise<string | null> {
   // Shared polite fetcher — note EuroLeague pulls from basketball-reference.com,
   // the same host as the NBA adapter, so the per-host throttle stops a parallel
   // sync from double-hammering Basketball Reference.
-  return fetchText(url, { headers: { "Accept-Language": "en-US,en;q=0.9" } })
+  return fetchTextIfPublished(url, {
+    headers: { "Accept-Language": "en-US,en;q=0.9" },
+  })
+}
+
+/** Log once per read that the season page is not out yet. */
+function warnUnpublished(what: string): void {
+  console.warn(
+    `[euroleague] ${BR_YEAR} ${what} page not published yet — nothing scraped`,
+  )
 }
 
 function decodeEntities(s: string): string {
@@ -128,10 +148,15 @@ export const euroleagueAdapter: SourceAdapter = {
   country: SOURCE_META.euroleague.country,
   season: SOURCE_META.euroleague.season,
   seasonCode: SEASON,
+  seasonLabel: SOURCE_META.euroleague.seasonLabel,
 
   async fetchTeams(): Promise<SourceTeam[]> {
     const url = `${BR_BASE}${BR_LEAGUE_PATH}/${BR_YEAR}.html`
     const html = await fetchHtml(url)
+    if (!html) {
+      warnUnpublished("season")
+      return []
+    }
     const standingsHtml = extractTableById(html, "elg_standings")
     const rows = rowsFromTable(standingsHtml)
     const out: SourceTeam[] = []
@@ -159,6 +184,10 @@ export const euroleagueAdapter: SourceAdapter = {
   async fetchPlayers(): Promise<SourcePlayer[]> {
     const url = `${BR_BASE}${BR_LEAGUE_PATH}/${BR_YEAR}_totals.html`
     const html = await fetchHtml(url)
+    if (!html) {
+      warnUnpublished("totals")
+      return []
+    }
     const tableHtml = extractTableById(html, `totals-stats-${BR_SEASON_SUFFIX}`)
     const rows = rowsFromTable(tableHtml)
     const out: SourcePlayer[] = []
@@ -199,6 +228,10 @@ export const euroleagueAdapter: SourceAdapter = {
   async fetchStats(): Promise<ExtractedPlayerStat[]> {
     const url = `${BR_BASE}${BR_LEAGUE_PATH}/${BR_YEAR}_totals.html`
     const html = await fetchHtml(url)
+    if (!html) {
+      warnUnpublished("totals")
+      return []
+    }
     const tableHtml = extractTableById(html, `totals-stats-${BR_SEASON_SUFFIX}`)
     const rows = rowsFromTable(tableHtml)
     const out: ExtractedPlayerStat[] = []
@@ -257,6 +290,10 @@ export const euroleagueAdapter: SourceAdapter = {
   async fetchCoaches(): Promise<SourceCoach[]> {
     const url = `${BR_BASE}${BR_LEAGUE_PATH}/${BR_YEAR}.html`
     const html = await fetchHtml(url)
+    if (!html) {
+      warnUnpublished("season")
+      return []
+    }
     const tableHtml = extractTableById(html, "coaches")
     const rows = rowsFromTable(tableHtml)
     const out: SourceCoach[] = []
@@ -287,6 +324,12 @@ export const euroleagueAdapter: SourceAdapter = {
     }
     if (out.length > 0) return out
     // BR has no coaches table for EuroLeague — fall back to static data.
+    //
+    // That table is hand-curated for ONE season. Serving it for a later season
+    // would silently publish a stale bench as if it were this year's staff, so
+    // it is only used for the season it was written for; other seasons return
+    // nothing and `backfill-coach-wikidata.ts` fills them in.
+    if (SEASON !== EUROLEAGUE_COACHES_SEASON) return out
     for (const [teamCode, coaches] of Object.entries(EUROLEAGUE_COACHES_2025_26)) {
       for (const c of coaches) {
         const key = `${teamCode}-${c.fullName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`
@@ -306,6 +349,10 @@ export const euroleagueAdapter: SourceAdapter = {
   async fetchTeamStats(): Promise<SourceTeamStats[]> {
     const url = `${BR_BASE}${BR_LEAGUE_PATH}/${BR_YEAR}.html`
     const html = await fetchHtml(url)
+    if (!html) {
+      warnUnpublished("season")
+      return []
+    }
 
     const standingsHtml = extractTableById(html, "elg_standings")
     const standingsRows = rowsFromTable(standingsHtml)

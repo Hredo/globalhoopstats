@@ -1,6 +1,9 @@
 import Link from "next/link"
 import type { Metadata } from "next"
 import { getPlayerForCompare } from "@/lib/data/compare"
+import { listSeasons, resolveSeasonName } from "@/lib/data/seasons"
+import { SeasonSwitcher } from "@/components/ui/season-select"
+import { compareSeasonsDesc } from "@/lib/seasons"
 import { CompareSearch } from "@/components/players/compare-search"
 import { CompareRadar } from "@/components/players/compare-radar"
 import { CompareAi } from "@/components/players/compare-ai"
@@ -19,18 +22,19 @@ import { getT } from "@/lib/i18n/server"
 import { pageSeo } from "@/lib/seo/metadata"
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { t } = await getT()
+  const { t, locale } = await getT()
   // Always canonicalises to bare /compare: the ?a=&b= permutations are a
   // combinatorial explosion of near-identical pages, and pointing them at one
   // canonical keeps the crawler on the page that is worth indexing.
   return pageSeo({
+    locale,
     path: "/compare",
     title: t("compare.metaTitle"),
     description: t("compare.metaDescription"),
   })
 }
 
-type Search = { a?: string; b?: string }
+type Search = { a?: string; b?: string; season?: string }
 
 export default async function ComparePage(props: {
   searchParams: Promise<Search>
@@ -38,13 +42,27 @@ export default async function ComparePage(props: {
   const sp = await props.searchParams
   const aSlug = (sp.a ?? "").trim() || "nba-luka-doncic"
   const bSlug = (sp.b ?? "").trim() || "nba-nikola-jokic"
-  const [playerA, playerB, marketA, marketB] = await Promise.all([
-    getPlayerForCompare(aSlug),
-    getPlayerForCompare(bSlug),
+  // ONE season for both sides. A comparison that reads one player's current
+  // season against the other's last one is not a comparison.
+  const season = await resolveSeasonName(sp.season)
+  const [playerA, playerB, marketA, marketB, allSeasons] = await Promise.all([
+    getPlayerForCompare(aSlug, season),
+    getPlayerForCompare(bSlug, season),
     getMarketPlayerBySlug(aSlug).catch(() => null),
     getMarketPlayerBySlug(bSlug).catch(() => null),
+    listSeasons(),
   ])
   const { t } = await getT()
+
+  // Offer every season the site holds, plus anything either player has that the
+  // global list somehow misses, so a switch never lands on an empty screen.
+  const seasonOptions = [
+    ...new Set([
+      ...allSeasons.map((s) => s.name),
+      ...(playerA?.availableSeasons ?? []),
+      ...(playerB?.availableSeasons ?? []),
+    ]),
+  ].sort(compareSeasonsDesc)
 
   const showMarketValue =
     (marketA?.valuation?.eur ?? 0) > 0 && (marketB?.valuation?.eur ?? 0) > 0
@@ -79,12 +97,29 @@ export default async function ComparePage(props: {
         </header>
       </Reveal>
 
+      <div className="mb-4 flex items-center gap-3">
+        <SeasonSwitcher seasons={seasonOptions} active={season} />
+        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-500">
+          {t("compare.seasonScope", { season })}
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
         <Reveal direction="right">
-          <CompareSearch side="a" current={playerA} otherSlug={bSlug} />
+          <CompareSearch
+            side="a"
+            current={playerA}
+            otherSlug={bSlug}
+            season={season}
+          />
         </Reveal>
         <Reveal direction="left">
-          <CompareSearch side="b" current={playerB} otherSlug={aSlug} />
+          <CompareSearch
+            side="b"
+            current={playerB}
+            otherSlug={aSlug}
+            season={season}
+          />
         </Reveal>
       </div>
 
@@ -152,6 +187,7 @@ export default async function ComparePage(props: {
               bSlug={playerB.slug}
               aName={playerA.fullName}
               bName={playerB.fullName}
+              season={season}
             />
           </div>
         </ScaleIn>

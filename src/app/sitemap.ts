@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next"
+import { listLeagueOverviews } from "@/lib/data/leagues"
 import { listAllPlayerSlugs } from "@/lib/data/players"
-import { listAllCoachSlugs } from "@/lib/data/staff"
 import { listTeamOptions } from "@/lib/data/teams"
 import { getLatestSyncTime } from "@/lib/data/sync"
+import { ALL_SEASONS } from "@/lib/seasons"
 import { SITE } from "@/lib/site"
 
 /**
@@ -57,9 +58,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // player past the cut simply never got submitted for indexing. A sitemap may
   // hold 50 000 URLs, so these bounds exist only to keep one runaway query from
   // producing an invalid file.
-  const [playerSlugs, teamOptions, coachSlugs] = await Promise.all([
+  const [leagueRows, playerSlugs, teamOptions] = await Promise.all([
+    // Cached and already warm from /leagues, which renders the same list.
+    listLeagueOverviews().catch(() => [] as Array<{ slug: string }>),
     listAllPlayerSlugs(45000).catch(() => [] as Array<{ slug: string }>),
-    listTeamOptions(2000).catch(
+    // Every season, not just the newest: a club that has left the competition
+    // still has a live page, and dropping it from the sitemap would
+    // de-index a page that still resolves.
+    listTeamOptions(2000, ALL_SEASONS).catch(
       () =>
         [] as Array<{
           id: string
@@ -68,8 +74,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           leagueSlug: string
         }>,
     ),
-    listAllCoachSlugs(5000).catch(() => [] as Array<{ slug: string }>),
   ])
+
+  // League landing pages sit right under the homepage: they are the hubs that
+  // target the head terms ("estadísticas Liga ACB") and link down to every team.
+  const leagueEntries: MetadataRoute.Sitemap = leagueRows.map((l) => ({
+    url: `${SITE.url}/leagues/${l.slug}`,
+    lastModified: lastSync,
+    changeFrequency: "daily",
+    priority: 0.9,
+  }))
 
   const playerEntries: MetadataRoute.Sitemap = playerSlugs.map((p) => ({
     url: `${SITE.url}/players/${p.slug}`,
@@ -85,12 +99,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }))
 
-  const coachEntries: MetadataRoute.Sitemap = coachSlugs.map((c) => ({
-    url: `${SITE.url}/coaches/${c.slug}`,
-    lastModified: lastSync,
-    changeFrequency: "weekly",
-    priority: 0.7,
-  }))
-
-  return [...staticEntries, ...playerEntries, ...teamEntries, ...coachEntries]
+  // No per-coach entries: coaches have no detail page (they live on /coaches
+  // and on their team's page), so every /coaches/<slug> URL this used to list
+  // was a 404 that Search Console held against the sitemap.
+  return [...staticEntries, ...leagueEntries, ...playerEntries, ...teamEntries]
 }
