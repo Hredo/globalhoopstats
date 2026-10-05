@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer"
+import nodemailer, { type Transporter } from "nodemailer"
 import { getServerEnv } from "@/lib/env"
 import { SITE } from "@/lib/site"
 
@@ -27,9 +27,9 @@ export type SendEmailInput = {
   replyTo?: string
 }
 
-let smtpTransport: nodemailer.Transporter | null = null
+let smtpTransport: Transporter | null = null
 
-function getSmtpTransport(): nodemailer.Transporter | null {
+function getSmtpTransport(): Transporter | null {
   const env = getServerEnv()
   if (!env.GMAIL_APP_PASSWORD) return null
   if (smtpTransport) return smtpTransport
