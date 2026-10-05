@@ -50,25 +50,25 @@ describe("patched transitive dependencies stay patched", () => {
     const versions = resolvedVersions("dompurify")
     expect(versions.length).toBeGreaterThan(0)
     for (const v of versions) {
-      expect(atLeast(v, "3.4.13"), `dompurify ${v} is below 3.4.13`).toBe(true)
+      expect(atLeast(v, "3.4.16"), `dompurify ${v} is below 3.4.16`).toBe(true)
     }
   })
 
   it("resolves undici above the cache-directive disclosure fixes", () => {
     const versions = resolvedVersions("undici")
     for (const v of versions) {
-      expect(atLeast(v, "7.29.0"), `undici ${v} is below 7.29.0`).toBe(true)
+      expect(atLeast(v, "7.29.1"), `undici ${v} is below 7.29.1`).toBe(true)
     }
   })
 
-  it("resolves brace-expansion above the CVE-2026-69152 bypass fix", () => {
-    // Patched at 1.1.18 on the 1.x line and 5.0.9 on the 4/5.x line. GitHub's
-    // dashboard reports "upgrade to 5.0.8" against a 1.1.18 install; that is
-    // the highest patched release overall, not a required major jump.
+  it("resolves brace-expansion above the 2026-10 stack-exhaustion fixes", () => {
+    // Patched at 1.1.21 on the 1.x line and 5.0.12 on the 4/5.x line. GitHub's
+    // dashboard reports the 5.x fix against a 1.x install; that is the
+    // highest patched release overall, not a required major jump.
     const versions = resolvedVersions("brace-expansion")
     expect(versions.length).toBeGreaterThan(0)
     for (const v of versions) {
-      const floor = v.startsWith("1.") ? "1.1.18" : "5.0.9"
+      const floor = v.startsWith("1.") ? "1.1.21" : "5.0.12"
       expect(atLeast(v, floor), `brace-expansion ${v} is below ${floor}`).toBe(
         true,
       )
