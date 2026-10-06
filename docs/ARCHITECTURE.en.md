@@ -69,7 +69,7 @@ heterogeneous, dirty sources into a single canonical identity per person/team, e
 | --- | --- | --- |
 | Framework | **Next.js 15** (App Router) + **React 19** | `next dev --turbopack` in development |
 | Language | **TypeScript** (strict) | alias `@/*` → `src/*` |
-| Styling | **Tailwind CSS 4** + **Framer Motion** | `@tailwindcss/postcss` |
+| Styling | **Tailwind CSS 4** + **Motion** (`motion/react`, formerly Framer Motion) | `@tailwindcss/postcss` |
 | Database | **MySQL** (Hostinger, same server as the app) | `mysql2` pool, every datetime read and written as UTC |
 | ORM / migrations | **Drizzle ORM** + **Drizzle Kit** | schema in TS, `db:push` as the primary flow |
 | Auth | Custom sessions (HMAC), `bcryptjs`, email‑code 2FA | no external auth library |

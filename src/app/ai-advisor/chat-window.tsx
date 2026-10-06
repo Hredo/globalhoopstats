@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { motion } from "framer-motion"
+import { motion } from "motion/react"
 import { MessageBubble } from "./message-bubble"
 import type { Reaction } from "./message-actions"
 

@@ -8,7 +8,7 @@ import {
   useState,
 } from "react"
 import { useT } from "@/lib/i18n/provider"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence } from "motion/react"
 import Link from "next/link"
 import { TeamSelector } from "@/app/ai-advisor/team-selector"
 import { ChatWindow } from "@/app/ai-advisor/chat-window"

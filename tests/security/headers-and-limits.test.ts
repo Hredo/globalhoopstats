@@ -180,6 +180,6 @@ describe("the CSP is defined in exactly one place", () => {
       "utf8",
     )
     expect(layout).toContain('headers()).get("x-nonce")')
-    expect(layout).toContain("<script nonce={nonce}")
+    expect(layout).toMatch(/<script\s+nonce=\{nonce\}/)
   })
 })

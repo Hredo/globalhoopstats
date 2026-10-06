@@ -1,6 +1,6 @@
 "use client"
 
-import { motion, type Variants } from "framer-motion"
+import { motion, type Variants } from "motion/react"
 import { formatEur } from "@/lib/market/league-strength"
 import type { Valuation } from "@/lib/market/valuation"
 import { ValuationBadge } from "@/components/market/valuation-badge"

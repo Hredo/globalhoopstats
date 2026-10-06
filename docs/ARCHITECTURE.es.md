@@ -69,7 +69,7 @@ heterogéneas y sucias en una única identidad canónica por persona/equipo, inc
 | --- | --- | --- |
 | Framework | **Next.js 15** (App Router) + **React 19** | `next dev --turbopack` en desarrollo |
 | Lenguaje | **TypeScript** (strict) | alias `@/*` → `src/*` |
-| Estilos | **Tailwind CSS 4** + **Framer Motion** | `@tailwindcss/postcss` |
+| Estilos | **Tailwind CSS 4** + **Motion** (`motion/react`, antes Framer Motion) | `@tailwindcss/postcss` |
 | Base de datos | **MySQL** (Hostinger, el mismo servidor que la app) | pool de `mysql2`, todas las fechas en UTC |
 | ORM / migraciones | **Drizzle ORM** + **Drizzle Kit** | esquema en TS, `db:push` como flujo principal |
 | Auth | Sesiones propias (HMAC), `bcryptjs`, 2FA por email | sin librería externa de auth |

@@ -171,7 +171,14 @@ export default async function RootLayout({
         {/* Runs before paint to apply the saved theme (no dark→light flash).
             Lives as the first body node — a raw <script> may not be a direct
             child of <html>, and this still executes before content renders. */}
-        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/* suppressHydrationWarning: browsers blank a nonce attribute once the
+            page has parsed it (so injected script cannot read it back), and
+            React reports that blank as a server/client mismatch. */}
+        <script
+          nonce={nonce}
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}
+        />
         <div
           aria-hidden
           className="court-backdrop pointer-events-none fixed inset-0 -z-10 flex items-center justify-center overflow-hidden"

@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { AnimatePresence, motion } from "framer-motion"
+import { AnimatePresence, motion } from "motion/react"
 
 const TOUR_KEY = "ai-advisor:tour-done"
 export const TOUR_EVENT = "advisor:start-tour"

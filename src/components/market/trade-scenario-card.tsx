@@ -1,6 +1,6 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { motion } from "motion/react"
 import { formatCurrency, type CurrencyCode } from "@/lib/market/currency"
 import type { Valuation } from "@/lib/market/valuation"
 import { SmartImage } from "@/components/ui/smart-image"

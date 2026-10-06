@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { motion, useReducedMotion } from "framer-motion"
+import { motion, useReducedMotion } from "motion/react"
 import { useT } from "@/lib/i18n/provider"
 import type { ShotZonesJson, ShotZoneKey } from "@/lib/db/schema"
 
