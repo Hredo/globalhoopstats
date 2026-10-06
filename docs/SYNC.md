@@ -1,7 +1,7 @@
 # Data sync & scheduling
 
 The data sync scrapes each league and upserts teams, players, stats and coaches
-into Postgres. As of July 2026 the **scheduled** sync is triggered by a
+into MySQL. As of July 2026 the **scheduled** sync is triggered by a
 Hostinger cron job that calls `POST /api/cron/sync` — the sync then runs
 detached inside the web server process.
 

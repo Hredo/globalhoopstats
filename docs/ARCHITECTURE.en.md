@@ -8,7 +8,7 @@
 >
 > It complements the [`README.md`](../README.md) (product vision + quick start). If they disagree, **the code wins**.
 
-**Document last revised:** 2026‑06‑30 · **Stack:** Next.js 15 (App Router) · React 19 · TypeScript strict · Postgres (Neon) · Drizzle ORM.
+**Document last revised:** 2026‑10‑06 · **Stack:** Next.js 15 (App Router) · React 19 · TypeScript strict · MySQL · Drizzle ORM.
 
 ---
 
@@ -70,7 +70,7 @@ heterogeneous, dirty sources into a single canonical identity per person/team, e
 | Framework | **Next.js 15** (App Router) + **React 19** | `next dev --turbopack` in development |
 | Language | **TypeScript** (strict) | alias `@/*` → `src/*` |
 | Styling | **Tailwind CSS 4** + **Framer Motion** | `@tailwindcss/postcss` |
-| Database | **Postgres** (Neon serverless) | `postgres` driver with `prepare: false` |
+| Database | **MySQL** (Hostinger, same server as the app) | `mysql2` pool, every datetime read and written as UTC |
 | ORM / migrations | **Drizzle ORM** + **Drizzle Kit** | schema in TS, `db:push` as the primary flow |
 | Auth | Custom sessions (HMAC), `bcryptjs`, email‑code 2FA | no external auth library |
 | Email | **Nodemailer** | Resend → Gmail SMTP → console transports |
@@ -80,7 +80,7 @@ heterogeneous, dirty sources into a single canonical identity per person/team, e
 | Export | `jspdf`, `docx`, `xlsx-js-style` | PDF/Word/Excel reports |
 | Tooling | **pnpm 11**, ESLint, Prettier, **Vitest**, `tsx` | Node 20.x |
 
-**Environment requirements:** Node 20.x · pnpm 11.x · a Postgres database · (optional) Ollama with `llama3.1:8b`.
+**Environment requirements:** Node 20.x · pnpm 11.x · a MySQL 8 / MariaDB database · (optional) Ollama for a local AI model.
 
 ---
 
@@ -107,7 +107,7 @@ flowchart TB
       AD[Adapters\nsrc/lib/sources/*] --> ORCH[Orchestrator\nstartGlobalSync]
       ORCH --> QG[Quality Gate]
       ORCH --> EM[Entity Matcher\n+ Ollama]
-      ORCH --> DB[(Postgres / Neon)]
+      ORCH --> DB[(MySQL)]
     end
 
     NBA & EL & ACB & FEB --> AD
@@ -289,7 +289,7 @@ Per‑league steps (`syncLeague`):
 
 Global orchestrator properties:
 
-- **Concurrency capped at 2 leagues** (`p-limit`) so the Neon pool and the sources aren't saturated.
+- **Concurrency capped at 2 leagues** (`p-limit`) so the database pool and the sources aren't saturated.
 - **Shared state**: the player identity registry, used slugs and team/season caches are common to all parallel jobs →
   a multi‑league player (e.g. Edy Tavares) ends up in **a single row**.
 - **Self‑healing**: on startup it marks orphaned `running` rows older than 45 min (dead processes) as `failed`.
@@ -423,6 +423,11 @@ File: `src/lib/auth/session.ts`.
   returns 401 on the API).
 - **Rate limiting** by fixed window in the `rate_limits` table (`src/lib/security/rate-limit.ts`), with
   **proxy‑aware real‑IP** resolution (`TRUSTED_PROXY_HOPS`) — the site sits behind Cloudflare.
+  One resolver, `src/lib/security/client-ip.ts`, serves the middleware and every route: it reads the
+  `X-Forwarded-For` hop our own proxy wrote, and believes `CF-Connecting-IP` **only when that hop is a Cloudflare
+  edge**. The origin also answers direct connections, where that header is whatever the caller sends.
+- On top of the per-IP buckets, login has a **per-account** bucket and the 2FA attempt counter is claimed with a
+  single conditional `UPDATE`, so parallel guesses cannot slip past the five-try cap.
 
 ### 9.6 Headers and CSP
 
@@ -431,8 +436,9 @@ File: `src/lib/auth/session.ts`.
 
 - In **production** `unsafe-eval` is removed (only needed for Turbopack HMR in dev) → an effective
   anti‑XSS/exfiltration CSP.
-- The **`/ai-advisor/*`** route uses an **even stricter** CSP (no open `img-src https:`) because it renders
-  LLM/user‑supplied content.
+- The CSP is built **per request around a nonce** in the middleware (`src/lib/security/csp.ts`), so `script-src`
+  carries no `'unsafe-inline'`. The **`/ai-advisor/*`** route drops `blob:` images because it renders LLM output;
+  the markdown renderer itself never emits `<img>` and allow-lists link schemes (`safeLinkHref`).
 
 ### 9.7 Prompt‑injection defense
 
@@ -515,7 +521,7 @@ Validated with Zod in **[`src/lib/env.ts`](../src/lib/env.ts)** (server + client
 
 | Variable | Req. | Purpose |
 | --- | --- | --- |
-| `DATABASE_URL` | ✅ | Postgres/Neon (use the *pooled* endpoint in prod) |
+| `DATABASE_URL` | ✅ | `mysql://user:pass@host:3306/db` — on Hostinger use host `127.0.0.1` |
 | `SESSION_SECRET` | prod | HMAC for session tokens (≥32 chars) |
 | `ENCRYPTION_KEY` | prod | AES‑256‑GCM to encrypt AI keys at rest |
 | `NEXT_PUBLIC_SITE_URL` | ✅ | canonical URL (SEO/sitemap/OG/JSON‑LD, CORS) |
@@ -589,10 +595,10 @@ Run `pnpm test` (single run) or `pnpm test:watch`. See `tests/README.md`.
 
 ## 16. Deployment
 
-(See *hosting-deployment* memory; the MySQL migration was **rejected on purpose** — the target is Postgres.)
+The database moved from Neon Postgres to Hostinger MySQL in July 2026, after Neon's monthly transfer quota took the site down; `pnpm db:verify-mysql` checks parity between the two.
 
 - **App**: a **long‑running Node.js** server on **Hostinger Cloud** (`pnpm build` → `pnpm start`).
-- **DB**: **Neon serverless Postgres** (use the *pooled* endpoint in prod; `prepare: false` in the driver).
+- **DB**: **MySQL on the same Hostinger server** (connect to `127.0.0.1`, not the external `srvNNNN.hstgr.io` host).
 - **CDN/Proxy**: **Cloudflare** in front (hence `TRUSTED_PROXY_HOPS` and the `cloudflareinsights` allowlist in the CSP).
 - **Cron**: Hostinger cron → `POST /api/cron/sync` with `Authorization: Bearer $CRON_SECRET`.
 - **Minimum prod variables**: `SESSION_SECRET`, `ENCRYPTION_KEY`, `DATABASE_URL`, `NEXT_PUBLIC_SITE_URL`.
@@ -643,7 +649,7 @@ pnpm sync:acb                        # load one league's data so there is someth
 
 **Design decisions that look odd but are intentional**
 
-- **Postgres, not MySQL** — the MySQL migration was deliberately rejected.
+- **MySQL on the app's own server** — no per-transfer quota that can take the site down, as Neon's did in July 2026.
 - **`drizzle/` gitignored** — the canonical flow is `db:push`; SQL migrations are regenerated locally.
 - **Ingestion biases toward "create, not merge"** — a duplicate is recoverable (`dedupe`), a wrong merge is not.
 - **Hard tier guard in the matcher** — required by the abundance of amateur namesakes in Spain.

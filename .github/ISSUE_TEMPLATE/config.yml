@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a vulnerability · Avisar de una vulnerabilidad
+    url: https://github.com/Hredo/globalhoopstats/blob/master/SECURITY.md
+    about: Privately, never in a public issue · En privado, nunca en un issue público
+  - name: Data partnerships, press, anything else · Acuerdos de datos, prensa, lo demás
+    url: https://globalhoopstats.es/contact
+    about: The contact form on the site · El formulario de contacto de la web

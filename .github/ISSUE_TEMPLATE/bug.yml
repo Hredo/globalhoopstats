@@ -1,0 +1,51 @@
+name: Bug report · Informar de un fallo
+description: Something on globalhoopstats.es is broken or shows wrong data · Algo no funciona o muestra datos erróneos
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Security problems do not go here.** Report them privately — see [SECURITY.md](../blob/master/SECURITY.md).
+        **Los problemas de seguridad no van aquí.** Avisa en privado — mira [SECURITY.md](../blob/master/SECURITY.md).
+
+        If the site does not load at all from Spain on a match day, it is probably the ISP blocking Cloudflare, not the site — try mobile data or a VPN first.
+        Si la web no carga desde España en día de partido, seguramente es tu operador bloqueando Cloudflare, no la web: prueba con datos móviles o una VPN.
+  - type: input
+    id: url
+    attributes:
+      label: Page · Página
+      description: The full address where it happens · La dirección completa donde pasa
+      placeholder: https://globalhoopstats.es/players/...
+    validations: { required: true }
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area · Zona
+      options:
+        - Stats / data (players, teams, coaches, leagues) · Datos
+        - AI Advisor · Asesor IA
+        - Trade simulator / market · Traspasos
+        - Playbook
+        - Account, login, 2FA · Cuenta
+        - Exports (PDF, Word, Excel) · Exportaciones
+        - Other · Otra
+    validations: { required: true }
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens · Qué pasa
+      description: What you expected and what you saw instead. For wrong data, the correct value and where it is published. · Qué esperabas y qué ocurrió. Si es un dato mal, el valor correcto y dónde se publica.
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps · Cómo reproducirlo
+      placeholder: |
+        1. Open ...
+        2. Click ...
+        3. ...
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device · Navegador y dispositivo
+      placeholder: Chrome 140, Android 15

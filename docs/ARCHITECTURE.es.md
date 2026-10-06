@@ -8,7 +8,7 @@
 >
 > Complementa al [`README.md`](../README.md) (visión de producto + arranque rápido). Si hay discrepancia, **manda el código**.
 
-**Última revisión del documento:** 2026‑06‑30 · **Stack:** Next.js 15 (App Router) · React 19 · TypeScript strict · Postgres (Neon) · Drizzle ORM.
+**Última revisión del documento:** 2026‑10‑06 · **Stack:** Next.js 15 (App Router) · React 19 · TypeScript strict · MySQL · Drizzle ORM.
 
 ---
 
@@ -70,7 +70,7 @@ heterogéneas y sucias en una única identidad canónica por persona/equipo, inc
 | Framework | **Next.js 15** (App Router) + **React 19** | `next dev --turbopack` en desarrollo |
 | Lenguaje | **TypeScript** (strict) | alias `@/*` → `src/*` |
 | Estilos | **Tailwind CSS 4** + **Framer Motion** | `@tailwindcss/postcss` |
-| Base de datos | **Postgres** (Neon serverless) | driver `postgres` con `prepare: false` |
+| Base de datos | **MySQL** (Hostinger, el mismo servidor que la app) | pool de `mysql2`, todas las fechas en UTC |
 | ORM / migraciones | **Drizzle ORM** + **Drizzle Kit** | esquema en TS, `db:push` como flujo principal |
 | Auth | Sesiones propias (HMAC), `bcryptjs`, 2FA por email | sin librería externa de auth |
 | Email | **Nodemailer** | transportes Resend → Gmail SMTP → consola |
@@ -80,7 +80,7 @@ heterogéneas y sucias en una única identidad canónica por persona/equipo, inc
 | Exportación | `jspdf`, `docx`, `xlsx-js-style` | informes PDF/Word/Excel |
 | Tooling | **pnpm 11**, ESLint, Prettier, **Vitest**, `tsx` | Node 20.x |
 
-**Requisitos de entorno:** Node 20.x · pnpm 11.x · una base Postgres · (opcional) Ollama con `llama3.1:8b`.
+**Requisitos de entorno:** Node 20.x · pnpm 11.x · una base MySQL 8 / MariaDB · (opcional) Ollama para un modelo de IA local.
 
 ---
 
@@ -107,7 +107,7 @@ flowchart TB
       AD[Adapters\nsrc/lib/sources/*] --> ORCH[Orchestrator\nstartGlobalSync]
       ORCH --> QG[Quality Gate]
       ORCH --> EM[Entity Matcher\n+ Ollama]
-      ORCH --> DB[(Postgres / Neon)]
+      ORCH --> DB[(MySQL)]
     end
 
     NBA & EL & ACB & FEB --> AD
@@ -290,7 +290,7 @@ Pasos por liga (`syncLeague`):
 
 Propiedades del orquestador global:
 
-- **Concurrencia limitada a 2 ligas** (`p-limit`) para no saturar el pool de Neon ni las fuentes.
+- **Concurrencia limitada a 2 ligas** (`p-limit`) para no saturar el pool de la base de datos ni las fuentes.
 - **Estado compartido**: el registro de identidad de jugadores, los slugs usados y las cachés de equipos/temporadas
   son comunes a todos los jobs en paralelo → un jugador multi‑liga (p. ej. Edy Tavares) acaba en **una sola fila**.
 - **Auto‑sanado**: al arrancar, marca como `failed` las filas `running` huérfanas de más de 45 min (procesos muertos).
@@ -427,6 +427,11 @@ Archivo: `src/lib/auth/session.ts`.
   devuelve 401 en API).
 - **Rate limiting** por ventana fija en la tabla `rate_limits` (`src/lib/security/rate-limit.ts`), con resolución de
   **IP real consciente de proxies** (`TRUSTED_PROXY_HOPS`) — la web va detrás de Cloudflare.
+  Un único resolvedor, `src/lib/security/client-ip.ts`, sirve al middleware y a todas las rutas: lee el salto de
+  `X-Forwarded-For` que escribió nuestro proxy y solo se cree `CF-Connecting-IP` **si ese salto es un nodo de
+  Cloudflare**. El origen también acepta conexiones directas, y ahí esa cabecera es lo que el atacante quiera.
+- Además de los cubos por IP, el login tiene uno **por cuenta** y el contador de intentos de 2FA se reserva con un
+  único `UPDATE` condicional, así que las peticiones en paralelo no se saltan el tope de cinco intentos.
 
 ### 9.6 Cabeceras y CSP
 
@@ -435,8 +440,9 @@ Archivo: `src/lib/auth/session.ts`.
 
 - En **producción** se elimina `unsafe-eval` (solo necesario para HMR de Turbopack en dev) → CSP efectiva
   anti‑XSS/exfiltración.
-- La ruta **`/ai-advisor/*`** usa una CSP **aún más estricta** (no permite `img-src https:` abierto) porque renderiza
-  contenido generado por el LLM/usuario.
+- La CSP se construye **en cada petición con un nonce** en el middleware (`src/lib/security/csp.ts`), así que
+  `script-src` no lleva `'unsafe-inline'`. La ruta **`/ai-advisor/*`** quita las imágenes `blob:` porque muestra texto
+  del LLM; el renderizador de markdown nunca genera `<img>` y solo acepta ciertos esquemas en los enlaces (`safeLinkHref`).
 
 ### 9.7 Defensa frente a *prompt injection*
 
@@ -520,7 +526,7 @@ app **se niega a arrancar** si `SESSION_SECRET` sigue siendo el valor de dev.
 
 | Variable | Req. | Propósito |
 | --- | --- | --- |
-| `DATABASE_URL` | ✅ | Postgres/Neon (usa el endpoint *pooled* en prod) |
+| `DATABASE_URL` | ✅ | `mysql://usuario:clave@host:3306/bd` — en Hostinger, host `127.0.0.1` |
 | `SESSION_SECRET` | prod | HMAC de tokens de sesión (≥32 chars) |
 | `ENCRYPTION_KEY` | prod | AES‑256‑GCM para cifrar claves de IA en reposo |
 | `NEXT_PUBLIC_SITE_URL` | ✅ | URL canónica (SEO/sitemap/OG/JSON‑LD, CORS) |
@@ -594,10 +600,10 @@ Ejecuta `pnpm test` (run único) o `pnpm test:watch`. Ver `tests/README.md`.
 
 ## 16. Despliegue
 
-(Ver memoria *hosting-deployment*; la migración a MySQL fue **rechazada a propósito** — el destino es Postgres.)
+La base de datos pasó de Neon Postgres a MySQL de Hostinger en julio de 2026, cuando la cuota mensual de transferencia de Neon tumbó la web; `pnpm db:verify-mysql` comprueba que ambas coinciden.
 
 - **App**: servidor **Node.js de larga ejecución** en **Hostinger Cloud** (`pnpm build` → `pnpm start`).
-- **BD**: **Neon serverless Postgres** (usar endpoint *pooled* en prod; `prepare: false` en el driver).
+- **BD**: **MySQL en el mismo servidor de Hostinger** (conectar a `127.0.0.1`, no al host externo `srvNNNN.hstgr.io`).
 - **CDN/Proxy**: **Cloudflare** delante (de ahí `TRUSTED_PROXY_HOPS` y la allowlist de `cloudflareinsights` en la CSP).
 - **Cron**: Hostinger cron → `POST /api/cron/sync` con `Authorization: Bearer $CRON_SECRET`.
 - **Variables mínimas en prod**: `SESSION_SECRET`, `ENCRYPTION_KEY`, `DATABASE_URL`, `NEXT_PUBLIC_SITE_URL`.
@@ -648,7 +654,7 @@ pnpm sync:acb                        # carga datos de una liga para tener algo q
 
 **Decisiones de diseño que parecen raras pero son intencionadas**
 
-- **Postgres, no MySQL** — la migración a MySQL se rechazó deliberadamente.
+- **MySQL en el propio servidor de la app** — sin cuotas de transferencia que puedan tumbar la web, como hizo la de Neon en julio de 2026.
 - **`drizzle/` gitignored** — el flujo canónico es `db:push`; las migraciones SQL se regeneran en local.
 - **Ingesta sesga a "crear, no fundir"** — un duplicado es recuperable (`dedupe`), una fusión errónea no.
 - **Guarda dura por tier en el matcher** — necesaria por la abundancia de homónimos amateurs en España.
