@@ -6,6 +6,7 @@ import { leagueSlugsFor } from "@/lib/league-groups"
 import { latestSeasonName } from "@/lib/data/seasons"
 import { ALL_SEASONS, parseSeasonParam, seasonNameVariants } from "@/lib/seasons"
 import { rateLimit, clientIp } from "@/lib/security/ai-advisor"
+import { foldAccents } from "@/lib/data/players"
 
 export const dynamic = "force-dynamic"
 
@@ -158,9 +159,12 @@ export async function GET(req: Request) {
   })
 }
 
-function rankByQuery(rows: Row[], q: string) {
+/** Same ranking as the main search: accents folded on both sides, so
+ *  "doncic" prefers Luka Dončić (word start) over Dino Radončić (mid-word). */
+function rankByQuery(rows: Row[], query: string) {
+  const q = foldAccents(query)
   const score = (r: Row) => {
-    const name = r.fullName.toLowerCase()
+    const name = foldAccents(r.fullName.toLowerCase())
     if (name === q) return 0
     if (name.startsWith(q)) return 1
     const lastName = name.split(" ").slice(-1)[0] ?? name

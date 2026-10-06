@@ -54,8 +54,7 @@
     "db:cleanup-syncs": "tsx scripts/cleanup-stale-syncs.ts",
     "seed:announcements": "tsx scripts/seed-announcements.ts",
     "migrate:league-names": "tsx scripts/migrate-league-names.ts",
-    "capture:trade": "tsx scripts/record-trade-video.ts",
-    "capture:playbook": "tsx scripts/record-playbook-video.ts",
+    "capture:showcase": "tsx scripts/record-showcase.ts",
     "db:verify-mysql": "tsx scripts/verify-mysql-parity.ts",
     "db:verify-shim": "tsx scripts/verify-sql-shim.ts"
   },

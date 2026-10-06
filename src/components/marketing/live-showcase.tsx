@@ -14,8 +14,9 @@ export type ShowcaseCounts = { leagues: number; players: number; coaches: number
 export type ShowcaseLeague = { name: string; slug: string }
 
 /** One recorded product scene. Footage lives in /media/previews as
- *  `{key}-{dark|light}.mp4` + a matching `.jpg` poster, captured from the
- *  real running app in BOTH themes so the reel always matches the page.
+ *  `{key}-{dark|light}-{es|en}.mp4` + a matching `.jpg` poster, captured from
+ *  the real running app in both themes and both languages so the reel always
+ *  matches the page (scripts/record-showcase.ts).
  *  Posters are JPEG rather than WebP because they are also handed to the raw
  *  `<video poster>` attribute, which next/image never gets to optimise. */
 type Scene = {
@@ -34,9 +35,11 @@ const SCENES: readonly Scene[] = [
   { key: "playbook", href: "/playbook", path: "/playbook", accent: "oklch(0.82 0.12 140)" },
 ]
 
-const media = (key: Scene["key"], theme: "dark" | "light") => ({
-  video: `/media/previews/${key}-${theme}.mp4`,
-  poster: `/media/previews/${key}-${theme}.jpg`,
+/** `suffix` is "-es" / "-en" for a clip in the visitor's language, "" for an
+ *  older language-neutral take. */
+const media = (key: Scene["key"], theme: "dark" | "light", suffix: string) => ({
+  video: `/media/previews/${key}-${theme}${suffix}.mp4`,
+  poster: `/media/previews/${key}-${theme}${suffix}.jpg`,
 })
 
 /**
@@ -47,14 +50,15 @@ const media = (key: Scene["key"], theme: "dark" | "light") => ({
  * and only play their clip while on screen. Footage swaps with the theme.
  */
 export function LiveShowcase({
-  ready = [],
+  clips = {},
   counts,
   updated,
   leagues,
 }: {
-  /** scene keys whose recorded clip exists — resolved on the server so a card
-   *  lights up automatically the moment its footage lands in public/. */
-  ready?: readonly string[]
+  /** scene key → file suffix of its recorded clip, for the scenes that have
+   *  one — resolved on the server so a card lights up automatically the
+   *  moment its footage lands in public/. */
+  clips?: Readonly<Record<string, string>>
   /** live, real database counts for the social-proof strip */
   counts: ShowcaseCounts
   /** relative "last synced" label, e.g. "hace 6 días" */
@@ -63,7 +67,6 @@ export function LiveShowcase({
   leagues: readonly ShowcaseLeague[]
 }) {
   const t = useT()
-  const readySet = new Set(ready)
 
   return (
     <section
@@ -149,7 +152,7 @@ export function LiveShowcase({
 
         <div className="mt-20 space-y-24 sm:mt-28 sm:space-y-36">
           {SCENES.map((s, i) => (
-            <SceneRow key={s.key} scene={s} index={i} ready={readySet.has(s.key)} />
+            <SceneRow key={s.key} scene={s} index={i} clip={clips[s.key]} />
           ))}
         </div>
       </div>
@@ -191,15 +194,17 @@ function ChromeBar({ path }: { path: string }) {
 function SceneRow({
   scene,
   index,
-  ready,
+  clip,
 }: {
   scene: Scene
   index: number
-  ready: boolean
+  /** file suffix of the recorded clip; undefined while none exists */
+  clip: string | undefined
 }) {
   const t = useT()
   const { theme } = useTheme()
-  const { video, poster } = media(scene.key, theme)
+  const ready = clip !== undefined
+  const { video, poster } = media(scene.key, theme, clip ?? "")
   const base = `home.showcase.items.${scene.key}`
   const mediaRight = index % 2 === 0
   const restTilt = mediaRight ? 2.4 : -2.4
@@ -295,14 +300,18 @@ function SceneRow({
                   />
                   {!reduce ? (
                     <video
-                      key={`${scene.key}-${theme}`}
+                      key={`${scene.key}-${theme}${clip}`}
                       ref={videoRef}
                       src={video}
                       poster={poster}
                       muted
                       loop
                       playsInline
-                      preload="auto"
+                      // Nothing is fetched until the row scrolls into view and
+                      // play() asks for it: five clips preloading at once used
+                      // to cost ~12 MB on every homepage visit. The poster
+                      // covers the gap.
+                      preload="none"
                       aria-hidden
                       className="absolute inset-0 h-full w-full object-cover"
                     />
