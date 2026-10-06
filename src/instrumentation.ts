@@ -19,14 +19,23 @@ export async function register() {
     try {
       const { writeFile, chmod } = await import("node:fs/promises")
       const { join } = await import("node:path")
-      const { homedir } = await import("node:os")
-      const path = join(homedir(), ".cron-auth.hdr")
-      await writeFile(path, `X-Cron-Secret: ${process.env.CRON_SECRET}\n`, {
-        mode: 0o600,
-      })
-      // writeFile's mode only applies on create; re-assert on overwrite.
-      await chmod(path, 0o600)
-      console.log(`[boot] cron auth header file ready at ${path}`)
+      const { homedir, userInfo } = await import("node:os")
+      // Hostinger runs the app with HOME set to the site folder
+      // (/home/<user>/domains/<site>), while the cron's shell — and the
+      // documented cron line — read /home/<user>. Writing only to homedir()
+      // left the cron reading a stale file and 401ing every night from July
+      // to October 2026. The passwd entry (userInfo) is the account's real
+      // home; both get the file.
+      const homes = new Set([homedir(), userInfo().homedir].filter(Boolean))
+      for (const home of homes) {
+        const path = join(home, ".cron-auth.hdr")
+        await writeFile(path, `X-Cron-Secret: ${process.env.CRON_SECRET}\n`, {
+          mode: 0o600,
+        })
+        // writeFile's mode only applies on create; re-assert on overwrite.
+        await chmod(path, 0o600)
+        console.log(`[boot] cron auth header file ready at ${path}`)
+      }
     } catch (err) {
       // Never block the boot on this — the cron just 401s until it's fixed.
       console.warn("[boot] could not write cron auth header file:", err)

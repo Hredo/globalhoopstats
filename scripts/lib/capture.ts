@@ -42,6 +42,8 @@ export const CENSOR_CSS = `
   [aria-label="Aviso de cookies"],
   [data-capture-hide],
   nextjs-portal { display: none !important; }
+  /* the account's own advisor conversations: private, and not the product */
+  aside[aria-label="Conversations"] li { filter: blur(26px) !important; }
 `
 
 /**

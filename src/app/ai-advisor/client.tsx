@@ -796,7 +796,7 @@ export default function AIAdvisorClient() {
                     d="M14 7a4 4 0 11-3.8 5.2L4 18v3h3v-2h2v-2h2l1.2-1.2A4 4 0 0114 7zm2.5 2.5h.01"
                   />
                 </svg>
-                <span className="hidden sm:inline">AIs &amp; keys</span>
+                <span className="hidden sm:inline">{t("aiAdvisor.ui.aisAndKeys")}</span>
               </Link>
             </div>
           </header>
@@ -979,10 +979,10 @@ export default function AIAdvisorClient() {
               loading={loading}
               placeholder={
                 !selectedTeam
-                  ? "Pick a team above to get started…"
+                  ? t("aiAdvisor.ui.placeholderNoTeam")
                   : loading
-                    ? "Analysing…"
-                    : `Ask about signings for ${selectedTeam.name}…`
+                    ? t("aiAdvisor.ui.placeholderLoading")
+                    : t("aiAdvisor.ui.placeholderAsk", { team: selectedTeam.name })
               }
             />
           </div>

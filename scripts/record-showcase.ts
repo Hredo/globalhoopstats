@@ -212,14 +212,28 @@ const SCENES: Record<SceneKey, Scene> = {
     path: "/ai-advisor",
     auth: true,
     async run(page, locale, poster) {
+      // The advisor answers for a club: pick it first, as a coach would.
+      const team = page.locator("#team-selector-input")
+      await team.waitFor({ state: "visible", timeout: 30000 })
+      await sleep(1000)
+      await team.click()
+      await team.pressSequentially("Real Mad", { delay: 90 })
+      const club = page.locator('[aria-label="Available teams"] [role="option"]').first()
+      await club.waitFor({ state: "visible", timeout: 15000 })
+      await sleep(500)
+      await club.click()
       const input = page.getByRole("textbox", { name: "Ask the advisor" })
-      await input.waitFor({ state: "visible", timeout: 30000 })
-      await sleep(1200)
+      await page.waitForFunction(
+        () => (document.querySelector('[aria-label="Ask the advisor"]') as HTMLInputElement | null)?.disabled === false,
+        undefined,
+        { timeout: 15000 },
+      )
+      await sleep(900)
       await input.click()
       await input.pressSequentially(
         locale === "es"
-          ? "¿Qué base de la ACB encaja en un equipo que corre mucho?"
-          : "Which ACB point guard fits a team that plays fast?",
+          ? "Necesito un base que corra al contraataque"
+          : "I need a point guard who pushes the break",
         { delay: 45 },
       )
       await sleep(600)
