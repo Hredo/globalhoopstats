@@ -1,19 +1,45 @@
-# Contributing policy
+# Contributing
 
-Goal: Ensure that only the repository administrator (the owner listed in `CODEOWNERS`) can merge changes into the original codebase.
+GlobalHoopStats is a proprietary product with public source (see [LICENSE.txt](../LICENSE.txt)).
+Bug reports and data corrections are very welcome; code contributions are accepted only
+by prior agreement with the owner, so please open an issue before writing a large change.
 
-Main rules:
+## Branches
 
-- All external contributions must be submitted via fork + pull request. Direct pushes to protected branches (`main`, `master`, `production`, etc.) are not allowed.
-- Each Pull Request should reference an issue or clearly describe the purpose of the change.
-- Changes that affect source code require approval from `CODEOWNERS`.
-- Merges require passing CI/status checks and approval from `CODEOWNERS`.
+- `master` — what runs on [globalhoopstats.es](https://globalhoopstats.es). Protected: it only
+  receives pull requests from `develop`, merged by the owner.
+- `develop` — integration branch. Feature work happens on short-lived branches
+  (`feat/…`, `fix/…`, `security/…`, `chore/…`) that open a pull request against it.
 
-Quick guide for contributors:
+## Before opening a pull request
 
-1. Fork the repository.
-2. Create a branch in your fork: `git checkout -b feature/my-change`.
-3. Make clear, atomic commits.
-4. Push your branch to your fork and open a Pull Request against `main` in the original repository.
+```bash
+pnpm install
+pnpm typecheck   # the primary correctness gate
+pnpm lint
+pnpm test        # unit, component and security regression tests
+```
 
-If you require direct access (exceptional case), contact the owner (see `SECURITY.md` for contact details).
+CI runs the same four checks (plus a production dependency audit) on every pull request,
+and [CODEOWNERS](CODEOWNERS) requests the owner's review automatically.
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/) in English
+(`feat:`, `fix:`, `chore:`, `docs:`, `test:`…).
+
+## Rules that are easy to break silently
+
+These are explained in [docs/ARCHITECTURE.en.md](../docs/ARCHITECTURE.en.md); in short:
+
+1. A FEB person (Primera/Segunda/Tercera FEB) is **never** merged with an ACB, EuroLeague
+   or NBA professional, even with an identical name.
+2. All source HTTP goes through `src/lib/sources/fetcher.ts` — identifiable, serialized,
+   rate-limited. No direct `fetch` from an adapter, no browser disguise.
+3. Sync writes pass the quality gate (`src/lib/sync/quality-gate.ts`); a broken scrape must
+   never overwrite good data.
+4. Every user-facing string exists in Spanish and English.
+5. Production ships build artifacts only — anything that must run in production has to
+   work from the built app, not from a script.
+
+## Security
+
+Never report a vulnerability in a public issue — see [SECURITY.md](../SECURITY.md).

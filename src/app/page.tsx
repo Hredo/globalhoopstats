@@ -51,14 +51,18 @@ const FILM_FRAMES = 240
 // Product-demo scenes whose recorded clip already exists on disk. Resolved at
 // render time so a card in <LiveShowcase> flips from placeholder to live video
 // automatically the moment its capture lands in public/media/previews — no code
-// change needed (the auth-gated ai-advisor/trade clips are captured separately).
+// change needed. Clips are recorded per language (`{key}-{theme}-{locale}`, see
+// scripts/record-showcase.ts); a scene with no clip in this language falls back
+// to its older language-neutral take.
 const SHOWCASE_KEYS = ["player", "compare", "ai-advisor", "trade", "playbook"] as const
-function readyShowcaseKeys(): string[] {
-  return SHOWCASE_KEYS.filter((k) =>
-    existsSync(
-      join(process.cwd(), "public", "media", "previews", `${k}-dark.mp4`),
-    ),
-  )
+function showcaseClips(locale: string): Record<string, string> {
+  const dir = join(process.cwd(), "public", "media", "previews")
+  const clips: Record<string, string> = {}
+  for (const k of SHOWCASE_KEYS) {
+    if (existsSync(join(dir, `${k}-dark-${locale}.mp4`))) clips[k] = `-${locale}`
+    else if (existsSync(join(dir, `${k}-dark.mp4`))) clips[k] = ""
+  }
+  return clips
 }
 
 export const revalidate = 3600
@@ -217,7 +221,7 @@ export default async function Home() {
 
       {/* ── LIVE SHOWCASE — real screen recordings of the product ── */}
       <LiveShowcase
-        ready={readyShowcaseKeys()}
+        clips={showcaseClips(locale)}
         counts={{
           leagues: globalCounts.leagues,
           players: globalCounts.players,

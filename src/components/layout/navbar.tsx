@@ -107,7 +107,7 @@ export function Navbar() {
             className="hidden items-center xl:flex"
             aria-label={t("nav.primary")}
           >
-            <ul className="flex items-center gap-0.5 text-sm font-medium text-ink-300">
+            <ul className="flex items-center gap-0.5 whitespace-nowrap text-sm font-medium text-ink-300">
               {LINKS.map((l) => (
                 <NavItem
                   key={l.href}

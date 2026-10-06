@@ -1,221 +1,284 @@
 <div align="center">
 
-# 🏀 GlobalHoopStats
+<img src="docs/media/logo.svg" alt="globalhoopstats" width="96">
 
-**Multi-league basketball statistics platform — players, teams, coaches and an AI scouting advisor across European and North American basketball.**
+# globalhoopstats
 
+**English** · [Español](README.es.md)
+
+Every league's basketball statistics, normalized into one bilingual app —
+with an AI scouting advisor, a trade simulator and an animated playbook.
+
+[![ci](https://github.com/Hredo/globalhoopstats/actions/workflows/ci.yml/badge.svg)](https://github.com/Hredo/globalhoopstats/actions/workflows/ci.yml)
+[![site](https://img.shields.io/website?url=https%3A%2F%2Fglobalhoopstats.es&label=globalhoopstats.es)](https://globalhoopstats.es)
 [![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![Drizzle ORM](https://img.shields.io/badge/Drizzle_ORM-Postgres-C5F74F?logo=drizzle&logoColor=black)](https://orm.drizzle.team/)
-[![Neon](https://img.shields.io/badge/Neon-Serverless_Postgres-00E599?logo=postgresql&logoColor=white)](https://neon.tech/)
-[![PWA](https://img.shields.io/badge/PWA-Serwist-5A0FC8?logo=pwa&logoColor=white)](https://serwist.pages.dev/)
-[![License](https://img.shields.io/badge/License-Proprietary-red)](LICENSE.txt)
+[![tests](https://img.shields.io/badge/tests-494%20passing-2ea44f)](tests/README.md)
+[![ES · EN](https://img.shields.io/badge/i18n-ES%20%C2%B7%20EN-orange)](#internationalization)
+[![license](https://img.shields.io/badge/license-proprietary-lightgrey)](LICENSE.txt)
 
-[**Live site → globalhoopstats.es**](https://globalhoopstats.es)
+**[→ Open globalhoopstats.es](https://globalhoopstats.es)**
+
+<a href="https://globalhoopstats.es"><img src="docs/media/promo.gif" alt="The globalhoopstats promo: the ball film, six leagues becoming one profile per player, and the product's tools" width="100%"></a>
+
+<sub>Opening of the promo video, rendered from the real app's footage — see <a href="#media">Media</a>.</sub>
 
 </div>
 
 ---
 
-## Overview
+## Contents
 
-**GlobalHoopStats** aggregates, normalizes and visualizes basketball statistics from multiple competitions into a single, fast, fully bilingual (ES/EN) web application. It unifies players, teams and coaching staff across leagues that publish their data in completely different formats, and layers on top a configurable **AI advisor**, a **trade/market simulator** and exportable reports.
-
-It is built as a production application — not a demo — with real authentication, two-factor auth, transactional email, rate-limiting, encrypted secrets at rest, SEO/structured data and an installable PWA.
-
-### Supported leagues
-
-| Region | Competitions |
-| --- | --- |
-| 🇪🇺 Europe | EuroLeague |
-| 🇪🇸 Spain | ACB (Liga Endesa) · Primera FEB · Segunda FEB · Tercera FEB |
-| 🇺🇸 North America | NBA |
-
----
-
-## Key features
-
-### 📊 Stats & data
-- Unified **players / teams / coaches** directories with per-league stats, bios and identity (logos, colors).
-- Side-by-side **player comparison** across leagues.
-- **League** overviews and standings-aware team pages.
-- **YouTube highlights** surfaced directly on player profiles.
-- Export to **PDF, Word and Excel** (jsPDF, `docx`, `xlsx-js-style`).
-
-### 🤖 AI advisor
-- Conversational scouting / analysis assistant with downloadable, formatted reports.
-- **Bring-your-own-key (BYOK)**: each user configures their own provider; keys are encrypted at rest (AES-256-GCM).
-- Local-first by default via **Ollama** (`llama3.1:8b`), with optional hosted providers (e.g. Groq) as a shared fallback.
-
-### 💹 Market & simulation
-- **Trade simulator** with player **market valuation** and currency handling.
-- **Favorites / shortlists** to build and compare custom player sets.
-
-### 🧩 Platform & UX
-- Full **i18n (ES/EN)** with locale-routed pages (`/[locale]`).
-- **Installable PWA** with offline-aware service worker (Serwist).
-- Smooth motion design (Framer Motion) and an editorial "El Índice" content section.
-- SEO baked in: sitemap, `robots`, **OpenGraph** and **JSON-LD** structured data.
-
-### 🔐 Security & accounts
-- Email/password auth with HMAC-signed session tokens and **two-factor authentication (2FA)**.
-- Password reset and account management flows.
-- **Transactional email** pipeline (Resend → Gmail SMTP → console) for welcome, reset, 2FA, contact and waitlist.
-- Brute-force / rate-limit defense with proxy-aware client-IP resolution.
-- See [`SECURITY.md`](SECURITY.md) for the threat model and reporting policy.
+- [What it is](#what-it-is)
+- [A quick look](#a-quick-look)
+- [Leagues](#leagues)
+- [What it does](#what-it-does)
+- [How it works](#how-it-works)
+- [Stack](#stack)
+- [Getting started](#getting-started)
+- [Scripts](#scripts)
+- [Project layout](#project-layout)
+- [Quality and security](#quality-and-security)
+- [Deployment](#deployment)
+- [Media](#media)
+- [Documentation](#documentation)
+- [Contributing, security and license](#contributing-security-and-license)
 
 ---
 
-## Tech stack
+## What it is
+
+Basketball data is scattered: the NBA, the EuroLeague, the ACB and the three FEB tiers each
+publish their numbers in a different shape, on a different site, with different names for
+the same people. globalhoopstats ingests all of them and resolves **one canonical identity
+per person across leagues** — a EuroLeague player and his Liga Endesa line live on the same
+profile — and builds a coach-oriented product on top: comparisons, market value, trades,
+an AI advisor that answers from the database and a playbook editor.
+
+It is a production web app, not a demo: real accounts with two-factor authentication,
+encrypted user secrets, rate limiting, a nonce-based CSP, SEO and an installable PWA, in
+Spanish and English.
+
+---
+
+## A quick look
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://globalhoopstats.es/players"><img src="docs/media/en/player.jpg" alt="Mario Hezonja's profile with his EuroLeague and Liga Endesa lines and his real shooting zones"></a>
+      <p><b>Player profile</b> — one person across leagues: switch between his EuroLeague and Liga Endesa lines, market value, real shooting zones, comparables.</p>
+    </td>
+    <td width="50%" valign="top">
+      <a href="https://globalhoopstats.es/compare"><img src="docs/media/en/compare.jpg" alt="Head-to-head comparison of a EuroLeague player and an NBA player with full stats and a radar"></a>
+      <p><b>Compare</b> — any two players from any league, head to head; the leader of each line is coloured.</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://globalhoopstats.es/playbook"><img src="docs/media/en/playbook.jpg" alt="The playbook editor with a pick and roll template, defenders, a pass and a screen drawn on"></a>
+      <p><b>Playbook</b> — 109 templates, drawing tools, frames that animate, real rosters, PDF/PNG export and AI analysis.</p>
+    </td>
+    <td width="50%" valign="top">
+      <a href="https://globalhoopstats.es/market/trade"><img src="docs/media/en/trade.jpg" alt="The trade simulator returning packages and a balance verdict"></a>
+      <p><b>Trade simulator</b> — market valuations adjusted by league, age and production; simulate a market or balance a swap.</p>
+    </td>
+  </tr>
+</table>
+
+---
+
+## Leagues
+
+| Region | Competitions | Source |
+| --- | --- | --- |
+| United States | NBA | stats.nba.com, Basketball-Reference |
+| Europe | EuroLeague | Basketball-Reference, EuroLeague's shot feed |
+| Spain | Liga Endesa (ACB) · Primera FEB · Segunda FEB · Tercera FEB | acb.com, baloncestoenvivo.feb.es |
+
+How each source is fetched, and the rules the scraper keeps, are in
+[DATA-SOURCES.md](DATA-SOURCES.md).
+
+---
+
+## What it does
+
+**Data**
+- Players, teams and coaching staff with per-league, per-season lines; the latest season
+  by default and any previous one on demand.
+- Real shooting zones where the league publishes them (EuroLeague, NBA); hidden, never
+  faked, where it does not.
+- Market valuation normalized per league; exports to PDF, Word and Excel.
+
+**Tools for coaches**
+- **AI advisor** — scouting questions answered with the database's real numbers, closed
+  candidate lists and the user's own roster. Bring your own key: 19 providers (or a local
+  Ollama), keys encrypted at rest, the newest model picked automatically.
+- **Compare**, **trade simulator** and **playbook** (above).
+
+**Platform**
+- Accounts with email-code 2FA and trusted devices, account and session management.
+- Bilingual end to end, SEO for every route (crawlable league pages, JSON-LD), installable
+  PWA.
+
+<a id="internationalization"></a>
+
+---
+
+## How it works
+
+```mermaid
+flowchart LR
+  subgraph Sources
+    NBA[NBA] & EL[EuroLeague] & ACB[ACB] & FEB[FEB x3]
+  end
+  Sources -->|polite fetcher<br/>serialized, rate-limited| AD[Per-league adapters]
+  AD --> MATCH[Entity matcher<br/>one person across leagues<br/>FEB tier guard]
+  MATCH --> GATE{Quality gate}
+  GATE -->|pass: one transaction per league| DB[(MySQL)]
+  GATE -->|broken scrape| KEEP[Previous data kept]
+  DB --> APP[Next.js app<br/>pages + API]
+  APP --> AI[AI advisor<br/>grounded in DB rows]
+```
+
+- **Ingestion** — each league has an adapter behind one contract; every request goes
+  through `src/lib/sources/fetcher.ts` (identifiable user agent, one request at a time per
+  host, honours `Retry-After`).
+- **Identity** — the matcher merges a person's lines across leagues, but a FEB player is
+  never fused with an ACB/EuroLeague/NBA professional of the same name.
+- **Safety net** — a quality gate refuses a suspicious scrape, so a broken source page can
+  never overwrite good data.
+- **Scheduling** — production runs only build artifacts, so the scheduled sync is an
+  authenticated HTTP route called by the host's cron ([docs/SYNC.md](docs/SYNC.md)).
+
+The full design — data model, matcher, auth, AI pipeline — is in
+[docs/ARCHITECTURE.en.md](docs/ARCHITECTURE.en.md).
+
+---
+
+## Stack
 
 | Layer | Technology |
 | --- | --- |
-| **Framework** | Next.js 15 (App Router), React 19, TypeScript (strict) |
-| **Styling** | Tailwind CSS 4, Framer Motion |
-| **Database** | Neon serverless Postgres via `postgres` driver |
-| **ORM / migrations** | Drizzle ORM + Drizzle Kit |
-| **Auth** | Custom sessions (HMAC), `bcryptjs`, email-code 2FA |
-| **Email** | Nodemailer (Resend / Gmail SMTP transports) |
-| **AI** | Ollama (local) + OpenAI-compatible providers (BYOK) |
-| **Validation** | Zod |
-| **PWA** | Serwist (Turbopack-compatible service worker) |
-| **Tooling** | pnpm, ESLint, Prettier, Vitest, tsx |
-
----
-
-## Project structure
-
-```
-src/
-├─ app/                 # App Router: pages + API routes
-│  ├─ [locale]/         # i18n-routed pages (ES/EN)
-│  ├─ players/ teams/ coaches/ leagues/ compare/   # core stats views
-│  ├─ market/           # trade simulator + valuation
-│  ├─ ai-advisor/ ai-setup/                         # AI assistant + BYOK config
-│  ├─ account/ login/ register/ 2fa/ reset-password/# auth & accounts
-│  ├─ admin/            # internal admin area
-│  └─ api/              # REST endpoints (auth, players, market, ai, sync, …)
-├─ components/          # reusable UI components
-└─ lib/
-   ├─ sources/          # per-league data adapters (acb, euroleague, nba, feb)
-   ├─ sync/             # ingestion & refresh orchestration
-   └─ …                 # db client, auth, email, i18n, utils
-scripts/                # data sync, backfills, migrations, maintenance
-drizzle/                # SQL migrations & snapshots
-```
-
-> 📐 **Deep dive:** for a full architecture & developer guide — data model, ingestion
-> pipeline, entity matching, auth/security, AI engine and onboarding recipes — see
-> [`docs/ARCHITECTURE.en.md`](docs/ARCHITECTURE.en.md) (English) ·
-> [`docs/ARCHITECTURE.es.md`](docs/ARCHITECTURE.es.md) (Español).
+| Framework | Next.js 15 (App Router), React 19, TypeScript strict |
+| UI | Tailwind CSS 4, Motion (`motion/react`), Three.js, Fraunces · Hanken Grotesk · Space Mono |
+| Data | MySQL via `mysql2` + Drizzle ORM |
+| Auth | Own HMAC sessions, bcrypt, email-code 2FA |
+| AI | 19 providers + Ollama, BYOK, AES-256-GCM key storage |
+| Email | Nodemailer (Resend / Gmail SMTP) |
+| PWA | Serwist |
+| Quality | Vitest, ESLint, Prettier, GitHub Actions |
 
 ---
 
 ## Getting started
 
-### Prerequisites
-- **Node.js** `>=20 <24`
-- **pnpm** `11.x`
-- A **Postgres** database (Neon recommended; any Postgres works for local dev)
-- *(Optional)* **Ollama** for the local AI advisor — [install](https://ollama.com/download), then `ollama pull llama3.1:8b`
-
-### Installation
+**Requirements:** Node.js 20+, pnpm 11, a MySQL 8 / MariaDB database. Optional: Ollama
+for a local AI model.
 
 ```bash
-# 1. Install dependencies
 pnpm install
-
-# 2. Create your local environment file
-cp .env.example .env.local        # macOS / Linux
-# Copy-Item .env.example .env.local   # PowerShell (Windows)
-
-# 3. Fill in DATABASE_URL (and any optional keys) in .env.local
-
-# 4. Apply the database schema
-pnpm db:push
-
-# 5. Start the dev server (Turbopack)
-pnpm dev
+cp .env.example .env.local      # fill in DATABASE_URL and the rest
+pnpm db:push                    # create the schema
+pnpm sync:elite                 # ingest NBA, ACB and EuroLeague
+pnpm dev                        # http://localhost:3000
 ```
 
-The app runs at **http://localhost:3000**.
+Every variable is documented in [.env.example](.env.example). In production
+`SESSION_SECRET` and `ENCRYPTION_KEY` are mandatory — the app refuses to boot without them.
 
 ---
 
-## Environment variables
+## Scripts
 
-All values are optional for local development (sensible defaults apply); **`SESSION_SECRET`** and **`ENCRYPTION_KEY`** are **required in production** — the app refuses to boot without them. See [`.env.example`](.env.example) for the full, annotated list.
-
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `DATABASE_URL` | ✅ | Neon/Postgres connection string (use the pooled endpoint in prod) |
-| `SESSION_SECRET` | prod | HMAC secret for signing session tokens (≥32 chars) |
-| `ENCRYPTION_KEY` | prod | AES-256-GCM key for encrypting user AI keys at rest |
-| `NEXT_PUBLIC_SITE_URL` | ✅ | Canonical base URL for SEO / sitemap / OG / JSON-LD |
-| `YOUTUBE_API_KEY` | optional | YouTube Data API v3 — player highlights |
-| `RESEND_API_KEY` / `GMAIL_APP_PASSWORD` | optional | Transactional email transport |
-| `OLLAMA_BASE_URL` / `OLLAMA_MODEL` | optional | Local AI advisor configuration |
-| `CRON_SECRET` | optional | Protects `/api/cron/*` ingestion endpoints |
-| `TRUSTED_PROXY_HOPS` | optional | Reverse-proxy hops for accurate client-IP resolution |
-
-> ⚠️ Never commit `.env` or `.env.local`. Generate secrets with `node -e "console.log(crypto.randomBytes(32).toString('base64'))"`.
+| Command | What it does |
+| --- | --- |
+| `pnpm dev` | Dev server (Turbopack) |
+| `pnpm typecheck` · `pnpm lint` · `pnpm test` | The three gates CI runs |
+| `pnpm db:push` · `pnpm db:studio` | Apply the Drizzle schema · browse the data |
+| `pnpm sync:elite` · `pnpm sync:feb` · `pnpm sync:<league>` | Ingest leagues |
+| `pnpm probe:season` | Check which sources already publish the new season |
+| `pnpm db:dedupe-players` | Merge duplicated people across leagues |
+| `pnpm backfill:*` | Targeted backfills (bios, colours, shot zones…) |
+| `pnpm capture:showcase` | Re-record the homepage product clips ([Media](#media)) |
 
 ---
 
-## Available scripts
+## Project layout
 
-### Development
-| Command | Description |
-| --- | --- |
-| `pnpm dev` | Start dev server (Turbopack) |
-| `pnpm build` / `pnpm start` | Production build / serve |
-| `pnpm lint` | ESLint |
-| `pnpm typecheck` | TypeScript (`tsc --noEmit`) |
-| `pnpm test` | Vitest test suite |
-| `pnpm format` | Prettier |
-
-### Database
-| Command | Description |
-| --- | --- |
-| `pnpm db:generate` | Generate Drizzle migrations |
-| `pnpm db:push` | Push schema to the database |
-| `pnpm db:studio` | Open Drizzle Studio |
-| `pnpm db:dedupe-players` | Deduplicate players spanning multiple leagues |
-
-### Data ingestion
-| Command | Description |
-| --- | --- |
-| `pnpm sync:global` | Sync every supported league |
-| `pnpm sync:nba` · `:euroleague` · `:acb` | Sync a single competition |
-| `pnpm sync:feb` | Sync all FEB leagues (Primera FEB, Segunda FEB, Tercera FEB) |
-| `pnpm backfill:players` · `:colors` · `:team-identity` · … | Targeted historical backfills |
+```
+src/
+├─ app/            pages and API routes (App Router)
+├─ components/     UI, by feature (players, market, playbook, marketing…)
+└─ lib/
+   ├─ sources/     one adapter per league + the polite fetcher
+   ├─ sync/        orchestration, quality gate, matcher
+   ├─ ai/          providers, model ranking, grounded answer pipeline
+   ├─ auth/        sessions, 2FA, passwords
+   ├─ security/    CSP, rate limits, client IP, prompt screening
+   ├─ i18n/        ES/EN dictionaries
+   └─ db/          Drizzle schema and client
+scripts/           sync, backfills, maintenance, showcase recorder
+tests/             unit · components · security regression tests
+docs/              architecture (EN/ES), sync
+```
 
 ---
 
-## Data sources & ingestion
+## Quality and security
 
-Per-league adapters live in [`src/lib/sources/`](src/lib/sources) and normalize each competition's data into a shared schema (`types.ts`). Ingestion is orchestrated from [`scripts/`](scripts) and can run on demand or via a `CRON_SECRET`-protected endpoint. Because players and staff frequently move between leagues, a dedicated deduplication step keeps a single canonical identity per person while preserving per-league stat lines.
+- **CI** on every push and pull request: typecheck, lint, the test suite and a production
+  dependency audit, with actions pinned to commits and a read-only token.
+- **494 tests**, including security regressions: open redirects, client-IP spoofing, the
+  2FA attempt cap, CSV formula injection, prompt injection on every AI route, markdown-link
+  XSS and SQL injection.
+- **Defences in place:** HMAC sessions bound to server-side rows, 2FA with atomic attempt
+  counting, per-IP and per-account limits, origin checks on every state-changing API call,
+  a per-request nonce CSP, AES-256-GCM for user keys, SSRF-safe AI endpoints, and secrets
+  stripped from provider errors.
+
+Found a vulnerability? Please report it privately — see [SECURITY.md](SECURITY.md).
 
 ---
 
 ## Deployment
 
-GlobalHoopStats runs as a long-running **Node.js** server backed by a **Neon serverless Postgres** database. In production, set `SESSION_SECRET`, `ENCRYPTION_KEY`, `DATABASE_URL` (pooled endpoint) and `NEXT_PUBLIC_SITE_URL`, then build with `pnpm build` and serve with `pnpm start`.
+The site runs as a long-lived Node.js server on Hostinger behind Cloudflare, with MySQL on
+the same machine. The server only receives the build output (`.next/`, runtime
+`node_modules/`, `server.js`) — no repository, no pnpm, no tsx — which is why everything
+that must run in production, the scheduled sync included, is reachable from the built app.
 
 ---
 
-## License
+## Media
 
-This project is **proprietary** — © 2026 Hugo Redondo Valdés, all rights reserved. The source is published for portfolio and reference purposes only; reuse, redistribution or deployment requires written permission. See [`LICENSE.txt`](LICENSE.txt).
-
-This is a personal product rather than an open-source project, so external pull requests are not actively solicited. Bug reports and feedback via GitHub issues are welcome.
+- **Homepage product clips** — recorded from the running app in both themes and both
+  languages with `pnpm capture:showcase` (Playwright screencast frames, encoded with
+  ffmpeg). Signed-in scenes blur the account before any frame is kept.
+- **Promo video** — a 45-second piece in ES and EN, horizontal (1920×1080) and vertical
+  (1080×1920), built with Remotion from the same footage and the hero film.
 
 ---
 
-## Author
+## Documentation
 
-**Hugo Redondo Valdés** · [GitHub @Hredo](https://github.com/Hredo)
+| Document | Contents |
+| --- | --- |
+| [docs/ARCHITECTURE.en.md](docs/ARCHITECTURE.en.md) · [ES](docs/ARCHITECTURE.es.md) | Data model, ingestion, matcher, auth, AI engine, onboarding recipes |
+| [DATA-SOURCES.md](DATA-SOURCES.md) | Sources, sourcing principles, quality gate, season rollover |
+| [docs/SYNC.md](docs/SYNC.md) | Scheduled sync, integrity guarantees, cadence |
+| [tests/README.md](tests/README.md) | How the suite is organized |
 
-For inquiries, use the contact form at [globalhoopstats.es](https://globalhoopstats.es) or reach out via GitHub.
+---
+
+## Contributing, security and license
+
+- Bug reports and data corrections are welcome as
+  [issues](https://github.com/Hredo/globalhoopstats/issues/new/choose); code contributions
+  by prior agreement — see [CONTRIBUTING](.github/CONTRIBUTING.md).
+- Vulnerabilities: privately, as described in [SECURITY.md](SECURITY.md).
+- **Proprietary** — © 2026 Hugo Redondo Valdés. The source is public for reference; any
+  other use needs written permission ([LICENSE.txt](LICENSE.txt)). Not affiliated with the
+  NBA, EuroLeague, ACB or FEB.
+
+Made by [Hugo Redondo Valdés](https://github.com/Hredo) — basketball coach and developer.

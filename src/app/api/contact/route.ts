@@ -64,6 +64,20 @@ export async function POST(req: Request) {
 
   const { name, email, subject, message } = parsed.data
 
+  // The form mails an acknowledgement to the address it is given; cap how
+  // often one inbox can be targeted, whatever IP the requests come from.
+  const perRecipient = await consumeRateLimit(
+    `contact:to:${email.toLowerCase()}`,
+    3,
+    60 * 60 * 1000,
+  )
+  if (!perRecipient.ok) {
+    return NextResponse.json(
+      { ok: false, error: "Too many messages. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(perRecipient.retryAfterSec) } },
+    )
+  }
+
   const contactLocale = localeFromCookie(req.headers.get("cookie")) ?? DEFAULT_LOCALE
   const ownerOk = await sendContactEmails({ name, email, subject, message }, contactLocale)
   if (!ownerOk) {

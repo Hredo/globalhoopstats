@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
-import { eq, and, gt } from "drizzle-orm"
+import { eq, and, gt, lt, sql } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
 import {
   twoFactorSessions,
@@ -103,10 +103,24 @@ export async function POST(request: Request) {
     )
   }
 
-  await db
+  // Claim the attempt atomically. A read-then-write of `attempts` let a burst
+  // of parallel requests all read the same count and each get a guess, so the
+  // five-guess cap only held for callers polite enough to wait.
+  const [claim] = await db
     .update(twoFactorSessions)
-    .set({ attempts: tfa.attempts + 1 })
-    .where(eq(twoFactorSessions.id, sessionId))
+    .set({ attempts: sql`${twoFactorSessions.attempts} + 1` })
+    .where(
+      and(
+        eq(twoFactorSessions.id, sessionId),
+        lt(twoFactorSessions.attempts, MAX_2FA_ATTEMPTS),
+      ),
+    )
+  if (claim.affectedRows === 0) {
+    return NextResponse.json(
+      { error: "Too many incorrect attempts. Please sign in again." },
+      { status: 429 },
+    )
+  }
 
   const isBackupCode = code.length > 8
 
@@ -141,10 +155,23 @@ export async function POST(request: Request) {
       )
     }
 
-    await db
+    // Spend the code only if nobody else spent it in the meantime, so two
+    // concurrent requests cannot both sign in with one single-use code.
+    const [spent] = await db
       .update(twoFactorBackupCodes)
       .set({ used: true })
-      .where(eq(twoFactorBackupCodes.id, matchedBackupId))
+      .where(
+        and(
+          eq(twoFactorBackupCodes.id, matchedBackupId),
+          eq(twoFactorBackupCodes.used, false),
+        ),
+      )
+    if (spent.affectedRows === 0) {
+      return NextResponse.json(
+        { error: "Invalid verification code." },
+        { status: 400 },
+      )
+    }
   } else {
     const valid = await verifyPassword(code, tfa.codeHash)
     if (!valid) {

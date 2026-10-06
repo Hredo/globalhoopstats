@@ -37,7 +37,14 @@ export async function getCurrentUser(
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
     .where(
-      and(eq(sessions.id, verified.sessionId), gt(sessions.expiresAt, now)),
+      // The session id rides outside the HMAC, so the row must also belong to
+      // the user the signed payload names — otherwise the signature vouches
+      // for nothing the lookup actually uses.
+      and(
+        eq(sessions.id, verified.sessionId),
+        eq(sessions.userId, verified.userId),
+        gt(sessions.expiresAt, now),
+      ),
     )
     .limit(1)
   const row = rows[0]

@@ -155,8 +155,10 @@ describe("the middleware applies the guards", () => {
   })
 
   it("reads the right forwarded hop for the caller's address", () => {
-    // The left-most XFF entry is written by the client and is worthless.
-    expect(src).toContain("hops[hops.length - 1]")
+    // One resolver for the whole app, the one that checks the Cloudflare peer
+    // (its behaviour is tested in ai-advisor-security.test.ts).
+    expect(src).toContain("resolveClientIp(request.headers)")
+    expect(src).not.toContain('get("cf-connecting-ip")')
   })
 })
 
@@ -178,6 +180,6 @@ describe("the CSP is defined in exactly one place", () => {
       "utf8",
     )
     expect(layout).toContain('headers()).get("x-nonce")')
-    expect(layout).toContain("<script nonce={nonce}")
+    expect(layout).toMatch(/<script\s+nonce=\{nonce\}/)
   })
 })

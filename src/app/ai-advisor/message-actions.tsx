@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence } from "motion/react"
+import { useT } from "@/lib/i18n/provider"
 
 export type Reaction = "up" | "down" | null
 
@@ -147,6 +148,7 @@ export function MessageActions({
   canRedo,
 }: Props) {
   const [copied, setCopied] = useState(false)
+  const t = useT()
 
   async function handleCopy() {
     try {
@@ -172,7 +174,7 @@ export function MessageActions({
 
   return (
     <div className="mt-1.5 flex items-center gap-1.5">
-      <ActionButton label="Copy" onClick={handleCopy} active={copied}>
+      <ActionButton label={t("aiAdvisor.ui.copy")} onClick={handleCopy} active={copied}>
         <AnimatePresence mode="wait" initial={false}>
           {copied ? (
             <motion.span
@@ -199,21 +201,21 @@ export function MessageActions({
         </AnimatePresence>
       </ActionButton>
       <ActionButton
-        label="Like"
+        label={t("aiAdvisor.ui.like")}
         onClick={onLike}
         active={reaction === "up"}
       >
         <ThumbsUpIcon />
       </ActionButton>
       <ActionButton
-        label="Dislike"
+        label={t("aiAdvisor.ui.dislike")}
         onClick={onDislike}
         active={reaction === "down"}
       >
         <ThumbsDownIcon />
       </ActionButton>
       <ActionButton
-        label="Regenerate response"
+        label={t("aiAdvisor.ui.regenerate")}
         onClick={onRedo}
         disabled={!canRedo}
       >

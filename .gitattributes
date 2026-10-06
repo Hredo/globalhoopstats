@@ -1,0 +1,23 @@
+# Normalise line endings: always LF in the repository, whatever each OS wants
+# on disk. Without this a clone on Linux sees the whole tree as modified.
+* text=auto eol=lf
+
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.mp4 binary
+*.webm binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+
+# Generated: keep it out of diffs and language stats.
+pnpm-lock.yaml linguist-generated=true -diff

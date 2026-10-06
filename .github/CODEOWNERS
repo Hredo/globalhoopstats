@@ -1,3 +1,4 @@
-# CODEOWNERS - define the single repo owner who must approve changes
-
+# Every pull request asks the owner for a review automatically. With the
+# branch protection on master, that is what keeps anything from landing
+# without passing through here.
 * @Hredo @Hrvr1

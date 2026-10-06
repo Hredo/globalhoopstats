@@ -19,7 +19,7 @@ export function ThemeToggleFab() {
   const RAY_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315]
 
   return (
-    <div className="pointer-events-none fixed right-0 top-1/2 z-[60] -translate-y-1/2">
+    <div data-capture-hide className="pointer-events-none fixed right-0 top-1/2 z-[60] -translate-y-1/2">
       <button
         type="button"
         onClick={toggleTheme}

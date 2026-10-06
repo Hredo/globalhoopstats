@@ -1,6 +1,6 @@
 /**
  * Shared plumbing for the homepage showcase recorders
- * (record-trade-video.ts and record-playbook-video.ts).
+ * (scripts/record-showcase.ts).
  *
  * Everything here is about getting a clean, publishable file out of Playwright;
  * the interesting part — what each demo actually does on screen — stays in the
@@ -8,7 +8,8 @@
  */
 
 import { execFileSync } from "node:child_process"
-import { existsSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs"
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs"
+import { writeFile } from "node:fs/promises"
 import { resolve } from "node:path"
 import type { Browser, BrowserContext, Page } from "playwright"
 
@@ -34,9 +35,15 @@ export const CENSOR_CSS = `
     overflow: hidden !important;
     border-radius: 9999px !important;
   }
-  /* chrome that has no business in a marketing clip */
+  /* chrome that has no business in a marketing clip: the cookie notice, the
+     floating theme switch, and Next's dev-mode badge (the old takes had its
+     "N" in every corner because they were recorded against "pnpm dev") */
   [aria-label="Cookie notice"],
-  [aria-label="Aviso de cookies"] { display: none !important; }
+  [aria-label="Aviso de cookies"],
+  [data-capture-hide],
+  nextjs-portal { display: none !important; }
+  /* the account's own advisor conversations: private, and not the product */
+  aside[aria-label="Conversations"] li { filter: blur(26px) !important; }
 `
 
 /**
@@ -225,17 +232,18 @@ function findFfmpeg(): string {
  * card on the homepage. `-maxrate` is the real control; the quality knobs just
  * stop it wasting bits on the long static stretches.
  */
-const MAXRATE = "1400k"
-const BUFSIZE = "2800k"
+const MAXRATE = "2200k"
+const BUFSIZE = "4400k"
 
 function pickEncoder(bin: string): string[] {
   const out = execFileSync(bin, ["-hide_banner", "-encoders"], { encoding: "utf-8" })
   const cap = ["-maxrate", MAXRATE, "-bufsize", BUFSIZE]
   if (out.includes("libx264"))
-    return ["-c:v", "libx264", "-preset", "slow", "-crf", "28", ...cap]
+    // stillimage: UI capture is flat colour and sharp type, not film grain
+    return ["-c:v", "libx264", "-preset", "slow", "-tune", "stillimage", "-crf", "23", ...cap]
   if (out.includes("h264_nvenc"))
     // nvenc ignores -cq unless it is explicitly in VBR mode with no target bitrate
-    return ["-c:v", "h264_nvenc", "-preset", "p6", "-rc", "vbr", "-cq", "32", "-b:v", "0", ...cap]
+    return ["-c:v", "h264_nvenc", "-preset", "p7", "-tune", "hq", "-rc", "vbr", "-cq", "26", "-b:v", "0", ...cap]
   if (out.includes("h264_qsv"))
     return ["-c:v", "h264_qsv", "-global_quality", "30", ...cap]
   if (out.includes("h264_amf"))
@@ -244,66 +252,105 @@ function pickEncoder(bin: string): string[] {
   throw new Error("This ffmpeg has no H.264 encoder.")
 }
 
-/**
- * Turns the raw take Playwright just flushed into the two files the showcase
- * consumes: `{name}.mp4` and a `{name}.jpg` poster pulled out of that same clip
- * (so the still can never drift from the footage).
- *
- * Call this after the context is closed — that is what flushes the .webm.
- */
-export function finishTake(outDir: string, name: string, posterAtSeconds: number) {
-  const webm = readdirSync(outDir)
-    .filter((f) => f.endsWith(".webm"))
-    .map((f) => resolve(outDir, f))
-    .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)[0]
+// ── Frame capture ────────────────────────────────────────────────────────────
 
-  if (!webm) {
-    console.warn(`   ⚠️ No .webm found for ${name}`)
-    return
+/**
+ * A take recorded as individual JPEG frames, bypassing `recordVideo`.
+ *
+ * Playwright's own recorder encodes VP8 at a fixed 1 Mbit/s whatever size it
+ * is asked for, so a 2560×1600 capture comes out as mush before ffmpeg ever
+ * sees it — that, more than the final bitrate, is why the old clips smeared
+ * text. The screencast API hands over each frame as the compositor produced
+ * it; they are written to disk with their arrival time and encoded once, at
+ * the quality the final file deserves.
+ */
+export type FrameTake = {
+  dir: string
+  /** ms since epoch at which each frame arrived, in order. */
+  times: number[]
+  stop: () => Promise<void>
+}
+
+export async function captureFrames(
+  page: Page,
+  size: { width: number; height: number },
+  dir: string,
+): Promise<FrameTake> {
+  rmSync(dir, { recursive: true, force: true })
+  mkdirSync(dir, { recursive: true })
+  const times: number[] = []
+  const pending: Promise<void>[] = []
+  await page.screencast.start({
+    size,
+    quality: 92,
+    onFrame: ({ data }) => {
+      const i = times.length
+      times.push(Date.now())
+      pending.push(writeFile(resolve(dir, `f${String(i).padStart(6, "0")}.jpg`), data))
+    },
+  })
+  return {
+    dir,
+    times,
+    stop: async () => {
+      await page.screencast.stop()
+      await Promise.all(pending)
+    },
   }
+}
+
+/**
+ * Encodes a frame take into `{name}.mp4` + `{name}.jpg` poster. Each frame is
+ * held until the next one arrived (the screencast only emits on change), and
+ * the result is resampled to a constant 30 fps.
+ */
+export function encodeTake(
+  take: FrameTake,
+  outDir: string,
+  name: string,
+  posterAtSeconds: number,
+  { trimFrom, width = 1600 }: { trimFrom: number; width?: number },
+) {
+  const { times, dir } = take
+  if (times.length < 2) throw new Error(`${name}: the screencast produced no frames.`)
+  const end = times[times.length - 1] + 1000 / 30
+  const lines: string[] = []
+  let first = true
+  for (let i = 0; i < times.length; i++) {
+    const until = i + 1 < times.length ? times[i + 1] : end
+    if (until <= trimFrom) continue
+    const from = first ? trimFrom : times[i]
+    first = false
+    lines.push(`file 'f${String(i).padStart(6, "0")}.jpg'`, `duration ${((until - from) / 1000).toFixed(4)}`)
+  }
+  // The concat demuxer ignores the last duration unless the file repeats.
+  lines.push(lines[lines.length - 2])
+  const list = resolve(dir, "frames.txt")
+  writeFileSync(list, lines.join("\n"))
 
   const ffmpeg = findFfmpeg()
-  const encoder = pickEncoder(ffmpeg)
   const mp4 = resolve(outDir, `${name}.mp4`)
   const jpg = resolve(outDir, `${name}.jpg`)
-
   execFileSync(
     ffmpeg,
     [
       "-hide_banner", "-loglevel", "error", "-y",
-      "-i", webm,
-      ...encoder,
-      // 24 fps is plenty for a muted background loop and shaves ~20% off
-      "-vf", "fps=24",
-      "-g", "48",
+      "-f", "concat", "-safe", "0", "-i", list,
+      ...pickEncoder(ffmpeg),
+      "-vf", `scale=${width}:-2:flags=lanczos,fps=30`,
+      "-g", "60",
       "-pix_fmt", "yuv420p",
-      // web delivery: seekable from the first byte, no audio track at all
       "-movflags", "+faststart",
       "-an",
       mp4,
     ],
     { stdio: "inherit" },
   )
-
   execFileSync(
     ffmpeg,
-    [
-      "-hide_banner", "-loglevel", "error", "-y",
-      "-ss", String(posterAtSeconds),
-      "-i", mp4,
-      "-frames:v", "1", "-q:v", "4",
-      jpg,
-    ],
+    ["-hide_banner", "-loglevel", "error", "-y", "-ss", String(posterAtSeconds), "-i", mp4, "-frames:v", "1", "-q:v", "3", jpg],
     { stdio: "inherit" },
   )
-
-  rmSync(webm, { force: true })
-
-  // A take that dies mid-walkthrough still leaves its raw .webm behind, and
-  // those are ~20 MB each sitting in public/. Sweep them on the way out.
-  for (const stray of readdirSync(outDir).filter((f) => f.endsWith(".webm"))) {
-    rmSync(resolve(outDir, stray), { force: true })
-  }
-
-  console.log(`   💾 Saved: ${mp4} (${Math.round(statSync(mp4).size / 1024)} KB) + poster`)
+  rmSync(dir, { recursive: true, force: true })
+  console.log(`   💾 ${name}.mp4 (${Math.round(statSync(mp4).size / 1024)} KB) + poster`)
 }

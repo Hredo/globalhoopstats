@@ -813,7 +813,7 @@ const ACCENT_MAP: Record<string, string> = {
 // accents through the collation instead (see foldAccentsSql above), so only the
 // JS-side ranker still needs ACCENT_MAP.
 
-function foldAccents(s: string): string {
+export function foldAccents(s: string): string {
   let out = ""
   for (const ch of s) out += ACCENT_MAP[ch] ?? ch
   return out

@@ -1,0 +1,21 @@
+# Dependabot keeps the GitHub Actions in the workflows current.
+#
+# They are pinned to a commit (not to a tag that can be moved), so without this
+# they would stay frozen forever. Once a week it opens a single PR with every
+# action that has a new release, and CI runs on it before anyone merges.
+#
+# npm dependencies are left out on purpose: security patches here go through
+# pnpm overrides with a reviewed minimum release age (pnpm-workspace.yaml), and
+# upgrades of Next/React are tested by hand, not merged from an automatic PR.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
+    commit-message:
+      prefix: ci
