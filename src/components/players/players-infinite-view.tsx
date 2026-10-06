@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { motion } from "framer-motion"
+import { motion } from "motion/react"
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll"
 import { PlayerCardElegant } from "@/components/players/player-card-elegant"
 import { useT, useLocale } from "@/lib/i18n/provider"

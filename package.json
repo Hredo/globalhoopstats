@@ -1,7 +1,18 @@
 {
-  "name": "basket-estadistics",
-  "version": "0.1.0",
+  "name": "globalhoopstats",
+  "version": "1.0.0",
   "private": true,
+  "description": "Multi-league basketball statistics (NBA, EuroLeague, ACB, FEB) normalized into one bilingual app, with an AI scouting advisor, trade simulator and playbook.",
+  "homepage": "https://globalhoopstats.es",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hredo/globalhoopstats.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Hredo/globalhoopstats/issues"
+  },
+  "author": "Hugo Redondo Valdés (https://github.com/Hredo)",
+  "license": "SEE LICENSE IN LICENSE.txt",
   "packageManager": "pnpm@11.6.0",
   "engines": {
     "node": ">=20.0.0"
@@ -43,8 +54,7 @@
     "db:cleanup-syncs": "tsx scripts/cleanup-stale-syncs.ts",
     "seed:announcements": "tsx scripts/seed-announcements.ts",
     "migrate:league-names": "tsx scripts/migrate-league-names.ts",
-    "capture:trade": "tsx scripts/record-trade-video.ts",
-    "capture:playbook": "tsx scripts/record-playbook-video.ts",
+    "capture:showcase": "tsx scripts/record-showcase.ts",
     "db:verify-mysql": "tsx scripts/verify-mysql-parity.ts",
     "db:verify-shim": "tsx scripts/verify-sql-shim.ts"
   },
@@ -58,9 +68,9 @@
     "esbuild": "^0.28.1",
     "esbuild-wasm": "^0.28.1",
     "file-saver": "^2.0.5",
-    "framer-motion": "^12.40.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
+    "motion": "^14.0.0",
     "mysql2": "^3.23.2",
     "next": "^15.5.24",
     "nodemailer": "^10.0.9",

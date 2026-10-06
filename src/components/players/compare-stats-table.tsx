@@ -1,6 +1,6 @@
 "use client"
 
-import { motion, type Variants } from "framer-motion"
+import { motion, type Variants } from "motion/react"
 import type { ComparePlayer, CompareStats } from "@/lib/data/compare"
 import { useT } from "@/lib/i18n/provider"
 

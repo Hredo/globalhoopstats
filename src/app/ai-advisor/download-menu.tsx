@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence } from "motion/react"
 import { useT } from "@/lib/i18n/provider"
 import type { ChatMessage, TeamContext } from "@/lib/ai/export"
 import { exportToMarkdown } from "@/lib/ai/export-markdown"

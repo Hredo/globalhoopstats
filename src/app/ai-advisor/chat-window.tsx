@@ -1,9 +1,10 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { motion } from "framer-motion"
+import { motion } from "motion/react"
 import { MessageBubble } from "./message-bubble"
 import type { Reaction } from "./message-actions"
+import { useT } from "@/lib/i18n/provider"
 
 type Msg = {
   id: number
@@ -38,6 +39,7 @@ export function ChatWindow({
   lastMessageRef,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const t = useT()
   const bottomRef = useRef<HTMLDivElement>(null)
   const internalLastRef = useRef<HTMLDivElement | null>(null)
   // Latest-callback ref, updated in an effect (not during render); read only
@@ -139,7 +141,7 @@ export function ChatWindow({
             transition={{ delay: 0.2, duration: 0.4 }}
             className="text-xl font-semibold text-ink-50"
           >
-            Scouting Advisor
+            {t("aiAdvisor.ui.emptyTitle")}
           </motion.h3>
           <motion.p
             initial={{ opacity: 0, y: 8 }}
@@ -147,9 +149,7 @@ export function ChatWindow({
             transition={{ delay: 0.3, duration: 0.4 }}
             className="mt-2 text-sm leading-relaxed text-ink-400"
           >
-            Select a team above and ask which signings would strengthen the
-            roster. The advisor analyses your lineup, detects gaps and
-            suggests real players from the market.
+            {t("aiAdvisor.ui.emptyBody")}
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -163,7 +163,7 @@ export function ChatWindow({
             >
               1
             </motion.span>
-            Pick a team
+            {t("aiAdvisor.ui.stepTeam")}
             <motion.span
               animate={{ x: [0, 4, 0] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -178,7 +178,7 @@ export function ChatWindow({
             >
               2
             </motion.span>
-            Ask your question
+            {t("aiAdvisor.ui.stepAsk")}
           </motion.div>
         </motion.div>
       </div>
@@ -273,7 +273,7 @@ export function ChatWindow({
                 animate={{ opacity: [0.6, 1, 0.6] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
               >
-                Analysing roster and market…
+                {t("aiAdvisor.ui.analysing")}
               </motion.span>
             </div>
           </div>

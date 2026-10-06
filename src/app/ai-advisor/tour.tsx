@@ -1,48 +1,26 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { AnimatePresence, motion } from "framer-motion"
+import { AnimatePresence, motion } from "motion/react"
+import { useT } from "@/lib/i18n/provider"
 
 const TOUR_KEY = "ai-advisor:tour-done"
 export const TOUR_EVENT = "advisor:start-tour"
 
 type Step = {
   id: string
+  /** dictionary keys under aiAdvisor.ui */
   title: string
   body: string
 }
 
 const STEPS: Step[] = [
-  {
-    id: "team",
-    title: "Pick a team",
-    body: "Everything starts here. Search any club across the NBA, EuroLeague and ACB — the advisor analyses its current roster before answering.",
-  },
-  {
-    id: "chat",
-    title: "Read the analysis",
-    body: "Answers appear here: a roster diagnosis, the gap the advisor detects and a shortlist of real candidates ranked by priority.",
-  },
-  {
-    id: "input",
-    title: "Ask in plain language",
-    body: "Type your question — \"I need a scoring wing\" — and press Ctrl+Enter or the send button.",
-  },
-  {
-    id: "export",
-    title: "Export your work",
-    body: "Download the whole conversation as PDF, Word or Markdown to share with your staff.",
-  },
-  {
-    id: "new-chat",
-    title: "Start fresh anytime",
-    body: "New chat clears the board. Your previous conversations stay saved below it.",
-  },
-  {
-    id: "conversations",
-    title: "Pick up where you left off",
-    body: "Chats are private to your account. Click one to reopen it, hover to delete it.",
-  },
+  { id: "team", title: "tourTeamTitle", body: "tourTeamBody" },
+  { id: "chat", title: "tourChatTitle", body: "tourChatBody" },
+  { id: "input", title: "tourInputTitle", body: "tourInputBody" },
+  { id: "export", title: "tourExportTitle", body: "tourExportBody" },
+  { id: "new-chat", title: "tourNewTitle", body: "tourNewBody" },
+  { id: "conversations", title: "tourConvTitle", body: "tourConvBody" },
 ]
 
 type Rect = { top: number; left: number; width: number; height: number }
@@ -80,6 +58,7 @@ export function AdvisorTour() {
   const [idx, setIdx] = useState(0)
   const [rect, setRect] = useState<Rect | null>(null)
   const tooltipRef = useRef<HTMLDivElement>(null)
+  const t = useT()
 
   // First visit → offer the tour. Replays come through the TOUR_EVENT.
   useEffect(() => {
@@ -225,12 +204,10 @@ export function AdvisorTour() {
                 id="tour-welcome-title"
                 className="mt-4 font-display text-xl font-bold text-ink-50 sm:text-2xl"
               >
-                Welcome to the Scouting Advisor
+                {t("aiAdvisor.ui.tourWelcomeTitle")}
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-ink-300">
-                Your assistant for signings: it analyses a roster, detects gaps
-                and shortlists real players. Want a 60-second walkthrough of
-                how it works?
+                {t("aiAdvisor.ui.tourWelcomeBody")}
               </p>
               <div className="mt-6 flex flex-col gap-2 sm:flex-row">
                 <button
@@ -238,7 +215,7 @@ export function AdvisorTour() {
                   onClick={beginTour}
                   className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-ink-950 shadow-[var(--shadow-brand-glow)] transition hover:bg-brand-400"
                 >
-                  Take the tour
+                  {t("aiAdvisor.ui.tourTake")}
                   <svg
                     className="h-4 w-4"
                     viewBox="0 0 24 24"
@@ -259,7 +236,7 @@ export function AdvisorTour() {
                   onClick={endTour}
                   className="inline-flex flex-1 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-ink-200 transition hover:border-white/25 hover:text-ink-50"
                 >
-                  Skip for now
+                  {t("aiAdvisor.ui.tourSkipNow")}
                 </button>
               </div>
               <p className="mt-4 text-center text-[11px] text-ink-500">
@@ -325,24 +302,24 @@ export function AdvisorTour() {
       >
         <div className="flex items-center justify-between gap-3">
           <span className="rounded-full border border-brand-500/30 bg-brand-500/10 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-widest text-brand-300">
-            Step {idx + 1} / {steps.length}
+            {t("aiAdvisor.ui.tourStep", { n: idx + 1, total: steps.length })}
           </span>
           <button
             type="button"
             onClick={endTour}
             className="rounded-md px-1.5 py-0.5 text-[11px] text-ink-500 transition hover:bg-white/5 hover:text-ink-200"
           >
-            Skip tour
+            {t("aiAdvisor.ui.tourSkip")}
           </button>
         </div>
         <h3
           id="tour-step-title"
           className="mt-2.5 font-display text-base font-bold text-ink-50"
         >
-          {step.title}
+          {t(`aiAdvisor.ui.${step.title}`)}
         </h3>
         <p className="mt-1.5 text-[13px] leading-relaxed text-ink-300">
-          {step.body}
+          {t(`aiAdvisor.ui.${step.body}`)}
         </p>
         <div className="mt-4 flex items-center justify-between">
           <div className="flex items-center gap-1" aria-hidden>
@@ -362,14 +339,14 @@ export function AdvisorTour() {
               disabled={idx === 0}
               className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-ink-200 transition hover:border-white/25 hover:text-ink-50 disabled:cursor-not-allowed disabled:opacity-30"
             >
-              Back
+              {t("aiAdvisor.ui.tourBack")}
             </button>
             <button
               type="button"
               onClick={() => (isLast ? endTour() : setIdx((i) => i + 1))}
               className="rounded-lg bg-brand-500 px-3.5 py-1.5 text-xs font-semibold text-ink-950 transition hover:bg-brand-400"
             >
-              {isLast ? "Finish" : "Next"}
+              {isLast ? t("aiAdvisor.ui.tourFinish") : t("aiAdvisor.ui.tourNext")}
             </button>
           </div>
         </div>

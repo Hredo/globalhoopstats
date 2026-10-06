@@ -10,6 +10,7 @@ import {
   limitFor,
   STATE_CHANGING,
 } from "@/lib/security/edge-rate-limit"
+import { resolveClientIp } from "@/lib/security/client-ip"
 
 export const config = {
   // Everything except static assets. It used to list only the protected
@@ -68,25 +69,6 @@ function isOriginAllowed(origin: string | null): boolean {
       origin === allowed ||
       origin === allowed.replace(/\/$/, ""),
   )
-}
-
-/**
- * The caller's address, trusting only the hop our own proxy sets.
- *
- * Mirrors `clientIp` in security/ai-advisor.ts, reimplemented here rather than
- * imported so the middleware does not pull that whole module — and with the
- * same rule: take the RIGHT-most forwarded hop, because everything to its left
- * is written by the client.
- */
-function callerIp(request: NextRequest): string {
-  const cf = request.headers.get("cf-connecting-ip")
-  if (cf) return cf.trim()
-  const xff = request.headers.get("x-forwarded-for")
-  if (xff) {
-    const hops = xff.split(",").map((h) => h.trim()).filter(Boolean)
-    if (hops.length > 0) return hops[hops.length - 1]
-  }
-  return request.headers.get("x-real-ip")?.trim() ?? "unknown"
 }
 
 /** Bodies larger than this are refused before a route ever parses them. */
@@ -172,7 +154,7 @@ export function middleware(request: NextRequest) {
 
     const { capacity, refillPerSec } = limitFor(pathname)
     const limited = edgeRateLimit(
-      `${callerIp(request)}:${pathname.split("/").slice(0, 4).join("/")}`,
+      `${resolveClientIp(request.headers)}:${pathname.split("/").slice(0, 4).join("/")}`,
       capacity,
       refillPerSec,
     )

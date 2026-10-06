@@ -1,6 +1,6 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { motion } from "motion/react"
 import { MessageActions } from "./message-actions"
 import type { Reaction } from "./message-actions"
 import { AiMarkdown } from "@/components/ai/markdown"

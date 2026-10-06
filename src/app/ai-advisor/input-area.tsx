@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useId } from "react"
+import { useT } from "@/lib/i18n/provider"
 
 type Props = {
   onSend: (content: string) => Promise<void>
@@ -13,9 +14,10 @@ export function InputArea({
   onSend,
   disabled = false,
   loading = false,
-  placeholder = "Type your message…",
+  placeholder,
 }: Props) {
   const [input, setInput] = useState("")
+  const t = useT()
   const inputRef = useRef<HTMLInputElement>(null)
   const helpId = useId()
 
@@ -60,7 +62,7 @@ export function InputArea({
             value={input}
             onChange={(e) => setInput(e.target.value.slice(0, 2000))}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder}
+            placeholder={placeholder ?? t("aiAdvisor.ui.placeholderDefault")}
             disabled={disabled || loading}
             autoComplete="off"
             autoCorrect="off"
@@ -121,7 +123,7 @@ export function InputArea({
       </div>
       <p id={helpId} className="mt-1.5 px-1 text-[10px] text-ink-500">
         <span className="hidden sm:inline">
-          Press{" "}
+          {t("aiAdvisor.ui.press")}{" "}
           <kbd className="rounded border border-white/10 bg-white/[0.04] px-1 font-mono text-[9px] text-ink-300">
             Ctrl
           </kbd>
@@ -129,9 +131,9 @@ export function InputArea({
           <kbd className="rounded border border-white/10 bg-white/[0.04] px-1 font-mono text-[9px] text-ink-300">
             Enter
           </kbd>{" "}
-          to send ·{" "}
+          {t("aiAdvisor.ui.toSend")} ·{" "}
         </span>
-        Answers can take a few seconds
+        {t("aiAdvisor.ui.answersTakeTime")}
       </p>
     </form>
   )

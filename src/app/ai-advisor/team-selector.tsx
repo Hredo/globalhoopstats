@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import type { TeamOption } from "@/types/teams"
+import { useT } from "@/lib/i18n/provider"
 
 const TEAMS_CACHE_KEY = "ai-advisor:teams-cache"
 const TEAMS_CACHE_TTL_MS = 10 * 60 * 1000 // 10 min
@@ -41,6 +42,7 @@ export function TeamSelector({
   initialTeam?: TeamOption | null
 }) {
   const [teams, setTeams] = useState<TeamOption[]>([])
+  const t = useT()
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState("")
   const [open, setOpen] = useState(false)
@@ -159,7 +161,7 @@ export function TeamSelector({
           htmlFor="team-selector-input"
           className="block text-[10px] font-semibold uppercase tracking-widest text-ink-500"
         >
-          Team
+          {t("aiAdvisor.ui.team")}
         </label>
         {selected ? (
           <span className="inline-flex min-w-0 max-w-[60%] items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 sm:max-w-none">
@@ -177,7 +179,7 @@ export function TeamSelector({
           </span>
         ) : (
           <span className="text-[10px] uppercase tracking-widest text-ink-500">
-            Required
+            {t("aiAdvisor.ui.required")}
           </span>
         )}
       </div>
@@ -213,8 +215,8 @@ export function TeamSelector({
           onKeyDown={onKeyDown}
           placeholder={
             loading
-              ? "Loading teams…"
-              : "Search for a team — NBA, EuroLeague, ACB…"
+              ? t("aiAdvisor.ui.loadingTeams")
+              : t("aiAdvisor.ui.searchTeams")
           }
           disabled={loading}
           autoComplete="off"
@@ -268,7 +270,7 @@ export function TeamSelector({
           >
             {filtered.length === 0 ? (
               <div className="px-3 py-6 text-center text-sm text-ink-400">
-                No teams found
+                {t("aiAdvisor.ui.noTeams")}
               </div>
             ) : (
               filtered.map((team, i) => {

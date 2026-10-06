@@ -1,7 +1,7 @@
 # Data sync & scheduling
 
 The data sync scrapes each league and upserts teams, players, stats and coaches
-into Postgres. As of July 2026 the **scheduled** sync is triggered by a
+into MySQL. As of July 2026 the **scheduled** sync is triggered by a
 Hostinger cron job that calls `POST /api/cron/sync` — the sync then runs
 detached inside the web server process.
 
@@ -70,7 +70,12 @@ In **hPanel → Advanced → Cron Jobs** the two jobs are:
 `~/.cron-auth.hdr` contains the line `X-Cron-Secret: <CRON_SECRET>` and is
 written (mode 0600) by the app itself on boot from its own env
 (`src/instrumentation.ts`), so the secret never appears in the inspectable
-cron command. After changing `CRON_SECRET` in the app's env, a restart
+cron command. Hostinger starts the app with `HOME` set to the site folder
+(`/home/<USER>/domains/<site>`), not the account home the cron reads, so the
+app writes the file to **both**; writing only to `$HOME` left the cron reading
+a stale file and every scheduled sync failed with 401 from 2026-07-08 to
+2026-10-06. If the footer's "synced N days ago" keeps growing, check
+`hPanel → Cron Jobs → output` first. After changing `CRON_SECRET` in the app's env, a restart
 refreshes the file. The `X-Cron-Secret` header exists because Hostinger's
 cron UI mangles quoted arguments and `Authorization: Bearer <token>` cannot
 be written without quotes; both headers are accepted, and the secret is never

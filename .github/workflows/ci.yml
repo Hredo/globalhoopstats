@@ -1,0 +1,50 @@
+# Every push to the long-lived branches and every pull request: the types
+# check, the linter is clean, the suite passes (unit, components and the
+# security regression tests) and no production dependency carries a known
+# high-severity advisory.
+#
+# `pnpm build` is deliberately not here: the build renders pages that read the
+# live database, and CI never gets those credentials. Correctness is gated by
+# tsc + vitest, the same signal used locally (see AGENTS.md).
+name: ci
+
+on:
+  push:
+    branches: [master, develop]
+  pull_request:
+  workflow_dispatch:
+
+# Read-only token: if a step were ever compromised it could not write to the
+# repository.
+permissions:
+  contents: read
+
+# A newer push to the same branch makes the running check pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The pnpm version comes from "packageManager" in package.json.
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Lint
+        run: pnpm lint
+      - name: Tests
+        run: pnpm test
+      # Production dependencies only: dev tooling advisories (eslint's braces,
+      # for one) have no published fix and never reach the server.
+      - name: Dependency audit
+        run: pnpm audit --prod --audit-level high

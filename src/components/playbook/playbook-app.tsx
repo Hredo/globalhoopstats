@@ -8,7 +8,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence } from "motion/react"
 import { Eyebrow } from "@/components/ui/eyebrow"
 import { cn } from "@/components/ui/cn"
 import { useLocale, useT } from "@/lib/i18n/provider"

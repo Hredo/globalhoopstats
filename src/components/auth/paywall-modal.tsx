@@ -1,7 +1,7 @@
 // NOTE: Paywall disabled until re-enabled later.
 // "use client"
 // import { useState } from "react"
-// import { motion, AnimatePresence } from "framer-motion"
+// import { motion, AnimatePresence } from "motion/react"
 // import Link from "next/link"
 // import { SITE } from "@/lib/site"
 

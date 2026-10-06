@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, type FormEvent } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence } from "motion/react"
 import { useSearchParams } from "next/navigation"
 import { safeNextPath } from "@/lib/auth/safe-redirect"
 
