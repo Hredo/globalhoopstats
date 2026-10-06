@@ -1,5 +1,3 @@
-import { BlockList, isIP } from "node:net"
-
 /**
  * Cloudflare's published edge ranges (https://www.cloudflare.com/ips/).
  * They change rarely; when they do, a missing range only means that edge's
@@ -33,20 +31,72 @@ const CLOUDFLARE_V6 = [
   "2c0f:f248::/32",
 ]
 
-const cloudflare = new BlockList()
-for (const cidr of CLOUDFLARE_V4) {
-  const [net, bits] = cidr.split("/")
-  cloudflare.addSubnet(net, Number(bits), "ipv4")
+/*
+ * Plain-JS address parsing rather than node:net. This module is reached from
+ * client bundles too (security/ai-advisor.ts is shared with the markdown
+ * renderer), and a node: import breaks those builds.
+ */
+
+function parseIPv4(ip: string): number | null {
+  const parts = ip.split(".")
+  if (parts.length !== 4) return null
+  let n = 0
+  for (const part of parts) {
+    if (!/^\d{1,3}$/.test(part)) return null
+    const v = Number(part)
+    if (v > 255) return null
+    n = n * 256 + v
+  }
+  return n
 }
-for (const cidr of CLOUDFLARE_V6) {
+
+function parseIPv6(raw: string): bigint | null {
+  let ip = raw.split("%")[0].toLowerCase()
+  if (!ip.includes(":")) return null
+  // An embedded IPv4 tail (::ffff:1.2.3.4) becomes its two hextets.
+  const lastColon = ip.lastIndexOf(":")
+  const tail = ip.slice(lastColon + 1)
+  if (tail.includes(".")) {
+    const v4 = parseIPv4(tail)
+    if (v4 === null) return null
+    ip = `${ip.slice(0, lastColon + 1)}${(v4 >>> 16).toString(16)}:${(v4 & 0xffff).toString(16)}`
+  }
+  const halves = ip.split("::")
+  if (halves.length > 2) return null
+  const head = halves[0] ? halves[0].split(":") : []
+  const rest = halves.length === 2 && halves[1] ? halves[1].split(":") : []
+  const missing = 8 - head.length - rest.length
+  if (halves.length === 1 ? missing !== 0 : missing < 1) return null
+  const groups = [...head, ...Array<string>(halves.length === 2 ? missing : 0).fill("0"), ...rest]
+  let n = BigInt(0)
+  for (const g of groups) {
+    if (!/^[0-9a-f]{1,4}$/.test(g)) return null
+    n = (n << BigInt(16)) + BigInt(parseInt(g, 16))
+  }
+  return n
+}
+
+const V4_RANGES = CLOUDFLARE_V4.map((cidr) => {
   const [net, bits] = cidr.split("/")
-  cloudflare.addSubnet(net, Number(bits), "ipv6")
+  const size = 2 ** (32 - Number(bits))
+  const base = parseIPv4(net)!
+  return [base, base + size] as const
+})
+const V6_RANGES = CLOUDFLARE_V6.map((cidr) => {
+  const [net, bits] = cidr.split("/")
+  const shift = BigInt(128 - Number(bits))
+  return [parseIPv6(net)! >> shift, shift] as const
+})
+
+export function isValidIp(ip: string): boolean {
+  return parseIPv4(ip) !== null || parseIPv6(ip) !== null
 }
 
 export function isCloudflareIp(ip: string): boolean {
-  const kind = isIP(ip)
-  if (kind === 4) return cloudflare.check(ip, "ipv4")
-  if (kind === 6) return cloudflare.check(ip, "ipv6")
+  const v4 = parseIPv4(ip)
+  if (v4 !== null) return V4_RANGES.some(([lo, hi]) => v4 >= lo && v4 < hi)
+  const v6 = parseIPv6(ip)
+  if (v6 !== null) return V6_RANGES.some(([prefix, shift]) => v6 >> shift === prefix)
   return false
 }
 
@@ -92,7 +142,7 @@ export function resolveClientIp(headers: HeaderSource): string {
 
   if (hops.length > 0) {
     const peer = hops[Math.max(0, hops.length - trustedProxyHops())]
-    if (cf && isCloudflareIp(peer) && isIP(cf)) return cf
+    if (cf && isCloudflareIp(peer) && isValidIp(cf)) return cf
     return peer
   }
 
