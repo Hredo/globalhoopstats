@@ -142,7 +142,12 @@ export function twoFactorSetupEmail(code: string, locale: Locale = DEFAULT_LOCAL
 // ── Contact: auto-reply to the sender ──────────────────────────────────────
 export function contactReceivedEmail(name: string, locale: Locale = DEFAULT_LOCALE): EmailContent {
   const dict = getDictionary(locale)
-  const first = name.trim().split(/\s+/)[0] || "there"
+  // This mail goes to whatever address the form was given, so the one piece
+  // of sender text it repeats is cut down to something that can only be a
+  // name — never a link or a sentence riding our domain into a stranger's inbox.
+  const first =
+    (name.trim().split(/\s+/)[0] ?? "").replace(/[^\p{L}\p{M}'-]/gu, "").slice(0, 30) ||
+    "there"
   return {
     subject: t(dict, "email.contactReceived.subject", { site: SITE.name }),
     html: renderEmail({

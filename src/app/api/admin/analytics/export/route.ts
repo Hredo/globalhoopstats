@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { sql } from "drizzle-orm"
 import { getDb, rawRows } from "@/lib/db/client"
 import { getCurrentUser, isAdmin } from "@/lib/auth/current-user"
+import { csvRow } from "@/lib/security/csv"
 
 export async function GET(request: Request) {
   const user = await getCurrentUser(request.headers.get("cookie"))
@@ -31,7 +32,7 @@ export async function GET(request: Request) {
     )
     csv = "page_type,page_slug,league_slug,viewed_at\n"
     for (const r of rows) {
-      csv += `${r.page_type},${r.page_slug ?? ""},${r.league_slug ?? ""},${r.viewed_at}\n`
+      csv += csvRow([r.page_type, r.page_slug, r.league_slug, r.viewed_at])
     }
     filename = "page-views.csv"
   } else if (type === "searches") {
@@ -49,7 +50,7 @@ export async function GET(request: Request) {
     )
     csv = "query,result_count,searched_at\n"
     for (const r of rows) {
-      csv += `"${r.query.replace(/"/g, '""')}",${r.result_count},${r.searched_at}\n`
+      csv += csvRow([r.query, r.result_count, r.searched_at])
     }
     filename = "searches.csv"
   } else if (type === "users") {
@@ -63,7 +64,7 @@ export async function GET(request: Request) {
     )
     csv = "date,plan,role\n"
     for (const r of rows) {
-      csv += `${r.date},${r.plan},${r.role}\n`
+      csv += csvRow([r.date, r.plan, r.role])
     }
     filename = "users.csv"
   } else {

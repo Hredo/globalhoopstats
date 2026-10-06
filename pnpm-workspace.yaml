@@ -41,6 +41,8 @@ minimumReleaseAgeExclude:
   - brace-expansion@1.1.21
   - brace-expansion@5.0.12
   - dompurify@3.4.16
+  # 2026-10-06 round.
+  - source-map-js@1.2.2
 
 # Force patched versions of transitive deps flagged by `pnpm audit`. Every entry
 # here is TRANSITIVE — none of these are direct dependencies, so an override is
@@ -66,6 +68,8 @@ minimumReleaseAgeExclude:
 # browserslist / baseline-browser-mapping: build-time only, via Next's
 #   styled-jsx → @babel/core and @serwist/utils.
 # fflate: three-stdlib under @react-three/drei; 0.6.11 is the 0.6.x fix.
+# source-map-js: postcss under Next and svgo (build tooling); 1.2.2 fixes the
+#   indexed-section-offset event-loop DoS.
 # js-yaml, svgo: eslint config and @svgr/webpack — dev/build tooling only.
 #
 # Each entry pins the LOWEST safe release rather than the newest, so the blast
@@ -87,3 +91,4 @@ overrides:
   browserslist@<4.28.7: ^4.28.7
   baseline-browser-mapping@>=2.0.0 <2.11.0: ^2.11.0
   fflate@>=0.6.0 <0.6.11: ^0.6.11
+  source-map-js@>=1.0.0 <1.2.2: ^1.2.2

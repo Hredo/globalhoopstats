@@ -38,6 +38,7 @@ const loginSchema = z.object({
 // serverless invocations, unlike an in-memory counter.
 const ATTEMPT_WINDOW_MS = 10 * 60 * 1000
 const MAX_ATTEMPTS = 12
+const ACCOUNT_MAX_ATTEMPTS = 20
 
 // Fixed bcrypt hash compared against when the email doesn't exist, so the
 // response takes the same time whether or not the account is real — this
@@ -80,6 +81,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true }, { status: 200 })
   }
   const { email, password } = parsed.data
+
+  // Per-account cap on top of the per-IP one: a password spray against one
+  // account from many addresses never trips an IP bucket. Generous enough that
+  // a locked-out owner waits minutes, not hours, if someone burns it for them.
+  const perAccount = await consumeRateLimit(
+    `login:email:${email}`,
+    ACCOUNT_MAX_ATTEMPTS,
+    ATTEMPT_WINDOW_MS,
+  )
+  if (!perAccount.ok) {
+    return NextResponse.json(
+      { error: "Too many login attempts. Try again in a few minutes." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(perAccount.retryAfterSec) },
+      },
+    )
+  }
 
   const db = getDb()
   const rows = await db
