@@ -30,6 +30,13 @@ import { HighlightsSection } from "./highlights"
 import { PlayerAi } from "@/components/players/player-ai"
 import { ShotChart } from "@/components/players/shot-chart"
 import { getT } from "@/lib/i18n/server"
+import { cached } from "@/lib/data/cache"
+import { FollowButton } from "@/components/workspace/follow-button"
+import { AddToShortlist } from "@/components/workspace/add-to-shortlist"
+import { ShareButton } from "@/components/workspace/share-button"
+import { PercentileProfile } from "@/components/scouting/percentile-profile"
+import { getPlayerPercentiles } from "@/lib/scouting/profile"
+import { projectPlayer } from "@/lib/scouting/projection"
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -130,13 +137,15 @@ function ageFrom(bd: string | null): number | null {
   return Math.floor(ms / (365.25 * 24 * 3600 * 1000))
 }
 
-async function findComparisonCandidates(
-  leagueId: string,
-  excludePlayerId: string,
-  seasonName: string,
-): Promise<
-  Array<{ id: string; slug: string; fullName: string; points: number | null }>
-> {
+type Candidate = { id: string; slug: string; fullName: string; points: number | null }
+
+/**
+ * Top scorers of a league-season, cached per league-season: every profile in
+ * that league used to run this GROUP BY over the whole season on each visit.
+ * One extra row so excluding the viewed player still leaves six.
+ */
+const leagueSeasonLeaders = cached(
+  async (leagueId: string, seasonName: string): Promise<Candidate[]> => {
   const db = getDb()
   const rows = await db
     .select({
@@ -157,20 +166,27 @@ async function findComparisonCandidates(
         // The season being VIEWED, not the flagged current one: opening a 2024-25
         // profile should suggest people who played in 2024-25.
         inArray(seasons.name, seasonNameVariants(seasonName)),
-        sql`${players.id} <> ${excludePlayerId}`,
       ),
     )
     .groupBy(players.id)
     .orderBy(
       sql`coalesce(sum(${playerSeasonStats.pointsTotal}), 0) / nullif(sum(${playerSeasonStats.gamesPlayed}), 0) desc`,
     )
-    .limit(6)
-  return rows as Array<{
-    id: string
-    slug: string
-    fullName: string
-    points: number | null
-  }>
+    .limit(7)
+  return rows as Candidate[]
+  },
+  "player-compare-leaders:v1",
+  ["players", "player-stats"],
+  3600,
+)
+
+async function findComparisonCandidates(
+  leagueId: string,
+  excludePlayerId: string,
+  seasonName: string,
+): Promise<Candidate[]> {
+  const leaders = await leagueSeasonLeaders(leagueId, seasonName)
+  return leaders.filter((c) => c.id !== excludePlayerId).slice(0, 6)
 }
 
 export default async function PlayerPage({ params, searchParams }: Props) {
@@ -200,6 +216,15 @@ export default async function PlayerPage({ params, searchParams }: Props) {
   const accent = leagueAccent(selLeague.slug)
 
   const marketPlayer = await getMarketPlayerBySlug(slug)
+
+  // League-season percentiles in all three bases (one cached field read), and
+  // the one-level-up projection for the player's newest real season.
+  const [pctPace, pct40, pctGame, projection] = await Promise.all([
+    season ? getPlayerPercentiles(profile.id, selLeague.slug, season.seasonName, "per40pace") : null,
+    season ? getPlayerPercentiles(profile.id, selLeague.slug, season.seasonName, "per40") : null,
+    season ? getPlayerPercentiles(profile.id, selLeague.slug, season.seasonName, "perGame") : null,
+    projectPlayer(profile.slug),
+  ])
 
   const structuredData = [
     playerJsonLd({
@@ -367,6 +392,11 @@ export default async function PlayerPage({ params, searchParams }: Props) {
                   leagueName={selLeague.name}
                 />
               </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <FollowButton kind="player" slug={profile.slug} />
+                <AddToShortlist slug={profile.slug} />
+                <ShareButton kind="player" refId={profile.slug} targetId={profile.id} />
+              </div>
             </header>
           </FadeIn>
 
@@ -419,6 +449,47 @@ export default async function PlayerPage({ params, searchParams }: Props) {
               </div>
             )}
           </LeagueTransition>
+
+          {pctPace || pct40 || pctGame ? (
+            <LeagueTransition>
+              <PercentileProfile
+                data={{ per40pace: pctPace, per40: pct40, perGame: pctGame }}
+                leagueName={selLeague.name}
+              />
+            </LeagueTransition>
+          ) : null}
+
+          {"projected" in projection && projection.projected.perGame.pts != null ? (
+            <section className="gh-card flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
+              <div>
+                <h2 className="gh-eyebrow">{t("scouting.projection.cardTitle")}</h2>
+                <p className="mt-2 font-display text-xl font-bold tracking-[-0.02em] text-ink-50">
+                  {t("scouting.projection.cardLine", {
+                    pts: projection.projected.perGame.pts.toFixed(1),
+                    mpg: (projection.projected.minutesPerGame ?? 0).toFixed(0),
+                    league: projection.to.leagueName,
+                  })}
+                </p>
+                <p className="mt-1 text-[12px] text-ink-500">
+                  {projection.factors.method === "transitions"
+                    ? t("scouting.projection.methodTransitions", {
+                        n: projection.factors.sample,
+                        from: projection.from.leagueName,
+                        to: projection.to.leagueName,
+                      })
+                    : projection.crossesTier
+                      ? t("scouting.projection.methodTier")
+                      : t("scouting.projection.methodModel")}
+                </p>
+              </div>
+              <Link
+                href={`/projection?player=${profile.slug}`}
+                className="inline-flex items-center gap-2 rounded-lg border border-hairline px-3.5 py-2 text-xs font-semibold text-ink-200 transition hover:border-brand-500/40 hover:text-ink-50"
+              >
+                {t("scouting.projection.cta")}
+              </Link>
+            </section>
+          ) : null}
 
           {candidates.length > 0 ? (
             <LeagueTransition>

@@ -34,6 +34,16 @@ const PROTECTED_PREFIXES = [
   "/api/admin",
   "/api/market",
   "/admin",
+  // Scouting workspace: per-user by definition. /s/<token> share pages and
+  // /api/v1 (API-key auth) are deliberately NOT here.
+  "/following",
+  "/shortlists",
+  "/api/follows",
+  "/api/notifications",
+  "/api/push",
+  "/api/shortlists",
+  "/api/shares",
+  "/api/export",
 ]
 
 const API_PREFIXES = [

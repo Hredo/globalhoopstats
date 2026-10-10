@@ -78,9 +78,9 @@ heterogeneous, dirty sources into a single canonical identity per person/team, e
 | Validation | **Zod** | env, API payloads |
 | PWA | **Serwist** | Turbopack‑compatible service worker |
 | Export | `jspdf`, `docx`, `xlsx-js-style` | PDF/Word/Excel reports |
-| Tooling | **pnpm 11**, ESLint, Prettier, **Vitest**, `tsx` | Node 20.x |
+| Tooling | **pnpm 11**, ESLint, Prettier, **Vitest**, `tsx` | Node 22.x |
 
-**Environment requirements:** Node 20.x · pnpm 11.x · a MySQL 8 / MariaDB database · (optional) Ollama for a local AI model.
+**Environment requirements:** Node 22.13+ · pnpm 11.x · a MySQL 8 / MariaDB database · (optional) Ollama for a local AI model.
 
 ---
 
@@ -232,6 +232,11 @@ erDiagram
 | `page_views` / `search_log` | lightweight first‑party analytics (views and searches) |
 | `sync_runs` | audit of each ingestion run (status, rows, error) |
 | `rate_limits` | fixed‑window rate‑limiting counters (composite key) |
+| `follows` / `notifications` / `push_subscriptions` | followed players/teams with their last snapshot, alerts, web‑push devices |
+| `shortlists` / `shortlist_members` / `shortlist_items` / `shortlist_comments` | collaborative scouting boards (owner, editors, viewers) |
+| `shared_links` | read‑only public links (`/s/<token>`): expiring, revocable, noindex |
+| `api_clients` | public API keys (SHA‑256 only) with a daily quota |
+| `app_errors` | server errors grouped by fingerprint (via `onRequestError`) |
 
 > TS types are auto‑derived at the end of the schema (`typeof table.$inferSelect`). Always use them instead of
 > redefining shapes by hand. `userPlan(user)` resolves the effective plan: `admin` > `pro` > `free`.
@@ -378,7 +383,9 @@ Language mechanics:
 | **AI** | `ai-advisor/*`, `compare/ai`, `players/ai`, `market/trade/ai`, `conversations/[id]/messages` | uses the user's BYOK |
 | **Market** | `market/trade/*`, `players/[slug]/{valuation,similar}` | valuation + simulator |
 | **Admin** | `admin/{sync,users,announcements,config,stats,analytics,cache}` | `role: admin` only |
-| **Operations** | `cron/sync`, `revalidate`, `track/{page-view,search}`, `waitlist`, `contact`, `announcements/active`, `locale` | cron, analytics, ISR |
+| **Workspace** | `follows`, `notifications`, `push`, `shortlists/*`, `shares`, `export/players` | per‑user, login required |
+| **Public API v1** | `v1/{leagues,teams,players,players/[slug]}` | API key + daily quota, docs at `/developers` |
+| **Operations** | `cron/{sync,alerts,backup}`, `revalidate`, `track/{page-view,search}`, `waitlist`, `contact`, `announcements/active`, `locale` | cron, analytics, ISR |
 
 Security pattern: the **middleware** blocks by prefix (401/redirect) and each sensitive endpoint re‑checks
 user/role with `src/lib/auth/guard.ts` (defense in depth).

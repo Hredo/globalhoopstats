@@ -6,6 +6,7 @@ import { SeasonSwitcher } from "@/components/ui/season-select"
 import { compareSeasonsDesc } from "@/lib/seasons"
 import { CompareSearch } from "@/components/players/compare-search"
 import { CompareRadar } from "@/components/players/compare-radar"
+import { getPlayerPercentiles } from "@/lib/scouting/profile"
 import { CompareAi } from "@/components/players/compare-ai"
 import { CompareStatsTable } from "@/components/players/compare-stats-table"
 import { CompareMarketValue } from "@/components/players/compare-market-value"
@@ -66,6 +67,17 @@ export default async function ComparePage(props: {
 
   const showMarketValue =
     (marketA?.valuation?.eur ?? 0) > 0 && (marketB?.valuation?.eur ?? 0) > 0
+
+  // Each player against his OWN league-season, per 40 and pace-adjusted, so
+  // the radar can compare across leagues on one scale.
+  const pctlFor = async (p: typeof playerA) => {
+    const seasonName = p?.season ?? p?.fallbackSeason
+    if (!p || !seasonName) return null
+    const r = await getPlayerPercentiles(p.id, p.league.slug, seasonName, "per40pace").catch(() => null)
+    return r?.profile ?? null
+  }
+  const [pctlA, pctlB] = await Promise.all([pctlFor(playerA), pctlFor(playerB)])
+  const percentiles = { a: pctlA, b: pctlB }
 
   return (
     <div className="relative pb-12 pt-10 sm:pt-14">
@@ -156,7 +168,7 @@ export default async function ComparePage(props: {
                   <div className="gh-card p-4 sm:p-5">
                     <h2 className="gh-eyebrow">{t("compare.radar")}</h2>
                     <div className="mt-4 aspect-square w-full">
-                      <CompareRadar a={playerA} b={playerB} />
+                      <CompareRadar a={playerA} b={playerB} percentiles={percentiles} />
                     </div>
                   </div>
                 </ScaleIn>

@@ -78,9 +78,9 @@ heterogéneas y sucias en una única identidad canónica por persona/equipo, inc
 | Validación | **Zod** | env, payloads de API |
 | PWA | **Serwist** | service worker compatible con Turbopack |
 | Exportación | `jspdf`, `docx`, `xlsx-js-style` | informes PDF/Word/Excel |
-| Tooling | **pnpm 11**, ESLint, Prettier, **Vitest**, `tsx` | Node 20.x |
+| Tooling | **pnpm 11**, ESLint, Prettier, **Vitest**, `tsx` | Node 22.x |
 
-**Requisitos de entorno:** Node 20.x · pnpm 11.x · una base MySQL 8 / MariaDB · (opcional) Ollama para un modelo de IA local.
+**Requisitos de entorno:** Node 22.13+ · pnpm 11.x · una base MySQL 8 / MariaDB · (opcional) Ollama para un modelo de IA local.
 
 ---
 
@@ -368,6 +368,8 @@ Mecánica de idioma:
   JSON‑LD (`tests/unit/json-ld-xss.test.ts`).
 
 ---
+
+> **Espacio de scouting (2026-10):** tablas `follows`, `notifications`, `push_subscriptions`, `shortlists` (+ miembros, ítems y comentarios), `shared_links`, `api_clients` y `app_errors`. Rutas `follows`, `notifications`, `push`, `shortlists/*`, `shares`, `export/players` (con sesión), API pública `v1/*` (clave + cuota diaria, documentada en `/developers`) y `cron/{alerts,backup}`. Detalle en la versión inglesa y en `docs/SYNC.md`.
 
 ## 8. API REST
 

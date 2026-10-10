@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import type { Metadata } from "next"
 import { FadeIn } from "@/components/animations/fade-in"
 import { BackLink } from "@/components/ui/back-link"
+import { FollowButton } from "@/components/workspace/follow-button"
 import { TeamDetailView } from "@/components/teams/team-detail-view"
 import { getTeamBySlug, listTeamOptions } from "@/lib/data/teams"
 import { ALL_SEASONS, parseSeasonParam } from "@/lib/seasons"
@@ -111,11 +112,14 @@ export default async function TeamDetailPage({
     <div className="relative pt-6 sm:pt-8">
       <JsonLd data={structuredData} />
       <FadeIn>
-        <BackLink
-          fallbackHref="/teams"
-          label={t("common.back")}
-          className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-300 transition hover:text-brand-300"
-        />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <BackLink
+            fallbackHref="/teams"
+            label={t("common.back")}
+            className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-300 transition hover:text-brand-300"
+          />
+          <FollowButton kind="team" slug={team.slug} />
+        </div>
       </FadeIn>
       <TeamDetailView team={team} />
     </div>

@@ -1,27 +1,17 @@
 import Link from "next/link"
+import { NAV_GROUPS } from "@/lib/nav/sections"
 import { Logo } from "@/components/svg/logo"
 import { SITE } from "@/lib/site"
 import { getLatestSyncTime } from "@/lib/data/sync"
 import { formatRelativeAgo } from "@/lib/format-time"
 import { getT } from "@/lib/i18n/server"
 
-const EXPLORE = [
-  { href: "/players", labelKey: "nav.players" },
-  { href: "/teams", labelKey: "nav.teams" },
-  { href: "/coaches", labelKey: "nav.coaches" },
-]
-
-const TOOLS = [
-  { href: "/compare", labelKey: "nav.compare" },
-  { href: "/leagues", labelKey: "nav.leagues" },
-  { href: "/ai-advisor", labelKey: "nav.aiAdvisor" },
-  { href: "/market/trade", labelKey: "nav.trade" },
-  { href: "/install", labelKey: "footer.installApp" },
-]
-
+// The site map comes from the same definition as the navbar, so a page is
+// added once and shows up everywhere, grouped and named the same way.
 const LEGAL = [
   { href: "/contact", labelKey: "footer.contact" },
-  { href: "/methodology", labelKey: "footer.methodology" },
+  { href: "/developers", labelKey: "developers.title" },
+  { href: "/install", labelKey: "footer.installApp" },
   { href: "/terms", labelKey: "footer.terms" },
   { href: "/privacy", labelKey: "footer.privacy" },
 ]
@@ -37,7 +27,7 @@ export async function Footer() {
       {/* measurement ticks hanging from the top rule — the closing baseline */}
       <div aria-hidden className="gh-ticks h-1.5 w-full -scale-y-100" />
       <div className="mx-auto max-w-7xl px-4 pb-8 pt-10 sm:px-6 sm:pt-14">
-        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+        <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]">
           <div className="flex flex-col gap-4">
             <Link
               href="/"
@@ -69,8 +59,13 @@ export async function Footer() {
             </p>
           </div>
 
-          <FooterColumn title={t("footer.explore")} links={localize(EXPLORE)} />
-          <FooterColumn title={t("footer.tools")} links={localize(TOOLS)} />
+          {NAV_GROUPS.map((g) => (
+            <FooterColumn
+              key={g.id}
+              title={t(`nav.groups.${g.id}`)}
+              links={g.items.map((i) => ({ href: i.href, label: t(`nav.items.${i.key}.label`) }))}
+            />
+          ))}
           <FooterColumn title={t("footer.company")} links={localize(LEGAL)} />
         </div>
 

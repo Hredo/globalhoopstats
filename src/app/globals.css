@@ -623,6 +623,12 @@ html[data-theme="light"] .gh-glass {
     0 10px 30px -16px oklch(0.3 0.03 56 / 0.35);
 }
 
+/* Navbar with a panel open: the same glass, made opaque, so page text behind
+   the menu never bleeds through and every label keeps full contrast. */
+html[data-theme="light"] .gh-glass.gh-glass-solid {
+  background-color: oklch(0.985 0.005 82);
+}
+
 /* Card top-edge highlight is a white sheen built for dark; soften on light. */
 html[data-theme="light"] .gh-card {
   box-shadow:
@@ -840,6 +846,12 @@ html[data-theme="light"] .court-backdrop {
       background-color 0.45s var(--ease-fluid),
       border-color 0.35s var(--ease-fluid),
       box-shadow 0.45s var(--ease-fluid);
+  }
+
+  .gh-glass.gh-glass-solid {
+    background-color: oklch(0.125 0.01 57);
+    backdrop-filter: blur(24px) saturate(1.2);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
   }
 
   /* ── Double-bezel (machined hardware) wrapper ─────────────────── */

@@ -50,6 +50,17 @@ const serverSchema = z.object({
   AUTH_EMAIL_FROM: z
     .preprocess(emptyToUndefined, z.string().email())
     .default("no-reply@globalhoopstats.es"),
+  // Web push (alerts). Generate once with `pnpm exec web-push generate-vapid-keys`.
+  // All three optional: without them push is simply not offered.
+  VAPID_PUBLIC_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  VAPID_PRIVATE_KEY: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  VAPID_SUBJECT: z
+    .preprocess(emptyToUndefined, z.string().min(1))
+    .default("mailto:globalhoopstats@gmail.com"),
+  // Where the nightly logical backup is written. Defaults to ~/backups/ghs,
+  // outside the deployed app folder so a redeploy never deletes it.
+  BACKUP_DIR: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  BACKUP_KEEP: z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(90).default(14)),
   SMTP_HOST: z.preprocess(emptyToUndefined, z.string().default("smtp.gmail.com")),
   SMTP_PORT: z.preprocess(emptyToUndefined, z.coerce.number().int().default(587)),
 })

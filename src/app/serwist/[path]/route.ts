@@ -26,6 +26,38 @@ self.addEventListener("activate", (event) => {
 // installable as a PWA; we intentionally do not cache so no stale HTML/API
 // responses are ever served.
 self.addEventListener("fetch", () => {});
+
+// Alerts (lib/alerts/push.ts). The payload is { title, body, href }; href is
+// always a same-site path, and anything else falls back to /following.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (e) {}
+  const href = typeof data.href === "string" && data.href.startsWith("/") && !data.href.startsWith("//") ? data.href : "/following";
+  event.waitUntil(
+    self.registration.showNotification(data.title || "globalhoopstats", {
+      body: data.body || "",
+      icon: "/icon-192",
+      badge: "/icon-192",
+      data: { href },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const href = (event.notification.data && event.notification.data.href) || "/following";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if (new URL(c.url).origin === self.location.origin && "focus" in c) {
+          c.navigate(href);
+          return c.focus();
+        }
+      }
+      return self.clients.openWindow(href);
+    })
+  );
+});
 `
 
 // Plain dynamic handler: runs per request, does no I/O or compilation, so it is

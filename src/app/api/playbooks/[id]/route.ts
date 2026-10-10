@@ -3,13 +3,12 @@ import { and, eq } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
 import { playbookPlays } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/auth/current-user"
-import { parsePlay } from "@/lib/playbook/types"
+import { MAX_PLAY_BYTES, parsePlay } from "@/lib/playbook/types"
 import {
   clientIp,
   jsonTooManyRequests,
   readRateLimit,
 } from "@/lib/security/ai-advisor"
-import { MAX_PLAY_BYTES } from "../route"
 
 export const dynamic = "force-dynamic"
 

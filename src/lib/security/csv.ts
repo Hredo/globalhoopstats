@@ -18,6 +18,13 @@ export function csvCell(value: unknown): string {
   return `"${text.replace(/"/g, '""')}"`
 }
 
-export function csvRow(values: readonly unknown[]): string {
-  return `${values.map(csvCell).join(",")}\n`
+/**
+ * `;` is what a Spanish-locale Excel expects (its decimal separator is the
+ * comma), so exports offer it; the quoting above keeps either one safe.
+ */
+export function csvRow(values: readonly unknown[], separator: "," | ";" = ","): string {
+  return `${values.map(csvCell).join(separator)}\n`
 }
+
+/** Excel only detects UTF-8 (accents in Spanish names) with a BOM. */
+export const UTF8_BOM = "﻿"

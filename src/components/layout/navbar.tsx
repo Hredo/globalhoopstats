@@ -2,44 +2,48 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useEffect, useRef, useState, useSyncExternalStore } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Logo } from "@/components/svg/logo"
-import { SearchTrigger } from "@/components/players/search-trigger"
 import { UserMenu } from "@/components/auth/user-menu"
 import { MobileNav } from "@/components/layout/mobile-nav"
-
+import { NavPanel } from "@/components/layout/nav-panel"
+import { NotificationBell } from "@/components/layout/notification-bell"
+import { LanguageSwitcher } from "@/components/layout/language-switcher"
+import { NavIcon } from "@/components/layout/nav-icons"
 import { SITE } from "@/lib/site"
 import { cn } from "@/components/ui/cn"
-import { LEAGUE_FILTER_TREE } from "@/lib/league-groups"
 import { useT } from "@/lib/i18n/provider"
-import { LanguageSwitcher } from "@/components/layout/language-switcher"
+import { activeGroup, NAV_GROUPS, type NavGroup } from "@/lib/nav/sections"
 
-const LINKS: {
-  href: string
-  labelKey: string
-  leagues?: boolean
-  pro?: boolean
-  beta?: boolean
-}[] = [
-  { href: "/players", labelKey: "nav.players", leagues: true },
-  { href: "/teams", labelKey: "nav.teams", leagues: true },
-  { href: "/coaches", labelKey: "nav.coaches" },
-  { href: "/compare", labelKey: "nav.compare" },
-  { href: "/leagues", labelKey: "nav.leagues" },
-  { href: "/ai-advisor", labelKey: "nav.aiAdvisor", pro: true },
-  { href: "/market/trade", labelKey: "nav.trade" },
-  { href: "/playbook", labelKey: "nav.playbook", beta: true },
-]
+type GroupId = NavGroup["id"]
 
-function isActive(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`)
-}
-
+/**
+ * Three groups instead of eight links: Explore (the catalogue), Analyze (the
+ * tools that read it) and Scouting (the user's own work). Each opens a panel
+ * with one line of context per destination, so the bar stays short however
+ * many pages the site grows — new pages go into src/lib/nav/sections.ts.
+ */
 export function Navbar() {
   const pathname = usePathname()
   const t = useT()
   const [scrolled, setScrolled] = useState(false)
+  const [open, setOpen] = useState<GroupId | null>(null)
+  const [canHover, setCanHover] = useState(false)
   const progressRef = useRef<HTMLDivElement | null>(null)
+  const barRef = useRef<HTMLDivElement | null>(null)
+  const triggerRefs = useRef<Partial<Record<GroupId, HTMLButtonElement | null>>>({})
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // After an explicit close (Escape, or clicking the open trigger) hover must
+  // not reopen the panel until the pointer has left the trigger: the bar's
+  // border changes on close, which re-fires mouseenter under a still pointer.
+  const hoverLock = useRef(false)
+  const current = activeGroup(pathname)
+  // The panel keeps showing the last group while it collapses, so closing is a
+  // smooth fold instead of the content vanishing and the height snapping shut.
+  const [shown, setShown] = useState<GroupId | null>(null)
+  useEffect(() => {
+    if (open) setShown(open) // eslint-disable-line react-hooks/set-state-in-effect
+  }, [open])
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -48,8 +52,7 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
-  // Scroll progress hairline, updated outside React via rAF so it costs
-  // nothing on re-render and needs no animation library.
+  // Scroll progress hairline, updated outside React via rAF.
   useEffect(() => {
     let raf = 0
     const update = () => {
@@ -57,9 +60,7 @@ export function Navbar() {
       const doc = document.documentElement
       const max = doc.scrollHeight - doc.clientHeight
       const p = max > 0 ? Math.min(1, Math.max(0, doc.scrollTop / max)) : 0
-      if (progressRef.current) {
-        progressRef.current.style.transform = `scaleX(${p})`
-      }
+      if (progressRef.current) progressRef.current.style.transform = `scaleX(${p})`
     }
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update)
@@ -74,91 +75,7 @@ export function Navbar() {
     }
   }, [])
 
-  return (
-    <header className="sticky top-0 z-50">
-      {/* scroll progress hairline */}
-      <div
-        ref={progressRef}
-        aria-hidden
-        style={{ transform: "scaleX(0)" }}
-        className="absolute inset-x-0 top-0 z-10 h-px origin-left bg-gradient-to-r from-brand-500 via-ember-400 to-brand-600"
-      />
-      <div className="mx-auto max-w-[1600px] px-2 sm:px-6 lg:px-8">
-        <div
-          className={cn(
-            "mt-2 flex items-center justify-between gap-1 rounded-full px-1.5 transition-all duration-500 ease-fluid sm:mt-3 sm:gap-3 sm:px-4",
-            scrolled
-              ? "gh-glass py-1.5 shadow-[var(--shadow-court)]"
-              : "border border-transparent py-2.5",
-          )}
-        >
-          <Link
-            href="/"
-            className="group flex shrink-0 items-center gap-1.5 text-ink-50 sm:gap-2.5"
-            aria-label={`${SITE.name} — ${t("common.home")}`}
-          >
-            <Logo className="h-7 w-7 transition-transform duration-700 ease-spring group-hover:rotate-[18deg] sm:h-8 sm:w-8" />
-            <span className="font-display text-[13px] font-bold tracking-[-0.02em] sm:text-base">
-              globalhoopstats<span className="text-brand-500">.</span>
-            </span>
-          </Link>
-
-          <nav
-            className="hidden items-center xl:flex"
-            aria-label={t("nav.primary")}
-          >
-            <ul className="flex items-center gap-0.5 whitespace-nowrap text-sm font-medium text-ink-300">
-              {LINKS.map((l) => (
-                <NavItem
-                  key={l.href}
-                  href={l.href}
-                  label={t(l.labelKey)}
-                  pro={l.pro}
-                  beta={l.beta}
-                  active={isActive(pathname, l.href)}
-                  withLeagues={l.leagues}
-                />
-              ))}
-            </ul>
-          </nav>
-
-          <div className="flex items-center gap-1.5 sm:gap-2.5">
-            <SearchTrigger />
-            <UserMenu />
-            <div className="hidden sm:block">
-              <LanguageSwitcher />
-            </div>
-            <MobileNav />
-          </div>
-        </div>
-      </div>
-    </header>
-  )
-}
-
-function NavItem({
-  href,
-  label,
-  active,
-  pro,
-  beta,
-  withLeagues,
-}: {
-  href: string
-  label: string
-  active: boolean
-  pro?: boolean
-  beta?: boolean
-  withLeagues?: boolean
-}) {
-  const t = useT()
-  const [open, setOpen] = useState(false)
-  // Hover-opening is desktop-only: on touch screens the first tap must
-  // navigate, never just reveal the dropdown (that forced double taps).
-  const [canHover, setCanHover] = useState(false)
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const itemRef = useRef<HTMLLIElement | null>(null)
-
+  // Hover-to-open only with a real pointer; on touch the first tap must act.
   useEffect(() => {
     const mq = window.matchMedia("(hover: hover) and (pointer: fine)")
     setCanHover(mq.matches) // eslint-disable-line react-hooks/set-state-in-effect
@@ -168,158 +85,205 @@ function NavItem({
   }, [])
 
   useEffect(() => {
+    setOpen(null) // eslint-disable-line react-hooks/set-state-in-effect
+  }, [pathname])
+
+  const close = useCallback((refocus = false) => {
+    hoverLock.current = true
+    if (timer.current) clearTimeout(timer.current)
+    setOpen((prev) => {
+      if (refocus && prev) triggerRefs.current[prev]?.focus()
+      return null
+    })
+  }, [])
+
+  useEffect(() => {
     if (!open) return
     const onPointerDown = (e: PointerEvent) => {
-      if (!itemRef.current?.contains(e.target as Node)) setOpen(false)
+      if (!barRef.current?.contains(e.target as Node)) close()
     }
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false)
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close(true)
     }
     document.addEventListener("pointerdown", onPointerDown)
-    document.addEventListener("keydown", onEsc)
+    document.addEventListener("keydown", onKey)
     return () => {
       document.removeEventListener("pointerdown", onPointerDown)
-      document.removeEventListener("keydown", onEsc)
+      document.removeEventListener("keydown", onKey)
     }
-  }, [open])
+  }, [open, close])
 
-  function enter() {
+  const schedule = (next: GroupId | null, delay: number) => {
+    if (next && hoverLock.current) return
     if (timer.current) clearTimeout(timer.current)
-    setOpen(true)
-  }
-  function leave() {
-    if (timer.current) clearTimeout(timer.current)
-    timer.current = setTimeout(() => setOpen(false), 120)
+    timer.current = setTimeout(() => setOpen(next), delay)
   }
 
-  const hoverable = withLeagues && canHover
+  function openSearch() {
+    document.dispatchEvent(new CustomEvent("open-search-palette"))
+  }
 
   return (
-    <li
-      ref={itemRef}
-      className="relative"
-      onMouseEnter={hoverable ? enter : undefined}
-      onMouseLeave={hoverable ? leave : undefined}
-      onFocus={hoverable ? enter : undefined}
-      onBlur={hoverable ? leave : undefined}
-    >
-      <div
-        className={cn(
-          "relative flex items-center rounded-full transition-colors duration-300",
-          active && "text-ink-50",
-        )}
-      >
-        {active && (
-          <span
-            aria-hidden
-            className="absolute inset-0 -z-10 rounded-full bg-white/[0.07] ring-1 ring-hairline"
-          />
-        )}
-        <Link
-          href={href}
-          aria-current={active ? "page" : undefined}
-          className={cn(
-            "flex items-center gap-1.5 py-2 transition-colors duration-300",
-            withLeagues ? "pl-2.5 pr-1 lg:pl-3" : "px-2.5 lg:px-3",
-            !active && "hover:text-ink-50",
-          )}
-        >
-          {label}
-          {pro && (
-            <span className="rounded-full border border-brand-500/40 bg-brand-500/10 px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-brand-300">
-              {t("common.pro")}
-            </span>
-          )}
-          {beta && (
-            <span className="rounded-full border border-amber-400/50 bg-amber-400/10 px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-amber-300">
-              Beta
-            </span>
-          )}
-        </Link>
-        {withLeagues && (
-          <button
-            type="button"
-            aria-label={t("nav.browseByLeague", { label: label.toLowerCase() })}
-            aria-haspopup="menu"
-            aria-expanded={open}
-            onClick={() => setOpen((v) => !v)}
+    <>
+      <header className="sticky top-0 z-50">
+        <div
+          ref={progressRef}
+          aria-hidden
+          style={{ transform: "scaleX(0)" }}
+          className="absolute inset-x-0 top-0 z-10 h-px origin-left bg-gradient-to-r from-brand-500 via-ember-400 to-brand-600"
+        />
+        <div className="mx-auto max-w-[1600px] px-2 sm:px-6 lg:px-8">
+          <div
+            ref={barRef}
+            onMouseLeave={canHover ? () => schedule(null, 160) : undefined}
             className={cn(
-              "flex self-stretch items-center rounded-full pl-0.5 pr-2.5 transition-colors duration-300 lg:pr-3",
-              !active && "hover:text-ink-50",
+              "relative mt-2 rounded-[22px] transition-[background-color,box-shadow,border-color,padding] duration-500 ease-fluid sm:mt-3",
+              scrolled || open || shown
+                ? "gh-glass shadow-[var(--shadow-court)]"
+                : "border border-transparent",
             )}
           >
-            <svg
-              aria-hidden
-              className={cn(
-                "h-3 w-3 transition-transform duration-300 ease-fluid",
-                open && "rotate-180",
-              )}
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="2"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="m6 9 6 6 6-6"
-              />
-            </svg>
-          </button>
-        )}
-      </div>
-
-      {withLeagues && (
-        <div
-          role="menu"
-          className={cn(
-            "absolute left-1/2 top-full z-50 mt-2 w-56 -translate-x-1/2 origin-top rounded-2xl border border-hairline bg-surface-2/95 p-1.5 shadow-[var(--shadow-court)] backdrop-blur-xl transition-all duration-300 ease-fluid",
-            open
-              ? "pointer-events-auto translate-y-0 opacity-100"
-              : "pointer-events-none -translate-y-1.5 opacity-0",
-          )}
-        >
-          <p className="px-2.5 pb-1.5 pt-1 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-500">
-            {t("common.byLeague")}
-          </p>
-          <Link
-            href={href}
-            role="menuitem"
-            tabIndex={open ? undefined : -1}
-            onClick={() => setOpen(false)}
-            className="block rounded-xl px-2.5 py-2 text-[13px] font-medium text-ink-200 transition-colors duration-200 hover:bg-white/[0.05] hover:text-ink-50"
-          >
-            {t("common.allLeagues")}
-          </Link>
-          {LEAGUE_FILTER_TREE.map((node) => (
-            <div key={node.slug}>
+            <div className="flex h-12 items-center justify-between gap-2 px-2 sm:h-14 sm:px-3">
               <Link
-                href={`${href}?league=${node.slug}`}
-                role="menuitem"
-                tabIndex={open ? undefined : -1}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-[13px] font-medium text-ink-200 transition-colors duration-200 hover:bg-white/[0.05] hover:text-ink-50"
+                href="/"
+                className="group flex shrink-0 items-center gap-2 text-ink-50 sm:gap-2.5"
+                aria-label={`${SITE.name} — ${t("common.home")}`}
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-500/70" />
-                {node.label}
+                <Logo className="h-7 w-7 transition-transform duration-700 ease-fluid group-hover:rotate-[18deg] sm:h-8 sm:w-8" />
+                <span className="font-display text-[14px] font-bold tracking-[-0.02em] sm:text-base">
+                  globalhoopstats<span className="text-brand-500">.</span>
+                </span>
               </Link>
-              {node.children?.map((child) => (
-                <Link
-                  key={child.slug}
-                  href={`${href}?league=${child.slug}`}
-                  role="menuitem"
-                  tabIndex={open ? undefined : -1}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 rounded-xl py-1.5 pl-7 pr-2.5 text-[12px] font-medium text-ink-300 transition-colors duration-200 hover:bg-white/[0.05] hover:text-ink-50"
+
+              <nav aria-label={t("nav.primary")} className="hidden lg:block">
+                <ul className="flex items-center gap-1">
+                  {NAV_GROUPS.map((g) => {
+                    const isOpen = open === g.id
+                    const isCurrent = current === g.id
+                    return (
+                      <li key={g.id}>
+                        <button
+                          ref={(el) => {
+                            triggerRefs.current[g.id] = el
+                          }}
+                          type="button"
+                          aria-expanded={isOpen}
+                          aria-controls="nav-panel"
+                          onClick={() => {
+                            if (isOpen) close()
+                            else setOpen(g.id)
+                          }}
+                          onMouseEnter={canHover ? () => schedule(g.id, open ? 0 : 90) : undefined}
+                          onMouseLeave={() => {
+                            hoverLock.current = false
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "ArrowDown") {
+                              e.preventDefault()
+                              setOpen(g.id)
+                              requestAnimationFrame(() =>
+                                document.querySelector<HTMLAnchorElement>("#nav-panel a")?.focus(),
+                              )
+                            }
+                          }}
+                          className={cn(
+                            "group relative flex h-10 items-center gap-1.5 rounded-full px-3.5 text-[13.5px] font-medium transition-colors duration-300",
+                            isOpen || isCurrent ? "text-ink-50" : "text-ink-300 hover:text-ink-50",
+                          )}
+                        >
+                          {t(`nav.groups.${g.id}`)}
+                          <NavIcon
+                            name="chevron"
+                            className={cn(
+                              "h-3 w-3 opacity-60 transition-transform duration-300 ease-fluid",
+                              isOpen && "rotate-180",
+                            )}
+                          />
+                          {/* A free-throw line under the section you are in. */}
+                          <span
+                            aria-hidden
+                            className={cn(
+                              "absolute inset-x-3.5 -bottom-0.5 h-[2px] origin-center rounded-full bg-brand-500 transition-transform duration-500 ease-fluid",
+                              isCurrent ? "scale-x-100" : "scale-x-0",
+                            )}
+                          />
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </nav>
+
+              <div className="flex items-center gap-1 sm:gap-1.5">
+                <button
+                  type="button"
+                  onClick={openSearch}
+                  title="Ctrl+K"
+                  aria-label={t("nav.searchHint")}
+                  className="hidden h-9 items-center gap-2 rounded-full border border-hairline bg-white/[0.04] pl-3 pr-1.5 text-[12.5px] text-ink-400 transition-colors duration-300 hover:border-brand-400/40 hover:text-ink-100 lg:inline-flex"
                 >
-                  <span className="h-1 w-1 rounded-full bg-brand-500/50" />
-                  {child.label}
-                </Link>
-              ))}
+                  <NavIcon name="search" className="h-4 w-4" />
+                  <span className="pr-3">{t("nav.searchHint")}</span>
+                  <kbd className="rounded-full border border-hairline px-2 py-0.5 font-mono text-[10px] tracking-[0.06em] text-ink-500">
+                    ⌘K
+                  </kbd>
+                </button>
+                <button
+                  type="button"
+                  onClick={openSearch}
+                  aria-label={t("nav.searchHint")}
+                  className="grid h-9 w-9 place-items-center rounded-full text-ink-300 transition-colors hover:text-ink-50 lg:hidden"
+                >
+                  <NavIcon name="search" className="h-[18px] w-[18px]" />
+                </button>
+                <NotificationBell />
+                <UserMenu />
+                <div className="hidden sm:block">
+                  <LanguageSwitcher />
+                </div>
+                <MobileNav />
+              </div>
             </div>
-          ))}
+
+            <div
+              id="nav-panel"
+              onMouseEnter={canHover ? () => schedule(open, 0) : undefined}
+              aria-hidden={!open}
+              inert={!open}
+              // Floats over the page (absolute) — it must never push the content
+              // down — and unfolds/folds its height plus a short slide.
+              className={cn(
+                "absolute inset-x-0 top-full z-10 hidden pt-2 lg:block",
+                !open && "pointer-events-none",
+              )}
+            >
+              <div
+                className={cn(
+                  // Animated wrapper only: .gh-glass declares its own `transition`, which
+                  // would override this one, so the glass lives on the child.
+                  "grid overflow-hidden rounded-[22px] shadow-[var(--shadow-court)] transition-[grid-template-rows,opacity,transform] duration-[380ms] ease-fluid",
+                  open ? "translate-y-0 grid-rows-[1fr] opacity-100" : "-translate-y-1.5 grid-rows-[0fr] opacity-0",
+                )}
+                onTransitionEnd={(e) => {
+                  if (e.target === e.currentTarget && e.propertyName === "opacity" && !open) setShown(null)
+                }}
+              >
+              <div className="min-h-0">
+                <div className="gh-glass gh-glass-solid rounded-[22px]">
+                {shown ? (
+                  <NavPanel
+                    group={NAV_GROUPS.find((g) => g.id === shown)!}
+                    pathname={pathname}
+                    onNavigate={() => setOpen(null)}
+                  />
+                ) : null}
+                </div>
+              </div>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
-    </li>
+      </header>
+    </>
   )
 }

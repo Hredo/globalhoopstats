@@ -62,3 +62,7 @@ public/swe-worker*
 
 # Cached browser session used by the capture scripts
 .auth
+
+# Playwright
+/test-results/
+/playwright-report/
