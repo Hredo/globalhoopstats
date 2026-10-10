@@ -64,7 +64,7 @@ minimumReleaseAgeExclude:
 # braces: 3.0.3 (eslint-config-next → micromatch, lint only) is flagged with
 #   ">=3.0.4", which is not published yet. Nothing to override to.
 # sharp: optional dependency of Next (image optimisation — AVIF/HEIF decoding
-#   is libheif). 0.35.4 carries the libheif fixes. This one runs in production.
+#   is libheif, SVG is librsvg). 0.35.5 carries the libheif and librsvg fixes. This one runs in production.
 # browserslist / baseline-browser-mapping: build-time only, via Next's
 #   styled-jsx → @babel/core and @serwist/utils.
 # fflate: three-stdlib under @react-three/drei; 0.6.11 is the 0.6.x fix.
@@ -85,7 +85,7 @@ overrides:
   js-yaml@>=4.0.0 <4.3.2: ^4.3.2
   nanoid@<3.3.18: ^3.3.18
   nanoid@>=4.0.0 <5.1.16: ^5.1.16
-  sharp@<0.35.4: ^0.35.4
+  sharp@<0.35.5: ^0.35.5
   svgo@>=3.0.0 <3.3.5: ^3.3.5
   undici@>=7.0.0 <7.29.1: ^7.29.1
   browserslist@<4.28.7: ^4.28.7

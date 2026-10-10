@@ -78,9 +78,9 @@ heterogéneas y sucias en una única identidad canónica por persona/equipo, inc
 | Validación | **Zod** | env, payloads de API |
 | PWA | **Serwist** | service worker compatible con Turbopack |
 | Exportación | `jspdf`, `docx`, `xlsx-js-style` | informes PDF/Word/Excel |
-| Tooling | **pnpm 11**, ESLint, Prettier, **Vitest**, `tsx` | Node 20.x |
+| Tooling | **pnpm 11**, ESLint, Prettier, **Vitest**, `tsx` | Node 22.x |
 
-**Requisitos de entorno:** Node 20.x · pnpm 11.x · una base MySQL 8 / MariaDB · (opcional) Ollama para un modelo de IA local.
+**Requisitos de entorno:** Node 22.13+ · pnpm 11.x · una base MySQL 8 / MariaDB · (opcional) Ollama para un modelo de IA local.
 
 ---
 

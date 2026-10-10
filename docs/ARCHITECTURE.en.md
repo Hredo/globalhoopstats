@@ -78,9 +78,9 @@ heterogeneous, dirty sources into a single canonical identity per person/team, e
 | Validation | **Zod** | env, API payloads |
 | PWA | **Serwist** | Turbopack‑compatible service worker |
 | Export | `jspdf`, `docx`, `xlsx-js-style` | PDF/Word/Excel reports |
-| Tooling | **pnpm 11**, ESLint, Prettier, **Vitest**, `tsx` | Node 20.x |
+| Tooling | **pnpm 11**, ESLint, Prettier, **Vitest**, `tsx` | Node 22.x |
 
-**Environment requirements:** Node 20.x · pnpm 11.x · a MySQL 8 / MariaDB database · (optional) Ollama for a local AI model.
+**Environment requirements:** Node 22.13+ · pnpm 11.x · a MySQL 8 / MariaDB database · (optional) Ollama for a local AI model.
 
 ---
 
