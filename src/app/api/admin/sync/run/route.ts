@@ -5,6 +5,7 @@ import { syncRuns } from "@/lib/db/schema"
 import { getCurrentUser, isAdmin } from "@/lib/auth/current-user"
 import { SOURCE_IDS, type SourceId } from "@/lib/sources"
 import { startGlobalSync } from "@/lib/sync/orchestrator"
+import { afterSync } from "@/lib/ops/after-sync"
 import {
   beginSync,
   endSync,
@@ -75,6 +76,7 @@ export async function POST(request: Request) {
 
   // Detached: keep running after the response is sent. Never awaited.
   void startGlobalSync(targets, { shouldCancel: isCancelRequested })
+    .then(() => afterSync("admin/sync"))
     .catch((err) => {
       console.error("[admin/sync/run] sync failed:", err)
     })

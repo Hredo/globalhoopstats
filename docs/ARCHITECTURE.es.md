@@ -369,6 +369,8 @@ Mecánica de idioma:
 
 ---
 
+> **Espacio de scouting (2026-10):** tablas `follows`, `notifications`, `push_subscriptions`, `shortlists` (+ miembros, ítems y comentarios), `shared_links`, `api_clients` y `app_errors`. Rutas `follows`, `notifications`, `push`, `shortlists/*`, `shares`, `export/players` (con sesión), API pública `v1/*` (clave + cuota diaria, documentada en `/developers`) y `cron/{alerts,backup}`. Detalle en la versión inglesa y en `docs/SYNC.md`.
+
 ## 8. API REST
 
 **57 endpoints** (`route.ts`) bajo `src/app/api/`. Convención Next.js: una función por verbo HTTP. Validación con Zod.

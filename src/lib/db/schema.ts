@@ -383,6 +383,7 @@ export const userSettings = mysqlTable("user_settings", {
   locale: text("locale").notNull().default("en"),
   emailProduct: boolean("email_product").notNull().default(true),
   emailUsage: boolean("email_usage").notNull().default(false),
+  emailAlerts: boolean("email_alerts").notNull().default(true),
   reduceMotion: boolean("reduce_motion").notNull().default(false),
   currency: text("currency").notNull().default("EUR"),
   createdAt: datetime("created_at", { mode: "date", fsp: 3 })
@@ -611,6 +612,272 @@ export const rateLimits = mysqlTable("rate_limits", {
   expiresAt: datetime("expires_at", { mode: "date", fsp: 3 }).notNull(),
 })
 
+/*
+ * ─── Scouting workspace ──────────────────────────────────────────────────────
+ * Follows, alerts, shortlists and share links. Every string column that is
+ * matched on (kind, status, role) is a short varchar rather than text so it
+ * can be indexed and so MariaDB and stock MySQL build it identically.
+ */
+
+/** A user following a player or a team. `snapshot` is the last state we saw. */
+export const follows = mysqlTable(
+  "follows",
+  {
+    id: uuidPk(),
+    userId: uuidCol("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: varchar("kind", { length: 16 }).notNull(),
+    targetId: uuidCol("target_id").notNull(),
+    // Per-game thresholds the user wants to hear about, e.g. { ppg: 15 }.
+    thresholds: json("thresholds").$type<FollowThresholds>(),
+    snapshot: json("snapshot").$type<FollowSnapshot>(),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+  },
+  (t) => [
+    uniqueIndex("follows_user_target_idx").on(t.userId, t.kind, t.targetId),
+    index("follows_target_idx").on(t.kind, t.targetId),
+  ],
+)
+
+export type FollowThresholds = Partial<
+  Record<"ppg" | "rpg" | "apg" | "per", number>
+>
+
+export type FollowSnapshot =
+  | {
+      kind: "player"
+      teamId: string | null
+      teamName: string | null
+      leagueSlug: string | null
+      season: string | null
+      gamesPlayed: number
+      ppg: number | null
+      rpg: number | null
+      apg: number | null
+      per: number | null
+    }
+  | {
+      kind: "team"
+      season: string | null
+      playerIds: string[]
+      headCoach: string | null
+    }
+
+export const notifications = mysqlTable(
+  "notifications",
+  {
+    id: uuidPk(),
+    userId: uuidCol("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: varchar("kind", { length: 32 }).notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    href: varchar("href", { length: 512 }),
+    readAt: datetime("read_at", { mode: "date", fsp: 3 }),
+    emailedAt: datetime("emailed_at", { mode: "date", fsp: 3 }),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+  },
+  (t) => [index("notifications_user_idx").on(t.userId, t.createdAt)],
+)
+
+export const pushSubscriptions = mysqlTable(
+  "push_subscriptions",
+  {
+    id: uuidPk(),
+    userId: uuidCol("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    endpoint: varchar("endpoint", { length: 768 }).notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+  },
+  (t) => [
+    uniqueIndex("push_subscriptions_endpoint_idx").on(t.endpoint),
+    index("push_subscriptions_user_idx").on(t.userId),
+  ],
+)
+
+export const shortlists = mysqlTable(
+  "shortlists",
+  {
+    id: uuidPk(),
+    ownerId: uuidCol("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 120 }).notNull(),
+    description: text("description"),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+    updatedAt: datetime("updated_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+  },
+  (t) => [index("shortlists_owner_idx").on(t.ownerId)],
+)
+
+export const shortlistMembers = mysqlTable(
+  "shortlist_members",
+  {
+    id: uuidPk(),
+    shortlistId: uuidCol("shortlist_id")
+      .notNull()
+      .references(() => shortlists.id, { onDelete: "cascade" }),
+    userId: uuidCol("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // editor: add/move/comment · viewer: read and comment.
+    role: varchar("role", { length: 16 }).notNull().default("editor"),
+    addedAt: datetime("added_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+  },
+  (t) => [
+    uniqueIndex("shortlist_members_unique_idx").on(t.shortlistId, t.userId),
+    index("shortlist_members_user_idx").on(t.userId),
+  ],
+)
+
+export const shortlistItems = mysqlTable(
+  "shortlist_items",
+  {
+    id: uuidPk(),
+    shortlistId: uuidCol("shortlist_id")
+      .notNull()
+      .references(() => shortlists.id, { onDelete: "cascade" }),
+    playerId: uuidCol("player_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "cascade" }),
+    // watch → target → contact, or discard. See SHORTLIST_STATUSES.
+    status: varchar("status", { length: 16 }).notNull().default("watch"),
+    note: text("note"),
+    addedBy: uuidCol("added_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+    updatedAt: datetime("updated_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+  },
+  (t) => [
+    uniqueIndex("shortlist_items_unique_idx").on(t.shortlistId, t.playerId),
+  ],
+)
+
+export const shortlistComments = mysqlTable(
+  "shortlist_comments",
+  {
+    id: uuidPk(),
+    shortlistId: uuidCol("shortlist_id")
+      .notNull()
+      .references(() => shortlists.id, { onDelete: "cascade" }),
+    itemId: uuidCol("item_id").references(() => shortlistItems.id, {
+      onDelete: "cascade",
+    }),
+    userId: uuidCol("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+  },
+  (t) => [index("shortlist_comments_list_idx").on(t.shortlistId, t.createdAt)],
+)
+
+/**
+ * Read-only public links. The token is the only credential, so it is 32 random
+ * bytes and every link expires; revoking sets `revoked_at` instead of deleting
+ * so an old URL answers "revoked" rather than looking like a typo.
+ */
+export const sharedLinks = mysqlTable(
+  "shared_links",
+  {
+    id: uuidPk(),
+    token: varchar("token", { length: 64 }).notNull(),
+    userId: uuidCol("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: varchar("kind", { length: 16 }).notNull(),
+    targetId: uuidCol("target_id").notNull(),
+    note: text("note"),
+    viewCount: int("view_count").notNull().default(0),
+    expiresAt: datetime("expires_at", { mode: "date", fsp: 3 }).notNull(),
+    revokedAt: datetime("revoked_at", { mode: "date", fsp: 3 }),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+  },
+  (t) => [
+    uniqueIndex("shared_links_token_idx").on(t.token),
+    index("shared_links_user_idx").on(t.userId),
+  ],
+)
+
+/**
+ * Keys for the public read API (/api/v1). Only a SHA-256 of the key is stored;
+ * the plaintext is shown once at creation. Issued by an admin.
+ */
+export const apiClients = mysqlTable(
+  "api_clients",
+  {
+    id: uuidPk(),
+    userId: uuidCol("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 120 }).notNull(),
+    keyPrefix: varchar("key_prefix", { length: 16 }).notNull(),
+    keyHash: varchar("key_hash", { length: 64 }).notNull(),
+    dailyQuota: int("daily_quota").notNull().default(1000),
+    lastUsedAt: datetime("last_used_at", { mode: "date", fsp: 3 }),
+    revokedAt: datetime("revoked_at", { mode: "date", fsp: 3 }),
+    createdAt: datetime("created_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+  },
+  (t) => [uniqueIndex("api_clients_key_hash_idx").on(t.keyHash)],
+)
+
+/**
+ * Server errors, grouped by fingerprint (kind + route + message) so a loop of
+ * the same failure is one row with a count, not a million rows.
+ */
+export const appErrors = mysqlTable(
+  "app_errors",
+  {
+    id: uuidPk(),
+    fingerprint: varchar("fingerprint", { length: 64 }).notNull(),
+    kind: varchar("kind", { length: 32 }).notNull(),
+    route: varchar("route", { length: IDX_LEN }),
+    method: varchar("method", { length: 16 }),
+    message: text("message").notNull(),
+    stack: mediumtext("stack"),
+    digest: varchar("digest", { length: 64 }),
+    count: int("count").notNull().default(1),
+    firstSeenAt: datetime("first_seen_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+    lastSeenAt: datetime("last_seen_at", { mode: "date", fsp: 3 })
+      .notNull()
+      .default(nowDefault),
+  },
+  (t) => [
+    uniqueIndex("app_errors_fingerprint_idx").on(t.fingerprint),
+    index("app_errors_last_seen_idx").on(t.lastSeenAt),
+  ],
+)
+
 export type Plan = "free" | "pro"
 
 export function userPlan(
@@ -647,3 +914,13 @@ export type PageView = typeof pageViews.$inferSelect
 export type PlaybookPlayRow = typeof playbookPlays.$inferSelect
 export type SearchLogEntry = typeof searchLog.$inferSelect
 export type RateLimit = typeof rateLimits.$inferSelect
+export type Follow = typeof follows.$inferSelect
+export type Notification = typeof notifications.$inferSelect
+export type PushSubscriptionRow = typeof pushSubscriptions.$inferSelect
+export type Shortlist = typeof shortlists.$inferSelect
+export type ShortlistMember = typeof shortlistMembers.$inferSelect
+export type ShortlistItem = typeof shortlistItems.$inferSelect
+export type ShortlistComment = typeof shortlistComments.$inferSelect
+export type SharedLink = typeof sharedLinks.$inferSelect
+export type ApiClient = typeof apiClients.$inferSelect
+export type AppError = typeof appErrors.$inferSelect

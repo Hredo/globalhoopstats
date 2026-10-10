@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { listPlayers, type ListPlayersInput } from "@/lib/data/players"
 import { listSeasons, resolveSeasonName } from "@/lib/data/seasons"
 import { DirectoryControls } from "@/components/ui/directory-controls"
+import { ExportLinks } from "@/components/workspace/export-links"
 import { PlayersInfiniteView } from "@/components/players/players-infinite-view"
 import { DirectoryHero } from "@/components/ui/directory-hero"
 import { StickyFilterBar } from "@/components/ui/sticky-filter-bar"
@@ -101,6 +102,9 @@ export default async function PlayersPage(props: {
           season={season}
         />
       </StickyFilterBar>
+      <div className="mt-3 flex justify-end">
+        <ExportLinks league={input.league ?? ""} season={season} />
+      </div>
 
       <PlayersInfiniteView
         key={`${season}|${input.query ?? ""}|${input.league ?? ""}|${input.sort ?? "points"}|${input.order ?? "desc"}`}

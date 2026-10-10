@@ -1,18 +1,9 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useT } from "@/lib/i18n/provider"
-
-type MeResponse = {
-  user: {
-    id: string
-    email: string
-    name: string
-    plan: string
-    role: string
-  } | null
-}
+import { refreshSession, useSession } from "@/lib/auth/use-session"
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).slice(0, 2)
@@ -44,39 +35,12 @@ function planBadge(
 
 export function UserMenu() {
   const t = useT()
-  const [me, setMe] = useState<MeResponse["user"] | null>(null)
-  const [loading, setLoading] = useState(true)
+  const session = useSession()
+  const me = session.user
+  const loading = session.status === "loading"
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const buttonRef = useRef<HTMLButtonElement | null>(null)
-
-  const refreshMe = useCallback(async () => {
-    try {
-      const res = await fetch("/api/auth/me", { cache: "no-store" })
-      const data = (await res.json()) as MeResponse
-      setMe(data.user)
-    } catch {
-      // keep the previous state on a transient network error
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    refreshMe() // eslint-disable-line react-hooks/set-state-in-effect
-    // Re-check the session when auth changes elsewhere (login / register /
-    // logout in this tab, or another tab) without a full page reload.
-    const onAuthChanged = () => refreshMe()
-    const onVisible = () => {
-      if (document.visibilityState === "visible") refreshMe()
-    }
-    window.addEventListener("auth:changed", onAuthChanged)
-    document.addEventListener("visibilitychange", onVisible)
-    return () => {
-      window.removeEventListener("auth:changed", onAuthChanged)
-      document.removeEventListener("visibilitychange", onVisible)
-    }
-  }, [refreshMe])
 
   useEffect(() => {
     if (!open) return
@@ -125,7 +89,7 @@ export function UserMenu() {
     } catch {
       // ignore
     }
-    setMe(null)
+    void refreshSession()
     setOpen(false)
     // Hard navigation guarantees the cleared cookie is honored and all
     // client state (including this menu) is rebuilt as a signed-out session.
@@ -225,18 +189,18 @@ export function UserMenu() {
           <div className="h-px bg-gradient-to-r from-transparent via-white/5 to-transparent" />
           <div className="p-1.5">
             <MenuLink
-              href="/ai-advisor"
-              icon={<IconPath d="M9.5 2A2.5 2.5 0 0112 4.5v11a2.5 2.5 0 01-5 0v-11A2.5 2.5 0 019.5 2zm0 0v5m5 8a4 4 0 01-8 0m5-12a2 2 0 00-2 2" />}
+              href="/shortlists"
+              icon={<IconPath d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" />}
               onSelect={() => setOpen(false)}
             >
-              {t("userMenu.aiAdvisor")}
+              {t("nav.items.shortlists.label")}
             </MenuLink>
             <MenuLink
-              href="/compare"
-              icon={<IconPath d="M4 20V4m4 16v-8a2 2 0 012-2h4a2 2 0 012 2v8m4 0V8a2 2 0 00-2-2h-4a2 2 0 00-2 2v12" />}
+              href="/following"
+              icon={<IconPath d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10Z" />}
               onSelect={() => setOpen(false)}
             >
-              {t("userMenu.compare")}
+              {t("nav.items.following.label")}
             </MenuLink>
             <MenuLink
               href="/ai-setup"

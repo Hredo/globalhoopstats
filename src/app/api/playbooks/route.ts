@@ -3,7 +3,7 @@ import { desc, eq, sql } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
 import { newId, playbookPlays } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/auth/current-user"
-import { parsePlay } from "@/lib/playbook/types"
+import { MAX_PLAY_BYTES, parsePlay } from "@/lib/playbook/types"
 import {
   clientIp,
   jsonTooManyRequests,
@@ -12,8 +12,6 @@ import {
 
 export const dynamic = "force-dynamic"
 
-/** Hard cap on a single play document (json) to keep rows small. */
-export const MAX_PLAY_BYTES = 250_000
 const MAX_PLAYS_PER_USER = 200
 
 export async function GET(request: Request) {

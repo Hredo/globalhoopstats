@@ -12,6 +12,11 @@ export type SessionUser = Pick<User, "id" | "email" | "name" | "plan" | "role">
 // regardless of what the database row says. Compared case-insensitively.
 const ADMIN_EMAILS = new Set<string>(["hrvaldes22@gmail.com"])
 
+/** The always-admin accounts, e.g. as recipients of operational alerts. */
+export function alwaysAdminEmails(): string[] {
+  return [...ADMIN_EMAILS]
+}
+
 export function isAdminEmail(email: string | null | undefined): boolean {
   return !!email && ADMIN_EMAILS.has(email.trim().toLowerCase())
 }

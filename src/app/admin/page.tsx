@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { TrafficPanel } from "@/components/admin/traffic-panel"
+import { ApiClientsPanel } from "@/components/admin/api-clients-panel"
+import { OpsPanel } from "@/components/admin/ops-panel"
 
 const SYNC_SOURCES = [
   "all",
@@ -86,7 +88,7 @@ type ConfigRow = {
 
 type Toast = { message: string; type: "success" | "error" } | null
 
-type TabId = "resumen" | "trafico" | "contenido" | "sync" | "editorial" | "config"
+type TabId = "resumen" | "trafico" | "contenido" | "sync" | "editorial" | "config" | "api" | "ops"
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "resumen", label: "Resumen" },
@@ -95,6 +97,8 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "sync", label: "Sincronización" },
   { id: "editorial", label: "Editorial" },
   { id: "config", label: "Configuración" },
+  { id: "api", label: "API" },
+  { id: "ops", label: "Errores y copias" },
 ]
 
 function Section({ title, help, children }: { title: string; help?: string; children: React.ReactNode }) {
@@ -531,6 +535,24 @@ export default function AdminPage() {
             )}
           </Section>
         </div>
+      )}
+
+      {tab === "api" && (
+        <Section
+          title="API pública"
+          help="Claves para /api/v1 (jugadores, equipos y ligas en JSON). Solo se guarda el hash de cada clave: se ve una vez al emitirla. Cada clave tiene su cuota diaria. Documentación pública en /developers."
+        >
+          <ApiClientsPanel />
+        </Section>
+      )}
+
+      {tab === "ops" && (
+        <Section
+          title="Errores y copias de seguridad"
+          help="Errores de servidor agrupados por huella (se registran solos, sin servicios externos) y el estado de la copia nocturna verificada de la base de datos."
+        >
+          <OpsPanel />
+        </Section>
       )}
 
       {/* ─── TRÁFICO (Cloudflare) ────────────────────────────────────────── */}

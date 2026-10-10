@@ -81,6 +81,14 @@ export function limitFor(pathname: string): { capacity: number; refillPerSec: nu
   if (pathname.startsWith("/api/admin/")) {
     return { capacity: 120, refillPerSec: 2 }
   }
+  // A whole league-season per call: what someone scraping our data wants.
+  if (pathname.startsWith("/api/export/") || /^\/api\/shortlists\/[^/]+\/export/.test(pathname)) {
+    return { capacity: 6, refillPerSec: 0.05 }
+  }
+  // Keyed clients have a daily quota on top; this only stops bursts.
+  if (pathname.startsWith("/api/v1/")) {
+    return { capacity: 60, refillPerSec: 2 }
+  }
   // A CPU-bound document build per call.
   if (pathname.startsWith("/api/ai-advisor/export-word")) {
     return { capacity: 10, refillPerSec: 0.1 }

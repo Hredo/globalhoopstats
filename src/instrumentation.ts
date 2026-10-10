@@ -42,3 +42,34 @@ export async function register() {
     }
   }
 }
+
+type RequestErrorContext = {
+  routerKind: string
+  routePath: string
+  routeType: string
+}
+
+/**
+ * Every uncaught server error (render, route handler, server action) lands in
+ * `app_errors`, grouped by fingerprint — see lib/ops/errors.ts. Node runtime
+ * only (it needs the database), and it must never throw: a broken database is
+ * one of the errors it would be reporting.
+ */
+export async function onRequestError(
+  error: unknown,
+  request: { path: string; method: string },
+  context: RequestErrorContext,
+) {
+  if (process.env.NEXT_RUNTIME !== "nodejs") return
+  try {
+    const { recordError } = await import("@/lib/ops/errors")
+    await recordError({
+      kind: context.routeType || context.routerKind || "request",
+      route: context.routePath || request.path.split("?")[0] || null,
+      method: request.method,
+      error,
+    })
+  } catch {
+    // Reporting failed (usually the database itself); the log still has it.
+  }
+}

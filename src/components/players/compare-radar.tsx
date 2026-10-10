@@ -4,10 +4,35 @@ import { useEffect, useId, useState } from "react"
 import { motion, useReducedMotion } from "motion/react"
 import type { ComparePlayer } from "@/lib/data/compare"
 import { useT } from "@/lib/i18n/provider"
+import type { PercentileProfile } from "@/lib/scouting/metrics"
+import { cn } from "@/components/ui/cn"
 
 type Props = {
   a: ComparePlayer
   b: ComparePlayer
+  /**
+   * League-season percentiles (per 40, pace-adjusted). When both are present
+   * the radar can switch to them: the only fair way to put a FEB player and
+   * an ACB player on one chart.
+   */
+  percentiles?: { a: PercentileProfile | null; b: PercentileProfile | null }
+}
+
+/** Which percentile(s) feed each radar axis. */
+const PCTL_AXIS: Record<string, Array<keyof PercentileProfile>> = {
+  scoring: ["pts"],
+  playmaking: ["ast"],
+  rebounding: ["reb"],
+  defense: ["stl", "blk"],
+  efficiency: ["per"],
+  shooting: ["ts"],
+}
+
+function pctlValue(profile: PercentileProfile, axis: string): number {
+  const vals = (PCTL_AXIS[axis] ?? [])
+    .map((k) => profile[k]?.percentile)
+    .filter((v): v is number => v != null)
+  return vals.length ? vals.reduce((x, y) => x + y, 0) / vals.length / 100 : 0
 }
 
 type Axis = {
@@ -123,16 +148,21 @@ function clamp01(v: number): number {
   return Math.min(1, Math.max(0, v))
 }
 
-export function CompareRadar({ a, b }: Props) {
+export function CompareRadar({ a, b, percentiles }: Props) {
   const t = useT()
   const reduce = useReducedMotion()
   const aId = useId()
   const bId = useId()
+  const canPctl = !!(percentiles?.a && percentiles?.b)
+  const [mode, setMode] = useState<"absolute" | "percentile">(canPctl ? "percentile" : "absolute")
+  const usePctl = mode === "percentile" && canPctl
   const aValues = AXES.map((ax) => {
+    if (usePctl) return pctlValue(percentiles!.a!, ax.key)
     const raw = ax.pick(a)
     return raw == null ? 0 : clamp01(raw / ax.max)
   })
   const bValues = AXES.map((ax) => {
+    if (usePctl) return pctlValue(percentiles!.b!, ax.key)
     const raw = ax.pick(b)
     return raw == null ? 0 : clamp01(raw / ax.max)
   })
@@ -149,6 +179,29 @@ export function CompareRadar({ a, b }: Props) {
 
   return (
     <div className="relative h-full w-full">
+      {canPctl ? (
+        <div className="absolute left-0 top-0 z-10 flex flex-col items-start gap-1.5">
+          <div role="group" className="inline-flex rounded-lg border border-hairline bg-surface-1/80 p-0.5 backdrop-blur">
+            {(["percentile", "absolute"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                aria-pressed={mode === m}
+                onClick={() => setMode(m)}
+                className={cn(
+                  "rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
+                  mode === m ? "bg-white/[0.08] text-ink-50" : "text-ink-400 hover:text-ink-100",
+                )}
+              >
+                {t(`scouting.radarMode.${m}`)}
+              </button>
+            ))}
+          </div>
+          {usePctl ? (
+            <p className="max-w-[220px] text-[10.5px] leading-snug text-ink-500">{t("scouting.radarMode.percentileHint")}</p>
+          ) : null}
+        </div>
+      ) : null}
       <svg
         viewBox="0 0 400 400"
         role="img"
