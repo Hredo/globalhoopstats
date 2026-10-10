@@ -173,7 +173,7 @@ The full design — data model, matcher, auth, AI pipeline — is in
 
 ## Getting started
 
-**Requirements:** Node.js 20+, pnpm 11, a MySQL 8 / MariaDB database. Optional: Ollama
+**Requirements:** Node.js 22.13+ (required by pnpm 11), pnpm 11, a MySQL 8 / MariaDB database. Optional: Ollama
 for a local AI model.
 
 ```bash

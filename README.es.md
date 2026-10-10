@@ -175,7 +175,7 @@ El diseño completo —modelo de datos, emparejador, autenticación, IA— está
 
 ## Puesta en marcha
 
-**Requisitos:** Node.js 20+, pnpm 11 y una base MySQL 8 / MariaDB. Opcional: Ollama para un
+**Requisitos:** Node.js 22.13+ (lo exige pnpm 11), pnpm 11 y una base MySQL 8 / MariaDB. Opcional: Ollama para un
 modelo de IA local.
 
 ```bash
