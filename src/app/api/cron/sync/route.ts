@@ -6,6 +6,8 @@ import { syncRuns } from "@/lib/db/schema"
 import { SOURCES, SOURCE_IDS, type SourceId } from "@/lib/sources"
 import { runSync } from "@/lib/sync/run"
 import { revalidateCacheTags } from "@/lib/sync/revalidate"
+import { afterSync } from "@/lib/ops/after-sync"
+import { adminRecipients, alertSyncFailures } from "@/lib/ops/errors"
 import { isInSeason } from "@/lib/sync/season-window"
 import {
   beginSync,
@@ -141,6 +143,7 @@ export async function POST(req: NextRequest) {
   // Leagues run sequentially (like the CLI) to keep scrape traffic polite.
   const runStarted = Date.now()
   void (async () => {
+    const failures: Array<{ source: string; error: string }> = []
     for (const id of targets) {
       // Honour a Stop pressed in the admin panel between leagues — both the
       // in-process flag and the cross-process DB sentinel count.
@@ -155,11 +158,19 @@ export async function POST(req: NextRequest) {
             ? `[cron/sync] [${id}] ok in ${r.durationMs}ms — ${r.rowsWritten} rows`
             : `[cron/sync] [${id}] FAILED — ${r.error}`,
         )
+        if (r.status !== "ok") failures.push({ source: id, error: String(r.error ?? r.status) })
       } catch (err) {
         console.error(`[cron/sync] [${id}] uncaught:`, err)
+        failures.push({ source: id, error: err instanceof Error ? err.message : String(err) })
       }
     }
+    if (failures.length) {
+      await alertSyncFailures(failures, await adminRecipients()).catch((err) =>
+        console.error("[cron/sync] could not email the failure alert:", err),
+      )
+    }
     await revalidateCacheTags().catch(() => {})
+    await afterSync("cron/sync")
   })()
     .catch((err) => {
       console.error("[cron/sync] sync crashed:", err)

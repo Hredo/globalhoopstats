@@ -10,6 +10,7 @@ import {
 } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { Eyebrow } from "@/components/ui/eyebrow"
+import { LineupStats } from "@/components/playbook/lineup-panel"
 import { cn } from "@/components/ui/cn"
 import { useLocale, useT } from "@/lib/i18n/provider"
 import {
@@ -127,6 +128,7 @@ export function PlaybookApp() {
   const [tab, setTab] = useState<"library" | "roster" | "ai" | "details">("library")
   const [searchQ, setSearchQ] = useState("")
   const [templateOpen, setTemplateOpen] = useState(false)
+  const [lineupOpen, setLineupOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [analysis, setAnalysis] = useState<string | null>(null)
   const [tool, setTool] = useState<Tool>("select")
@@ -417,6 +419,34 @@ export function PlaybookApp() {
   }, [])
 
   const exportJson = () => downloadJson([state.play], state.play.name)
+
+  // A read-only link to the SAVED version of the play (the share page reads the
+  // database row), so unsaved edits are saved first.
+  const currentRowId = library.find((e) => e.key === currentKey)?.rowId ?? null
+  const shareCurrent = async () => {
+    if (mode !== "cloud") {
+      flash(t("playbook.share.needsAccount"), "err")
+      return
+    }
+    if (!currentRowId || unsaved) {
+      flash(t("playbook.share.saveFirst"), "err")
+      return
+    }
+    try {
+      const res = await fetch("/api/shares", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "play", ref: currentRowId, days: 30 }),
+      })
+      const data = (await res.json()) as { url?: string }
+      if (!data.url) throw new Error()
+      await navigator.clipboard.writeText(data.url).catch(() => {})
+      flash(t("playbook.share.copied"))
+    } catch {
+      flash(t("playbook.share.error"), "err")
+    }
+  }
+  const linkedSlugs = state.play.elements.flatMap((el) => (el.player?.slug ? [el.player.slug] : []))
   const exportLibrary = () => {
     if (library.length > 0) downloadJson(library.map((e) => e.play), "playbook-library")
   }
@@ -697,6 +727,9 @@ export function PlaybookApp() {
       onExportPdf={exportPdf}
       exportingPdf={exportingPdf}
       onExportJson={exportJson}
+      onShare={shareCurrent}
+      onLineup={() => setLineupOpen(true)}
+      linkedCount={linkedSlugs.length}
       onExportAll={exportLibrary}
       libraryCount={library.length}
       onImport={() => fileRef.current?.click()}
@@ -940,6 +973,29 @@ export function PlaybookApp() {
         ) : null}
       </AnimatePresence>
 
+      {/* The real numbers of the players linked to this play's tokens */}
+      {lineupOpen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("playbook.lineup.title")}
+          className="fixed inset-0 z-[200] flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setLineupOpen(false) }}
+        >
+          <div className="w-full max-w-xl rounded-t-2xl border border-hairline/60 bg-surface-2 p-5 shadow-2xl sm:rounded-xl">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-ink-50">{t("playbook.lineup.title")}</p>
+                <p className="mt-0.5 text-[12px] text-ink-400">{t("playbook.lineup.hint")}</p>
+              </div>
+              <button type="button" onClick={() => setLineupOpen(false)} aria-label={t("nav.closeMenu")}
+                className="rounded-lg border border-hairline px-2 py-1 text-xs text-ink-300 hover:text-ink-50">✕</button>
+            </div>
+            <LineupStats slugs={linkedSlugs} />
+          </div>
+        </div>
+      ) : null}
+
       {/* Coach mode — the board and nothing else, for a huddle or a timeout */}
       <AnimatePresence>
         {coachMode ? (
@@ -1035,11 +1091,13 @@ function IconToggle({
 function ActionsMenu({
   onNew, onTemplates, onDuplicate, onFlip,
   onExportPdf, exportingPdf, onExportJson, onExportAll, libraryCount,
+  onShare, onLineup, linkedCount,
   onImport, onImportPhoto, photoImporting, disabled,
 }: {
   onNew: () => void; onTemplates: () => void; onDuplicate: () => void; onFlip: () => void
   onExportPdf: () => void; exportingPdf: boolean
   onExportJson: () => void; onExportAll: () => void; libraryCount: number
+  onShare: () => void; onLineup: () => void; linkedCount: number
   onImport: () => void; onImportPhoto: () => void; photoImporting: boolean
   disabled?: boolean
 }) {
@@ -1123,6 +1181,17 @@ function ActionsMenu({
                 <span className="ml-auto font-mono text-[10px] text-ink-400">{libraryCount}</span>
               </MenuItem>
             ) : null}
+
+            <MenuLabel>{t("playbook.share.menu")}</MenuLabel>
+            <MenuItem onClick={run(onShare)} hint={t("playbook.share.hint")}>
+              <svg {...MENU_ICON}><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" /><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /></svg>
+              {t("playbook.share.link")}
+            </MenuItem>
+            <MenuItem onClick={run(onLineup)} hint={t("playbook.lineup.hint")}>
+              <svg {...MENU_ICON}><path d="M4 19h16M7 16V9M12 16V5M17 16v-4" /></svg>
+              {t("playbook.lineup.title")}
+              <span className="ml-auto font-mono text-[10px] text-ink-400">{linkedCount}</span>
+            </MenuItem>
 
             <MenuLabel>{t("playbook.menu.import")}</MenuLabel>
             <MenuItem onClick={run(onImport)}>

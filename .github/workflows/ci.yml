@@ -1,11 +1,13 @@
-# Every push to the long-lived branches and every pull request: the types
-# check, the linter is clean, the suite passes (unit, components and the
-# security regression tests) and no production dependency carries a known
-# high-severity advisory.
+# Every push to the long-lived branches and every pull request:
 #
-# `pnpm build` is deliberately not here: the build renders pages that read the
-# live database, and CI never gets those credentials. Correctness is gated by
-# tsc + vitest, the same signal used locally (see AGENTS.md).
+#  - check: the types check, the linter is clean, the unit/component/security
+#    suite passes and no production dependency carries a high advisory.
+#  - e2e: a throwaway MySQL is seeded with the SYNTHETIC fixture
+#    (scripts/seed-fixture.ts — never production data or credentials), the
+#    integration tests run against it (incl. a backup → restore round trip),
+#    then the app is built, started and driven with Playwright.
+#  - dependency-review (pull requests): refuses a PR that ADDS a dependency
+#    with a high-severity advisory, before it ever reaches a branch.
 name: ci
 
 on:
@@ -48,3 +50,99 @@ jobs:
       # for one) have no published fix and never reach the server.
       - name: Dependency audit
         run: pnpm audit --prod --audit-level high
+
+  e2e:
+    name: e2e
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_DATABASE: ghs_test
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      DATABASE_URL: mysql://root@127.0.0.1:3306/ghs_test
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      E2E_BASE_URL: http://localhost:3000
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Throwaway secrets for this run only, masked in the log.
+      - name: Generate test credentials
+        run: |
+          gen() { node -e "console.log(require('crypto').randomBytes(${1}).toString('base64url'))"; }
+          E2E_PASSWORD="E2e-$(gen 12)-9a!"
+          E2E_API_KEY="ghs_$(gen 32)"
+          SESSION_SECRET="$(gen 48)"
+          ENCRYPTION_KEY="$(gen 48)"
+          for v in "$E2E_PASSWORD" "$E2E_API_KEY" "$SESSION_SECRET" "$ENCRYPTION_KEY"; do echo "::add-mask::$v"; done
+          {
+            echo "E2E_EMAIL=scout@example.test"
+            echo "E2E_PASSWORD=$E2E_PASSWORD"
+            echo "E2E_API_KEY=$E2E_API_KEY"
+            echo "SESSION_SECRET=$SESSION_SECRET"
+            echo "ENCRYPTION_KEY=$ENCRYPTION_KEY"
+          } >> "$GITHUB_ENV"
+
+      - name: Schema + synthetic fixture
+        run: |
+          pnpm exec drizzle-kit push --force
+          SEED_USER_EMAIL="$E2E_EMAIL" SEED_USER_PASSWORD="$E2E_PASSWORD" SEED_API_KEY="$E2E_API_KEY" pnpm seed:fixture
+          mysql -h 127.0.0.1 -u root -e "CREATE DATABASE ghs_restore CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+          DATABASE_URL=mysql://root@127.0.0.1:3306/ghs_restore pnpm exec drizzle-kit push --force
+
+      - name: Integration tests (real MySQL, backup → restore)
+        run: pnpm exec vitest run tests/integration
+        env:
+          INTEGRATION_DATABASE_URL: mysql://root@127.0.0.1:3306/ghs_test
+          INTEGRATION_RESTORE_URL: mysql://root@127.0.0.1:3306/ghs_restore
+
+      - name: Build
+        run: pnpm build
+
+      - name: Start the app
+        run: |
+          pnpm start > app.log 2>&1 &
+          for i in $(seq 1 60); do curl -fsS -o /dev/null http://localhost:3000/ && exit 0; sleep 2; done
+          cat app.log; exit 1
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Playwright
+        run: pnpm test:e2e
+        env:
+          CI: "true"
+
+      - name: Upload report
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+            app.log
+          retention-days: 7
+
+  dependency-review:
+    name: dependency-review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high

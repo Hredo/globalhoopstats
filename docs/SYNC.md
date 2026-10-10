@@ -98,6 +98,28 @@ off-season is essentially July–August (NBA also sleeps in September). Pass
 - Hostinger's cron panel keeps the output of the last cron execution
   (hPanel → Advanced → Cron Jobs); a `curl` failure shows up there.
 
+## After every sync: alerts and backup
+
+The same detached job that runs the sync (cron or admin panel) then calls
+`afterSync()` (`src/lib/ops/after-sync.ts`), so production needs **no extra
+cron lines**:
+
+1. **Follow alerts** (`src/lib/alerts/engine.ts`) — every followed player/team
+   is compared with the snapshot stored on its follow row; changes (team
+   change, threshold crossed, arrivals/departures, coaching change) become
+   notifications, pushed to subscribed devices and sent as one email digest.
+   Manual re-run: `POST /api/cron/alerts` with the cron secret.
+2. **Backup** (`src/lib/ops/backup.ts`) — at most once every 20 h, a gzip'd
+   NDJSON dump of every non-ephemeral table into `BACKUP_DIR` (default
+   `~/backups/ghs`), then read back end to end (every line parses, per-table
+   counts match, SHA-256 recorded). Keeps `BACKUP_KEEP` (14) files. Status in
+   `/admin` → "Errores y copias"; manual: `POST /api/cron/backup`.
+   Restore into any database: `DATABASE_URL=… pnpm db:restore <file>`
+   (refuses a non-local target without `--allow-remote`).
+
+A league that fails to sync now also emails the admins (quality gate kept the
+old data; the email says which league and why).
+
 ## Future scaling levers (not yet done)
 
 - **Advisory lock** — replace the `sync_runs` overlap guard with
