@@ -51,7 +51,7 @@ export async function POST(request: Request) {
   const db = getDb()
   const owner = (await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1))[0]
   if (!owner) return badRequest("No account with that email.")
-  const { key, prefix, hash } = generateApiKey()
+  const { key, prefix, hash } = await generateApiKey()
   const id = newId()
   await db.insert(apiClients).values({ id, userId: owner.id, name, keyPrefix: prefix, keyHash: hash, dailyQuota: quota })
   return NextResponse.json({ id, key, keyPrefix: prefix }, { status: 201, headers: { "Cache-Control": "no-store" } })

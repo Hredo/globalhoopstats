@@ -1,14 +1,17 @@
 /**
  * Keys for the public read API (/api/v1).
  *
- * Format `ghs_<43 base64url chars>` (32 random bytes). Only an HMAC-SHA256 of
- * the key, keyed with a server secret, is stored: a database leak alone can
+ * Format `ghs_<43 base64url chars>` (32 random bytes). Only a scrypt digest
+ * of the key, salted with a server secret, is stored: a database leak alone can
  * neither reveal nor verify a key (rotating ENCRYPTION_KEY revokes them all).
+ * The salt is fixed per server on purpose — lookups are by digest — and that is
+ * safe here because every key is 256 bits of randomness, never a human choice.
  * The first 12 characters are kept in clear to tell keys apart in the admin
  * panel. Each key has a daily request quota enforced on the shared MySQL
  * limiter, so it holds across processes and restarts.
  */
-import { createHmac, randomBytes } from "node:crypto"
+import { randomBytes, scrypt } from "node:crypto"
+import { promisify } from "node:util"
 import { and, eq, isNull } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import { getDb } from "@/lib/db/client"
@@ -18,15 +21,26 @@ import { getServerEnv } from "@/lib/env"
 
 const KEY = /^ghs_[A-Za-z0-9_-]{43}$/
 
-export function generateApiKey(): { key: string; prefix: string; hash: string } {
+const scryptAsync = promisify(scrypt) as (
+  password: string,
+  salt: string,
+  keylen: number,
+  options: { N: number; r: number; p: number },
+) => Promise<Buffer>
+
+/** scrypt cost: ~16 MiB and a few ms per call, off the event loop. */
+const SCRYPT = { N: 2 ** 14, r: 8, p: 1 }
+
+export async function generateApiKey(): Promise<{ key: string; prefix: string; hash: string }> {
   const key = `ghs_${randomBytes(32).toString("base64url")}`
-  return { key, prefix: key.slice(0, 12), hash: hashApiKey(key) }
+  return { key, prefix: key.slice(0, 12), hash: await hashApiKey(key) }
 }
 
-export function hashApiKey(key: string): string {
+export async function hashApiKey(key: string): Promise<string> {
   const env = getServerEnv()
   const secret = env.ENCRYPTION_KEY ?? env.SESSION_SECRET
-  return createHmac("sha256", `ghs-api-key:${secret}`).update(key).digest("hex")
+  const digest = await scryptAsync(key, `ghs-api-key:${secret}`, 32, SCRYPT)
+  return digest.toString("hex")
 }
 
 export function readApiKey(headers: Headers): string | null {
@@ -55,7 +69,7 @@ export async function authenticateApi(request: Request): Promise<ApiAuth> {
     await db
       .select()
       .from(apiClients)
-      .where(and(eq(apiClients.keyHash, hashApiKey(key)), isNull(apiClients.revokedAt)))
+      .where(and(eq(apiClients.keyHash, await hashApiKey(key)), isNull(apiClients.revokedAt)))
       .limit(1)
   )[0]
   if (!client) return { response: apiError(401, "Invalid or revoked API key.") }

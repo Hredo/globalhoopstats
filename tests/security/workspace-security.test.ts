@@ -40,18 +40,19 @@ describe("web push endpoints (the server POSTs to them)", () => {
 })
 
 describe("public API keys", () => {
-  it("are random, prefixed and stored only as a hash", () => {
-    const a = generateApiKey()
-    const b = generateApiKey()
+  it("are random, prefixed and stored only as a slow, salted digest", async () => {
+    const a = await generateApiKey()
+    const b = await generateApiKey()
     expect(a.key).toMatch(/^ghs_[A-Za-z0-9_-]{43}$/)
     expect(a.key).not.toBe(b.key)
-    expect(a.hash).toBe(hashApiKey(a.key))
+    expect(a.hash).toBe(await hashApiKey(a.key))
+    expect(a.hash).toMatch(/^[0-9a-f]{64}$/)
     expect(a.hash).not.toContain(a.key.slice(4))
     expect(a.prefix).toBe(a.key.slice(0, 12))
   })
 
-  it("are read from Authorization: Bearer or X-API-Key, and malformed ones are ignored", () => {
-    const { key } = generateApiKey()
+  it("are read from Authorization: Bearer or X-API-Key, and malformed ones are ignored", async () => {
+    const { key } = await generateApiKey()
     expect(readApiKey(new Headers({ authorization: `Bearer ${key}` }))).toBe(key)
     expect(readApiKey(new Headers({ "x-api-key": key }))).toBe(key)
     expect(readApiKey(new Headers({ authorization: "Bearer nope" }))).toBeNull()

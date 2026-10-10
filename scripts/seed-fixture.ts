@@ -296,12 +296,13 @@ async function main() {
     const apiKey = process.env.SEED_API_KEY
     if (apiKey && /^ghs_[A-Za-z0-9_-]{43}$/.test(apiKey)) {
       const [owner] = await db.select({ id: users.id }).from(users).where(eq(users.email, email))
-      await db.delete(apiClients).where(eq(apiClients.keyHash, hashApiKey(apiKey)))
+      const keyHash = await hashApiKey(apiKey)
+      await db.delete(apiClients).where(eq(apiClients.keyHash, keyHash))
       await db.insert(apiClients).values({
         userId: owner!.id,
         name: "E2E",
         keyPrefix: apiKey.slice(0, 12),
-        keyHash: hashApiKey(apiKey),
+        keyHash,
         dailyQuota: 500,
       })
       console.log("  api client E2E")
