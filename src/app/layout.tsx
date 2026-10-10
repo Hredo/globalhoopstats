@@ -150,7 +150,7 @@ export default async function RootLayout({
   const locale = await getLocale()
   const dict = getDictionary(locale)
   await ensureOverridesLoaded()
-  // The CSP is nonce-based (middleware.ts). Next stamps its own inline scripts
+  // The CSP is nonce-based (proxy.ts, formerly middleware.ts). Next stamps its own inline scripts
   // automatically; ours is ours to nonce, and without this the no-flash theme
   // script is blocked and every visitor gets a white flash on load.
   const nonce = (await headers()).get("x-nonce") ?? undefined

@@ -20,7 +20,6 @@ export const config = {
   matcher: [
     "/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml|manifest\\.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|avif|woff2?|ttf)$).*)",
   ],
-  runtime: "nodejs",
 }
 
 const PROTECTED_PREFIXES = [
@@ -102,7 +101,7 @@ function secured(response: NextResponse, nonce: string, pathname: string): NextR
   return response
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const origin = request.headers.get("origin")
   const nonce = newCspNonce()

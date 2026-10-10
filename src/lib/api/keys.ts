@@ -1,18 +1,20 @@
 /**
  * Keys for the public read API (/api/v1).
  *
- * Format `ghs_<43 base64url chars>` (32 random bytes). Only the SHA-256 is
- * stored, so a database leak does not leak working keys; the first 12
- * characters are kept in clear to tell keys apart in the admin panel. Each key
- * has a daily request quota enforced on the shared MySQL limiter, so it holds
- * across processes and restarts.
+ * Format `ghs_<43 base64url chars>` (32 random bytes). Only an HMAC-SHA256 of
+ * the key, keyed with a server secret, is stored: a database leak alone can
+ * neither reveal nor verify a key (rotating ENCRYPTION_KEY revokes them all).
+ * The first 12 characters are kept in clear to tell keys apart in the admin
+ * panel. Each key has a daily request quota enforced on the shared MySQL
+ * limiter, so it holds across processes and restarts.
  */
-import { createHash, randomBytes } from "node:crypto"
+import { createHmac, randomBytes } from "node:crypto"
 import { and, eq, isNull } from "drizzle-orm"
 import { NextResponse } from "next/server"
 import { getDb } from "@/lib/db/client"
 import { apiClients, type ApiClient } from "@/lib/db/schema"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
+import { getServerEnv } from "@/lib/env"
 
 const KEY = /^ghs_[A-Za-z0-9_-]{43}$/
 
@@ -22,7 +24,9 @@ export function generateApiKey(): { key: string; prefix: string; hash: string } 
 }
 
 export function hashApiKey(key: string): string {
-  return createHash("sha256").update(key).digest("hex")
+  const env = getServerEnv()
+  const secret = env.ENCRYPTION_KEY ?? env.SESSION_SECRET
+  return createHmac("sha256", `ghs-api-key:${secret}`).update(key).digest("hex")
 }
 
 export function readApiKey(headers: Headers): string | null {

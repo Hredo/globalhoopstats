@@ -57,7 +57,8 @@ export async function POST(req: NextRequest) {
     (t) => !(TAGS as readonly string[]).includes(t),
   )
   const valid = requested.filter((t) => (TAGS as readonly string[]).includes(t))
-  for (const tag of valid) revalidateTag(tag)
+  // Next 16: expire now (not stale-while-revalidate) — a sync just rewrote the data.
+  for (const tag of valid) revalidateTag(tag, { expire: 0 })
 
   return NextResponse.json({
     ok: true,

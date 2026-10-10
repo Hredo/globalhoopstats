@@ -6,8 +6,9 @@
 #    (scripts/seed-fixture.ts — never production data or credentials), the
 #    integration tests run against it (incl. a backup → restore round trip),
 #    then the app is built, started and driven with Playwright.
-#  - dependency-review (pull requests): refuses a PR that ADDS a dependency
-#    with a high-severity advisory, before it ever reaches a branch.
+#
+# (A dependency-review job needs the repository Dependency graph enabled —
+# Settings → Code security. Until then the audit in `check` is the gate.)
 name: ci
 
 on:
@@ -137,12 +138,3 @@ jobs:
             app.log
           retention-days: 7
 
-  dependency-review:
-    name: dependency-review
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
-        with:
-          fail-on-severity: high

@@ -108,7 +108,7 @@ describe("rate-limit buckets", () => {
 })
 
 describe("middleware", () => {
-  const src = readFileSync(join(process.cwd(), "src/middleware.ts"), "utf8")
+  const src = readFileSync(join(process.cwd(), "src/proxy.ts"), "utf8")
   it("requires a session for every per-user workspace route", () => {
     for (const p of ["/following", "/shortlists", "/api/follows", "/api/notifications", "/api/push", "/api/shortlists", "/api/shares", "/api/export"]) {
       expect(src, p).toContain(`"${p}"`)

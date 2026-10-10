@@ -19,11 +19,6 @@ const nextConfig = {
       { protocol: "https", hostname: "www.acb.com" },
     ],
   },
-  eslint: {
-    // Los errores de lint son preexistentes (reglas nuevas de React 19 en
-    // eslint-config-next v16). No bloquean el build para no romper el deploy.
-    ignoreDuringBuilds: true,
-  },
   outputFileTracingRoot: process.cwd(),
   onDemandEntries: {
     maxInactiveAge: 1000 * 60 * 60,

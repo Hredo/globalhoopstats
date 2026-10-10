@@ -132,7 +132,7 @@ describe("limitFor", () => {
  * Structural: the guarantees have to be wired in, not merely available.
  */
 describe("the middleware applies the guards", () => {
-  const src = readFileSync(join(process.cwd(), "src", "middleware.ts"), "utf8")
+  const src = readFileSync(join(process.cwd(), "src", "proxy.ts"), "utf8")
 
   it("stamps a per-request nonce CSP on every response it returns", () => {
     expect(src).toContain("newCspNonce()")

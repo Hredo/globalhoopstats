@@ -1340,3 +1340,6 @@ export const PLAY_TEMPLATES: PlayTemplate[] = [
     },
   },
 ]
+
+/** Hard cap on a single stored play document (json) to keep rows small. */
+export const MAX_PLAY_BYTES = 250_000

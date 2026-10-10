@@ -30,7 +30,8 @@ export async function POST(request: Request) {
     )
   }
 
-  revalidateTag(tag)
+  // Next 16: expire now, so the first visit after a sync already reads fresh data.
+  revalidateTag(tag, { expire: 0 })
 
   return NextResponse.json({ ok: true, tag })
 }
