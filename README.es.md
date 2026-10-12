@@ -19,7 +19,7 @@ con un asesor de scouting con IA, un simulador de traspasos y un playbook animad
 
 **[→ Abrir globalhoopstats.es](https://globalhoopstats.es)**
 
-<a href="https://globalhoopstats.es"><img src="docs/media/promo.gif" alt="El promo de globalhoopstats: el balón, seis ligas que se convierten en una ficha por jugador y las herramientas de la web" width="100%"></a>
+<a href="https://globalhoopstats.es"><img src="docs/media/promo.gif" alt="globalhoopstats en movimiento: una ficha de jugador entre ligas, una comparativa EuroLeague contra NBA, el editor de jugadas y el simulador de traspasos" width="100%"></a>
 
 <sub>Arranque del vídeo promocional, montado con imágenes reales de la web — ver <a href="#vídeos-e-imágenes">Vídeos e imágenes</a>.</sub>
 
@@ -80,7 +80,7 @@ español e inglés.
       <p><b>Playbook</b> — 109 plantillas, herramientas de dibujo, fotogramas que se animan, plantillas reales de equipos, exportación a PDF/PNG y análisis con IA.</p>
     </td>
     <td width="50%" valign="top">
-      <a href="https://globalhoopstats.es/market/trade"><img src="docs/media/es/trade.jpg" alt="El simulador de traspasos con paquetes y el veredicto de equilibrio"></a>
+      <a href="https://globalhoopstats.es/market/trade"><img src="docs/media/es/trade.jpg" alt="El simulador de traspasos equilibrando un intercambio de Primera FEB"></a>
       <p><b>Traspasos</b> — valoraciones de mercado ajustadas por liga, edad y producción; simula un mercado o equilibra un intercambio.</p>
     </td>
   </tr>
