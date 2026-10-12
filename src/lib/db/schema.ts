@@ -333,6 +333,13 @@ export const users = mysqlTable(
     name: text("name").notNull(),
     passwordHash: text("password_hash"),
     twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
+    // NULL until the owner opens the link mailed at signup; login refuses
+    // unverified accounts so nobody can claim an address that isn't theirs.
+    emailVerifiedAt: datetime("email_verified_at", { mode: "date", fsp: 3 }),
+    // sha256 of the single outstanding confirmation token (it is 256-bit
+    // random, so a fast hash is enough and lets us look it up directly).
+    emailVerifyTokenHash: varchar("email_verify_token_hash", { length: 64 }),
+    emailVerifyExpiresAt: datetime("email_verify_expires_at", { mode: "date", fsp: 3 }),
     plan: text("plan").notNull().default("free"),
     role: text("role").notNull().default("user"),
     proSince: datetime("pro_since", { mode: "date", fsp: 3 }),
@@ -346,7 +353,10 @@ export const users = mysqlTable(
       .notNull()
       .default(nowDefault),
   },
-  (t) => [uniqueIndex("users_email_idx").on(t.email)],
+  (t) => [
+    uniqueIndex("users_email_idx").on(t.email),
+    index("users_email_verify_token_idx").on(t.emailVerifyTokenHash),
+  ],
 )
 
 export const userApiKeys = mysqlTable(

@@ -169,6 +169,12 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  // Signup done, waiting for the user to open the mailed confirmation link.
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null)
+  // Login refused because the address was never confirmed.
+  const [unverified, setUnverified] = useState(false)
+  const [resend, setResend] = useState<"idle" | "sending" | "sent">("idle")
+  const verifyState = searchParams.get("verify")
 
   const isRegister = variant === "register"
   const endpoint = isRegister ? "/api/auth/register" : "/api/auth/login"
@@ -180,6 +186,8 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
     setSubmitting(true)
     setFormError(null)
     setFieldErrors({})
+    setUnverified(false)
+    setResend("idle")
 
     const localErrors: Record<string, string> = {}
     if (isRegister) {
@@ -208,6 +216,11 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
         body: JSON.stringify(body),
       })
       const payload = await res.json().catch(() => ({}))
+      if (!res.ok && payload?.code === "email_not_verified") {
+        setUnverified(true)
+        setFormError(t("auth.verifyNeeded"))
+        return
+      }
       if (!res.ok) {
         const msg =
           typeof payload?.error === "string"
@@ -222,6 +235,10 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
         } else {
           setFormError(msg)
         }
+        return
+      }
+      if (payload.requiresVerification) {
+        setPendingEmail(email.trim())
         return
       }
       if (payload.requiresTwoFactor && payload.twoFactorSessionId) {
@@ -242,6 +259,22 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
       setFormError(t("auth.networkError"))
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const resendLink = async (address: string) => {
+    if (resend === "sending") return
+    setResend("sending")
+    try {
+      await fetch("/api/auth/verify-email/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: address }),
+      })
+      setResend("sent")
+    } catch {
+      setResend("idle")
+      setFormError(t("auth.networkError"))
     }
   }
 
@@ -289,6 +322,37 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
                 : t("auth.loginSubtitle")}
             </p>
 
+            {!isRegister && verifyState === "ok" ? (
+              <p role="status" className="mt-6 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
+                {t("auth.verifiedOk")}
+              </p>
+            ) : !isRegister && verifyState === "invalid" ? (
+              <p role="alert" className="mt-6 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                {t("auth.verifyInvalid")}
+              </p>
+            ) : null}
+
+            {pendingEmail ? (
+              <div role="status" className="mt-8 space-y-4 rounded-xl border border-hairline bg-surface-2 p-5">
+                <p className="font-display text-xl font-bold text-ink-50">{t("auth.verifySentTitle")}</p>
+                <p className="text-sm leading-relaxed text-ink-300">
+                  {t("auth.verifySentBody", { email: pendingEmail })}
+                </p>
+                <p className="text-xs text-ink-500">{t("auth.verifySentSpam")}</p>
+                {resend === "sent" ? (
+                  <p className="text-xs text-emerald-300">{t("auth.verifyResent")}</p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => resendLink(pendingEmail)}
+                    disabled={resend === "sending"}
+                    className="text-sm font-semibold text-brand-300 underline underline-offset-2 transition hover:text-brand-200 disabled:opacity-60"
+                  >
+                    {t("auth.verifyResend")}
+                  </button>
+                )}
+              </div>
+            ) : (
             <form onSubmit={handleSubmit} className="mt-8 space-y-4" noValidate>
               <input
                 type="text"
@@ -521,6 +585,20 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
                     className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200"
                   >
                     {formError}
+                    {unverified ? (
+                      resend === "sent" ? (
+                        <span className="mt-1 block text-xs text-emerald-300">{t("auth.verifyResent")}</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => resendLink(email.trim())}
+                          disabled={resend === "sending"}
+                          className="mt-1 block text-xs font-semibold text-brand-300 underline underline-offset-2 hover:text-brand-200 disabled:opacity-60"
+                        >
+                          {t("auth.verifyResend")}
+                        </button>
+                      )
+                    ) : null}
                   </motion.div>
                 ) : null}
               </AnimatePresence>
@@ -604,6 +682,7 @@ export function AuthForm({ variant, stats }: AuthFormProps) {
                 {t("auth.termsPost")}
               </p>
             </form>
+            )}
           </motion.div>
         </div>
       </div>

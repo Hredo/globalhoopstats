@@ -23,7 +23,10 @@ function t(dict: Messages, path: string, vars?: TranslationVars): string {
 }
 
 // ── Account: welcome ───────────────────────────────────────────────────────
-export function welcomeEmail(name: string, locale: Locale = DEFAULT_LOCALE): EmailContent {
+export function welcomeEmail(
+  name: string,
+  locale: Locale = DEFAULT_LOCALE,
+): EmailContent {
   const dict = getDictionary(locale)
   const first = name.trim().split(/\s+/)[0] || "there"
   const url = `${SITE.url}/players`
@@ -52,8 +55,43 @@ export function welcomeEmail(name: string, locale: Locale = DEFAULT_LOCALE): Ema
   }
 }
 
+// ── Auth: confirm email on signup ──────────────────────────────────────────
+export function verifyEmailEmail(
+  verifyUrl: string,
+  locale: Locale = DEFAULT_LOCALE,
+): EmailContent {
+  const dict = getDictionary(locale)
+  return {
+    subject: t(dict, "email.verifyEmail.subject", { site: SITE.name }),
+    html: renderEmail({
+      preview: t(dict, "email.verifyEmail.preview"),
+      content: [
+        h1(t(dict, "email.verifyEmail.heading")),
+        p(t(dict, "email.verifyEmail.body", { site: SITE.name })),
+        button(t(dict, "email.verifyEmail.cta"), verifyUrl),
+        muted(t(dict, "email.verifyEmail.expired")),
+      ].join("\n"),
+      locale,
+    }),
+    text: [
+      t(dict, "email.verifyEmail.text", { site: SITE.name }),
+      "",
+      t(dict, "email.verifyEmail.textCta"),
+      verifyUrl,
+      "",
+      t(dict, "email.verifyEmail.textSafe"),
+      "",
+      "---",
+      SIGN,
+    ].join("\n"),
+  }
+}
+
 // ── Auth: password reset ───────────────────────────────────────────────────
-export function passwordResetEmail(resetUrl: string, locale: Locale = DEFAULT_LOCALE): EmailContent {
+export function passwordResetEmail(
+  resetUrl: string,
+  locale: Locale = DEFAULT_LOCALE,
+): EmailContent {
   const dict = getDictionary(locale)
   return {
     subject: t(dict, "email.passwordReset.subject", { site: SITE.name }),
@@ -82,7 +120,10 @@ export function passwordResetEmail(resetUrl: string, locale: Locale = DEFAULT_LO
 }
 
 // ── Auth: 2FA login code ───────────────────────────────────────────────────
-export function twoFactorCodeEmail(code: string, locale: Locale = DEFAULT_LOCALE): EmailContent {
+export function twoFactorCodeEmail(
+  code: string,
+  locale: Locale = DEFAULT_LOCALE,
+): EmailContent {
   const dict = getDictionary(locale)
   return {
     subject: t(dict, "email.twoFactorCode.subject", { code, site: SITE.name }),
@@ -111,7 +152,10 @@ export function twoFactorCodeEmail(code: string, locale: Locale = DEFAULT_LOCALE
 }
 
 // ── Auth: 2FA setup confirmation code ──────────────────────────────────────
-export function twoFactorSetupEmail(code: string, locale: Locale = DEFAULT_LOCALE): EmailContent {
+export function twoFactorSetupEmail(
+  code: string,
+  locale: Locale = DEFAULT_LOCALE,
+): EmailContent {
   const dict = getDictionary(locale)
   return {
     subject: t(dict, "email.twoFactorSetup.subject", { site: SITE.name }),
@@ -140,20 +184,26 @@ export function twoFactorSetupEmail(code: string, locale: Locale = DEFAULT_LOCAL
 }
 
 // ── Contact: auto-reply to the sender ──────────────────────────────────────
-export function contactReceivedEmail(name: string, locale: Locale = DEFAULT_LOCALE): EmailContent {
+export function contactReceivedEmail(
+  name: string,
+  locale: Locale = DEFAULT_LOCALE,
+): EmailContent {
   const dict = getDictionary(locale)
   // This mail goes to whatever address the form was given, so the one piece
   // of sender text it repeats is cut down to something that can only be a
   // name — never a link or a sentence riding our domain into a stranger's inbox.
   const first =
-    (name.trim().split(/\s+/)[0] ?? "").replace(/[^\p{L}\p{M}'-]/gu, "").slice(0, 30) ||
-    "there"
+    (name.trim().split(/\s+/)[0] ?? "")
+      .replace(/[^\p{L}\p{M}'-]/gu, "")
+      .slice(0, 30) || "there"
   return {
     subject: t(dict, "email.contactReceived.subject", { site: SITE.name }),
     html: renderEmail({
       preview: t(dict, "email.contactReceived.preview"),
       content: [
-        h1(t(dict, "email.contactReceived.heading", { name: escapeHtml(first) })),
+        h1(
+          t(dict, "email.contactReceived.heading", { name: escapeHtml(first) }),
+        ),
         p(t(dict, "email.contactReceived.body1")),
         p(t(dict, "email.contactReceived.body2")),
       ].join("\n"),
@@ -183,7 +233,10 @@ export function contactNotificationEmail(input: {
       preview: `New contact message from ${input.name}.`,
       content: [
         h1("New contact message"),
-        field("From", `${escapeHtml(input.name)} &lt;${escapeHtml(input.email)}&gt;`),
+        field(
+          "From",
+          `${escapeHtml(input.name)} &lt;${escapeHtml(input.email)}&gt;`,
+        ),
         field("Subject", escapeHtml(input.subject)),
         quote(escapeHtml(input.message)),
         muted("Reply directly to this email to answer the sender."),
@@ -201,7 +254,9 @@ export function contactNotificationEmail(input: {
 }
 
 // ── Waitlist: welcome to the subscriber ────────────────────────────────────
-export function waitlistWelcomeEmail(locale: Locale = DEFAULT_LOCALE): EmailContent {
+export function waitlistWelcomeEmail(
+  locale: Locale = DEFAULT_LOCALE,
+): EmailContent {
   const dict = getDictionary(locale)
   return {
     subject: t(dict, "email.waitlistWelcome.subject", { site: SITE.name }),

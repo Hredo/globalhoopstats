@@ -117,7 +117,7 @@ export const es: Messages = {
   metadata: {
     tagline: "Baloncesto, descifrado.",
     description:
-      "Inteligencia de baloncesto entre ligas: NBA, EuroLeague, Liga ACB y la pirámide FEB española (Primera, Segunda, Tercera). Estadísticas, splits avanzados, comparativas, valoraciones de mercado, simulador de traspasos y asesor de scouting con IA — todo en una consola.",
+      "Inteligencia de baloncesto entre ligas: NBA, EuroLeague, Liga ACB y la pirámide FEB española (Primera, Segunda, Tercera). Estadísticas, splits avanzados, percentiles y proyecciones, comparativas, valoraciones de mercado, simulador de traspasos, pizarra de jugadas animada, alertas de jugadores y shortlists compartidas, API pública y asesor de scouting con IA — todo en una consola.",
   },
   home: {
     metaTitle:
@@ -130,7 +130,6 @@ export const es: Messages = {
         "Pregunta al asesor IA, compara entre seis ligas, valora a cualquier jugador y simula traspasos — y exporta informes listos para la sala de juntas. Todo en un mismo espacio.",
       browseDatabase: "Explora jugadores",
       comparePlayers: "Compara jugadores",
-      aiAdvisor: "Asesor IA",
     },
     film: {
       kicker: "globalhoopstats — seis ligas, un motor",
@@ -929,6 +928,9 @@ export const es: Messages = {
     perGameLabel: "Por partido",
   },
   aiSetup: {
+    metaTitle: "Conecta tu IA",
+    metaDescription:
+      "Usa tu propio modelo en el Asesor IA y el Comparador IA: ejecútalo en local con Ollama (sin clave) o pega una clave API de OpenAI, Anthropic, Google, Groq, Mistral y más.",
     eyebrow: "Configuración de IA",
     title: "Conecta tu propia IA",
     introBefore: "El Asesor IA y el Comparador IA funcionan con un modelo",
@@ -1003,6 +1005,15 @@ export const es: Messages = {
     and: "y",
     privacyWord: "Política de privacidad",
     termsPost: ". Tus datos se cifran en tránsito (HTTPS) y en reposo.",
+    verifySentTitle: "Revisa tu correo",
+    verifySentBody:
+      "Te hemos enviado un enlace de confirmación a {email}. Ábrelo para activar tu cuenta; caduca en 24 horas.",
+    verifySentSpam: "¿No lo ves? Mira en spam o pide otro enlace.",
+    verifyResend: "Reenviar el enlace",
+    verifyResent: "Si la cuenta está pendiente de confirmar, te hemos enviado un enlace nuevo.",
+    verifyNeeded: "Confirma tu correo antes de iniciar sesión. Busca el enlace que te enviamos al registrarte.",
+    verifiedOk: "Correo confirmado. Ya puedes iniciar sesión.",
+    verifyInvalid: "El enlace de confirmación no es válido o ha caducado. Inicia sesión para pedir otro.",
     courtTitle: "Baloncesto, descifrado.",
     courtSubtitle:
       "Inicia sesión para conservar tus conversaciones con el asesor, hacer comparaciones con IA ilimitadas y desbloquear todas las herramientas de scouting.",
@@ -1200,6 +1211,17 @@ export const es: Messages = {
       text: "¡Bienvenido, {name}!",
       textBody: "Tu cuenta está lista. Ahora tienes una consola para inteligencia de baloncesto entre ligas — box scores, splits avanzados, comparaciones y highlights de la NBA, EuroLeague, Liga ACB y el escalafón FEB de España.",
       textUrl: "Explora jugadores: {url}",
+    },
+    verifyEmail: {
+      subject: "Confirma tu correo · {site}",
+      preview: "Confirma tu correo para activar tu cuenta.",
+      heading: "Confirma tu correo",
+      body: "Alguien (seguramente tú) ha creado una cuenta en {site} con esta dirección. Confírmala para activarla.",
+      cta: "Confirmar correo",
+      expired: "El enlace caduca en 24 horas. Si no has sido tú, ignora este correo: la cuenta no se activará.",
+      text: "Alguien (seguramente tú) ha creado una cuenta en {site} con esta dirección.",
+      textCta: "Confirma tu correo (el enlace caduca en 24 horas):",
+      textSafe: "Si no has sido tú, ignora este correo: la cuenta no se activará.",
     },
     passwordReset: {
       subject: "Restablece tu contraseña · {site}",
