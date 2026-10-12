@@ -9,6 +9,7 @@ import {
 } from "@/lib/sources/types"
 import { fetchText, fetchTextIfPublished } from "@/lib/sources/fetcher"
 import { parseBirthdate, parseHeightToCm } from "@/lib/sync/slug"
+import { stripTags } from "@/lib/sources/html-text"
 
 const ACB_BASE = "https://www.acb.com"
 const ACB_LIGA = "/es/liga"
@@ -570,7 +571,7 @@ export const acbAdapter: SourceAdapter = {
         /<t[hd]\b[^>]*\bdata-stat="([^"]+)"[^>]*>([\s\S]*?)<\/t[hd]>/g
       let cm: RegExpExecArray | null
       while ((cm = cellRe.exec(row)) !== null)
-        cells.set(cm[1], cm[2].replace(/<[^>]+>/g, "").trim())
+        cells.set(cm[1], stripTags(cm[2]).trim())
       const playerName = cells.get("player")
       if (!playerName) continue
       const acbId = resolvePlayerId(playerName)

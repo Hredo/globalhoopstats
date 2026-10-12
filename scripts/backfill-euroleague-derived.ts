@@ -13,6 +13,7 @@
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { createSql } from "./lib/sql"
+import { decodeEntities, stripTags } from "../src/lib/sources/html-text"
 
 function loadEnv() {
   for (const file of [".env", ".env.local"]) {
@@ -47,15 +48,6 @@ function norm(s: string): string {
     .trim()
 }
 
-function decodeEntities(s: string): string {
-  return s
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, " ")
-}
 
 function toNum(s: string | undefined): number | null {
   if (s === undefined || s === "") return null
@@ -93,7 +85,7 @@ async function fetchBrTotals(): Promise<Map<string, BrRow>> {
     const re = /<t[hd]\b[^>]*\bdata-stat="([^"]+)"[^>]*>([\s\S]*?)<\/t[hd]>/g
     let m: RegExpExecArray | null
     while ((m = re.exec(row)) !== null) {
-      cells.set(m[1], decodeEntities(m[2].replace(/<[^>]+>/g, "").trim()))
+      cells.set(m[1], decodeEntities(stripTags(m[2]).trim()))
     }
     const name = cells.get("player")
     if (!name) continue

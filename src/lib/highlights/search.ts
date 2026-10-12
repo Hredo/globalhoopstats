@@ -5,6 +5,7 @@ import {
   type YouTubeCandidate,
 } from "./youtube"
 import { pickBestCandidateWithHuggingFace } from "./rerank"
+import { decodeEntities, stripTags } from "@/lib/sources/html-text"
 
 const DDG_ENDPOINT = "https://html.duckduckgo.com/html/"
 const DDG_TIMEOUT_MS = 6_000
@@ -125,8 +126,8 @@ function parseDdgHtml(html: string): DdgResult[] {
   let m: RegExpExecArray | null
   while ((m = linkRe.exec(html)) !== null) {
     const raw = m[1]
-    const url = decodeDdgUrl(decodeHtml(raw))
-    const title = stripTags(m[2]).trim()
+    const url = decodeDdgUrl(decodeEntities(raw))
+    const title = textOf(m[2]).trim()
     if (!url || !title || seen.has(url)) continue
     seen.add(url)
     results.push({ url, title, snippet: "" })
@@ -136,22 +137,13 @@ function parseDdgHtml(html: string): DdgResult[] {
   const snippetRe = /<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g
   let i = 0
   while ((m = snippetRe.exec(html)) !== null && i < results.length) {
-    results[i].snippet = stripTags(m[1]).trim()
+    results[i].snippet = textOf(m[1]).trim()
     i++
   }
 
   return results
 }
 
-function decodeHtml(s: string): string {
-  return s
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'")
-    .replace(/&#39;/g, "'")
-}
 
 function decodeDdgUrl(u: string): string {
   if (u.startsWith("/") || u.startsWith("//")) {
@@ -166,8 +158,8 @@ function decodeDdgUrl(u: string): string {
   return u
 }
 
-function stripTags(s: string): string {
-  return s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ")
+function textOf(s: string): string {
+  return decodeEntities(stripTags(s)).replace(/\s+/g, " ")
 }
 
 function extractDdgCandidates(results: DdgResult[]): YouTubeCandidate[] {

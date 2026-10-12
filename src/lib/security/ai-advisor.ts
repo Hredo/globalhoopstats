@@ -163,12 +163,20 @@ const CONTROL_CHARS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g
 const ZERO_WIDTH = /[\u200B-\u200D\uFEFF]/g
 
 export function cleanUserText(raw: string): string {
-  return raw
-    .replace(CONTROL_CHARS, " ")
-    .replace(ZERO_WIDTH, "")
-    .replace(/\s+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim()
+  return (
+    raw
+      .replace(CONTROL_CHARS, " ")
+      .replace(ZERO_WIDTH, "")
+      // A whitespace run that reaches a newline collapses to that newline. Done
+      // per run rather than with /\s+\n/, which backtracks quadratically on a
+      // long run of spaces that never meets a newline (ReDoS).
+      .replace(/\s+/g, (ws) => {
+        const nl = ws.lastIndexOf("\n")
+        return nl < 0 ? ws : "\n" + ws.slice(nl + 1)
+      })
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
+  )
 }
 
 /**
@@ -327,6 +335,22 @@ export function detectInjection(raw: string): InjectionFinding[] {
 // ---- Output sanitisation --------------------------------------------------
 
 /**
+ * Drops `on*=` handler attributes from one tag. Repeated until nothing changes:
+ * a single pass over `<a oonclick=xnclick=alert(1)>` would splice the leftovers
+ * into a fresh handler. Only applied inside tags, so prose such as
+ * "one = 1" is left alone.
+ */
+function stripEventHandlers(tag: string): string {
+  let out = tag
+  let prev: string
+  do {
+    prev = out
+    out = out.replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, " ")
+  } while (out !== prev)
+  return out
+}
+
+/**
  * Strip characters and patterns that could break rendering or be used for XSS,
  * even though our Markdown renderer doesn't pass through raw HTML, defence-in-depth.
  */
@@ -344,12 +368,9 @@ export function cleanLlmOutput(raw: string): string {
         ),
         "[blocked]",
       )
-      .replace(
-        /<\s*(script|iframe|object|embed|svg)[^>]*\/?>/gi,
-        "[blocked]",
-      )
+      .replace(/<\s*(script|iframe|object|embed|svg)[^>]*\/?>/gi, "[blocked]")
       .replace(/(href|src)\s*=\s*["']?\s*javascript:/gi, "$1=")
-      .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "")
+      .replace(/<[^>]*>/g, stripEventHandlers)
       .trim()
       .slice(0, MAX_LLM_OUTPUT_CHARS)
   )
