@@ -2,6 +2,7 @@ import Link from "next/link"
 import type { Metadata } from "next"
 import { getPlayerForCompare } from "@/lib/data/compare"
 import { listSeasons, resolveSeasonName } from "@/lib/data/seasons"
+import { localizeNationality, localizePosition } from "@/lib/i18n/player-labels"
 import { SeasonSwitcher } from "@/components/ui/season-select"
 import { compareSeasonsDesc } from "@/lib/seasons"
 import { CompareSearch } from "@/components/players/compare-search"
@@ -217,7 +218,7 @@ async function ComparePlayerCard({
   player: Awaited<ReturnType<typeof getPlayerForCompare>>
   requested: string
 }) {
-  const { t } = await getT()
+  const { t, locale } = await getT()
   if (!player) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-hairline-strong p-8 text-center">
@@ -280,7 +281,7 @@ async function ComparePlayerCard({
             {player.team?.name ?? t("compare.freeAgent")} · {player.league.name}
           </p>
           <p className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.16em] text-ink-500">
-            {player.position ?? "—"} · {player.nationality ?? "—"}
+            {localizePosition(player.position, locale) ?? "—"} · {localizeNationality(player.nationality, locale) ?? "—"}
           </p>
         </div>
       </div>

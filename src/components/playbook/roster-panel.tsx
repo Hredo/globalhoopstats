@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react"
 import { cn } from "@/components/ui/cn"
 import { SmartImage } from "@/components/ui/smart-image"
 import { PersonAvatar } from "@/components/ui/person-avatar"
-import { useT } from "@/lib/i18n/provider"
+import { useLocale, useT } from "@/lib/i18n/provider"
+import { localizeNationality, localizePosition } from "@/lib/i18n/player-labels"
 import type { LinkedPlayer } from "@/lib/playbook/types"
 import { PLAYER_DRAG_MIME } from "@/components/playbook/editor"
 import type { EditorState, PlayDispatch } from "@/components/playbook/play-state"
@@ -32,6 +33,7 @@ export function RosterPanel({
   dispatch: PlayDispatch
 }) {
   const t = useT()
+  const locale = useLocale()
   const [teams, setTeams] = useState<TeamOption[]>([])
   const [league, setLeague] = useState("")
   const [teamSlug, setTeamSlug] = useState("")
@@ -256,7 +258,7 @@ export function RosterPanel({
                         {p.fullName}
                       </p>
                       <p className="font-mono text-[11px] text-ink-300">
-                        {p.position ?? "—"} <span className="text-ink-500">·</span> {p.league.name}
+                        {localizePosition(p.position, locale) ?? "—"} <span className="text-ink-500">·</span> {p.league.name}
                       </p>
                     </div>
                     {used ? (

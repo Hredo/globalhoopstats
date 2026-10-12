@@ -137,6 +137,10 @@ export default async function Home() {
       "Trade simulator with balanced scenarios",
       "League hubs with leaders",
       "AI advisor for scouting queries",
+      "League percentiles and next-season projections",
+      "Animated playbook editor with AI analysis",
+      "Player follows, alerts and shared shortlists",
+      "Public read-only REST API",
       "Exports to PDF, Excel and Word",
     ],
   }
@@ -168,11 +172,6 @@ export default async function Home() {
           kicker: t("home.film.kicker"),
           title: t("home.film.title"),
           accent: t("home.film.accent"),
-        }}
-        ctaPrimary={{ href: "/ai-advisor", label: t("home.hero.aiAdvisor") }}
-        ctaSecondary={{
-          href: "/compare",
-          label: t("home.hero.comparePlayers"),
         }}
         scrollHint={t("home.film.scrollHint")}
       />

@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { localizeNationality, localizePosition } from "@/lib/i18n/player-labels"
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
 import { and, eq, inArray, sql } from "drizzle-orm"
@@ -193,7 +194,7 @@ export default async function PlayerPage({ params, searchParams }: Props) {
   const { slug } = await params
   const sp = searchParams ? await searchParams : {}
   const leagueParam = typeof sp.league === "string" ? sp.league : null
-  const { t } = await getT()
+  const { t, locale } = await getT()
   const profile = await getPlayerBySlug(slug)
   if (!profile) notFound()
 
@@ -289,10 +290,10 @@ export default async function PlayerPage({ params, searchParams }: Props) {
             <div className="gh-card p-4 text-sm">
               <h3 className="gh-eyebrow">{t("playerProfile.bio")}</h3>
               <dl className="mt-3 space-y-2">
-                <Row k={t("playerProfile.position")} v={profile.position ?? "—"} />
+                <Row k={t("playerProfile.position")} v={localizePosition(profile.position, locale) ?? "—"} />
                 <Row
                   k={t("playerProfile.nationality")}
-                  v={profile.nationality ?? "—"}
+                  v={localizeNationality(profile.nationality, locale) ?? "—"}
                 />
                 <Row k={t("playerProfile.height")} v={formatHeight(profile.heightCm)} />
                 <Row k={t("playerProfile.weight")} v={formatWeight(profile.weightKg)} />

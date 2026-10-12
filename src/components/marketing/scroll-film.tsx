@@ -12,9 +12,7 @@ import {
 } from "motion/react"
 import { useReducedMotion } from "@/hooks/use-reduced-motion"
 import { useTheme } from "@/lib/theme/provider"
-import { ButtonLink } from "@/components/ui/button"
 
-export type FilmCta = { href: string; label: string }
 /** A scroll-timed marketing line shown to one side of the ball. */
 export type FilmText = { hook: string; sub?: string }
 /** One themed footage set: poster frame + extracted frame sequence. */
@@ -67,8 +65,6 @@ export function ScrollFilm({
   introAlt,
   texts,
   headline,
-  ctaPrimary,
-  ctaSecondary,
   scrollHint,
 }: {
   dark: FilmReel
@@ -76,8 +72,6 @@ export function ScrollFilm({
   introAlt: string
   texts: readonly FilmText[]
   headline: { kicker: string; title: string; accent?: string }
-  ctaPrimary: FilmCta
-  ctaSecondary: FilmCta
   scrollHint: string
 }) {
   const { theme } = useTheme()
@@ -127,7 +121,6 @@ export function ScrollFilm({
               </>
             ) : null}
           </h1>
-          <FilmCtas primary={ctaPrimary} secondary={ctaSecondary} />
         </div>
       </section>
     )
@@ -140,23 +133,8 @@ export function ScrollFilm({
       introAlt={introAlt}
       texts={texts}
       headline={headline}
-      ctaPrimary={ctaPrimary}
-      ctaSecondary={ctaSecondary}
       scrollHint={scrollHint}
     />
-  )
-}
-
-function FilmCtas({ primary, secondary }: { primary: FilmCta; secondary: FilmCta }) {
-  return (
-    <div className="mt-8 flex flex-wrap gap-3">
-      <ButtonLink href={primary.href} size="lg" arrow>
-        {primary.label}
-      </ButtonLink>
-      <ButtonLink href={secondary.href} size="lg" variant="secondary">
-        {secondary.label}
-      </ButtonLink>
-    </div>
   )
 }
 
@@ -170,8 +148,6 @@ function Film({
   introAlt,
   texts,
   headline,
-  ctaPrimary,
-  ctaSecondary,
   scrollHint,
 }: {
   reel: FilmReel
@@ -179,8 +155,6 @@ function Film({
   introAlt: string
   texts: readonly FilmText[]
   headline: { kicker: string; title: string; accent?: string }
-  ctaPrimary: FilmCta
-  ctaSecondary: FilmCta
   scrollHint: string
 }) {
   const rootRef = useRef<HTMLElement | null>(null)
@@ -432,7 +406,6 @@ function Film({
               </>
             ) : null}
           </h1>
-          <FilmCtas primary={ctaPrimary} secondary={ctaSecondary} />
         </motion.div>
 
         {/* side marketing lines */}

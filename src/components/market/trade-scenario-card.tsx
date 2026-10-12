@@ -7,7 +7,8 @@ import { SmartImage } from "@/components/ui/smart-image"
 import { PersonAvatar } from "@/components/ui/person-avatar"
 import { ValuationBadge } from "@/components/market/valuation-badge"
 import { AiAnalysisDisplay } from "@/components/market/ai-analysis-display"
-import { useT } from "@/lib/i18n/provider"
+import { useLocale, useT } from "@/lib/i18n/provider"
+import { localizeNationality, localizePosition } from "@/lib/i18n/player-labels"
 
 function SparkIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
@@ -98,6 +99,7 @@ export function TradeScenarioCard({
   aiError = null,
 }: Props) {
   const t = useT()
+  const locale = useLocale()
   const isBalanced =
     scenario.balance >= 0.95 && scenario.balance <= 1.08
   const color = isBalanced
@@ -143,7 +145,7 @@ export function TradeScenarioCard({
                   {p.name}
                 </p>
                 <div className="flex items-center gap-2 font-mono text-[10px] text-ink-400">
-                  <span>{p.position ?? "—"}</span>
+                  <span>{localizePosition(p.position, locale) ?? "—"}</span>
                   <span>·</span>
                   <span>{p.team?.name ?? "FA"}</span>
                 </div>

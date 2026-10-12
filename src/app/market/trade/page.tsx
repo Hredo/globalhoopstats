@@ -12,6 +12,7 @@ import { ValuationBadge } from "@/components/market/valuation-badge"
 import { SmartImage } from "@/components/ui/smart-image"
 import { PersonAvatar } from "@/components/ui/person-avatar"
 import { Eyebrow } from "@/components/ui/eyebrow"
+import { localizeNationality, localizePosition } from "@/lib/i18n/player-labels"
 import { useT, useLocale } from "@/lib/i18n/provider"
 import { CURRENCIES, formatCurrency, type CurrencyCode } from "@/lib/market/currency"
 import type { Valuation } from "@/lib/market/valuation"
@@ -707,7 +708,7 @@ export default function TradePage() {
                       <ValuationBadge tier={result.outgoing.valuation.tier} size="sm" leagueSlug={result.outgoing.league.slug} />
                     </div>
                     <p className="font-mono text-[11px] text-ink-400">
-                      {result.outgoing.position ?? "—"} · {result.outgoing.league.name} · {result.outgoing.team?.name ?? "FA"}
+                      {localizePosition(result.outgoing.position, locale) ?? "—"} · {result.outgoing.league.name} · {result.outgoing.team?.name ?? "FA"}
                     </p>
                     {result.outgoing.stats ? <StatsRow stats={result.outgoing.stats} /> : null}
                   </div>
@@ -939,7 +940,7 @@ export default function TradePage() {
                         {p.valuation ? <ValuationBadge tier={p.valuation.tier} size="sm" leagueSlug={p.league.slug} /> : null}
                       </div>
                       <p className="font-mono text-[10px] text-ink-400">
-                        {p.position ?? "—"} · {p.team?.name ?? "FA"} · {p.league.name}
+                        {localizePosition(p.position, locale) ?? "—"} · {p.team?.name ?? "FA"} · {p.league.name}
                       </p>
                       {p.stats ? <StatsRow stats={perGame(p.stats)} /> : null}
                       {p.valuation ? (
@@ -1031,7 +1032,7 @@ export default function TradePage() {
                         {p.valuation ? <ValuationBadge tier={p.valuation.tier} size="sm" leagueSlug={p.league.slug} /> : null}
                       </div>
                       <p className="font-mono text-[10px] text-ink-400">
-                        {p.position ?? "—"} · {p.team?.name ?? "FA"} · {p.league.name}
+                        {localizePosition(p.position, locale) ?? "—"} · {p.team?.name ?? "FA"} · {p.league.name}
                       </p>
                       {p.stats ? <StatsRow stats={perGame(p.stats)} /> : null}
                       {p.valuation ? (

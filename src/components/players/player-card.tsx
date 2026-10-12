@@ -10,7 +10,8 @@ import {
   formatWeight,
   getInitials,
 } from "@/lib/format"
-import { useT } from "@/lib/i18n/provider"
+import { useLocale, useT } from "@/lib/i18n/provider"
+import { localizeNationality, localizePosition } from "@/lib/i18n/player-labels"
 
 function pg(total: number | null | undefined, gp: number | undefined): number | null {
   if (total == null || !gp) return null
@@ -56,6 +57,7 @@ type Props = {
 
 export function PlayerCard({ player, index = 0 }: Props) {
   const t = useT()
+  const locale = useLocale()
   const s = player.stats
 
   return (
@@ -109,10 +111,10 @@ export function PlayerCard({ player, index = 0 }: Props) {
           <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-ink-300 sm:text-xs">
             {player.position ? (
               <span className="font-semibold text-ink-100">
-                {player.position}
+                {localizePosition(player.position, locale)}
               </span>
             ) : null}
-            {player.nationality ? <span>· {player.nationality}</span> : null}
+            {player.nationality ? <span>· {localizeNationality(player.nationality, locale)}</span> : null}
             <span className="hidden sm:inline">
               · {formatHeight(player.heightCm)} ·{" "}
               {formatWeight(player.weightKg)}
