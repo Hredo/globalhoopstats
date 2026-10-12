@@ -6,6 +6,7 @@ import { CourtMarkings } from "@/components/ui/court-markings"
 import { Footer } from "@/components/layout/footer"
 import { LazyCommandPalette } from "@/components/players/lazy-command-palette"
 import { CookieConsent } from "@/components/layout/cookie-consent"
+import { ConsoleWarning } from "@/components/layout/console-warning"
 import { JsonLd } from "@/components/marketing/json-ld"
 import { SerwistGate } from "@/components/layout/serwist-gate"
 import { PageTracker } from "@/components/admin/page-tracker"
@@ -62,73 +63,74 @@ export async function generateMetadata(): Promise<Metadata> {
     }
   }
   return {
-  metadataBase: new URL(SITE.url),
-  title: {
-    default: title,
-    template: `%s · ${SITE.name}`,
-  },
-  description,
-  keywords: SEO_KEYWORDS,
-  applicationName: SITE.name,
-  authors: [{ name: SITE.author, url: SITE.url }],
-  creator: SITE.author,
-  publisher: SITE.author,
-  // No `alternates.canonical` here. Next inherits it into every route that does
-  // not set its own, so a root `canonical: "/"` declared the 404 page, the
-  // password flows and any future page a duplicate of the homepage. Pages set
-  // their own through pageSeo(); a page without one is better than a wrong one.
-  category: "Sports Analytics",
-  classification: "Sports, Analytics, Basketball",
-  openGraph: {
-    type: "website",
-    locale: locale === "es" ? "es_ES" : "en_US",
-    url: SITE.url,
-    siteName: SITE.name,
-    title,
+    metadataBase: new URL(SITE.url),
+    title: {
+      default: title,
+      template: `%s · ${SITE.name}`,
+    },
     description,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title,
-    description,
-    creator: SITE.twitter,
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+    keywords: SEO_KEYWORDS,
+    applicationName: SITE.name,
+    authors: [{ name: SITE.author, url: SITE.url }],
+    creator: SITE.author,
+    publisher: SITE.author,
+    // No `alternates.canonical` here. Next inherits it into every route that does
+    // not set its own, so a root `canonical: "/"` declared the 404 page, the
+    // password flows and any future page a duplicate of the homepage. Pages set
+    // their own through pageSeo(); a page without one is better than a wrong one.
+    category: "Sports Analytics",
+    classification: "Sports, Analytics, Basketball",
+    openGraph: {
+      type: "website",
+      locale: locale === "es" ? "es_ES" : "en_US",
+      url: SITE.url,
+      siteName: SITE.name,
+      title,
+      description,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      creator: SITE.twitter,
+    },
+    robots: {
       index: true,
       follow: true,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-      "max-video-preview": -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+        "max-video-preview": -1,
+      },
     },
-  },
-  verification: Object.keys(verification).length > 0 ? verification : undefined,
-  formatDetection: {
-    telephone: false,
-    email: false,
-    address: false,
-  },
-  icons: {
-    icon: [
-      { url: "/icon", type: "image/png", sizes: "32x32" },
-      { url: "/icon-192", type: "image/png", sizes: "192x192" },
-      { url: "/icon-512", type: "image/png", sizes: "512x512" },
-    ],
-    apple: [
-      { url: "/icon-192", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512", sizes: "512x512", type: "image/png" },
-    ],
-  },
-  manifest: "/manifest.webmanifest",
-  other: {
-    // Standard key (Chrome/Android). Silences the "apple-… is deprecated" console warning.
-    "mobile-web-app-capable": "yes",
-    // Kept for older iOS Safari, which only honours the apple-prefixed key.
-    "apple-mobile-web-app-capable": "yes",
-    "apple-mobile-web-app-status-bar-style": "black-translucent",
-  },
+    verification:
+      Object.keys(verification).length > 0 ? verification : undefined,
+    formatDetection: {
+      telephone: false,
+      email: false,
+      address: false,
+    },
+    icons: {
+      icon: [
+        { url: "/icon", type: "image/png", sizes: "32x32" },
+        { url: "/icon-192", type: "image/png", sizes: "192x192" },
+        { url: "/icon-512", type: "image/png", sizes: "512x512" },
+      ],
+      apple: [
+        { url: "/icon-192", sizes: "192x192", type: "image/png" },
+        { url: "/icon-512", sizes: "512x512", type: "image/png" },
+      ],
+    },
+    manifest: "/manifest.webmanifest",
+    other: {
+      // Standard key (Chrome/Android). Silences the "apple-… is deprecated" console warning.
+      "mobile-web-app-capable": "yes",
+      // Kept for older iOS Safari, which only honours the apple-prefixed key.
+      "apple-mobile-web-app-capable": "yes",
+      "apple-mobile-web-app-status-bar-style": "black-translucent",
+    },
   }
 }
 
@@ -190,61 +192,65 @@ export default async function RootLayout({
           />
         </div>
         <LocaleProvider locale={locale} dict={dict}>
-        <ThemeProvider>
-        <SerwistGate>
-        <PageTracker />
-        <JsonLd
-          data={[
-            {
-              "@context": "https://schema.org",
-              "@type": "Organization",
-              name: SITE.name,
-              url: SITE.url,
-              // Google ignores an Organization logo under 112×112; /icon is 32×32.
-              logo: `${SITE.url}/icon-512`,
-              description: SITE.description,
-              sameAs: SITE_SOCIAL,
-              contactPoint: [
-                {
-                  "@type": "ContactPoint",
-                  email: SITE.contact,
-                  contactType: "customer support",
-                  availableLanguage: ["English", "Spanish"],
-                },
-              ],
-            },
-            {
-              "@context": "https://schema.org",
-              "@type": "WebSite",
-              name: SITE.name,
-              url: SITE.url,
-              description: SITE.description,
-              inLanguage: locale,
-              potentialAction: {
-                "@type": "SearchAction",
-                target: `${SITE.url}/players?q={search_term_string}`,
-                "query-input": "required name=search_term_string",
-              },
-            },
-          ]}
-        />
-        <a
-          href="#main"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[200] focus:rounded-md focus:bg-brand-500 focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-ink-950"
-        >
-          {dict.common.skipToContent}
-        </a>
-        <Navbar />
-        <ThemeToggleFab />
-        <AnnouncementNotices />
-        <main id="main" className="mx-auto min-h-dvh max-w-7xl px-4 sm:px-6">
-          {children}
-        </main>
-        <LazyCommandPalette />
-        <Footer />
-        <CookieConsent />
-        </SerwistGate>
-        </ThemeProvider>
+          <ThemeProvider>
+            <SerwistGate>
+              <PageTracker />
+              <JsonLd
+                data={[
+                  {
+                    "@context": "https://schema.org",
+                    "@type": "Organization",
+                    name: SITE.name,
+                    url: SITE.url,
+                    // Google ignores an Organization logo under 112×112; /icon is 32×32.
+                    logo: `${SITE.url}/icon-512`,
+                    description: SITE.description,
+                    sameAs: SITE_SOCIAL,
+                    contactPoint: [
+                      {
+                        "@type": "ContactPoint",
+                        email: SITE.contact,
+                        contactType: "customer support",
+                        availableLanguage: ["English", "Spanish"],
+                      },
+                    ],
+                  },
+                  {
+                    "@context": "https://schema.org",
+                    "@type": "WebSite",
+                    name: SITE.name,
+                    url: SITE.url,
+                    description: SITE.description,
+                    inLanguage: locale,
+                    potentialAction: {
+                      "@type": "SearchAction",
+                      target: `${SITE.url}/players?q={search_term_string}`,
+                      "query-input": "required name=search_term_string",
+                    },
+                  },
+                ]}
+              />
+              <a
+                href="#main"
+                className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[200] focus:rounded-md focus:bg-brand-500 focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-ink-950"
+              >
+                {dict.common.skipToContent}
+              </a>
+              <Navbar />
+              <ThemeToggleFab />
+              <AnnouncementNotices />
+              <main
+                id="main"
+                className="mx-auto min-h-dvh max-w-7xl px-4 sm:px-6"
+              >
+                {children}
+              </main>
+              <LazyCommandPalette />
+              <Footer />
+              <CookieConsent />
+              <ConsoleWarning />
+            </SerwistGate>
+          </ThemeProvider>
         </LocaleProvider>
       </body>
     </html>

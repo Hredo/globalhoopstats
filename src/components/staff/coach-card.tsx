@@ -4,7 +4,8 @@ import Link from "next/link"
 import { SmartImage } from "@/components/ui/smart-image"
 import { PersonAvatar } from "@/components/ui/person-avatar"
 import { getInitials } from "@/lib/format"
-import { useT } from "@/lib/i18n/provider"
+import { useLocale, useT } from "@/lib/i18n/provider"
+import { localizeNationality, localizePosition } from "@/lib/i18n/player-labels"
 
 const ROLE_LABEL_KEY: Record<string, string> = {
   head_coach: "directory.cardRoles.headCoach",
@@ -41,6 +42,7 @@ type Props = {
 
 export function CoachCard({ coach, index = 0 }: Props) {
   const t = useT()
+  const locale = useLocale()
   return (
     <div
       className="group relative block animate-rise overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 ring-1 ring-transparent transition-all duration-200 hover:-translate-y-0.5 hover:border-white/10 hover:bg-white/[0.05] hover:ring-brand-500/40 sm:p-4"
@@ -79,7 +81,7 @@ export function CoachCard({ coach, index = 0 }: Props) {
           </div>
 
           <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-ink-300 sm:text-xs">
-            {coach.nationality ? <span>{coach.nationality}</span> : null}
+            {coach.nationality ? <span>{localizeNationality(coach.nationality, locale)}</span> : null}
             {coach.age != null ? (
               <span>· {t("directory.yearsOld", { age: coach.age })}</span>
             ) : null}

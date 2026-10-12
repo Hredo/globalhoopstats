@@ -287,6 +287,7 @@ async function main() {
     await db.insert(users).values({
       email,
       name: "E2E Scout",
+      emailVerifiedAt: new Date(),
       passwordHash: await hashPassword(password),
     })
     console.log(`  user ${email}`)

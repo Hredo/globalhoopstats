@@ -34,6 +34,12 @@ function safeEqual(a: string, b: string): boolean {
  */
 const IN_PROGRESS_WINDOW_MS = 45 * 60_000
 
+// Folds a value onto one log line so it can't forge entries. CodeQL only
+// recognises a replace() that deletes the break, hence the explicit passes
+// after the readable one.
+const oneLine = (s: string) =>
+  s.replace(/[\r\n]+/g, " ").replace(/\n/g, "").replace(/\r/g, "")
+
 export const dynamic = "force-dynamic"
 
 /**
@@ -83,18 +89,23 @@ export async function POST(req: NextRequest) {
     (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "")
   ).trim()
   if (!provided || !safeEqual(provided, expected)) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 })
+    return NextResponse.json(
+      { ok: false, error: "unauthorized" },
+      { status: 401 },
+    )
   }
 
   /* ---- Target selection (mirrors scripts/sync.ts) ---- */
   const url = new URL(req.url)
   const force = ["1", "true"].includes(url.searchParams.get("force") ?? "")
   const sourcesParam = url.searchParams.get("sources")
-  const requested: SourceId[] = sourcesParam
-    ? sourcesParam
-        .split(",")
-        .map((s) => s.trim().toLowerCase())
-        .filter((s): s is SourceId => (SOURCE_IDS as readonly string[]).includes(s))
+  // Ids are taken from SOURCE_IDS, never from the query string itself: what
+  // reaches runSync and the logs is always one of our own constants.
+  const asked = sourcesParam
+    ? new Set(sourcesParam.split(",").map((s) => s.trim().toLowerCase()))
+    : null
+  const requested: SourceId[] = asked
+    ? SOURCE_IDS.filter((id) => asked.has(id))
     : [...SOURCE_IDS]
   if (sourcesParam && requested.length === 0) {
     return NextResponse.json(
@@ -103,7 +114,9 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const skippedOffSeason = force ? [] : requested.filter((id) => !isInSeason(id))
+  const skippedOffSeason = force
+    ? []
+    : requested.filter((id) => !isInSeason(id))
   const targets = force ? requested : requested.filter((id) => isInSeason(id))
   if (targets.length === 0) {
     return NextResponse.json({
@@ -153,15 +166,25 @@ export async function POST(req: NextRequest) {
       }
       try {
         const r = await runSync(SOURCES[id])
+        // `id` comes from the query string (allowlisted above) and the error
+        // text from a remote page: constant format string, newlines folded,
+        // so neither can forge extra log lines.
         console.log(
-          r.status === "ok"
-            ? `[cron/sync] [${id}] ok in ${r.durationMs}ms — ${r.rowsWritten} rows`
-            : `[cron/sync] [${id}] FAILED — ${r.error}`,
+          "%s",
+          oneLine(
+            r.status === "ok"
+              ? `[cron/sync] [${id}] ok in ${r.durationMs}ms — ${r.rowsWritten} rows`
+              : `[cron/sync] [${id}] FAILED — ${r.error}`,
+          ),
         )
-        if (r.status !== "ok") failures.push({ source: id, error: String(r.error ?? r.status) })
+        if (r.status !== "ok")
+          failures.push({ source: id, error: String(r.error ?? r.status) })
       } catch (err) {
-        console.error(`[cron/sync] [${id}] uncaught:`, err)
-        failures.push({ source: id, error: err instanceof Error ? err.message : String(err) })
+        console.error("[cron/sync] [%s] uncaught:", id, err)
+        failures.push({
+          source: id,
+          error: err instanceof Error ? err.message : String(err),
+        })
       }
     }
     if (failures.length) {

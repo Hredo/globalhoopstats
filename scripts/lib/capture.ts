@@ -276,7 +276,8 @@ export async function captureFrames(
   size: { width: number; height: number },
   dir: string,
 ): Promise<FrameTake> {
-  rmSync(dir, { recursive: true, force: true })
+  // `dir` must be a fresh private directory (mkdtemp): reusing a predictable
+  // path under the OS temp dir would let another local user pre-plant it.
   mkdirSync(dir, { recursive: true })
   const times: number[] = []
   const pending: Promise<void>[] = []

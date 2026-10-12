@@ -99,7 +99,7 @@ export default async function OpengraphImage() {
             lineHeight: 1.3,
           }}
         >
-          Box scores, advanced splits, player comparison, market valuations, trade simulator and AI scouting — all in one console.
+          Box scores, advanced splits, player comparison, market valuations, trade simulator, playbook and AI scouting — all in one console.
         </div>
       </div>
       <div

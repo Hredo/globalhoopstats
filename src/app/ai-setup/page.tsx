@@ -1,24 +1,20 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { SITE } from "@/lib/site"
 import { AI_PROVIDERS } from "@/lib/ai/providers"
 import { providerCopy } from "@/lib/ai/provider-copy"
 import { getT } from "@/lib/i18n/server"
+import { pageSeo } from "@/lib/seo/metadata"
 import type { Locale } from "@/lib/i18n/config"
 import type { ClientTranslator } from "@/lib/i18n/provider"
 
-export const metadata: Metadata = {
-  title: "Connect your AI",
-  description:
-    "How to power the AI Advisor and AI Compare with your own model — run a local model with Ollama (no key) or paste an API key from OpenAI, Anthropic, Google, Groq, Mistral and more.",
-  alternates: { canonical: "/ai-setup" },
-  openGraph: {
-    title: `Connect your AI · ${SITE.name}`,
-    description:
-      "Bring your own AI key or run a local model. Step-by-step setup for every supported provider.",
-    url: `${SITE.url}/ai-setup`,
-    type: "website",
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  const { t, locale } = await getT()
+  return pageSeo({
+    locale,
+    path: "/ai-setup",
+    title: t("aiSetup.metaTitle"),
+    description: t("aiSetup.metaDescription"),
+  })
 }
 
 export default async function AiSetupPage() {

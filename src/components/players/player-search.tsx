@@ -13,7 +13,8 @@ import {
 import { useRouter } from "next/navigation"
 import { SmartImage } from "@/components/ui/smart-image"
 import { PersonAvatar } from "@/components/ui/person-avatar"
-import { useT } from "@/lib/i18n/provider"
+import { useLocale, useT } from "@/lib/i18n/provider"
+import { localizeNationality, localizePosition } from "@/lib/i18n/player-labels"
 import { LeagueSelect, SelectControl } from "@/components/ui/filter-controls"
 
 export type AutocompleteSort = "points" | "assists" | "rebounds" | "name"
@@ -517,6 +518,7 @@ function ResultCard({
   onClick: () => void
   compact: boolean
 }) {
+  const locale = useLocale()
   return (
     <li>
       <motion.button
@@ -581,7 +583,7 @@ function ResultCard({
             {player.team?.name ?? "Free agent"}
           </p>
           <p className="mt-0.5 truncate text-[10px] uppercase tracking-wider text-ink-400">
-            {player.position ?? "—"} · {player.nationality ?? "—"} ·{" "}
+            {localizePosition(player.position, locale) ?? "—"} · {localizeNationality(player.nationality, locale) ?? "—"} ·{" "}
             {formatHeight(player.heightCm)} · {formatWeight(player.weightKg)}
             {ageFrom(player.birthdate) != null
               ? ` · ${ageFrom(player.birthdate)} y.o.`

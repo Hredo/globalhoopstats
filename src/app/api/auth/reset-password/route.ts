@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
-import { eq, and, gt } from "drizzle-orm"
+import { eq, and, gt, sql } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
 import { users, passwordResetTokens, sessions } from "@/lib/db/schema"
 import {
@@ -109,7 +109,13 @@ export async function POST(request: Request) {
   const newHash = await hashPassword(password)
   await db
     .update(users)
-    .set({ passwordHash: newHash, updatedAt: new Date() })
+    .set({
+      passwordHash: newHash,
+      // The reset link reached this mailbox, which proves ownership just like
+      // the signup confirmation does.
+      emailVerifiedAt: sql`COALESCE(${users.emailVerifiedAt}, CURRENT_TIMESTAMP(3))`,
+      updatedAt: new Date(),
+    })
     .where(eq(users.id, userId))
 
   await db

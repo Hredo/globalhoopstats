@@ -21,6 +21,7 @@ import {
   parseHeightToCm,
   parseWeightToKg,
 } from "@/lib/sync/slug"
+import { decodeEntities, stripTags } from "@/lib/sources/html-text"
 
 const BR_BASE = "https://www.basketball-reference.com"
 const BR_LEAGUE_PATH = "/international/euroleague"
@@ -62,15 +63,6 @@ function warnUnpublished(what: string): void {
   )
 }
 
-function decodeEntities(s: string): string {
-  return s
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, " ")
-}
 
 function getRowCells(row: string): Map<string, string> {
   const cells = new Map<string, string>()
@@ -78,7 +70,7 @@ function getRowCells(row: string): Map<string, string> {
   let m: RegExpExecArray | null
   while ((m = cellRe.exec(row)) !== null) {
     const stat = m[1]
-    const inner = m[2].replace(/<[^>]+>/g, "").trim()
+    const inner = stripTags(m[2]).trim()
     cells.set(stat, decodeEntities(inner))
   }
   return cells
@@ -166,7 +158,7 @@ export const euroleagueAdapter: SourceAdapter = {
         /<a[^>]*href=(?:"|')(\/international\/teams\/[^"']+\.html)(?:"|')[^>]*>([\s\S]*?)<\/a>/,
       )
       if (!teamCell) continue
-      const name = decodeEntities(teamCell[2].replace(/<[^>]+>/g, "").trim())
+      const name = decodeEntities(stripTags(teamCell[2]).trim())
       const slug = extractTeamSlug(teamCell[1])
       const teamCode = brSlugToEuroleagueCode(slug)
       if (!teamCode || !name || seen.has(teamCode)) continue

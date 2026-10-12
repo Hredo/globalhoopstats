@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, vi } from "vitest"
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { buildCsp, newCspNonce } from "@/lib/security/csp"
@@ -91,13 +91,20 @@ describe("edgeRateLimit", () => {
     expect(edgeRateLimit(b, 3, 0.1).ok).toBe(true)
   })
 
-  it("refills over time rather than locking out permanently", async () => {
-    const key = `refill-${Math.random()}`
-    expect(edgeRateLimit(key, 1, 1000).ok).toBe(true)
-    // Spent. Within the same millisecond no time has passed, so it stays shut.
-    expect(edgeRateLimit(key, 1, 1000).ok).toBe(false)
-    await new Promise((r) => setTimeout(r, 10))
-    expect(edgeRateLimit(key, 1, 1000).ok).toBe(true)
+  it("refills over time rather than locking out permanently", () => {
+    // A frozen clock: with a real one, a millisecond tick between the first
+    // two calls already refilled the bucket and the test flaked on CI.
+    vi.useFakeTimers({ toFake: ["Date"] })
+    try {
+      const key = `refill-${Math.random()}`
+      expect(edgeRateLimit(key, 1, 1000).ok).toBe(true)
+      // Spent, and no time has passed, so it stays shut.
+      expect(edgeRateLimit(key, 1, 1000).ok).toBe(false)
+      vi.advanceTimersByTime(10)
+      expect(edgeRateLimit(key, 1, 1000).ok).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 

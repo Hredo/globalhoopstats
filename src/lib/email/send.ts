@@ -27,6 +27,12 @@ export type SendEmailInput = {
   replyTo?: string
 }
 
+// Folds a value onto one log line so it can't forge entries. CodeQL only
+// recognises a replace() that deletes the break, hence the explicit passes
+// after the readable one.
+const oneLine = (s: string) =>
+  s.replace(/[\r\n]+/g, " ").replace(/\n/g, "").replace(/\r/g, "")
+
 let smtpTransport: Transporter | null = null
 
 function getSmtpTransport(): Transporter | null {
@@ -51,10 +57,14 @@ export async function sendEmail(input: SendEmailInput): Promise<boolean> {
 
   // Dev fallback: no transport configured at all.
   if (!resendKey && !smtp) {
+    // Dev only, but recipient and subject can come from a form: kept on one
+    // line with a constant format string so they can't forge log entries.
     console.info(
-      `[email] (no RESEND_API_KEY / GMAIL_APP_PASSWORD) To: ${to.join(", ")} | Subject: ${input.subject}`,
+      "[email] (no RESEND_API_KEY / GMAIL_APP_PASSWORD) To: %s | Subject: %s",
+      oneLine(to.join(", ")),
+      oneLine(input.subject),
     )
-    console.info(`[email] Body:\n${input.text}`)
+    console.info("[email] Body: %s", oneLine(input.text))
     return true
   }
 
@@ -78,9 +88,7 @@ export async function sendEmail(input: SendEmailInput): Promise<boolean> {
       })
       if (res.ok) return true
       const body = await res.text().catch(() => "")
-      console.error(
-        `[email] Resend error ${res.status}: ${body.slice(0, 300)}`,
-      )
+      console.error(`[email] Resend error ${res.status}: ${body.slice(0, 300)}`)
       // Fall through to SMTP if available.
     } catch (err) {
       console.error("[email] Resend fetch failed:", err)

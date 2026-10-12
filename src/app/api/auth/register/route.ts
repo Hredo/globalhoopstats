@@ -7,18 +7,12 @@ import {
   hashPassword,
   isStrongPassword,
 } from "@/lib/auth/password"
-import {
-  buildSessionCookie,
-  getSessionTtlMs,
-  newSessionId,
-  signSessionToken,
-} from "@/lib/auth/session"
 import { sessions } from "@/lib/db/schema"
 import { getServerEnv } from "@/lib/env"
 import { clientIp } from "@/lib/security/ai-advisor"
 import { consumeRateLimit } from "@/lib/security/rate-limit"
 import { DEFAULT_LOCALE, localeFromCookie } from "@/lib/i18n/config"
-import { sendWelcomeEmail } from "@/lib/email"
+import { issueEmailVerification } from "@/lib/auth/email-verification"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -88,53 +82,67 @@ export async function POST(request: Request) {
 
   const db = getDb()
   const existing = await db
-    .select({ id: users.id })
+    .select({ id: users.id, emailVerifiedAt: users.emailVerifiedAt })
     .from(users)
     .where(eq(users.email, email))
     .limit(1)
-  if (existing.length > 0) {
+  if (existing[0]?.emailVerifiedAt) {
     return NextResponse.json(
       { error: "An account with that email already exists." },
       { status: 409 },
     )
   }
 
+  const pending = { ok: true, requiresVerification: true, email }
+
+  // Per-address cap so a signup form can't be used to flood someone's inbox
+  // with confirmation mails by rotating IPs. Same response either way.
+  const perEmail = await consumeRateLimit(
+    `auth:register:email:${email}`,
+    3,
+    15 * 60 * 1000,
+  )
+  if (!perEmail.ok) {
+    return NextResponse.json(pending)
+  }
+
   const passwordHash = await hashPassword(password)
-  const isAdmin = adminEmailsSet().has(email)
-  const id = crypto.randomUUID()
-
-  await db.insert(users).values({
-    id,
-    email,
-    passwordHash,
-    name,
-    plan: isAdmin ? "pro" : "free",
-    role: isAdmin ? "admin" : "user",
-    proSince: isAdmin ? new Date() : null,
-  })
-
-  const sessionId = newSessionId()
-  const ttlMs = getSessionTtlMs()
-  const expiresAt = new Date(Date.now() + ttlMs)
-  const ip = clientIp(request)
-  const ua = request.headers.get("user-agent") ?? null
-  await db.insert(sessions).values({
-    id: sessionId,
-    userId: id,
-    expiresAt,
-    userAgent: ua ? ua.slice(0, 250) : null,
-    ip: ip !== "unknown" ? ip.slice(0, 60) : null,
-  })
-
-  // Welcome email — best-effort, never blocks or fails the signup.
   const regLocale = localeFromCookie(request.headers.get("cookie")) ?? DEFAULT_LOCALE
-  await sendWelcomeEmail(email, name, regLocale).catch(() => {})
 
-  const token = signSessionToken(sessionId, id, ttlMs)
-  const res = NextResponse.json({
-    ok: true,
-    user: { id, email, name, plan: isAdmin ? "pro" : "free", role: isAdmin ? "admin" : "user" },
-  })
-  res.headers.append("Set-Cookie", buildSessionCookie(token, ttlMs))
-  return res
+  let id: string
+  if (existing[0]) {
+    // An unconfirmed account proves nothing about who owns the address — it
+    // may be someone squatting it. Whoever registers again takes it over, and
+    // only the mailbox owner can activate it with the new link.
+    id = existing[0].id
+    await db
+      .update(users)
+      .set({ passwordHash, name, updatedAt: new Date() })
+      .where(eq(users.id, id))
+    await db.delete(sessions).where(eq(sessions.userId, id))
+  } else {
+    const isAdmin = adminEmailsSet().has(email)
+    id = crypto.randomUUID()
+    await db.insert(users).values({
+      id,
+      email,
+      passwordHash,
+      name,
+      emailVerifiedAt: null,
+      plan: isAdmin ? "pro" : "free",
+      role: isAdmin ? "admin" : "user",
+      proSince: isAdmin ? new Date() : null,
+    })
+  }
+
+  // No session until the address is confirmed: the account stays inert, so
+  // registering someone else's email gets the registrant nothing.
+  const sent = await issueEmailVerification(id, email, regLocale).catch(() => false)
+  if (!sent) {
+    return NextResponse.json(
+      { error: "We couldn't send the confirmation email. Try again in a few minutes." },
+      { status: 503 },
+    )
+  }
+  return NextResponse.json(pending)
 }

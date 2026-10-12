@@ -4,6 +4,7 @@ import {
   passwordResetEmail,
   twoFactorCodeEmail,
   twoFactorSetupEmail,
+  verifyEmailEmail,
 } from "@/lib/email/templates"
 
 /**
@@ -36,5 +37,14 @@ export async function sendTwoFactorSetupEmail(
   locale: Locale = DEFAULT_LOCALE,
 ): Promise<boolean> {
   const t = twoFactorSetupEmail(code, locale)
+  return sendEmail({ to, subject: t.subject, html: t.html, text: t.text })
+}
+
+export async function sendVerifyEmail(
+  to: string,
+  verifyUrl: string,
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<boolean> {
+  const t = verifyEmailEmail(verifyUrl, locale)
   return sendEmail({ to, subject: t.subject, html: t.html, text: t.text })
 }

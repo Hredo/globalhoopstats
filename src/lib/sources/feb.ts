@@ -9,6 +9,7 @@ import {
 } from "@/lib/sources/types"
 import { fetchText as politeFetch } from "@/lib/sources/fetcher"
 import { parseBirthdate, parseHeightToCm, parseWeightToKg } from "@/lib/sync/slug"
+import { decodeEntities, stripTags } from "@/lib/sources/html-text"
 
 const BASE = "https://baloncestoenvivo.feb.es"
 // Both derived from SOURCE_META so the FEB competitions roll over with every
@@ -54,14 +55,6 @@ async function fetchText(url: string, init?: { method?: string; body?: string })
   })
 }
 
-function decodeEntities(s: string): string {
-  return s
-    .replace(/&amp;/g, "&").replace(/&aacute;/g, "á").replace(/&eacute;/g, "é")
-    .replace(/&iacute;/g, "í").replace(/&oacute;/g, "ó").replace(/&uacute;/g, "ú")
-    .replace(/&ntilde;/g, "ñ").replace(/&Ntilde;/g, "Ñ").replace(/&uuml;/g, "ü")
-    .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, " ").replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
-}
 
 function parseHiddens(html: string): Hiddens {
   const out: Hiddens = {}
@@ -84,7 +77,7 @@ function parseSelects(html: string): Select[] {
     while ((om = ore.exec(m[2]!)) !== null) {
       options.push({
         value: om[1]!.match(/value="([^"]*)"/)?.[1] ?? "",
-        text: decodeEntities(om[2]!.replace(/<[^>]+>/g, "").trim()),
+        text: decodeEntities(stripTags(om[2]!).trim()),
         selected: /\bselected\b/i.test(om[1]!),
       })
     }
@@ -148,7 +141,7 @@ function titleCaseEs(s: string): string {
 }
 
 function formatFebName(raw: string): string {
-  const clean = decodeEntities(raw.replace(/<[^>]+>/g, "").trim())
+  const clean = decodeEntities(stripTags(raw).trim())
   const parts = clean.split(",")
   const reordered = parts.length >= 2 ? `${parts[1]!.trim()} ${parts[0]!.trim()}` : clean
   return titleCaseEs(reordered.replace(/\s+/g, " ").trim())
@@ -157,7 +150,7 @@ function formatFebName(raw: string): string {
 function tdText(row: string, cls: string): string | undefined {
   const m = row.match(new RegExp(`class="${cls}"[^>]*>([\\s\\S]*?)</td>`, "i"))
   if (!m) return undefined
-  return decodeEntities(m[1]!.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim() || undefined
+  return decodeEntities(stripTags(m[1]!, " ")).replace(/\s+/g, " ").trim() || undefined
 }
 
 type FebPlayer = {
@@ -322,7 +315,7 @@ function parseTeamMeta(html: string): FebTeamMeta {
     logoUrl: logo ? decodeEntities(logo) : undefined,
     city: cityFromAddress(
       address
-        ? decodeEntities(address.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim()
+        ? decodeEntities(stripTags(address, " ")).replace(/\s+/g, " ").trim()
         : undefined,
     ),
   }
@@ -352,7 +345,7 @@ function parsePlayerPage(html: string): FebBio {
   const re = /<span[^>]*class="label"[^>]*>\s*([^<]+?)\s*<\/span>\s*<span[^>]*class="string"[^>]*>([\s\S]*?)<\/span>/gi
   let m: RegExpExecArray | null
   while ((m = re.exec(html)) !== null) {
-    const value = decodeEntities(m[2]!.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim()
+    const value = decodeEntities(stripTags(m[2]!, " ")).replace(/\s+/g, " ").trim()
     if (value) fields.set(decodeEntities(m[1]!).trim().toLowerCase(), value)
   }
   return {

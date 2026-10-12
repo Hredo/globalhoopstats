@@ -110,6 +110,7 @@ export async function POST(request: Request) {
       role: users.role,
       passwordHash: users.passwordHash,
       twoFactorEnabled: users.twoFactorEnabled,
+      emailVerifiedAt: users.emailVerifiedAt,
     })
     .from(users)
     .where(eq(users.email, email))
@@ -129,6 +130,14 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Invalid email or password." },
       { status: 401 },
+    )
+  }
+  // Only after the password matched, so this never tells a stranger whether
+  // an address is registered.
+  if (!user.emailVerifiedAt) {
+    return NextResponse.json(
+      { error: "Confirm your email before signing in.", code: "email_not_verified" },
+      { status: 403 },
     )
   }
 

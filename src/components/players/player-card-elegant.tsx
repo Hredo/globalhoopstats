@@ -6,7 +6,8 @@ import { PersonAvatar } from "@/components/ui/person-avatar"
 import { leagueAccent } from "@/components/ui/league-badge"
 import { useSpotlight } from "@/components/animations/spotlight-card"
 import { getInitials } from "@/lib/format"
-import { useT } from "@/lib/i18n/provider"
+import { useLocale, useT } from "@/lib/i18n/provider"
+import { localizeNationality, localizePosition } from "@/lib/i18n/player-labels"
 
 type Props = {
   player: {
@@ -51,6 +52,7 @@ function fmt(value: number | null, decimals = 1): string {
 
 export function PlayerCardElegant({ player }: Props) {
   const t = useT()
+  const locale = useLocale()
   const s = player.stats
   const accent = leagueAccent(player.league.slug)
   const { ref, onPointerMove } = useSpotlight<HTMLAnchorElement>()
@@ -112,7 +114,7 @@ export function PlayerCardElegant({ player }: Props) {
           <div className="min-w-0 flex-1">
             {player.position ? (
               <p className="mb-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-ink-400 sm:mb-1 sm:text-[10px]">
-                {player.position}
+                {localizePosition(player.position, locale)}
               </p>
             ) : null}
             <h3 className="truncate font-display text-sm font-bold leading-tight tracking-[-0.01em] text-ink-50 sm:text-lg">

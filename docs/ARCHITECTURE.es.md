@@ -377,7 +377,7 @@ Mecánica de idioma:
 
 | Grupo | Rutas (resumen) | Notas |
 | --- | --- | --- |
-| **Auth** | `auth/{login,register,logout,me,forgot-password,reset-password}`, `auth/2fa/{verify,resend}` | sesiones + 2FA |
+| **Auth** | `auth/{login,register,logout,me,forgot-password,reset-password}`, `auth/2fa/{verify,resend}`, `auth/verify-email{,/resend}` | sesiones + 2FA; el registro envía un enlace de confirmación (24 h) y el login rechaza cuentas sin confirmar (volver a registrar un correo sin confirmar lo recupera) |
 | **Cuenta** | `account/{profile,password,settings,sessions,subscription}`, `account/2fa/*`, `account/api-keys/*` | requiere login |
 | **Datos** | `players/*`, `teams/*`, `coaches/*`, `compare/players/*` | lectura pública |
 | **IA** | `ai-advisor/*`, `compare/ai`, `players/ai`, `market/trade/ai`, `conversations/[id]/messages` | usa BYOK del usuario |

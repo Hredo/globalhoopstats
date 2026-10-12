@@ -84,8 +84,16 @@ const AXES: Axis[] = [
       if (!p.stats) return null
       const st = p.stats
       return sumOrNull(
-        num(st.stealsTotal != null ? st.stealsTotal / (st.gamesPlayed || 1) : null),
-        num(st.blocksTotal != null ? st.blocksTotal / (st.gamesPlayed || 1) : null),
+        num(
+          st.stealsTotal != null
+            ? st.stealsTotal / (st.gamesPlayed || 1)
+            : null,
+        ),
+        num(
+          st.blocksTotal != null
+            ? st.blocksTotal / (st.gamesPlayed || 1)
+            : null,
+        ),
       )
     },
   },
@@ -154,7 +162,9 @@ export function CompareRadar({ a, b, percentiles }: Props) {
   const aId = useId()
   const bId = useId()
   const canPctl = !!(percentiles?.a && percentiles?.b)
-  const [mode, setMode] = useState<"absolute" | "percentile">(canPctl ? "percentile" : "absolute")
+  const [mode, setMode] = useState<"absolute" | "percentile">(
+    canPctl ? "percentile" : "absolute",
+  )
   const usePctl = mode === "percentile" && canPctl
   const aValues = AXES.map((ax) => {
     if (usePctl) return pctlValue(percentiles!.a!, ax.key)
@@ -178,10 +188,15 @@ export function CompareRadar({ a, b, percentiles }: Props) {
   const bPath = polygonFromValues(bValues)
 
   return (
-    <div className="relative h-full w-full">
+    // Controls sit in flow above the chart: overlaid on it, the hint ran
+    // straight through the "Scoring" axis label and the top of the polygon.
+    <div className="flex h-full w-full flex-col gap-2">
       {canPctl ? (
-        <div className="absolute left-0 top-0 z-10 flex flex-col items-start gap-1.5">
-          <div role="group" className="inline-flex rounded-lg border border-hairline bg-surface-1/80 p-0.5 backdrop-blur">
+        <div className="flex shrink-0 flex-col items-start gap-1.5">
+          <div
+            role="group"
+            className="inline-flex rounded-lg border border-hairline bg-surface-1/80 p-0.5 backdrop-blur"
+          >
             {(["percentile", "absolute"] as const).map((m) => (
               <button
                 key={m}
@@ -190,7 +205,9 @@ export function CompareRadar({ a, b, percentiles }: Props) {
                 onClick={() => setMode(m)}
                 className={cn(
                   "rounded-md px-2 py-1 text-[11px] font-medium transition-colors",
-                  mode === m ? "bg-white/[0.08] text-ink-50" : "text-ink-400 hover:text-ink-100",
+                  mode === m
+                    ? "bg-white/[0.08] text-ink-50"
+                    : "text-ink-400 hover:text-ink-100",
                 )}
               >
                 {t(`scouting.radarMode.${m}`)}
@@ -198,7 +215,9 @@ export function CompareRadar({ a, b, percentiles }: Props) {
             ))}
           </div>
           {usePctl ? (
-            <p className="max-w-[220px] text-[10.5px] leading-snug text-ink-500">{t("scouting.radarMode.percentileHint")}</p>
+            <p className="max-w-[320px] text-[10.5px] leading-snug text-ink-500">
+              {t("scouting.radarMode.percentileHint")}
+            </p>
           ) : null}
         </div>
       ) : null}
@@ -207,7 +226,7 @@ export function CompareRadar({ a, b, percentiles }: Props) {
         role="img"
         aria-label={t("compareUi.radarAria", { a: a.fullName, b: b.fullName })}
         xmlns="http://www.w3.org/2000/svg"
-        className="h-full w-full"
+        className="min-h-0 w-full flex-1"
       >
         <defs>
           <linearGradient id={aId} x1="0" y1="0" x2="1" y2="1">

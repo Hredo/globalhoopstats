@@ -16,7 +16,13 @@
  * scene uses whatever AI engine that account has configured.
  */
 
-import { chromium, type Browser, type BrowserContext, type Page } from "playwright"
+import {
+  chromium,
+  type Browser,
+  type BrowserContext,
+  type Page,
+} from "playwright"
+import { copyFileSync, mkdirSync, mkdtempSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { resolve } from "node:path"
 import {
@@ -55,12 +61,20 @@ const list = <T extends string>(flag: string, all: readonly T[]): T[] => {
   const raw = arg(flag)
   if (!raw) return [...all]
   const picked = raw.split(",").map((s) => s.trim()) as T[]
-  for (const p of picked) if (!all.includes(p)) throw new Error(`Unknown ${flag} value: ${p}`)
+  for (const p of picked)
+    if (!all.includes(p)) throw new Error(`Unknown ${flag} value: ${p}`)
   return picked
 }
 
 const BASE = `http://localhost:${arg("--port") ?? "3000"}`
 const OUT_DIR = resolve("public/media/previews")
+/** Scenes whose dark poster doubles as the README gallery still. */
+const README_STILLS: readonly SceneKey[] = [
+  "player",
+  "compare",
+  "playbook",
+  "trade",
+]
 // The showcase card is 16:10; recording at that ratio avoids letterboxing.
 const VIEWPORT = { width: 1280, height: 800 }
 // Frames at the device-scale-2 size; scaled down once, at encode time.
@@ -98,9 +112,13 @@ const SCENES: Record<SceneKey, Scene> = {
     },
   },
 
-  /** Cross-league head-to-head: a EuroLeague forward against an NBA star. */
+  /**
+   * Cross-league head-to-head: a EuroLeague forward against an NBA star. Pinned
+   * to a completed season — in preseason only FEB has published the new one,
+   * and the search defaults to the newest season.
+   */
   compare: {
-    path: "/compare",
+    path: "/compare?season=2025-26",
     auth: false,
     async run(page, _locale, poster) {
       await sleep(1200)
@@ -133,20 +151,36 @@ const SCENES: Record<SceneKey, Scene> = {
       }
       await sleep(1200)
 
-      await page.getByRole("button", { name: /^Menu$|^Menú$/ }).first().click()
+      await page
+        .getByRole("button", { name: /^Menu$|^Menú$/ })
+        .first()
+        .click()
       await sleep(500)
-      await page.getByRole("menuitem", { name: /^Templates$|^Plantillas$/ }).first().click()
+      await page
+        .getByRole("menuitem", { name: /^Templates$|^Plantillas$/ })
+        .first()
+        .click()
       await sleep(1500)
-      await page.locator("button").filter({ hasText: /^Offense|^Ataque/ }).first().click()
+      await page
+        .locator("button")
+        .filter({ hasText: /^Offense|^Ataque/ })
+        .first()
+        .click()
       await sleep(1200)
-      await page.locator('div.overflow-y-auto button[type="button"]').first().click()
+      await page
+        .locator('div.overflow-y-auto button[type="button"]')
+        .first()
+        .click()
       await sleep(1800)
 
       await playbookPlay(page)
       await sleep(5000)
 
       await playbookTool(page, /Add defender|defensor/i)
-      for (const [fx, fy] of [[0.34, 0.42], [0.66, 0.5]] as const) {
+      for (const [fx, fy] of [
+        [0.34, 0.42],
+        [0.66, 0.5],
+      ] as const) {
         const p = await at(fx, fy)
         await page.mouse.move(p.x, p.y, { steps: 18 })
         await sleep(300)
@@ -178,7 +212,10 @@ const SCENES: Record<SceneKey, Scene> = {
     auth: true,
     async run(page, _locale, poster) {
       await sleep(1200)
-      await pickPlayer(page, "first", "Hezonja")
+      // The trade engine only prices the current season, so the cast has to
+      // come from a league that has already published it (Primera FEB opens
+      // the Spanish season; ACB/EuroLeague/NBA land weeks later).
+      await pickPlayer(page, "first", "Bracey")
       await sleep(1300)
       await page.locator("select").first().selectOption({ index: 2 })
       await sleep(1100)
@@ -194,11 +231,15 @@ const SCENES: Record<SceneKey, Scene> = {
       await sleep(2200)
       await glide(page, 0, 1200)
       await sleep(600)
-      await page.locator("button").filter({ hasText: /^(Propose|Proponer)$/ }).first().click()
+      await page
+        .locator("button")
+        .filter({ hasText: /^(Propose|Proponer)$/ })
+        .first()
+        .click()
       await sleep(1500)
-      await pickPlayer(page, "first", "Tavares")
+      await pickPlayer(page, "first", "Parham")
       await sleep(1600)
-      await pickPlayer(page, "last", "Vezenkov")
+      await pickPlayer(page, "last", "Nugu")
       await sleep(2000)
       await glide(page, 240, 1400) // the balance verdict, both sides in frame
       await sleep(1200)
@@ -218,13 +259,20 @@ const SCENES: Record<SceneKey, Scene> = {
       await sleep(1000)
       await team.click()
       await team.pressSequentially("Real Mad", { delay: 90 })
-      const club = page.locator('[aria-label="Available teams"] [role="option"]').first()
+      const club = page
+        .locator('[aria-label="Available teams"] [role="option"]')
+        .first()
       await club.waitFor({ state: "visible", timeout: 15000 })
       await sleep(500)
       await club.click()
       const input = page.getByRole("textbox", { name: "Ask the advisor" })
       await page.waitForFunction(
-        () => (document.querySelector('[aria-label="Ask the advisor"]') as HTMLInputElement | null)?.disabled === false,
+        () =>
+          (
+            document.querySelector(
+              '[aria-label="Ask the advisor"]',
+            ) as HTMLInputElement | null
+          )?.disabled === false,
         undefined,
         { timeout: 15000 },
       )
@@ -241,22 +289,36 @@ const SCENES: Record<SceneKey, Scene> = {
       // The input is disabled while the advisor answers and comes back when
       // the answer is complete — a real signal, not a timer.
       await page.waitForFunction(
-        () => (document.querySelector('[aria-label="Ask the advisor"]') as HTMLInputElement | null)?.disabled === true,
+        () =>
+          (
+            document.querySelector(
+              '[aria-label="Ask the advisor"]',
+            ) as HTMLInputElement | null
+          )?.disabled === true,
         undefined,
         { timeout: 15000 },
       )
       await page.waitForFunction(
-        () => (document.querySelector('[aria-label="Ask the advisor"]') as HTMLInputElement | null)?.disabled === false,
+        () =>
+          (
+            document.querySelector(
+              '[aria-label="Ask the advisor"]',
+            ) as HTMLInputElement | null
+          )?.disabled === false,
         undefined,
         { timeout: 120000, polling: 500 },
       )
       await sleep(1500)
       const log = page.locator('[aria-label="Advisor conversation"]')
-      await log.evaluate((el) => el.scrollTo({ top: el.scrollHeight * 0.45, behavior: "smooth" }))
+      await log.evaluate((el) =>
+        el.scrollTo({ top: el.scrollHeight * 0.45, behavior: "smooth" }),
+      )
       await sleep(1500)
       poster()
       await sleep(1700)
-      await log.evaluate((el) => el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }))
+      await log.evaluate((el) =>
+        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }),
+      )
       await sleep(2800)
     },
   },
@@ -319,10 +381,17 @@ async function playbookTool(page: Page, label: RegExp) {
 }
 
 async function playbookPlay(page: Page) {
-  await page.getByRole("button", { name: /Play animation|Reproducir/i }).first().click()
+  await page
+    .getByRole("button", { name: /Play animation|Reproducir/i })
+    .first()
+    .click()
 }
 
-async function drag(page: Page, from: { x: number; y: number }, to: { x: number; y: number }) {
+async function drag(
+  page: Page,
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+) {
   await page.mouse.move(from.x, from.y, { steps: 16 })
   await sleep(250)
   await page.mouse.down()
@@ -338,7 +407,9 @@ async function ensureSession(browser: Browser) {
     console.log("🔑 Reusing the cached session.")
     return
   }
-  console.log("\n🔑 Sign in in the window that just opened (email, password, 2FA).")
+  console.log(
+    "\n🔑 Sign in in the window that just opened (email, password, 2FA).",
+  )
   const ctx = await browser.newContext({ viewport: VIEWPORT })
   const page = await ctx.newPage()
   await page.goto(`${BASE}/login`, { waitUntil: "networkidle" })
@@ -349,7 +420,12 @@ async function ensureSession(browser: Browser) {
   console.log("   ✅ Session cached.")
 }
 
-async function record(browser: Browser, key: SceneKey, theme: Theme, locale: Locale) {
+async function record(
+  browser: Browser,
+  key: SceneKey,
+  theme: Theme,
+  locale: Locale,
+) {
   const scene = SCENES[key]
   const name = `${key}-${theme}-${locale}`
   console.log(`🎬 ${name}`)
@@ -364,8 +440,16 @@ async function record(browser: Browser, key: SceneKey, theme: Theme, locale: Loc
   })
   await ctx.addCookies([
     { name: "ghs_locale", value: locale, domain: "localhost", path: "/" },
-    { name: "ghs_cookie_consent", value: "rejected", domain: "localhost", path: "/" },
+    {
+      name: "ghs_cookie_consent",
+      value: "rejected",
+      domain: "localhost",
+      path: "/",
+    },
   ])
+  // Takes run against the real database: keep the recorder's page views out
+  // of the production analytics.
+  await ctx.route("**/api/track/**", (route) => route.fulfill({ status: 204 }))
   await ctx.addInitScript({ content: censorScript(CENSOR_CSS) })
   // First-visit tours would cover the walkthrough.
   await ctx.addInitScript({
@@ -374,9 +458,17 @@ async function record(browser: Browser, key: SceneKey, theme: Theme, locale: Loc
 
   const page = await ctx.newPage()
   try {
-    const take = await captureFrames(page, FRAME, resolve(tmpdir(), `ghs-take-${name}`))
-    await page.goto(`${BASE}${scene.path}`, { waitUntil: "networkidle", timeout: 120000 })
-    if (page.url().includes("/login")) throw new Error(`${scene.path} bounced to /login.`)
+    const take = await captureFrames(
+      page,
+      FRAME,
+      mkdtempSync(resolve(tmpdir(), `ghs-take-${name}-`)),
+    )
+    await page.goto(`${BASE}${scene.path}`, {
+      waitUntil: "networkidle",
+      timeout: 120000,
+    })
+    if (page.url().includes("/login"))
+      throw new Error(`${scene.path} bounced to /login.`)
     if (scene.auth) await assertCensored(page)
     // Let fonts, data and entrance animations settle; everything up to here
     // (navigation, first paint, loading) is cut from the clip.
@@ -389,6 +481,14 @@ async function record(browser: Browser, key: SceneKey, theme: Theme, locale: Loc
     await take.stop()
     await ctx.close()
     encodeTake(take, OUT_DIR, name, (posterAt - trimFrom) / 1000, { trimFrom })
+    // The README gallery is the dark poster of the same take, so the stills
+    // on GitHub can never drift from the footage on the landing page again.
+    if (theme === "dark" && README_STILLS.includes(key)) {
+      const dir = resolve("docs/media", locale)
+      mkdirSync(dir, { recursive: true })
+      copyFileSync(resolve(OUT_DIR, `${name}.jpg`), resolve(dir, `${key}.jpg`))
+      console.log(`   🖼  docs/media/${locale}/${key}.jpg`)
+    }
   } catch (err) {
     await ctx.close().catch(() => {})
     throw err
@@ -396,7 +496,13 @@ async function record(browser: Browser, key: SceneKey, theme: Theme, locale: Loc
 }
 
 async function main() {
-  const scenes = list<SceneKey>("--scenes", ["player", "compare", "playbook", "trade", "ai-advisor"])
+  const scenes = list<SceneKey>("--scenes", [
+    "player",
+    "compare",
+    "playbook",
+    "trade",
+    "ai-advisor",
+  ])
   const themes = list<Theme>("--themes", ["dark", "light"])
   const locales = list<Locale>("--locales", ["es", "en"])
 

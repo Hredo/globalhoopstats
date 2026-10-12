@@ -377,7 +377,7 @@ Language mechanics:
 
 | Group | Routes (summary) | Notes |
 | --- | --- | --- |
-| **Auth** | `auth/{login,register,logout,me,forgot-password,reset-password}`, `auth/2fa/{verify,resend}` | sessions + 2FA |
+| **Auth** | `auth/{login,register,logout,me,forgot-password,reset-password}`, `auth/2fa/{verify,resend}`, `auth/verify-email{,/resend}` | sessions + 2FA; signup mails a 24 h confirmation link and login refuses unconfirmed accounts (re-registering an unconfirmed address takes it over) |
 | **Account** | `account/{profile,password,settings,sessions,subscription}`, `account/2fa/*`, `account/api-keys/*` | requires login |
 | **Data** | `players/*`, `teams/*`, `coaches/*`, `compare/players/*` | public reads |
 | **AI** | `ai-advisor/*`, `compare/ai`, `players/ai`, `market/trade/ai`, `conversations/[id]/messages` | uses the user's BYOK |

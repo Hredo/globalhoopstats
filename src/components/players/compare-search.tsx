@@ -16,7 +16,8 @@ import { AnimatePresence, motion } from "motion/react"
 import type { ComparePlayer } from "@/lib/data/compare"
 import { SmartImage } from "@/components/ui/smart-image"
 import { PersonAvatar } from "@/components/ui/person-avatar"
-import { useT } from "@/lib/i18n/provider"
+import { useLocale, useT } from "@/lib/i18n/provider"
+import { localizeNationality, localizePosition } from "@/lib/i18n/player-labels"
 
 type LeagueInfo = { id: string; name: string; slug: string; region: string }
 type TeamInfo = {
@@ -58,6 +59,7 @@ const SOURCE_LABEL: Record<string, string> = {
 export function CompareSearch({ side, current, otherSlug, season }: Props) {
   const router = useRouter()
   const t = useT()
+  const locale = useLocale()
   const [, startTransition] = useTransition()
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState("")
@@ -277,7 +279,7 @@ export function CompareSearch({ side, current, otherSlug, season }: Props) {
           <p className="truncate text-xs text-ink-400">
             {current
               ? `${current.team?.name ?? t("compareUi.freeAgent")}${
-                  current.position ? ` · ${current.position}` : ""
+                  current.position ? ` · ${localizePosition(current.position, locale)}` : ""
                 } · ${SOURCE_LABEL[current.league?.slug ?? ""] ?? current.league?.name ?? ""}`
               : t("compareUi.clickToChoose")}
           </p>
@@ -485,7 +487,7 @@ export function CompareSearch({ side, current, otherSlug, season }: Props) {
                                 </span>
                                 <span className="block truncate text-xs text-ink-400">
                                   {o.team?.name ?? t("compareUi.freeAgent")}
-                                  {o.position ? ` · ${o.position}` : ""}
+                                  {o.position ? ` · ${localizePosition(o.position, locale)}` : ""}
                                 </span>
                               </span>
                               <span className="hidden shrink-0 rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-ink-300 sm:inline">

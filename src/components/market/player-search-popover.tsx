@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react"
 import { SmartImage } from "@/components/ui/smart-image"
 import { PersonAvatar } from "@/components/ui/person-avatar"
-import { useT } from "@/lib/i18n/provider"
+import { useLocale, useT } from "@/lib/i18n/provider"
+import { localizeNationality, localizePosition } from "@/lib/i18n/player-labels"
 
 type PlayerHit = {
   id: string
@@ -61,6 +62,7 @@ export function PlayerSearchPopover({
   excludeSlugs = [],
 }: Props) {
   const t = useT()
+  const locale = useLocale()
   const resolvedPlaceholder = placeholder ?? t("trade.form.searchPlayer")
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState("")
@@ -189,7 +191,7 @@ export function PlayerSearchPopover({
               {selected.fullName}
             </p>
             <p className="truncate font-mono text-[10px] text-ink-400">
-              {selected.position ?? "—"} · {selected.team?.name ?? "FA"}
+              {localizePosition(selected.position, locale) ?? "—"} · {selected.team?.name ?? "FA"}
             </p>
           </div>
           <button
@@ -341,7 +343,7 @@ export function PlayerSearchPopover({
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{p.fullName}</p>
                     <p className="truncate font-mono text-[10px] text-ink-400">
-                      {p.position ?? "—"} · {p.league.name} · {p.team?.name ?? "FA"}
+                      {localizePosition(p.position, locale) ?? "—"} · {p.league.name} · {p.team?.name ?? "FA"}
                     </p>
                   </div>
                   <PlusIcon

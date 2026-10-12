@@ -116,7 +116,7 @@ export const en = {
   metadata: {
     tagline: "Hoops, decoded.",
     description:
-      "Cross-league basketball intelligence across the NBA, EuroLeague, Liga ACB and Spain's FEB pyramid (Primera, Segunda, Tercera): box scores, advanced splits, side-by-side comparisons, player market valuations, trade simulator and AI scouting advisor — all in one console.",
+      "Cross-league basketball intelligence across the NBA, EuroLeague, Liga ACB and Spain's FEB pyramid (Primera, Segunda, Tercera): box scores, advanced splits, percentiles and projections, side-by-side comparisons, market valuations, trade simulator, an animated playbook, player alerts and shared shortlists, a public API and an AI scouting advisor — all in one console.",
   },
   home: {
     metaTitle:
@@ -129,7 +129,6 @@ export const en = {
         "Ask the AI advisor, compare across six leagues, value any player and simulate trades — then export boardroom-ready reports. All in one workspace.",
       browseDatabase: "Browse players",
       comparePlayers: "Compare players",
-      aiAdvisor: "AI Advisor",
     },
     film: {
       kicker: "globalhoopstats — six leagues, one engine",
@@ -919,6 +918,9 @@ export const en = {
     perGameLabel: "Per game",
   },
   aiSetup: {
+    metaTitle: "Connect your AI",
+    metaDescription:
+      "Power the AI Advisor and AI Compare with your own model: run one locally with Ollama (no key) or paste an API key from OpenAI, Anthropic, Google, Groq, Mistral and more.",
     eyebrow: "AI setup",
     title: "Connect your own AI",
     introBefore: "The AI Advisor and AI Compare run on a model",
@@ -992,6 +994,15 @@ export const en = {
     and: "and",
     privacyWord: "Privacy Policy",
     termsPost: ". Your data is encrypted in transit (HTTPS) and at rest.",
+    verifySentTitle: "Check your inbox",
+    verifySentBody:
+      "We sent a confirmation link to {email}. Open it to activate your account; it expires in 24 hours.",
+    verifySentSpam: "Can't find it? Check spam or ask for a new link.",
+    verifyResend: "Resend the link",
+    verifyResent: "If the account is waiting for confirmation, we sent a new link.",
+    verifyNeeded: "Confirm your email before signing in. Look for the link we sent when you registered.",
+    verifiedOk: "Email confirmed. You can sign in now.",
+    verifyInvalid: "That confirmation link is invalid or has expired. Sign in to request a new one.",
     courtTitle: "Hoops, decoded.",
     courtSubtitle:
       "Sign in to keep your advisor conversations, run unlimited AI comparisons and unlock the full scouting toolkit.",
@@ -1189,6 +1200,17 @@ export const en = {
       text: "Welcome, {name}!",
       textBody: "Your account is ready. You now have one console for cross-league basketball intelligence — box scores, advanced splits, comparisons and highlights across the NBA, EuroLeague, Liga ACB and Spain's FEB ladder.",
       textUrl: "Explore players: {url}",
+    },
+    verifyEmail: {
+      subject: "Confirm your email · {site}",
+      preview: "Confirm your email to activate your account.",
+      heading: "Confirm your email",
+      body: "Someone (hopefully you) created a {site} account with this address. Confirm it to activate the account.",
+      cta: "Confirm email",
+      expired: "This link expires in 24 hours. If it wasn't you, ignore this email: the account won't be activated.",
+      text: "Someone (hopefully you) created a {site} account with this address.",
+      textCta: "Confirm your email (link expires in 24 hours):",
+      textSafe: "If it wasn't you, ignore this email: the account won't be activated.",
     },
     passwordReset: {
       subject: "Reset your password · {site}",

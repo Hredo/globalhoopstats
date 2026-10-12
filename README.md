@@ -19,7 +19,7 @@ with an AI scouting advisor, a trade simulator and an animated playbook.
 
 **[→ Open globalhoopstats.es](https://globalhoopstats.es)**
 
-<a href="https://globalhoopstats.es"><img src="docs/media/promo.gif" alt="The globalhoopstats promo: the ball film, six leagues becoming one profile per player, and the product's tools" width="100%"></a>
+<a href="https://globalhoopstats.es"><img src="docs/media/promo.gif" alt="globalhoopstats in motion: a cross-league player profile, a EuroLeague-vs-NBA comparison, the playbook editor and the trade simulator" width="100%"></a>
 
 <sub>Opening of the promo video, rendered from the real app's footage — see <a href="#media">Media</a>.</sub>
 
@@ -80,7 +80,7 @@ Spanish and English.
       <p><b>Playbook</b> — 109 templates, drawing tools, frames that animate, real rosters, PDF/PNG export and AI analysis.</p>
     </td>
     <td width="50%" valign="top">
-      <a href="https://globalhoopstats.es/market/trade"><img src="docs/media/en/trade.jpg" alt="The trade simulator returning packages and a balance verdict"></a>
+      <a href="https://globalhoopstats.es/market/trade"><img src="docs/media/en/trade.jpg" alt="The trade simulator balancing a Primera FEB swap"></a>
       <p><b>Trade simulator</b> — market valuations adjusted by league, age and production; simulate a market or balance a swap.</p>
     </td>
   </tr>
