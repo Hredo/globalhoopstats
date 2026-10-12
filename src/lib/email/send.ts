@@ -27,7 +27,11 @@ export type SendEmailInput = {
   replyTo?: string
 }
 
-const oneLine = (s: string) => s.replace(/[\r\n]+/g, " ")
+// Folds a value onto one log line so it can't forge entries. CodeQL only
+// recognises a replace() that deletes the break, hence the explicit passes
+// after the readable one.
+const oneLine = (s: string) =>
+  s.replace(/[\r\n]+/g, " ").replace(/\n/g, "").replace(/\r/g, "")
 
 let smtpTransport: Transporter | null = null
 

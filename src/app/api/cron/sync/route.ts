@@ -34,7 +34,11 @@ function safeEqual(a: string, b: string): boolean {
  */
 const IN_PROGRESS_WINDOW_MS = 45 * 60_000
 
-const oneLine = (s: string) => s.replace(/[\r\n]+/g, " ")
+// Folds a value onto one log line so it can't forge entries. CodeQL only
+// recognises a replace() that deletes the break, hence the explicit passes
+// after the readable one.
+const oneLine = (s: string) =>
+  s.replace(/[\r\n]+/g, " ").replace(/\n/g, "").replace(/\r/g, "")
 
 export const dynamic = "force-dynamic"
 
@@ -95,13 +99,13 @@ export async function POST(req: NextRequest) {
   const url = new URL(req.url)
   const force = ["1", "true"].includes(url.searchParams.get("force") ?? "")
   const sourcesParam = url.searchParams.get("sources")
-  const requested: SourceId[] = sourcesParam
-    ? sourcesParam
-        .split(",")
-        .map((s) => s.trim().toLowerCase())
-        .filter((s): s is SourceId =>
-          (SOURCE_IDS as readonly string[]).includes(s),
-        )
+  // Ids are taken from SOURCE_IDS, never from the query string itself: what
+  // reaches runSync and the logs is always one of our own constants.
+  const asked = sourcesParam
+    ? new Set(sourcesParam.split(",").map((s) => s.trim().toLowerCase()))
+    : null
+  const requested: SourceId[] = asked
+    ? SOURCE_IDS.filter((id) => asked.has(id))
     : [...SOURCE_IDS]
   if (sourcesParam && requested.length === 0) {
     return NextResponse.json(
@@ -176,7 +180,7 @@ export async function POST(req: NextRequest) {
         if (r.status !== "ok")
           failures.push({ source: id, error: String(r.error ?? r.status) })
       } catch (err) {
-        console.error("[cron/sync] [%s] uncaught:", oneLine(id), err)
+        console.error("[cron/sync] [%s] uncaught:", id, err)
         failures.push({
           source: id,
           error: err instanceof Error ? err.message : String(err),
