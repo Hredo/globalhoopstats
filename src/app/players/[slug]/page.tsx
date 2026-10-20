@@ -16,6 +16,7 @@ import { getMarketPlayerBySlug } from "@/lib/market/pool"
 import { PctBar } from "@/components/ui/pct-bar"
 import { FadeIn } from "@/components/animations/fade-in"
 import { LeagueTransition } from "@/components/players/league-transition"
+import { CareerTimeline } from "@/components/players/career-timeline"
 import { SmartImage } from "@/components/ui/smart-image"
 import { PersonAvatar } from "@/components/ui/person-avatar"
 import { BackLink } from "@/components/ui/back-link"
@@ -138,7 +139,12 @@ function ageFrom(bd: string | null): number | null {
   return Math.floor(ms / (365.25 * 24 * 3600 * 1000))
 }
 
-type Candidate = { id: string; slug: string; fullName: string; points: number | null }
+type Candidate = {
+  id: string
+  slug: string
+  fullName: string
+  points: number | null
+}
 
 /**
  * Top scorers of a league-season, cached per league-season: every profile in
@@ -147,34 +153,34 @@ type Candidate = { id: string; slug: string; fullName: string; points: number | 
  */
 const leagueSeasonLeaders = cached(
   async (leagueId: string, seasonName: string): Promise<Candidate[]> => {
-  const db = getDb()
-  const rows = await db
-    .select({
-      id: players.id,
-      slug: players.slug,
-      fullName:
-        sql<string>`concat(${players.firstName}, ' ', ${players.lastName})`,
-      // No ::float8 cast: MySQL's `/` already yields a decimal result.
-      points:
-        sql<number | null>`coalesce(sum(${playerSeasonStats.pointsTotal}), 0) / nullif(sum(${playerSeasonStats.gamesPlayed}), 0)`,
-    })
-    .from(players)
-    .innerJoin(playerSeasonStats, eq(playerSeasonStats.playerId, players.id))
-    .innerJoin(seasons, eq(playerSeasonStats.seasonId, seasons.id))
-    .where(
-      and(
-        eq(playerSeasonStats.leagueId, leagueId),
-        // The season being VIEWED, not the flagged current one: opening a 2024-25
-        // profile should suggest people who played in 2024-25.
-        inArray(seasons.name, seasonNameVariants(seasonName)),
-      ),
-    )
-    .groupBy(players.id)
-    .orderBy(
-      sql`coalesce(sum(${playerSeasonStats.pointsTotal}), 0) / nullif(sum(${playerSeasonStats.gamesPlayed}), 0) desc`,
-    )
-    .limit(7)
-  return rows as Candidate[]
+    const db = getDb()
+    const rows = await db
+      .select({
+        id: players.id,
+        slug: players.slug,
+        fullName: sql<string>`concat(${players.firstName}, ' ', ${players.lastName})`,
+        // No ::float8 cast: MySQL's `/` already yields a decimal result.
+        points: sql<
+          number | null
+        >`coalesce(sum(${playerSeasonStats.pointsTotal}), 0) / nullif(sum(${playerSeasonStats.gamesPlayed}), 0)`,
+      })
+      .from(players)
+      .innerJoin(playerSeasonStats, eq(playerSeasonStats.playerId, players.id))
+      .innerJoin(seasons, eq(playerSeasonStats.seasonId, seasons.id))
+      .where(
+        and(
+          eq(playerSeasonStats.leagueId, leagueId),
+          // The season being VIEWED, not the flagged current one: opening a 2024-25
+          // profile should suggest people who played in 2024-25.
+          inArray(seasons.name, seasonNameVariants(seasonName)),
+        ),
+      )
+      .groupBy(players.id)
+      .orderBy(
+        sql`coalesce(sum(${playerSeasonStats.pointsTotal}), 0) / nullif(sum(${playerSeasonStats.gamesPlayed}), 0) desc`,
+      )
+      .limit(7)
+    return rows as Candidate[]
   },
   "player-compare-leaders:v1",
   ["players", "player-stats"],
@@ -212,7 +218,11 @@ export default async function PlayerPage({ params, searchParams }: Props) {
   const season = pickPlayerSeason(selected, seasonParam)
   const seasonOptions = selected.seasons.map((s) => s.seasonName)
   const candidates = season
-    ? await findComparisonCandidates(selLeague.id, profile.id, season.seasonName)
+    ? await findComparisonCandidates(
+        selLeague.id,
+        profile.id,
+        season.seasonName,
+      )
     : []
   const accent = leagueAccent(selLeague.slug)
 
@@ -221,9 +231,30 @@ export default async function PlayerPage({ params, searchParams }: Props) {
   // League-season percentiles in all three bases (one cached field read), and
   // the one-level-up projection for the player's newest real season.
   const [pctPace, pct40, pctGame, projection] = await Promise.all([
-    season ? getPlayerPercentiles(profile.id, selLeague.slug, season.seasonName, "per40pace") : null,
-    season ? getPlayerPercentiles(profile.id, selLeague.slug, season.seasonName, "per40") : null,
-    season ? getPlayerPercentiles(profile.id, selLeague.slug, season.seasonName, "perGame") : null,
+    season
+      ? getPlayerPercentiles(
+          profile.id,
+          selLeague.slug,
+          season.seasonName,
+          "per40pace",
+        )
+      : null,
+    season
+      ? getPlayerPercentiles(
+          profile.id,
+          selLeague.slug,
+          season.seasonName,
+          "per40",
+        )
+      : null,
+    season
+      ? getPlayerPercentiles(
+          profile.id,
+          selLeague.slug,
+          season.seasonName,
+          "perGame",
+        )
+      : null,
     projectPlayer(profile.slug),
   ])
 
@@ -290,13 +321,22 @@ export default async function PlayerPage({ params, searchParams }: Props) {
             <div className="gh-card p-4 text-sm">
               <h3 className="gh-eyebrow">{t("playerProfile.bio")}</h3>
               <dl className="mt-3 space-y-2">
-                <Row k={t("playerProfile.position")} v={localizePosition(profile.position, locale) ?? "—"} />
+                <Row
+                  k={t("playerProfile.position")}
+                  v={localizePosition(profile.position, locale) ?? "—"}
+                />
                 <Row
                   k={t("playerProfile.nationality")}
                   v={localizeNationality(profile.nationality, locale) ?? "—"}
                 />
-                <Row k={t("playerProfile.height")} v={formatHeight(profile.heightCm)} />
-                <Row k={t("playerProfile.weight")} v={formatWeight(profile.weightKg)} />
+                <Row
+                  k={t("playerProfile.height")}
+                  v={formatHeight(profile.heightCm)}
+                />
+                <Row
+                  k={t("playerProfile.weight")}
+                  v={formatWeight(profile.weightKg)}
+                />
                 <Row
                   k={t("playerProfile.league")}
                   v={
@@ -396,7 +436,11 @@ export default async function PlayerPage({ params, searchParams }: Props) {
               <div className="mt-3 flex flex-wrap gap-2">
                 <FollowButton kind="player" slug={profile.slug} />
                 <AddToShortlist slug={profile.slug} />
-                <ShareButton kind="player" refId={profile.slug} targetId={profile.id} />
+                <ShareButton
+                  kind="player"
+                  refId={profile.slug}
+                  targetId={profile.id}
+                />
               </div>
             </header>
           </FadeIn>
@@ -419,9 +463,21 @@ export default async function PlayerPage({ params, searchParams }: Props) {
                     value={perGame(season.reboundsTotal, season.gamesPlayed)}
                     unit="RPG"
                   />
-                  <StatTile label={t("playerProfile.assists")} value={perGame(season.assistsTotal, season.gamesPlayed)} unit="APG" />
-                  <StatTile label={t("playerProfile.steals")} value={perGame(season.stealsTotal, season.gamesPlayed)} unit="SPG" />
-                  <StatTile label={t("playerProfile.blocks")} value={perGame(season.blocksTotal, season.gamesPlayed)} unit="BPG" />
+                  <StatTile
+                    label={t("playerProfile.assists")}
+                    value={perGame(season.assistsTotal, season.gamesPlayed)}
+                    unit="APG"
+                  />
+                  <StatTile
+                    label={t("playerProfile.steals")}
+                    value={perGame(season.stealsTotal, season.gamesPlayed)}
+                    unit="SPG"
+                  />
+                  <StatTile
+                    label={t("playerProfile.blocks")}
+                    value={perGame(season.blocksTotal, season.gamesPlayed)}
+                    unit="BPG"
+                  />
                   <StatTile
                     label={t("playerProfile.per")}
                     value={season.per}
@@ -433,9 +489,18 @@ export default async function PlayerPage({ params, searchParams }: Props) {
                   {t("playerProfile.shooting")}
                 </h3>
                 <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3">
-                  <ShootingTile label={t("playerProfile.fieldGoal")} value={season.fgPct} />
-                  <ShootingTile label={t("playerProfile.threePoint")} value={season.threePct} />
-                  <ShootingTile label={t("playerProfile.freeThrow")} value={season.ftPct} />
+                  <ShootingTile
+                    label={t("playerProfile.fieldGoal")}
+                    value={season.fgPct}
+                  />
+                  <ShootingTile
+                    label={t("playerProfile.threePoint")}
+                    value={season.threePct}
+                  />
+                  <ShootingTile
+                    label={t("playerProfile.freeThrow")}
+                    value={season.ftPct}
+                  />
                 </div>
 
                 {selLeague.slug === "euroleague" || selLeague.slug === "nba" ? (
@@ -460,10 +525,15 @@ export default async function PlayerPage({ params, searchParams }: Props) {
             </LeagueTransition>
           ) : null}
 
-          {"projected" in projection && projection.projected.perGame.pts != null ? (
+          <CareerTimeline career={profile.allSeasons} />
+
+          {"projected" in projection &&
+          projection.projected.perGame.pts != null ? (
             <section className="gh-card flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
               <div>
-                <h2 className="gh-eyebrow">{t("scouting.projection.cardTitle")}</h2>
+                <h2 className="gh-eyebrow">
+                  {t("scouting.projection.cardTitle")}
+                </h2>
                 <p className="mt-2 font-display text-xl font-bold tracking-[-0.02em] text-ink-50">
                   {t("scouting.projection.cardLine", {
                     pts: projection.projected.perGame.pts.toFixed(1),
@@ -570,7 +640,9 @@ function StatTile({
       </p>
       <p
         className="mt-1 font-display text-3xl font-bold tabular-nums"
-        style={highlight ? { color: "var(--lg)" } : { color: "var(--color-ink-50)" }}
+        style={
+          highlight ? { color: "var(--lg)" } : { color: "var(--color-ink-50)" }
+        }
       >
         {value != null ? value.toFixed(1) : "—"}
       </p>
@@ -600,5 +672,3 @@ function ShootingTile({
     </div>
   )
 }
-
-
