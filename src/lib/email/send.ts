@@ -31,7 +31,10 @@ export type SendEmailInput = {
 // recognises a replace() that deletes the break, hence the explicit passes
 // after the readable one.
 const oneLine = (s: string) =>
-  s.replace(/[\r\n]+/g, " ").replace(/\n/g, "").replace(/\r/g, "")
+  s
+    .replace(/[\r\n]+/g, " ")
+    .replace(/\n/g, "")
+    .replace(/\r/g, "")
 
 let smtpTransport: Transporter | null = null
 
