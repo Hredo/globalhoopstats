@@ -119,8 +119,13 @@ jobs:
           for i in $(seq 1 60); do curl -fsS -o /dev/null http://localhost:3000/ && exit 0; sleep 2; done
           cat app.log; exit 1
 
+      # --with-deps runs apt-get update over every source on the runner; the
+      # preinstalled Microsoft repo (unused here) intermittently answers 403
+      # and fails the whole job, so drop it first.
       - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
+          pnpm exec playwright install --with-deps chromium
 
       - name: Playwright
         run: pnpm test:e2e
