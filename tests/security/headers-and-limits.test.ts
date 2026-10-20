@@ -53,9 +53,13 @@ describe("buildCsp", () => {
 
   it("drops the blanket https: image source where the model writes the page", () => {
     const imgSrc = (policy: string) => (policy.match(/img-src[^;]*/) ?? [""])[0]
-    expect(imgSrc(csp({ strictImages: false }))).toBe("img-src 'self' data: https: blob:")
+    expect(imgSrc(csp({ strictImages: false }))).toBe(
+      "img-src 'self' data: https: blob:",
+    )
     // worker-src legitimately carries blob:, so assert on this directive only.
-    expect(imgSrc(csp({ strictImages: true }))).toBe("img-src 'self' data: https:")
+    expect(imgSrc(csp({ strictImages: true }))).toBe(
+      "img-src 'self' data: https:",
+    )
   })
 
   it("forces https in production only", () => {
@@ -114,10 +118,14 @@ describe("limitFor", () => {
     expect(limitFor("/api/cron/sync").capacity).toBeLessThanOrEqual(10)
     expect(limitFor("/api/revalidate").capacity).toBeLessThanOrEqual(10)
     // Bulk export and full sync are expensive whoever asks.
-    expect(limitFor("/api/admin/analytics/export").capacity).toBeLessThanOrEqual(5)
+    expect(
+      limitFor("/api/admin/analytics/export").capacity,
+    ).toBeLessThanOrEqual(5)
     expect(limitFor("/api/admin/sync/run").capacity).toBeLessThanOrEqual(5)
     // A document build per call.
-    expect(limitFor("/api/ai-advisor/export-word").capacity).toBeLessThanOrEqual(10)
+    expect(
+      limitFor("/api/ai-advisor/export-word").capacity,
+    ).toBeLessThanOrEqual(10)
   })
 
   it("stays generous everywhere else — a ceiling, not a quota", () => {

@@ -1,0 +1,8 @@
+# Read by OpenSSF Scorecard's Vulnerabilities check (and osv-scanner).
+# Only list advisories with no published fix that never reach production;
+# give each an expiry so it gets re-checked.
+
+[[IgnoredVulns]]
+id = "GHSA-vfj7-8cjw-p6xm"
+ignoreUntil = 2027-01-20
+reason = "braces <=3.0.3 has no patched release. Reached only via eslint-config-next > fast-glob > micromatch (lint tooling, never shipped or fed untrusted input). Drop this entry once braces publishes a fix and override it in pnpm-workspace.yaml."

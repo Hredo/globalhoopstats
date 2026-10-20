@@ -23,7 +23,8 @@ export const en = {
   },
   language: {
     label: "Language",
-    description: "Choose the language for the whole site, including AI replies.",
+    description:
+      "Choose the language for the whole site, including AI replies.",
     english: "English",
     spanish: "Spanish",
     change: "Change language",
@@ -64,18 +65,23 @@ export const en = {
       aiAdvisor: { label: "AI Advisor", desc: "Ask the data in plain words" },
       methodology: { label: "Methodology", desc: "How every number is built" },
       shortlists: { label: "Shortlists", desc: "Shared boards for your staff" },
-      following: { label: "Following", desc: "Signings and thresholds, alerted" },
+      following: {
+        label: "Following",
+        desc: "Signings and thresholds, alerted",
+      },
       trade: { label: "Trade lab", desc: "Simulate a move before you make it" },
       playbook: { label: "Playbook", desc: "Draw, animate and share plays" },
     },
     panel: {
       leaguesTitle: "Jump to a league",
       analyzeTitle: "Tip",
-      analyzeTip: "Percentiles rank a player inside his own league-season, per 40 minutes and adjusted to his team's pace — so a FEB guard and an ACB guard can finally be read side by side.",
+      analyzeTip:
+        "Percentiles rank a player inside his own league-season, per 40 minutes and adjusted to his team's pace — so a FEB guard and an ACB guard can finally be read side by side.",
       workspaceTitle: "Your shortlists",
       workspaceEmpty: "No shortlists yet.",
       workspaceCreate: "Create one",
-      workspaceSignedOut: "Sign in to keep shortlists, follow players and get alerts.",
+      workspaceSignedOut:
+        "Sign in to keep shortlists, follow players and get alerts.",
       signIn: "Sign in",
       allShortlists: "All shortlists",
     },
@@ -161,7 +167,10 @@ export const en = {
         { hook: "It's all in the ball.", sub: "" },
       ],
     },
-    ticker: { topPerformers: "Top performers", illustrative: "illustrative sample" },
+    ticker: {
+      topPerformers: "Top performers",
+      illustrative: "illustrative sample",
+    },
     showcase: {
       eyebrow: "Live · no mockups",
       titleA: "This is not a render.",
@@ -174,36 +183,31 @@ export const en = {
         player: {
           name: "Player profile",
           title: "One player, fully X-rayed.",
-          body:
-            "Season stats, advanced metrics, video highlights and an AI scouting report — the complete profile of any player, without ten open tabs.",
+          body: "Season stats, advanced metrics, video highlights and an AI scouting report — the complete profile of any player, without ten open tabs.",
           cta: "Open a profile",
         },
         compare: {
           name: "Compare",
           title: "Who's better? Let the numbers settle it.",
-          body:
-            "Put two players from any league head to head: radar, shooting splits and every per-game stat, with the leader flagged on each line. The argument is over.",
+          body: "Put two players from any league head to head: radar, shooting splits and every per-game stat, with the leader flagged on each line. The argument is over.",
           cta: "Open the comparator",
         },
         "ai-advisor": {
           name: "AI advisor",
           title: "Ask an AI that actually knows hoops.",
-          body:
-            "Type what you need — “a guard who scores without turning it over” — and the advisor answers instantly with names, numbers and the reason behind each pick.",
+          body: "Type what you need — “a guard who scores without turning it over” — and the advisor answers instantly with names, numbers and the reason behind each pick.",
           cta: "Try the advisor",
         },
         trade: {
           name: "Trades",
           title: "Play GM for a minute.",
-          body:
-            "Build a trade between any teams and see instantly whether it's balanced: market value, salaries and the verdict, all computed live as you test signings.",
+          body: "Build a trade between any teams and see instantly whether it's balanced: market value, salaries and the verdict, all computed live as you test signings.",
           cta: "Simulate a trade",
         },
         playbook: {
           name: "Playbook",
           title: "Stop explaining plays. Show them.",
-          body:
-            "Start from one of 100+ pro sets — or photograph the locker-room whiteboard and the AI hands it back editable. Put your real roster on the court, animate it frame by frame, then let the AI take it apart like an opposing scout: strengths, timing and exactly where it breaks.",
+          body: "Start from one of 100+ pro sets — or photograph the locker-room whiteboard and the AI hands it back editable. Put your real roster on the court, animate it frame by frame, then let the AI take it apart like an opposing scout: strengths, timing and exactly where it breaks.",
           cta: "Open the playbook",
         },
       },
@@ -267,13 +271,17 @@ export const en = {
       description:
         "GlobalHoopStats is a progressive web app — install it on your home screen and it behaves exactly like a native app. No app store, no download, no data loss.",
       step1Title: "Open in your browser",
-      step1Desc: "Navigate to globalhoopstats.es from Safari (iOS) or Chrome (Android).",
+      step1Desc:
+        "Navigate to globalhoopstats.es from Safari (iOS) or Chrome (Android).",
       step2Title: "Tap the share icon",
-      step2Desc: "On iOS tap the Share button (square with arrow). On Android tap the three-dot menu.",
+      step2Desc:
+        "On iOS tap the Share button (square with arrow). On Android tap the three-dot menu.",
       step3Title: "Find Add to Home Screen",
-      step3Desc: "Scroll the share sheet and select \"Add to Home Screen\" — it's usually near the bottom.",
+      step3Desc:
+        'Scroll the share sheet and select "Add to Home Screen" — it\'s usually near the bottom.',
       step4Title: "Name and confirm",
-      step4Desc: "The name defaults to \"globalhoopstats\" — tap Add in the top corner and it appears on your home screen.",
+      step4Desc:
+        'The name defaults to "globalhoopstats" — tap Add in the top corner and it appears on your home screen.',
       cta: "Try it now",
       ios: "iOS",
       android: "Android",
@@ -310,7 +318,8 @@ export const en = {
       notificationsTitle: "Notifications",
       notificationsDescription: "Choose what we email you about.",
       productUpdates: "Product updates",
-      productUpdatesHint: "New leagues, features and AI improvements. Occasional.",
+      productUpdatesHint:
+        "New leagues, features and AI improvements. Occasional.",
       usageAlerts: "Usage & quota alerts",
       usageAlertsHint: "A heads-up when you're close to a free-plan limit.",
       accessibilityTitle: "Accessibility",
@@ -336,8 +345,7 @@ export const en = {
       currentPassword: "Current password",
       currentPasswordHint: "Required to change the email you sign in with.",
       nothingToChange: "Nothing to change.",
-      needPasswordForEmail:
-        "Enter your current password to change your email.",
+      needPasswordForEmail: "Enter your current password to change your email.",
       saveError: "Could not save changes.",
       networkError: "Network error. Try again.",
       updated: "Profile updated.",
@@ -377,8 +385,7 @@ export const en = {
       fromProvider: "Live from the provider",
       modelAuto: "Automatic — always the newest",
       loadingModels: "Loading models…",
-      catalogueFallback:
-        "Could not reach the provider — showing our list",
+      catalogueFallback: "Could not reach the provider — showing our list",
       addKeyHint: "Add this provider's API key below to use it.",
       startOllamaHint: "Start Ollama on your machine to use this engine.",
       saveEngines: "Save engines",
@@ -726,7 +733,8 @@ export const en = {
     metaDescription: "{name} stats — {position} at {team} in {league}.",
     metaSeasonFull:
       "{season} season: {ppg} points, {rpg} rebounds and {apg} assists per game over {games} games.",
-    metaSeasonPoints: "{season} season: {ppg} points per game over {games} games.",
+    metaSeasonPoints:
+      "{season} season: {ppg} points per game over {games} games.",
     metaTail: "Shooting splits, advanced metrics and head-to-head comparisons.",
     seasonGames: "Season {season} · {games} games",
     production: "Production",
@@ -742,6 +750,15 @@ export const en = {
     freeThrow: "Free throw",
     noSeasonStats: "No season stats on record for this player yet.",
     compareWith: "Compare with",
+    career: {
+      title: "Career path",
+      summary: "{seasons} seasons · {leagues} leagues",
+      ladderLabel: "League played in each season",
+      games: "{n} GP",
+      moveUp: "Step up",
+      moveDown: "Step down",
+      moveTransfer: "New club",
+    },
     highlights: "Highlights",
     switchLeague: "Switch league",
     shotChart: "Shot chart",
@@ -808,7 +825,8 @@ export const en = {
   },
   playerAi: {
     title: "Full scout",
-    description: "AI analyzes stats, advanced metrics, market value, shot chart, team impact and more.",
+    description:
+      "AI analyzes stats, advanced metrics, market value, shot chart, team impact and more.",
     scouting: "Analyzing everything…",
     rerun: "Re-run full scout",
     scout: "Full scout with AI",
@@ -826,7 +844,8 @@ export const en = {
   aiAdvisor: {
     ui: {
       emptyTitle: "Scouting Advisor",
-      emptyBody: "Select a team above and ask which signings would strengthen the roster. The advisor analyses your lineup, detects gaps and suggests real players from the market.",
+      emptyBody:
+        "Select a team above and ask which signings would strengthen the roster. The advisor analyses your lineup, detects gaps and suggests real players from the market.",
       stepTeam: "Pick a team",
       stepAsk: "Ask your question",
       analysing: "Analysing roster and market…",
@@ -848,7 +867,8 @@ export const en = {
       dislike: "Dislike",
       regenerate: "Regenerate response",
       tourWelcomeTitle: "Welcome to the Scouting Advisor",
-      tourWelcomeBody: "Your assistant for signings: it analyses a roster, detects gaps and shortlists real players. Want a 60-second walkthrough of how it works?",
+      tourWelcomeBody:
+        "Your assistant for signings: it analyses a roster, detects gaps and shortlists real players. Want a 60-second walkthrough of how it works?",
       tourTake: "Take the tour",
       tourSkipNow: "Skip for now",
       tourSkip: "Skip tour",
@@ -857,17 +877,23 @@ export const en = {
       tourNext: "Next",
       tourFinish: "Finish",
       tourTeamTitle: "Pick a team",
-      tourTeamBody: "Everything starts here. Search any club across the NBA, EuroLeague and ACB — the advisor analyses its current roster before answering.",
+      tourTeamBody:
+        "Everything starts here. Search any club across the NBA, EuroLeague and ACB — the advisor analyses its current roster before answering.",
       tourChatTitle: "Read the analysis",
-      tourChatBody: "Answers appear here: a roster diagnosis, the gap the advisor detects and a shortlist of real candidates ranked by priority.",
+      tourChatBody:
+        "Answers appear here: a roster diagnosis, the gap the advisor detects and a shortlist of real candidates ranked by priority.",
       tourInputTitle: "Ask in plain language",
-      tourInputBody: "Type your question — \"I need a scoring wing\" — and press Ctrl+Enter or the send button.",
+      tourInputBody:
+        'Type your question — "I need a scoring wing" — and press Ctrl+Enter or the send button.',
       tourExportTitle: "Export your work",
-      tourExportBody: "Download the whole conversation as PDF, Word or Markdown to share with your staff.",
+      tourExportBody:
+        "Download the whole conversation as PDF, Word or Markdown to share with your staff.",
       tourNewTitle: "Start fresh anytime",
-      tourNewBody: "New chat clears the board. Your previous conversations stay saved below it.",
+      tourNewBody:
+        "New chat clears the board. Your previous conversations stay saved below it.",
       tourConvTitle: "Pick up where you left off",
-      tourConvBody: "Chats are private to your account. Click one to reopen it, hover to delete it.",
+      tourConvBody:
+        "Chats are private to your account. Click one to reopen it, hover to delete it.",
     },
     title: "Scouting Advisor",
     subtitle: "Smart analysis powered by your player database",
@@ -899,9 +925,9 @@ export const en = {
       "You're seeing basic mode. Connect an AI for AI-powered answers —",
     basicModeAddProvider: "add a provider",
     basicModeGuide: "read the setup guide",
-    engineFailed: "Your AI engine could not answer, so this is the basic reply.",
-    engineFailedWith:
-      "{engine} could not answer, so this is the basic reply.",
+    engineFailed:
+      "Your AI engine could not answer, so this is the basic reply.",
+    engineFailedWith: "{engine} could not answer, so this is the basic reply.",
     engineFailedCheck: "check your AI settings",
     analysisFor: "Analysis for",
     rosterLabel: "Roster",
@@ -999,10 +1025,13 @@ export const en = {
       "We sent a confirmation link to {email}. Open it to activate your account; it expires in 24 hours.",
     verifySentSpam: "Can't find it? Check spam or ask for a new link.",
     verifyResend: "Resend the link",
-    verifyResent: "If the account is waiting for confirmation, we sent a new link.",
-    verifyNeeded: "Confirm your email before signing in. Look for the link we sent when you registered.",
+    verifyResent:
+      "If the account is waiting for confirmation, we sent a new link.",
+    verifyNeeded:
+      "Confirm your email before signing in. Look for the link we sent when you registered.",
     verifiedOk: "Email confirmed. You can sign in now.",
-    verifyInvalid: "That confirmation link is invalid or has expired. Sign in to request a new one.",
+    verifyInvalid:
+      "That confirmation link is invalid or has expired. Sign in to request a new one.",
     courtTitle: "Hoops, decoded.",
     courtSubtitle:
       "Sign in to keep your advisor conversations, run unlimited AI comparisons and unlock the full scouting toolkit.",
@@ -1019,8 +1048,7 @@ export const en = {
     resetMetaTitle: "Reset password",
     resetMetaDescription: "Choose a new password for your account.",
     twoFactorMetaTitle: "Verify your identity",
-    twoFactorMetaDescription:
-      "Enter the verification code sent to your email.",
+    twoFactorMetaDescription: "Enter the verification code sent to your email.",
   },
   userMenu: {
     signIn: "Sign in",
@@ -1067,7 +1095,8 @@ export const en = {
     page: {
       eyebrow: "Market",
       title: "Trade Simulator",
-      description: "Simulate realistic player trades with market valuations adjusted by league, age, and production.",
+      description:
+        "Simulate realistic player trades with market valuations adjusted by league, age, and production.",
       docs: "Docs",
     },
     mode: {
@@ -1096,7 +1125,8 @@ export const en = {
       analyzeWithAiHintPre: "Click",
       analyzeWithAiHintBtn: "Analyze with AI",
       analyzeWithAiHintPost: "on each proposal for a detailed report.",
-      noScenarios: "No balanced trade scenarios found for this player. Try another or adjust the filters.",
+      noScenarios:
+        "No balanced trade scenarios found for this player. Try another or adjust the filters.",
     },
     packageLabel: "{count} player package",
     stats: {
@@ -1158,7 +1188,8 @@ export const en = {
       playerPlural: "players",
       addPlayer: "+ Add player",
       cashGiveLabel: "Cash you give ({currency} — e.g. 2.5M, 500K, 100000)",
-      cashReceiveLabel: "Cash you receive ({currency} — e.g. 2.5M, 500K, 100000)",
+      cashReceiveLabel:
+        "Cash you receive ({currency} — e.g. 2.5M, 500K, 100000)",
       cashSuffix: "in cash",
       valueLabel: "Value",
       ratingLabel: "Rating",
@@ -1198,7 +1229,8 @@ export const en = {
       cta: "Explore players",
       tip: "Tip: try the side-by-side comparison tool to stack any two players across leagues.",
       text: "Welcome, {name}!",
-      textBody: "Your account is ready. You now have one console for cross-league basketball intelligence — box scores, advanced splits, comparisons and highlights across the NBA, EuroLeague, Liga ACB and Spain's FEB ladder.",
+      textBody:
+        "Your account is ready. You now have one console for cross-league basketball intelligence — box scores, advanced splits, comparisons and highlights across the NBA, EuroLeague, Liga ACB and Spain's FEB ladder.",
       textUrl: "Explore players: {url}",
     },
     verifyEmail: {
@@ -1207,10 +1239,12 @@ export const en = {
       heading: "Confirm your email",
       body: "Someone (hopefully you) created a {site} account with this address. Confirm it to activate the account.",
       cta: "Confirm email",
-      expired: "This link expires in 24 hours. If it wasn't you, ignore this email: the account won't be activated.",
+      expired:
+        "This link expires in 24 hours. If it wasn't you, ignore this email: the account won't be activated.",
       text: "Someone (hopefully you) created a {site} account with this address.",
       textCta: "Confirm your email (link expires in 24 hours):",
-      textSafe: "If it wasn't you, ignore this email: the account won't be activated.",
+      textSafe:
+        "If it wasn't you, ignore this email: the account won't be activated.",
     },
     passwordReset: {
       subject: "Reset your password · {site}",
@@ -1218,7 +1252,8 @@ export const en = {
       heading: "Reset your password",
       body: "We received a request to reset the password for your {site} account.",
       cta: "Set a new password",
-      expired: "This link expires in 15 minutes. If you didn't request this, you can safely ignore this email — your password won't change.",
+      expired:
+        "This link expires in 15 minutes. If you didn't request this, you can safely ignore this email — your password won't change.",
       text: "We received a request to reset the password for your {site} account.",
       textCta: "Set a new password (link expires in 15 minutes):",
       textSafe: "If you didn't request this, you can safely ignore this email.",
@@ -1228,29 +1263,35 @@ export const en = {
       preview: "Your verification code is {code}.",
       heading: "Your verification code",
       body: "Use this code to finish signing in:",
-      expired: "This code expires in 5 minutes. If you didn't try to sign in, change your password immediately.",
+      expired:
+        "This code expires in 5 minutes. If you didn't try to sign in, change your password immediately.",
       text: "Your two-factor authentication code is:",
       textExpired: "This code expires in 5 minutes.",
-      textWarning: "If you didn't attempt to sign in, please change your password immediately.",
+      textWarning:
+        "If you didn't attempt to sign in, please change your password immediately.",
     },
     twoFactorSetup: {
       subject: "Confirm two-factor setup · {site}",
       preview: "Your 2FA setup code is {code}.",
       heading: "Confirm two-factor authentication",
       body: "Enter this code to finish enabling two-factor authentication on your account:",
-      expired: "This code expires in 10 minutes. If you didn't request this, secure your account immediately.",
+      expired:
+        "This code expires in 10 minutes. If you didn't request this, secure your account immediately.",
       text: "Use the following code to confirm enabling two-factor authentication:",
       textExpired: "This code expires in 10 minutes.",
-      textWarning: "If you didn't request this, please secure your account immediately.",
+      textWarning:
+        "If you didn't request this, please secure your account immediately.",
     },
     contactReceived: {
       subject: "We got your message · {site}",
       preview: "Thanks for reaching out — we'll get back to you soon.",
       heading: "Thanks, {name}!",
-      body1: "We've received your message and will get back to you as soon as we can — usually within a couple of business days.",
+      body1:
+        "We've received your message and will get back to you as soon as we can — usually within a couple of business days.",
       body2: "If you need to add anything, just reply to this email.",
       text: "Thanks, {name}!",
-      textBody: "We've received your message and will get back to you as soon as we can — usually within a couple of business days.\n\nIf you need to add anything, just reply to this email.",
+      textBody:
+        "We've received your message and will get back to you as soon as we can — usually within a couple of business days.\n\nIf you need to add anything, just reply to this email.",
     },
     waitlistWelcome: {
       subject: "You're on the waitlist · {site}",
@@ -1260,7 +1301,8 @@ export const en = {
       body2: "In the meantime, the full free console is live:",
       cta: "Explore the stats",
       text: "Thanks for joining the {site} waitlist.",
-      textBody: "We'll email you the moment the Pro tier opens — you'll be among the first to get in.",
+      textBody:
+        "We'll email you the moment the Pro tier opens — you'll be among the first to get in.",
       textUrl: "Explore the free console: {url}",
     },
   },
@@ -1277,7 +1319,8 @@ export const en = {
     lineup: {
       title: "Lineup stats",
       hint: "Real season numbers of the players linked to this play's tokens",
-      empty: "No real players are linked to this play yet. Drag players from the roster panel onto the tokens.",
+      empty:
+        "No real players are linked to this play yet. Drag players from the roster panel onto the tokens.",
       player: "Player",
       total: "Lineup total",
     },
@@ -1363,7 +1406,7 @@ export const en = {
       clearDrawings: "Clear the marker on this frame",
       loop: "Loop playback",
       frameNote: "Frame note",
-      notePlaceholder: "Note for frame {n} (e.g. \"5 rolls hard to the rim\")",
+      notePlaceholder: 'Note for frame {n} (e.g. "5 rolls hard to the rim")',
       vertical: "Switch to focus layout",
       horizontal: "Switch to wide layout",
       coachMode: "Coach mode — full-screen board with tools and roster",
@@ -1386,7 +1429,8 @@ export const en = {
       seasonCurrent: "{season} · current",
       seasonLabel: "Season {season}",
       pickTeam: "Pick a team…",
-      pickTeamHint: "Pick a team to load its real roster and drag players onto the board.",
+      pickTeamHint:
+        "Pick a team to load its real roster and drag players onto the board.",
       dragHint: "Drag a player onto the board, or click to fill a token",
       loadError: "Could not load teams. Try again.",
       empty: "No players found for this team.",
@@ -1395,12 +1439,14 @@ export const en = {
     ai: {
       outputTitle: "AI tactical analysis",
       hint: "The AI reads your play frame by frame — zones, cuts, screens and passes — and breaks it down like an advance scout: strengths, counters, timing and personnel fit.",
-      questionPlaceholder: "Optional: ask something specific (e.g. \"how does this work vs a 2-3 zone?\")",
+      questionPlaceholder:
+        'Optional: ask something specific (e.g. "how does this work vs a 2-3 zone?")',
       analyze: "Analyze play",
       loading: "Analyzing…",
       error: "Could not generate the analysis.",
       networkError: "Network error. Try again.",
-      needFrames: "Add at least a second frame (draw a movement) so there is a play to analyze.",
+      needFrames:
+        "Add at least a second frame (draw a movement) so there is a play to analyze.",
       notConfigured: "No AI engine is configured for your account.",
       configure: "Set one up",
     },
@@ -1414,20 +1460,23 @@ export const en = {
       new: "New",
       duplicate: "Duplicate",
       exportPdf: "Export PDF",
-      exportPdfHint: "Full branded report: every frame, notes, personnel and the AI analysis",
+      exportPdfHint:
+        "Full branded report: every frame, notes, personnel and the AI analysis",
       exportPdfError: "Could not generate the PDF. Try again.",
       exportJson: "Export JSON",
-      exportJsonHint: "Download this play as a portable JSON file you can re-import or share",
+      exportJsonHint:
+        "Download this play as a portable JSON file you can re-import or share",
       exportAll: "Export all plays (JSON)",
       import: "Import",
       imported: "{n} play(s) imported",
       importError: "That file is not a valid playbook export.",
       importTooLarge: "File too large (max 5 MB).",
       dropToImport: "Drop a playbook JSON or a diagram photo to import",
-      localMode: "Guest mode — plays are stored in this browser. Sign in to sync.",
+      localMode:
+        "Guest mode — plays are stored in this browser. Sign in to sync.",
       unsaved: "Unsaved changes",
       discardConfirm: "You have unsaved changes. Discard them?",
-      deleteConfirm: "Delete \"{name}\"? This cannot be undone.",
+      deleteConfirm: 'Delete "{name}"? This cannot be undone.',
       delete: "Delete play",
       untitled: "Untitled play",
       frames: "{n} frames",
@@ -1436,10 +1485,13 @@ export const en = {
       searchPlh: "Search…",
       allCategories: "All",
       importPhoto: "Import photo",
-      importPhotoHint: "Photograph a play on a whiteboard or notebook and the AI turns it into an editable play",
+      importPhotoHint:
+        "Photograph a play on a whiteboard or notebook and the AI turns it into an editable play",
       importingPhoto: "Reading the play with AI…",
-      importPhotoError: "Could not import the play from the photo. Try a clearer image.",
-      importPhotoNoAi: "No AI engine is configured — set one up to import plays from photos.",
+      importPhotoError:
+        "Could not import the play from the photo. Try a clearer image.",
+      importPhotoNoAi:
+        "No AI engine is configured — set one up to import plays from photos.",
     },
     templateCats: {
       offense: "Offense",
@@ -1465,7 +1517,8 @@ export const en = {
   },
   pwa: {
     installTitle: "Install GlobalHoopStats",
-    installDescription: "Get the full-screen app experience with offline support.",
+    installDescription:
+      "Get the full-screen app experience with offline support.",
     installAction: "Install",
   },
   cookies: {
@@ -1495,7 +1548,8 @@ export const en = {
       save: "Save",
       saved: "Saved",
       teamHint: "You'll hear about signings, departures and coaching changes.",
-      playerHint: "You'll hear when he changes teams, and when he crosses a threshold you set.",
+      playerHint:
+        "You'll hear when he changes teams, and when he crosses a threshold you set.",
     },
     shortlist: {
       add: "Add to shortlist",
@@ -1536,14 +1590,16 @@ export const en = {
     addNote: "Add note",
     inviteButton: "Invite",
     playersLabel: "players",
-    notFound: "This shortlist does not exist or you no longer have access to it.",
+    notFound:
+      "This shortlist does not exist or you no longer have access to it.",
     title: "Shortlists",
     eyebrow: "Scouting · Workspace",
     lede: "Boards your staff works on together: add players, move them from watching to target, and leave a note where everyone sees it.",
     create: "New shortlist",
     name: "Name",
     description: "Description (optional)",
-    empty: "You have no shortlists yet. Create one, then add players from any profile with “Add to shortlist”.",
+    empty:
+      "You have no shortlists yet. Create one, then add players from any profile with “Add to shortlist”.",
     shared: "Shared with you",
     owner: "by {name}",
     items: "{n} players",
@@ -1553,7 +1609,8 @@ export const en = {
     members: "Staff",
     invite: "Invite by email",
     invitePlaceholder: "colleague@club.com",
-    inviteHint: "They need an account. You'll get the same answer whether or not the address is registered.",
+    inviteHint:
+      "They need an account. You'll get the same answer whether or not the address is registered.",
     inviteSent: "If that address has an account, it now has access.",
     roleEditor: "Can edit",
     roleViewer: "Can view",
@@ -1586,7 +1643,8 @@ export const en = {
     lede: "Players and teams you follow. After every data sync we compare them with what we saw last time and tell you what changed — in the bell, by email and, if you want, on your phone.",
     players: "Players",
     teams: "Teams",
-    empty: "You are not following anyone yet. Use “Follow” on any player or team page.",
+    empty:
+      "You are not following anyone yet. Use “Follow” on any player or team page.",
     unfollow: "Unfollow",
     thresholds: "Thresholds",
     noThresholds: "No thresholds",
@@ -1597,12 +1655,14 @@ export const en = {
     email: "Email digest",
     emailHint: "One email after each sync with everything new.",
     push: "Push on this device",
-    pushHint: "A notification on this phone or computer, even with the site closed.",
+    pushHint:
+      "A notification on this phone or computer, even with the site closed.",
     pushEnable: "Turn on",
     pushDisable: "Turn off",
     pushUnavailable: "Push is not available in this browser.",
     pushNotConfigured: "Push is not enabled on the server yet.",
-    pushDenied: "Notifications are blocked for this site in your browser settings.",
+    pushDenied:
+      "Notifications are blocked for this site in your browser settings.",
     recent: "Recent alerts",
     noRecent: "No alerts yet. They arrive after the next data sync.",
     on: "On",
@@ -1616,7 +1676,8 @@ export const en = {
       perGame: "Per game",
       per40: "Per 40 min",
       per40pace: "Per 40, pace-adjusted",
-      paceMissing: "No pace data for this league — shown per 40 minutes without the tempo adjustment.",
+      paceMissing:
+        "No pace data for this league — shown per 40 minutes without the tempo adjustment.",
       notQualified: "Too few minutes to rank fairly yet — shown for reference.",
       metrics: {
         pts: "Scoring",
@@ -1633,7 +1694,8 @@ export const en = {
     radarMode: {
       absolute: "Raw numbers",
       percentile: "League percentile",
-      percentileHint: "Each axis is the player's percentile inside his own league-season, per 40 minutes and pace-adjusted — so players from different leagues can be read on one scale.",
+      percentileHint:
+        "Each axis is the player's percentile inside his own league-season, per 40 minutes and pace-adjusted — so players from different leagues can be read on one scale.",
     },
     projection: {
       title: "Projection",
@@ -1646,15 +1708,19 @@ export const en = {
       actual: "Actual",
       projected: "Projected",
       minutes: "Minutes",
-      methodTransitions: "Learned from {n} players who moved from {from} to {to}.",
-      methodModel: "Too few players have made this move to learn from, so this uses the league-strength model (the same one the market uses).",
-      methodTier: "FEB and the top tier (ACB, EuroLeague, NBA) never share a player record in our data, so this step always uses the league-strength model.",
+      methodTransitions:
+        "Learned from {n} players who moved from {from} to {to}.",
+      methodModel:
+        "Too few players have made this move to learn from, so this uses the league-strength model (the same one the market uses).",
+      methodTier:
+        "FEB and the top tier (ACB, EuroLeague, NBA) never share a player record in our data, so this step always uses the league-strength model.",
       empty: "Pick a player to project.",
       noLine: "This player has no season with enough minutes to project.",
       cta: "Project to another league",
       cardTitle: "One level up",
       cardLine: "≈ {pts} pts in {mpg} min in {league}",
-      disclaimer: "An estimate, not a prediction: role, system and health decide more than any average.",
+      disclaimer:
+        "An estimate, not a prediction: role, system and health decide more than any average.",
     },
   },
   sharePage: {
@@ -1679,14 +1745,18 @@ export const en = {
     lede: "Read the normalized catalogue — players, teams and leagues across six competitions — from your own tools. Keys are issued on request.",
     request: "Request a key",
     auth: "Authentication",
-    authBody: "Send your key in the Authorization header on every request. Keys are personal; never put one in front-end code.",
+    authBody:
+      "Send your key in the Authorization header on every request. Keys are personal; never put one in front-end code.",
     endpoints: "Endpoints",
     quota: "Quotas",
-    quotaBody: "Each key has a daily request quota (shown in X-RateLimit-Remaining). Over it, the API answers 429 with Retry-After.",
+    quotaBody:
+      "Each key has a daily request quota (shown in X-RateLimit-Remaining). Over it, the API answers 429 with Retry-After.",
     attribution: "Attribution",
-    attributionBody: "Every response carries meta.attribution. Public use of the data must credit globalhoopstats.es.",
+    attributionBody:
+      "Every response carries meta.attribution. Public use of the data must credit globalhoopstats.es.",
     errors: "Errors",
-    errorsBody: "401 missing or invalid key · 404 unknown player · 400 bad parameters · 429 quota exceeded.",
+    errorsBody:
+      "401 missing or invalid key · 404 unknown player · 400 bad parameters · 429 quota exceeded.",
   },
 } as const
 

@@ -61,22 +61,39 @@ export const es: Messages = {
       coaches: { label: "Entrenadores", desc: "Todos los banquillos" },
       leagues: { label: "Ligas", desc: "Líderes y contexto de cada liga" },
       compare: { label: "Comparar", desc: "Cara a cara, en percentiles" },
-      projection: { label: "Proyección", desc: "Cómo rendiría un nivel más arriba" },
-      aiAdvisor: { label: "Asesor IA", desc: "Pregunta a los datos con palabras" },
-      methodology: { label: "Metodología", desc: "Cómo se calcula cada número" },
-      shortlists: { label: "Shortlists", desc: "Pizarras compartidas con tu staff" },
+      projection: {
+        label: "Proyección",
+        desc: "Cómo rendiría un nivel más arriba",
+      },
+      aiAdvisor: {
+        label: "Asesor IA",
+        desc: "Pregunta a los datos con palabras",
+      },
+      methodology: {
+        label: "Metodología",
+        desc: "Cómo se calcula cada número",
+      },
+      shortlists: {
+        label: "Shortlists",
+        desc: "Pizarras compartidas con tu staff",
+      },
       following: { label: "Siguiendo", desc: "Avisos de fichajes y umbrales" },
-      trade: { label: "Traspasos", desc: "Simula un movimiento antes de hacerlo" },
+      trade: {
+        label: "Traspasos",
+        desc: "Simula un movimiento antes de hacerlo",
+      },
       playbook: { label: "Pizarra", desc: "Dibuja, anima y comparte jugadas" },
     },
     panel: {
       leaguesTitle: "Ir a una liga",
       analyzeTitle: "Truco",
-      analyzeTip: "Los percentiles sitúan a un jugador dentro de su propia liga y temporada, por 40 minutos y ajustados al ritmo de su equipo: por fin se puede leer a un base de FEB junto a uno de ACB.",
+      analyzeTip:
+        "Los percentiles sitúan a un jugador dentro de su propia liga y temporada, por 40 minutos y ajustados al ritmo de su equipo: por fin se puede leer a un base de FEB junto a uno de ACB.",
       workspaceTitle: "Tus shortlists",
       workspaceEmpty: "Aún no tienes shortlists.",
       workspaceCreate: "Crear una",
-      workspaceSignedOut: "Entra para guardar shortlists, seguir jugadores y recibir avisos.",
+      workspaceSignedOut:
+        "Entra para guardar shortlists, seguir jugadores y recibir avisos.",
       signIn: "Entrar",
       allShortlists: "Todas las shortlists",
     },
@@ -162,7 +179,10 @@ export const es: Messages = {
         { hook: "Todo está en el balón.", sub: "" },
       ],
     },
-    ticker: { topPerformers: "Mejores actuaciones", illustrative: "muestra ilustrativa" },
+    ticker: {
+      topPerformers: "Mejores actuaciones",
+      illustrative: "muestra ilustrativa",
+    },
     showcase: {
       eyebrow: "En vivo · sin maquetas",
       titleA: "Esto no es un render.",
@@ -175,36 +195,31 @@ export const es: Messages = {
         player: {
           name: "Ficha de jugador",
           title: "Un jugador, radiografiado entero.",
-          body:
-            "Estadísticas de la temporada, métricas avanzadas, highlights en vídeo y un informe de scouting con IA — la ficha completa de cualquier jugador, sin abrir diez pestañas.",
+          body: "Estadísticas de la temporada, métricas avanzadas, highlights en vídeo y un informe de scouting con IA — la ficha completa de cualquier jugador, sin abrir diez pestañas.",
           cta: "Abrir una ficha",
         },
         compare: {
           name: "Comparador",
           title: "¿Quién es mejor? Que lo decidan los números.",
-          body:
-            "Pon dos jugadores de cualquier liga cara a cara: radar, splits de tiro y cada estadística por partido, con el líder marcado en cada línea. Se acabó discutir.",
+          body: "Pon dos jugadores de cualquier liga cara a cara: radar, splits de tiro y cada estadística por partido, con el líder marcado en cada línea. Se acabó discutir.",
           cta: "Abrir el comparador",
         },
         "ai-advisor": {
           name: "Asesor IA",
           title: "Pregúntale a una IA que sabe de básket.",
-          body:
-            "Escribe lo que buscas —«un base que anote y no pierda balones»— y el asesor responde al instante con nombres, datos y el porqué de cada elección.",
+          body: "Escribe lo que buscas —«un base que anote y no pierda balones»— y el asesor responde al instante con nombres, datos y el porqué de cada elección.",
           cta: "Probar el asesor",
         },
         trade: {
           name: "Traspasos",
           title: "Juega a ser el mánager.",
-          body:
-            "Monta un traspaso entre cualquier equipo y comprueba al instante si está equilibrado: valor de mercado, salarios y veredicto, calculados solos mientras pruebas fichajes.",
+          body: "Monta un traspaso entre cualquier equipo y comprueba al instante si está equilibrado: valor de mercado, salarios y veredicto, calculados solos mientras pruebas fichajes.",
           cta: "Simular un traspaso",
         },
         playbook: {
           name: "Playbook",
           title: "Deja de explicar jugadas. Enséñalas.",
-          body:
-            "Arranca con uno de los más de 100 sistemas profesionales — o fotografía la pizarra del vestuario y la IA te la devuelve editable. Pon tu plantilla real sobre la cancha, anímala fotograma a fotograma y deja que la IA la desmonte como un scout rival: fortalezas, timings y por dónde te la van a romper.",
+          body: "Arranca con uno de los más de 100 sistemas profesionales — o fotografía la pizarra del vestuario y la IA te la devuelve editable. Pon tu plantilla real sobre la cancha, anímala fotograma a fotograma y deja que la IA la desmonte como un scout rival: fortalezas, timings y por dónde te la van a romper.",
           cta: "Abrir el playbook",
         },
       },
@@ -268,13 +283,17 @@ export const es: Messages = {
       description:
         "GlobalHoopStats es una aplicación web progresiva — instálala en tu pantalla de inicio y se comporta como una app nativa. Sin tienda, sin descarga, sin perder datos.",
       step1Title: "Abre en tu navegador",
-      step1Desc: "Ve a globalhoopstats.es desde Safari (iOS) o Chrome (Android).",
+      step1Desc:
+        "Ve a globalhoopstats.es desde Safari (iOS) o Chrome (Android).",
       step2Title: "Toca el icono de compartir",
-      step2Desc: "En iOS toca el botón Compartir (cuadrado con flecha). En Android toca el menú de tres puntos.",
+      step2Desc:
+        "En iOS toca el botón Compartir (cuadrado con flecha). En Android toca el menú de tres puntos.",
       step3Title: "Busca Añadir a Pantalla de Inicio",
-      step3Desc: "Desplaza la hoja de compartir y selecciona \"Añadir a Pantalla de Inicio\" — suele estar al final.",
+      step3Desc:
+        'Desplaza la hoja de compartir y selecciona "Añadir a Pantalla de Inicio" — suele estar al final.',
       step4Title: "Nombra y confirma",
-      step4Desc: "El nombre por defecto es \"globalhoopstats\" — pulsa Añadir en la esquina superior y aparecerá en tu pantalla de inicio.",
+      step4Desc:
+        'El nombre por defecto es "globalhoopstats" — pulsa Añadir en la esquina superior y aparecerá en tu pantalla de inicio.',
       cta: "Pruébalo ahora",
       ios: "iOS",
       android: "Android",
@@ -565,7 +584,8 @@ export const es: Messages = {
       description:
         "Cada atleta de seis ligas, normalizado a una sola escala. Busca, filtra y ordena por los números que importan.",
       statLabel: "Jugadores indexados",
-      metaTitle: "Estadísticas de jugadores de baloncesto — ACB, FEB, EuroLeague y NBA",
+      metaTitle:
+        "Estadísticas de jugadores de baloncesto — ACB, FEB, EuroLeague y NBA",
       metaDescription:
         "Estadísticas de cada jugador de la Liga ACB, Primera, Segunda y Tercera FEB (antiguas LEB Oro, LEB Plata y Liga EBA), EuroLeague y NBA. Filtra por liga y temporada, ordena por puntos, rebotes o asistencias y abre perfiles avanzados.",
     },
@@ -575,7 +595,8 @@ export const es: Messages = {
       description:
         "Cada club de la NBA, EuroLeague, ACB y el escalafón FEB de España — abre cualquier escudo para ver su plantilla y cuerpo técnico al completo.",
       statLabel: "Equipos cubiertos",
-      metaTitle: "Equipos y plantillas de baloncesto — ACB, FEB, EuroLeague y NBA",
+      metaTitle:
+        "Equipos y plantillas de baloncesto — ACB, FEB, EuroLeague y NBA",
       metaDescription:
         "Todos los clubes de la Liga ACB, Primera, Segunda y Tercera FEB (LEB Oro, LEB Plata, EBA), EuroLeague y NBA, con su plantilla completa, las estadísticas de cada jugador y el cuerpo técnico de cada temporada.",
     },
@@ -585,7 +606,8 @@ export const es: Messages = {
       description:
         "Entrenadores principales, asistentes y cuerpo técnico de la NBA, EuroLeague y Liga ACB — filtrados por rol y liga.",
       statLabel: "Cuerpo técnico indexado",
-      metaTitle: "Entrenadores de baloncesto y cuerpos técnicos — ACB, EuroLeague y NBA",
+      metaTitle:
+        "Entrenadores de baloncesto y cuerpos técnicos — ACB, EuroLeague y NBA",
       metaDescription:
         "Cada entrenador principal, asistente y miembro del cuerpo técnico de la Liga ACB, EuroLeague y NBA, filtrable por rol y liga y enlazado a la plantilla de su club.",
     },
@@ -595,7 +617,8 @@ export const es: Messages = {
       titleB: "de un vistazo.",
       description:
         "Seis ligas profesionales, un solo motor de scouting. Cada tarjeta combina la temporada en vivo con el número de equipos, jugadores y entrenadores y los líderes por partido en puntos, asistencias, rebotes y triples — además de accesos directos a cada plantilla y jugador.",
-      metaTitle: "Ligas de baloncesto — Liga ACB, Primera FEB, EuroLeague y NBA",
+      metaTitle:
+        "Ligas de baloncesto — Liga ACB, Primera FEB, EuroLeague y NBA",
       metaDescription:
         "Liga ACB, la escalera FEB (Primera FEB, Segunda FEB y Tercera FEB — antiguas LEB Oro, LEB Plata y Liga EBA), EuroLeague y NBA: máximos anotadores, asistentes, reboteadores y triplistas de la temporada, con todos sus equipos y jugadores.",
       statLeaguesLive: "ligas en vivo",
@@ -730,10 +753,12 @@ export const es: Messages = {
     metaFreeAgent: "agente libre",
     metaTitle: "{name}: estadísticas · {team} ({league})",
     metaTitleNoTeam: "{name}: estadísticas ({league})",
-    metaDescription: "Estadísticas de {name} — {position} en {team} ({league}).",
+    metaDescription:
+      "Estadísticas de {name} — {position} en {team} ({league}).",
     metaSeasonFull:
       "Temporada {season}: {ppg} puntos, {rpg} rebotes y {apg} asistencias por partido en {games} partidos.",
-    metaSeasonPoints: "Temporada {season}: {ppg} puntos por partido en {games} partidos.",
+    metaSeasonPoints:
+      "Temporada {season}: {ppg} puntos por partido en {games} partidos.",
     metaTail: "Porcentajes de tiro, métricas avanzadas y comparativas.",
     seasonGames: "Temporada {season} · {games} partidos",
     production: "Producción",
@@ -749,6 +774,15 @@ export const es: Messages = {
     freeThrow: "Tiros libres",
     noSeasonStats: "Aún no hay estadísticas de temporada para este jugador.",
     compareWith: "Comparar con",
+    career: {
+      title: "Trayectoria",
+      summary: "{seasons} temporadas · {leagues} ligas",
+      ladderLabel: "Liga en la que jugó cada temporada",
+      games: "{n} PJ",
+      moveUp: "Asciende",
+      moveDown: "Baja",
+      moveTransfer: "Cambia de club",
+    },
     highlights: "Highlights",
     switchLeague: "Cambiar de liga",
     shotChart: "Gráfico de tiro",
@@ -774,7 +808,8 @@ export const es: Messages = {
   },
   leaguePage: {
     notFound: "Liga no encontrada",
-    metaTitle: "Estadísticas {league} {season}: máximos anotadores, equipos y jugadores",
+    metaTitle:
+      "Estadísticas {league} {season}: máximos anotadores, equipos y jugadores",
     metaDescription:
       "Estadísticas de la {league}{legacy} en la temporada {season}: máximos anotadores, reboteadores y asistentes, los {teams} equipos con sus plantillas y los {players} jugadores de la competición.",
     legacySuffix: " (antigua {legacy})",
@@ -782,7 +817,8 @@ export const es: Messages = {
     intro:
       "Estadísticas de la {league} en la temporada {season}: {teams} equipos y {players} jugadores, con promedios por partido, porcentajes de tiro y métricas avanzadas de cada uno.",
     introLegacy: "La {league} es la competición antes conocida como {legacy}.",
-    introLeader: "Máximo anotador: {name} ({team}), con {ppg} puntos por partido.",
+    introLeader:
+      "Máximo anotador: {name} ({team}), con {ppg} puntos por partido.",
     statTeams: "Equipos",
     statPlayers: "Jugadores",
     scorersTitle: "Máximos anotadores · {season}",
@@ -835,7 +871,8 @@ export const es: Messages = {
   aiAdvisor: {
     ui: {
       emptyTitle: "Asesor de scouting",
-      emptyBody: "Elige un equipo arriba y pregunta qué fichajes reforzarían la plantilla. El asesor analiza tu plantilla, detecta huecos y propone jugadores reales del mercado.",
+      emptyBody:
+        "Elige un equipo arriba y pregunta qué fichajes reforzarían la plantilla. El asesor analiza tu plantilla, detecta huecos y propone jugadores reales del mercado.",
       stepTeam: "Elige un equipo",
       stepAsk: "Haz tu pregunta",
       analysing: "Analizando plantilla y mercado…",
@@ -857,7 +894,8 @@ export const es: Messages = {
       dislike: "No me gusta",
       regenerate: "Regenerar respuesta",
       tourWelcomeTitle: "Bienvenido al asesor de scouting",
-      tourWelcomeBody: "Tu asistente de fichajes: analiza una plantilla, detecta huecos y propone jugadores reales. ¿Quieres un recorrido de 60 segundos?",
+      tourWelcomeBody:
+        "Tu asistente de fichajes: analiza una plantilla, detecta huecos y propone jugadores reales. ¿Quieres un recorrido de 60 segundos?",
       tourTake: "Ver el recorrido",
       tourSkipNow: "Ahora no",
       tourSkip: "Saltar",
@@ -866,20 +904,27 @@ export const es: Messages = {
       tourNext: "Siguiente",
       tourFinish: "Terminar",
       tourTeamTitle: "Elige un equipo",
-      tourTeamBody: "Todo empieza aquí. Busca cualquier club de la NBA, la EuroLeague o la ACB: el asesor analiza su plantilla actual antes de responder.",
+      tourTeamBody:
+        "Todo empieza aquí. Busca cualquier club de la NBA, la EuroLeague o la ACB: el asesor analiza su plantilla actual antes de responder.",
       tourChatTitle: "Lee el análisis",
-      tourChatBody: "Las respuestas aparecen aquí: un diagnóstico de la plantilla, el hueco que detecta el asesor y una lista de candidatos reales por prioridad.",
+      tourChatBody:
+        "Las respuestas aparecen aquí: un diagnóstico de la plantilla, el hueco que detecta el asesor y una lista de candidatos reales por prioridad.",
       tourInputTitle: "Pregunta con tus palabras",
-      tourInputBody: "Escribe tu pregunta —«necesito un alero anotador»— y pulsa Ctrl+Enter o el botón de enviar.",
+      tourInputBody:
+        "Escribe tu pregunta —«necesito un alero anotador»— y pulsa Ctrl+Enter o el botón de enviar.",
       tourExportTitle: "Exporta tu trabajo",
-      tourExportBody: "Descarga la conversación entera en PDF, Word o Markdown para compartirla con tu cuerpo técnico.",
+      tourExportBody:
+        "Descarga la conversación entera en PDF, Word o Markdown para compartirla con tu cuerpo técnico.",
       tourNewTitle: "Empieza de cero cuando quieras",
-      tourNewBody: "Nuevo chat limpia la pizarra. Tus conversaciones anteriores siguen guardadas debajo.",
+      tourNewBody:
+        "Nuevo chat limpia la pizarra. Tus conversaciones anteriores siguen guardadas debajo.",
       tourConvTitle: "Sigue donde lo dejaste",
-      tourConvBody: "Los chats son privados de tu cuenta. Pulsa uno para reabrirlo; pasa el ratón por encima para borrarlo.",
+      tourConvBody:
+        "Los chats son privados de tu cuenta. Pulsa uno para reabrirlo; pasa el ratón por encima para borrarlo.",
     },
     title: "Asesor de Scouting",
-    subtitle: "Análisis inteligente impulsado por tu base de datos de jugadores",
+    subtitle:
+      "Análisis inteligente impulsado por tu base de datos de jugadores",
     whyAdvisorTitle: "Por qué este asesor.",
     whyAdvisorBody:
       "Escanea tu plantilla contra la base de datos completa de jugadores entre ligas, detecta huecos posicionales y propone listas cortas. Todo sin salir del navegador.",
@@ -1010,10 +1055,13 @@ export const es: Messages = {
       "Te hemos enviado un enlace de confirmación a {email}. Ábrelo para activar tu cuenta; caduca en 24 horas.",
     verifySentSpam: "¿No lo ves? Mira en spam o pide otro enlace.",
     verifyResend: "Reenviar el enlace",
-    verifyResent: "Si la cuenta está pendiente de confirmar, te hemos enviado un enlace nuevo.",
-    verifyNeeded: "Confirma tu correo antes de iniciar sesión. Busca el enlace que te enviamos al registrarte.",
+    verifyResent:
+      "Si la cuenta está pendiente de confirmar, te hemos enviado un enlace nuevo.",
+    verifyNeeded:
+      "Confirma tu correo antes de iniciar sesión. Busca el enlace que te enviamos al registrarte.",
     verifiedOk: "Correo confirmado. Ya puedes iniciar sesión.",
-    verifyInvalid: "El enlace de confirmación no es válido o ha caducado. Inicia sesión para pedir otro.",
+    verifyInvalid:
+      "El enlace de confirmación no es válido o ha caducado. Inicia sesión para pedir otro.",
     courtTitle: "Baloncesto, descifrado.",
     courtSubtitle:
       "Inicia sesión para conservar tus conversaciones con el asesor, hacer comparaciones con IA ilimitadas y desbloquear todas las herramientas de scouting.",
@@ -1078,7 +1126,8 @@ export const es: Messages = {
     page: {
       eyebrow: "Market",
       title: "Simulador de traspasos",
-      description: "Simula intercambios realistas entre jugadores con valoraciones de mercado ajustadas por liga, edad y producción.",
+      description:
+        "Simula intercambios realistas entre jugadores con valoraciones de mercado ajustadas por liga, edad y producción.",
       docs: "Documentación",
     },
     mode: {
@@ -1107,7 +1156,8 @@ export const es: Messages = {
       analyzeWithAiHintPre: "Pulsa",
       analyzeWithAiHintBtn: "Analizar con IA",
       analyzeWithAiHintPost: "en cada propuesta para un informe detallado.",
-      noScenarios: "No se encontraron escenarios de traspaso equilibrados para este jugador. Prueba con otro o ajusta los filtros.",
+      noScenarios:
+        "No se encontraron escenarios de traspaso equilibrados para este jugador. Prueba con otro o ajusta los filtros.",
     },
     packageLabel: "Paquete de {count} jugador(es)",
     stats: {
@@ -1162,14 +1212,17 @@ export const es: Messages = {
       balanced: "✓ Equilibrado",
       giveMoreValue: "⚠ Entregas más valor",
       receiveMoreValue: "⚠ Recibes más valor",
-      addPlayersHint: "Añade jugadores a ambos lados para ver el balance de la propuesta",
+      addPlayersHint:
+        "Añade jugadores a ambos lados para ver el balance de la propuesta",
       sectionGive: "Tú entregas",
       sectionReceive: "Tú recibes",
       playerSingular: "jugador",
       playerPlural: "jugadores",
       addPlayer: "+ Añadir jugador",
-      cashGiveLabel: "Dinero que entregas ({currency} — ej: 2.5M, 500K, 100000)",
-      cashReceiveLabel: "Dinero que recibes ({currency} — ej: 2.5M, 500K, 100000)",
+      cashGiveLabel:
+        "Dinero que entregas ({currency} — ej: 2.5M, 500K, 100000)",
+      cashReceiveLabel:
+        "Dinero que recibes ({currency} — ej: 2.5M, 500K, 100000)",
       cashSuffix: "en efectivo",
       valueLabel: "Valor",
       ratingLabel: "Valoración",
@@ -1209,7 +1262,8 @@ export const es: Messages = {
       cta: "Explorar jugadores",
       tip: "Consejo: prueba la herramienta de comparación para enfrentar a dos jugadores de distintas ligas.",
       text: "¡Bienvenido, {name}!",
-      textBody: "Tu cuenta está lista. Ahora tienes una consola para inteligencia de baloncesto entre ligas — box scores, splits avanzados, comparaciones y highlights de la NBA, EuroLeague, Liga ACB y el escalafón FEB de España.",
+      textBody:
+        "Tu cuenta está lista. Ahora tienes una consola para inteligencia de baloncesto entre ligas — box scores, splits avanzados, comparaciones y highlights de la NBA, EuroLeague, Liga ACB y el escalafón FEB de España.",
       textUrl: "Explora jugadores: {url}",
     },
     verifyEmail: {
@@ -1218,10 +1272,12 @@ export const es: Messages = {
       heading: "Confirma tu correo",
       body: "Alguien (seguramente tú) ha creado una cuenta en {site} con esta dirección. Confírmala para activarla.",
       cta: "Confirmar correo",
-      expired: "El enlace caduca en 24 horas. Si no has sido tú, ignora este correo: la cuenta no se activará.",
+      expired:
+        "El enlace caduca en 24 horas. Si no has sido tú, ignora este correo: la cuenta no se activará.",
       text: "Alguien (seguramente tú) ha creado una cuenta en {site} con esta dirección.",
       textCta: "Confirma tu correo (el enlace caduca en 24 horas):",
-      textSafe: "Si no has sido tú, ignora este correo: la cuenta no se activará.",
+      textSafe:
+        "Si no has sido tú, ignora este correo: la cuenta no se activará.",
     },
     passwordReset: {
       subject: "Restablece tu contraseña · {site}",
@@ -1229,7 +1285,8 @@ export const es: Messages = {
       heading: "Restablece tu contraseña",
       body: "Recibimos una solicitud para restablecer la contraseña de tu cuenta de {site}.",
       cta: "Establecer nueva contraseña",
-      expired: "Este enlace caduca en 15 minutos. Si no solicitaste esto, puedes ignorar este correo — tu contraseña no cambiará.",
+      expired:
+        "Este enlace caduca en 15 minutos. Si no solicitaste esto, puedes ignorar este correo — tu contraseña no cambiará.",
       text: "Recibimos una solicitud para restablecer la contraseña de tu cuenta de {site}.",
       textCta: "Establecer nueva contraseña (enlace caduca en 15 minutos):",
       textSafe: "Si no solicitaste esto, puedes ignorar este correo.",
@@ -1239,17 +1296,20 @@ export const es: Messages = {
       preview: "Tu código de verificación es {code}.",
       heading: "Tu código de verificación",
       body: "Usa este código para completar el inicio de sesión:",
-      expired: "Este código caduca en 5 minutos. Si no intentaste iniciar sesión, cambia tu contraseña inmediatamente.",
+      expired:
+        "Este código caduca en 5 minutos. Si no intentaste iniciar sesión, cambia tu contraseña inmediatamente.",
       text: "Tu código de autenticación en dos pasos es:",
       textExpired: "Este código caduca en 5 minutos.",
-      textWarning: "Si no intentaste iniciar sesión, cambia tu contraseña inmediatamente.",
+      textWarning:
+        "Si no intentaste iniciar sesión, cambia tu contraseña inmediatamente.",
     },
     twoFactorSetup: {
       subject: "Confirma la autenticación en dos pasos · {site}",
       preview: "Tu código de verificación 2FA es {code}.",
       heading: "Confirma la autenticación en dos pasos",
       body: "Introduce este código para activar la autenticación en dos pasos en tu cuenta:",
-      expired: "Este código caduca en 10 minutos. Si no solicitaste esto, protege tu cuenta inmediatamente.",
+      expired:
+        "Este código caduca en 10 minutos. Si no solicitaste esto, protege tu cuenta inmediatamente.",
       text: "Usa el siguiente código para confirmar la activación de la autenticación en dos pasos:",
       textExpired: "Este código caduca en 10 minutos.",
       textWarning: "Si no solicitaste esto, protege tu cuenta inmediatamente.",
@@ -1258,10 +1318,12 @@ export const es: Messages = {
       subject: "Hemos recibido tu mensaje · {site}",
       preview: "Gracias por escribirnos — te responderemos pronto.",
       heading: "¡Gracias, {name}!",
-      body1: "Hemos recibido tu mensaje y te responderemos lo antes posible — normalmente en un par de días hábiles.",
+      body1:
+        "Hemos recibido tu mensaje y te responderemos lo antes posible — normalmente en un par de días hábiles.",
       body2: "Si necesitas añadir algo, solo responde a este correo.",
       text: "¡Gracias, {name}!",
-      textBody: "Hemos recibido tu mensaje y te responderemos lo antes posible — normalmente en un par de días hábiles.\n\nSi necesitas añadir algo, solo responde a este correo.",
+      textBody:
+        "Hemos recibido tu mensaje y te responderemos lo antes posible — normalmente en un par de días hábiles.\n\nSi necesitas añadir algo, solo responde a este correo.",
     },
     waitlistWelcome: {
       subject: "Estás en la lista de espera · {site}",
@@ -1271,7 +1333,8 @@ export const es: Messages = {
       body2: "Mientras tanto, la consola gratuita completa está disponible:",
       cta: "Explorar estadísticas",
       text: "Gracias por unirte a la lista de espera de {site}.",
-      textBody: "Te avisaremos en cuanto el nivel Pro esté disponible — serás de los primeros en acceder.",
+      textBody:
+        "Te avisaremos en cuanto el nivel Pro esté disponible — serás de los primeros en acceder.",
       textUrl: "Explora la consola gratuita: {url}",
     },
   },
@@ -1288,7 +1351,8 @@ export const es: Messages = {
     lineup: {
       title: "Estadísticas del quinteto",
       hint: "Números reales de la temporada de los jugadores vinculados a las fichas",
-      empty: "Esta jugada aún no tiene jugadores reales vinculados. Arrastra jugadores del panel de plantilla a las fichas.",
+      empty:
+        "Esta jugada aún no tiene jugadores reales vinculados. Arrastra jugadores del panel de plantilla a las fichas.",
       player: "Jugador",
       total: "Total del quinteto",
     },
@@ -1374,10 +1438,12 @@ export const es: Messages = {
       clearDrawings: "Borrar el rotulador de este fotograma",
       loop: "Reproducir en bucle",
       frameNote: "Nota del fotograma",
-      notePlaceholder: "Nota del fotograma {n} (p. ej. \"el 5 continúa fuerte al aro\")",
+      notePlaceholder:
+        'Nota del fotograma {n} (p. ej. "el 5 continúa fuerte al aro")',
       vertical: "Cambiar a vista enfocada",
       horizontal: "Cambiar a vista ancha",
-      coachMode: "Modo coach — pizarra a pantalla completa con herramientas y plantilla",
+      coachMode:
+        "Modo coach — pizarra a pantalla completa con herramientas y plantilla",
       coachModeShort: "Modo coach",
       exitCoachMode: "Salir del modo coach",
       closePanels: "Cerrar paneles",
@@ -1397,8 +1463,10 @@ export const es: Messages = {
       seasonCurrent: "{season} · actual",
       seasonLabel: "Temporada {season}",
       pickTeam: "Elige un equipo…",
-      pickTeamHint: "Elige un equipo para cargar su plantilla real y arrastrar jugadores a la pizarra.",
-      dragHint: "Arrastra un jugador a la pizarra, o haz clic para asignarlo a una ficha",
+      pickTeamHint:
+        "Elige un equipo para cargar su plantilla real y arrastrar jugadores a la pizarra.",
+      dragHint:
+        "Arrastra un jugador a la pizarra, o haz clic para asignarlo a una ficha",
       loadError: "No se pudieron cargar los equipos. Inténtalo de nuevo.",
       empty: "No hay jugadores para este equipo.",
       onCourt: "En pista",
@@ -1406,12 +1474,14 @@ export const es: Messages = {
     ai: {
       outputTitle: "Análisis táctico IA",
       hint: "La IA lee tu jugada fotograma a fotograma — zonas, cortes, bloqueos y pases — y la desmonta como un scout profesional: fortalezas, contramedidas, timing y perfiles ideales.",
-      questionPlaceholder: "Opcional: pregunta algo concreto (p. ej. \"¿cómo funciona contra zona 2-3?\")",
+      questionPlaceholder:
+        'Opcional: pregunta algo concreto (p. ej. "¿cómo funciona contra zona 2-3?")',
       analyze: "Analizar jugada",
       loading: "Analizando…",
       error: "No se pudo generar el análisis.",
       networkError: "Error de red. Inténtalo de nuevo.",
-      needFrames: "Añade al menos un segundo fotograma (dibuja un movimiento) para que haya jugada que analizar.",
+      needFrames:
+        "Añade al menos un segundo fotograma (dibuja un movimiento) para que haya jugada que analizar.",
       notConfigured: "No hay un motor de IA configurado en tu cuenta.",
       configure: "Configurar uno",
     },
@@ -1425,20 +1495,24 @@ export const es: Messages = {
       new: "Nueva",
       duplicate: "Duplicar",
       exportPdf: "Exportar PDF",
-      exportPdfHint: "Informe completo con tu marca: todos los fotogramas, notas, personal y el análisis de IA",
+      exportPdfHint:
+        "Informe completo con tu marca: todos los fotogramas, notas, personal y el análisis de IA",
       exportPdfError: "No se pudo generar el PDF. Inténtalo de nuevo.",
       exportJson: "Exportar JSON",
-      exportJsonHint: "Descarga esta jugada como archivo JSON portable para reimportar o compartir",
+      exportJsonHint:
+        "Descarga esta jugada como archivo JSON portable para reimportar o compartir",
       exportAll: "Exportar todas las jugadas (JSON)",
       import: "Importar",
       imported: "{n} jugada(s) importada(s)",
       importError: "Ese archivo no es una exportación de playbook válida.",
       importTooLarge: "Archivo demasiado grande (máx. 5 MB).",
-      dropToImport: "Suelta un JSON de playbook o una foto del diagrama para importar",
-      localMode: "Modo invitado — las jugadas se guardan en este navegador. Inicia sesión para sincronizarlas.",
+      dropToImport:
+        "Suelta un JSON de playbook o una foto del diagrama para importar",
+      localMode:
+        "Modo invitado — las jugadas se guardan en este navegador. Inicia sesión para sincronizarlas.",
       unsaved: "Cambios sin guardar",
       discardConfirm: "Tienes cambios sin guardar. ¿Descartarlos?",
-      deleteConfirm: "¿Eliminar \"{name}\"? No se puede deshacer.",
+      deleteConfirm: '¿Eliminar "{name}"? No se puede deshacer.',
       delete: "Eliminar jugada",
       untitled: "Jugada sin título",
       frames: "{n} fotogramas",
@@ -1447,10 +1521,13 @@ export const es: Messages = {
       searchPlh: "Buscar…",
       allCategories: "Todas",
       importPhoto: "Importar foto",
-      importPhotoHint: "Fotografía una jugada en una pizarra o cuaderno y la IA la convierte en una jugada editable",
+      importPhotoHint:
+        "Fotografía una jugada en una pizarra o cuaderno y la IA la convierte en una jugada editable",
       importingPhoto: "Leyendo la jugada con IA…",
-      importPhotoError: "No se pudo importar la jugada desde la foto. Prueba con una imagen más nítida.",
-      importPhotoNoAi: "No hay motor de IA configurado — configura uno para importar jugadas desde fotos.",
+      importPhotoError:
+        "No se pudo importar la jugada desde la foto. Prueba con una imagen más nítida.",
+      importPhotoNoAi:
+        "No hay motor de IA configurado — configura uno para importar jugadas desde fotos.",
     },
     templateCats: {
       offense: "Ataque",
@@ -1476,7 +1553,8 @@ export const es: Messages = {
   },
   pwa: {
     installTitle: "Instalar GlobalHoopStats",
-    installDescription: "Obtén la experiencia de app completa con soporte offline.",
+    installDescription:
+      "Obtén la experiencia de app completa con soporte offline.",
     installAction: "Instalar",
   },
   cookies: {
@@ -1506,7 +1584,8 @@ export const es: Messages = {
       save: "Guardar",
       saved: "Guardado",
       teamHint: "Te avisaremos de altas, bajas y cambios de entrenador.",
-      playerHint: "Te avisaremos cuando cambie de equipo y cuando supere un umbral que elijas.",
+      playerHint:
+        "Te avisaremos cuando cambie de equipo y cuando supere un umbral que elijas.",
     },
     shortlist: {
       add: "Añadir a shortlist",
@@ -1554,7 +1633,8 @@ export const es: Messages = {
     create: "Nueva shortlist",
     name: "Nombre",
     description: "Descripción (opcional)",
-    empty: "Aún no tienes shortlists. Crea una y añade jugadores desde cualquier ficha con «Añadir a shortlist».",
+    empty:
+      "Aún no tienes shortlists. Crea una y añade jugadores desde cualquier ficha con «Añadir a shortlist».",
     shared: "Compartidas contigo",
     owner: "de {name}",
     items: "{n} jugadores",
@@ -1564,7 +1644,8 @@ export const es: Messages = {
     members: "Staff",
     invite: "Invitar por email",
     invitePlaceholder: "compañero@club.com",
-    inviteHint: "Necesita tener cuenta. La respuesta es la misma tanto si el email está registrado como si no.",
+    inviteHint:
+      "Necesita tener cuenta. La respuesta es la misma tanto si el email está registrado como si no.",
     inviteSent: "Si ese email tiene cuenta, ya tiene acceso.",
     roleEditor: "Puede editar",
     roleViewer: "Solo ver",
@@ -1597,7 +1678,8 @@ export const es: Messages = {
     lede: "Jugadores y equipos que sigues. Tras cada sincronización de datos los comparamos con lo que vimos la última vez y te contamos qué ha cambiado: en la campana, por email y, si quieres, en el móvil.",
     players: "Jugadores",
     teams: "Equipos",
-    empty: "Todavía no sigues a nadie. Usa «Seguir» en la ficha de cualquier jugador o equipo.",
+    empty:
+      "Todavía no sigues a nadie. Usa «Seguir» en la ficha de cualquier jugador o equipo.",
     unfollow: "Dejar de seguir",
     thresholds: "Umbrales",
     noThresholds: "Sin umbrales",
@@ -1608,12 +1690,15 @@ export const es: Messages = {
     email: "Resumen por email",
     emailHint: "Un correo tras cada sincronización con todas las novedades.",
     push: "Push en este dispositivo",
-    pushHint: "Una notificación en este móvil u ordenador, aunque la web esté cerrada.",
+    pushHint:
+      "Una notificación en este móvil u ordenador, aunque la web esté cerrada.",
     pushEnable: "Activar",
     pushDisable: "Desactivar",
     pushUnavailable: "Este navegador no admite notificaciones push.",
-    pushNotConfigured: "Las notificaciones push aún no están activadas en el servidor.",
-    pushDenied: "Las notificaciones de esta web están bloqueadas en los ajustes del navegador.",
+    pushNotConfigured:
+      "Las notificaciones push aún no están activadas en el servidor.",
+    pushDenied:
+      "Las notificaciones de esta web están bloqueadas en los ajustes del navegador.",
     recent: "Avisos recientes",
     noRecent: "Aún no hay avisos. Llegarán tras la próxima sincronización.",
     on: "Activado",
@@ -1627,8 +1712,10 @@ export const es: Messages = {
       perGame: "Por partido",
       per40: "Por 40 min",
       per40pace: "Por 40, ajustado a ritmo",
-      paceMissing: "Esta liga no publica ritmo de juego: se muestra por 40 minutos sin ajuste de ritmo.",
-      notQualified: "Aún tiene pocos minutos para compararlo con justicia: se muestra como referencia.",
+      paceMissing:
+        "Esta liga no publica ritmo de juego: se muestra por 40 minutos sin ajuste de ritmo.",
+      notQualified:
+        "Aún tiene pocos minutos para compararlo con justicia: se muestra como referencia.",
       metrics: {
         pts: "Anotación",
         reb: "Rebote",
@@ -1644,7 +1731,8 @@ export const es: Messages = {
     radarMode: {
       absolute: "Números brutos",
       percentile: "Percentil en su liga",
-      percentileHint: "Cada eje es el percentil del jugador dentro de su propia liga y temporada, por 40 minutos y ajustado a ritmo: así se leen en la misma escala jugadores de ligas distintas.",
+      percentileHint:
+        "Cada eje es el percentil del jugador dentro de su propia liga y temporada, por 40 minutos y ajustado a ritmo: así se leen en la misma escala jugadores de ligas distintas.",
     },
     projection: {
       title: "Proyección",
@@ -1657,15 +1745,20 @@ export const es: Messages = {
       actual: "Real",
       projected: "Proyectado",
       minutes: "Minutos",
-      methodTransitions: "Aprendido de {n} jugadores que pasaron de {from} a {to}.",
-      methodModel: "Muy pocos jugadores han hecho este salto como para aprender de ellos, así que se usa el modelo de fuerza de ligas (el mismo que usa el mercado).",
-      methodTier: "En nuestros datos, FEB y la élite (ACB, EuroLeague, NBA) nunca comparten ficha de jugador, así que este salto siempre usa el modelo de fuerza de ligas.",
+      methodTransitions:
+        "Aprendido de {n} jugadores que pasaron de {from} a {to}.",
+      methodModel:
+        "Muy pocos jugadores han hecho este salto como para aprender de ellos, así que se usa el modelo de fuerza de ligas (el mismo que usa el mercado).",
+      methodTier:
+        "En nuestros datos, FEB y la élite (ACB, EuroLeague, NBA) nunca comparten ficha de jugador, así que este salto siempre usa el modelo de fuerza de ligas.",
       empty: "Elige un jugador para proyectarlo.",
-      noLine: "Este jugador no tiene ninguna temporada con minutos suficientes para proyectar.",
+      noLine:
+        "Este jugador no tiene ninguna temporada con minutos suficientes para proyectar.",
       cta: "Proyectar a otra liga",
       cardTitle: "Un nivel más arriba",
       cardLine: "≈ {pts} pts en {mpg} min en {league}",
-      disclaimer: "Es una estimación, no una predicción: el rol, el sistema y la salud pesan más que cualquier media.",
+      disclaimer:
+        "Es una estimación, no una predicción: el rol, el sistema y la salud pesan más que cualquier media.",
     },
   },
   sharePage: {
@@ -1690,13 +1783,17 @@ export const es: Messages = {
     lede: "Lee el catálogo normalizado (jugadores, equipos y ligas de seis competiciones) desde tus propias herramientas. Las claves se emiten bajo petición.",
     request: "Pedir una clave",
     auth: "Autenticación",
-    authBody: "Envía tu clave en la cabecera Authorization en cada petición. Las claves son personales: nunca pongas una en código de navegador.",
+    authBody:
+      "Envía tu clave en la cabecera Authorization en cada petición. Las claves son personales: nunca pongas una en código de navegador.",
     endpoints: "Endpoints",
     quota: "Cuotas",
-    quotaBody: "Cada clave tiene una cuota diaria de peticiones (se ve en X-RateLimit-Remaining). Al superarla, la API responde 429 con Retry-After.",
+    quotaBody:
+      "Cada clave tiene una cuota diaria de peticiones (se ve en X-RateLimit-Remaining). Al superarla, la API responde 429 con Retry-After.",
     attribution: "Atribución",
-    attributionBody: "Cada respuesta lleva meta.attribution. El uso público de los datos debe citar a globalhoopstats.es.",
+    attributionBody:
+      "Cada respuesta lleva meta.attribution. El uso público de los datos debe citar a globalhoopstats.es.",
     errors: "Errores",
-    errorsBody: "401 clave ausente o inválida · 404 jugador desconocido · 400 parámetros incorrectos · 429 cuota superada.",
+    errorsBody:
+      "401 clave ausente o inválida · 404 jugador desconocido · 400 parámetros incorrectos · 429 cuota superada.",
   },
 }

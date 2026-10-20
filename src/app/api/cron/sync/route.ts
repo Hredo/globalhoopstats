@@ -38,7 +38,10 @@ const IN_PROGRESS_WINDOW_MS = 45 * 60_000
 // recognises a replace() that deletes the break, hence the explicit passes
 // after the readable one.
 const oneLine = (s: string) =>
-  s.replace(/[\r\n]+/g, " ").replace(/\n/g, "").replace(/\r/g, "")
+  s
+    .replace(/[\r\n]+/g, " ")
+    .replace(/\n/g, "")
+    .replace(/\r/g, "")
 
 export const dynamic = "force-dynamic"
 
