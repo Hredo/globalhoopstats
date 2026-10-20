@@ -119,9 +119,9 @@ describe("fuzz: JSON-LD cannot break out of its <script>", () => {
         )
         expect(html.match(/<script/gi)?.length).toBe(1)
         expect(html.match(/<\/script/gi)?.length).toBe(1)
-        const body = html
-          .replace(/^<script[^>]*>/, "")
-          .replace(/<\/script>$/, "")
+        // The markup is exactly <script …>BODY</script>; slice it rather
+        // than strip tags with a regex.
+        const body = html.slice(html.indexOf(">") + 1, html.lastIndexOf("</"))
         expect(JSON.parse(body)).toMatchObject({ name, note })
       }),
       { numRuns: 500 },
