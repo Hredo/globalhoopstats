@@ -53,14 +53,20 @@ type RequestErrorContext = {
  * Every uncaught server error (render, route handler, server action) lands in
  * `app_errors`, grouped by fingerprint — see lib/ops/errors.ts. Node runtime
  * only (it needs the database), and it must never throw: a broken database is
- * one of the errors it would be reporting.
+ * one of the errors it would be reporting. Production only: a local `pnpm dev`
+ * pointed at the shared database would otherwise file its hot-reload errors in
+ * the admin panel next to the real ones.
  */
 export async function onRequestError(
   error: unknown,
   request: { path: string; method: string },
   context: RequestErrorContext,
 ) {
-  if (process.env.NEXT_RUNTIME !== "nodejs") return
+  if (
+    process.env.NEXT_RUNTIME !== "nodejs" ||
+    process.env.NODE_ENV !== "production"
+  )
+    return
   try {
     const { recordError } = await import("@/lib/ops/errors")
     await recordError({
