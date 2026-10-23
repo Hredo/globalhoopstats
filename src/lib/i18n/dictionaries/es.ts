@@ -1557,6 +1557,20 @@ export const es: Messages = {
       "Obtén la experiencia de app completa con soporte offline.",
     installAction: "Instalar",
   },
+  notFoundPage: {
+    eyebrow: "404 · Tiro fallado",
+    title: "Ni tocó el aro.",
+    body: "Esta página no existe. Puede que el enlace esté roto, que el jugador haya cambiado de equipo o que la temporada aún se esté cargando.",
+    shotLine: "PÁGINA  0-1 TC · 0 PTS",
+    shotAlt:
+      "Mapa de tiro: un único lanzamiento desde el triple que no toca el aro.",
+    players: "Ver jugadores",
+    compare: "Comparar jugadores",
+    home: "Volver al inicio",
+    gameTitle: "Ya que estás en la pista",
+    gameBody:
+      "Salta a los defensores y machaca cuando pase un aro. Haz clic en la pista y usa Espacio o ↑ para saltar; mantenlo para llegar al aro.",
+  },
   cookies: {
     bannerAria: "Aviso de cookies",
     message:
