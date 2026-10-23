@@ -28,9 +28,15 @@ adapter calls `fetch` directly.
    do not disguise the crawler as a browser. This signals good faith and keeps
    the door open to official data agreements (FEB → FIBA, etc.).
 2. **Low, self-imposed request rate.** Requests to a single host are serialized
-   and spaced (`SCRAPER_MIN_HOST_INTERVAL_MS`, default 1200 ms). FEB enrichment
-   adds extra jitter on top.
+   and spaced (`SCRAPER_MIN_HOST_INTERVAL_MS`, default 1200 ms). Hosts with a
+   published limit get a longer gap: Basketball-Reference allows ~20
+   requests/minute, so it is spaced 3.5 s. FEB enrichment adds extra jitter on top.
 3. **Respect back-pressure.** We honor `Retry-After` and back off on 429/503.
+   A 4xx refusal (403, 404…) is never retried: retrying a block only prolongs it.
+   On the NBA, Basketball-Reference is a supplement (advanced metrics, coaches,
+   standings), so a BR refusal skips those parts and the league still syncs.
+   EuroLeague and ACB stats come only from BR; a BR block there fails the league
+   and the quality gate keeps the last good data.
 4. **Public data only.** We do not bypass paywalls, authentication or access
    controls; we collect only statistics already published openly.
 5. **Add value, don't redistribute raw.** Our product is the cross-league
