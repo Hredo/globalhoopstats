@@ -13,19 +13,45 @@
 // string, so it cannot 500 on any runtime. Same URL as before, so
 // already-registered clients also start getting 200s.
 
-const SW_SCRIPT = `// globalhoopstats service worker (minimal, no precache).
-self.addEventListener("install", () => {
-  self.skipWaiting();
+const SW_SCRIPT = `// globalhoopstats service worker (minimal: only the offline page is cached).
+const OFFLINE_CACHE = "ghs-offline-v1";
+const OFFLINE_URL = "/offline.html";
+
+self.addEventListener("install", (event) => {
+  // A failed precache must not stop the worker from installing.
+  event.waitUntil(
+    caches.open(OFFLINE_CACHE)
+      .then((cache) => cache.addAll([OFFLINE_URL, "/hoop-game.js"]))
+      .catch(() => {})
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("ghs-offline-") && k !== OFFLINE_CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
 });
 
-// Network-only passthrough. A fetch handler is required for the app to stay
-// installable as a PWA; we intentionally do not cache so no stale HTML/API
-// responses are ever served.
-self.addEventListener("fetch", () => {});
+// Network-only, so no stale HTML/API response is ever served. The one
+// exception: a page navigation that fails outright (no connection) gets the
+// cached offline page with the mini-game instead of the browser's error.
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  if (req.mode === "navigate") {
+    event.respondWith(
+      fetch(req).catch(() =>
+        caches.match(OFFLINE_URL).then((res) => res || Response.error())
+      )
+    );
+    return;
+  }
+  if (new URL(req.url).pathname === "/hoop-game.js") {
+    event.respondWith(fetch(req).catch(() => caches.match(req).then((res) => res || Response.error())));
+  }
+});
 
 // Alerts (lib/alerts/push.ts). The payload is { title, body, href }; href is
 // always a same-site path, and anything else falls back to /following.

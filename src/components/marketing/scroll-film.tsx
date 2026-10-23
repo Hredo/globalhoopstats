@@ -39,7 +39,12 @@ const smoothstep = (v: number) => v * v * (3 - 2 * v)
  * the move settles without ever overshooting — no bounce at the end of a
  * flick, which on a camera reads as the footage wobbling.
  */
-const FILM_SPRING = { stiffness: 140, damping: 24, mass: 0.6, restDelta: 0.0002 }
+const FILM_SPRING = {
+  stiffness: 140,
+  damping: 24,
+  mass: 0.6,
+  restDelta: 0.0002,
+}
 
 /**
  * Full-bleed scroll film. One sticky viewport driven by a single scroll
@@ -77,7 +82,10 @@ export function ScrollFilm({
   const { theme } = useTheme()
   const isLight = theme === "light"
   const reel = isLight ? light : dark
-  const reduce = useReducedMotion()
+  // Server-rendered as the film: rendering the static hero first and swapping
+  // in the film after hydration re-mounted the poster, so LCP waited for all of
+  // the page's JavaScript.
+  const reduce = useReducedMotion(false)
 
   const [saveData, setSaveData] = useState(false)
   useEffect(() => {
@@ -89,10 +97,9 @@ export function ScrollFilm({
   /**
    * Derived, never latched.
    *
-   * useReducedMotion() reports `true` during hydration (its server snapshot is
-   * the content-safe guess). A latch set from the first effect pass used to
-   * keep the static hero for every visitor once the real `false` arrived, and
-   * the film was dead in production.
+   * Hydration sees the server's guess, not the visitor's setting. A latch set
+   * from the first effect pass once kept the static hero for every visitor
+   * after the real value arrived, and the film was dead in production.
    */
   const compact = reduce || saveData
 
@@ -174,29 +181,46 @@ function Film({
      A slow dolly-in across the whole film, then a hard push as the ball
      comes at the lens. The smear is a blur that only exists while the ball
      is in flight; at rest the footage is pin-sharp. */
-  const cameraScale = useTransform(progress, [0, RECOIL, 0.99], [1, 1.045, 1.16], {
-    ease: smoothstep,
-  })
+  const cameraScale = useTransform(
+    progress,
+    [0, RECOIL, 0.99],
+    [1, 1.045, 1.16],
+    {
+      ease: smoothstep,
+    },
+  )
   const smear = useTransform(progress, [THROW, 0.965, 0.99], [0, 2.5, 6])
   // "none" at rest rather than blur(0px): a filter of any value keeps a
   // full-viewport offscreen layer alive for the whole film.
-  const cameraFilter = useTransform(smear, (s) => (s < 0.05 ? "none" : `blur(${s.toFixed(2)}px)`))
+  const cameraFilter = useTransform(smear, (s) =>
+    s < 0.05 ? "none" : `blur(${s.toFixed(2)}px)`,
+  )
 
   /* ── light ────────────────────────────────────────────────────────────
      The vignette closes in as the shot tightens on the ball; just before the
      hit a warm leather-orange bloom builds up, then the white flash, then the
      frame settles to the page background so the next section has no seam. */
   const vignette = useTransform(progress, [0.05, 0.8, 0.95], [0, 0.45, 0.75])
-  const bloom = useTransform(progress, [THROW + 0.005, 0.965, 0.985], [0, 0.55, 0])
+  const bloom = useTransform(
+    progress,
+    [THROW + 0.005, 0.965, 0.985],
+    [0, 0.55, 0],
+  )
   const flash = useTransform(progress, [IMPACT_IN, 0.985], [0, 0.92], {
     ease: smoothstep,
   })
   const settle = useTransform(progress, [0.98, 1], [0, 1], { ease: smoothstep })
 
   /* ── type ─────────────────────────────────────────────────────────────── */
-  const headOpacity = useTransform(progress, [0, HEAD_OUT * 0.55, HEAD_OUT], [1, 1, 0])
+  const headOpacity = useTransform(
+    progress,
+    [0, HEAD_OUT * 0.55, HEAD_OUT],
+    [1, 1, 0],
+  )
   const headY = useTransform(progress, [0, HEAD_OUT], [0, -28])
-  const headEvents = useTransform(headOpacity, (o) => (o > 0.4 ? "auto" : "none"))
+  const headEvents = useTransform(headOpacity, (o) =>
+    o > 0.4 ? "auto" : "none",
+  )
   const hintOpacity = useTransform(progress, [0, 0.025, 0.045], [1, 1, 0])
   const railScale = useTransform(progress, [0, 1], [0, 1])
 
@@ -211,9 +235,20 @@ function Film({
     const ctx = canvas.getContext("2d", { alpha: false })
     if (!ctx) return
 
-    const { framePath, frames } = reel
-    const src = (i: number) => `${framePath}/f${String(i).padStart(3, "0")}.webp`
-    const images: (HTMLImageElement | null)[] = Array.from({ length: frames }, () => null)
+    const { frames } = reel
+    // A phone held upright only ever shows the centre third of a 16:9 frame, so
+    // it gets a 9:16 centre crop (`{reel}-portrait`) at about half the bytes.
+    // Wider portrait screens (tablets) would be zoomed in by it, so they don't.
+    const framePath =
+      window.innerWidth / window.innerHeight <= 0.6
+        ? `${reel.framePath}-portrait`
+        : reel.framePath
+    const src = (i: number) =>
+      `${framePath}/f${String(i).padStart(3, "0")}.webp`
+    const images: (HTMLImageElement | null)[] = Array.from(
+      { length: frames },
+      () => null,
+    )
     let disposed = false
     let lastKey = ""
 
@@ -265,6 +300,9 @@ function Film({
         drawCover(images[hi]!)
         ctx.globalAlpha = 1
       }
+      // An opaque canvas is black until its first frame; the poster under it
+      // stays the visible hero until there is footage to replace it.
+      canvas.style.visibility = "visible"
     }
     paintRef.current = paint
 
@@ -285,7 +323,10 @@ function Film({
         if (images[i]) return resolve()
         const img = new window.Image()
         img.decoding = "async"
-        img.onload = () => {
+        img.onload = async () => {
+          // Decode off the main thread before the first drawImage; otherwise
+          // every frame is decoded synchronously inside paint().
+          await img.decode().catch(() => {})
           if (!disposed) {
             images[i] = img
             lastKey = ""
@@ -297,7 +338,29 @@ function Film({
         img.src = src(i)
       })
 
-    void (async () => {
+    /*
+     * The footage is ~12 MB. Fetching and decoding it during page load made the
+     * homepage's LCP and blocking time the worst in the app (Lighthouse mobile
+     * 46), and most visitors who never scroll paid for frames they never saw.
+     * The poster is the hero until the visitor shows intent to move.
+     */
+    const INTENT = [
+      "scroll",
+      "wheel",
+      "touchstart",
+      "pointerdown",
+      "pointermove",
+      "keydown",
+    ] as const
+    let started = false
+    const start = () => {
+      if (started) return
+      started = true
+      for (const e of INTENT) window.removeEventListener(e, start)
+      void loadAll()
+    }
+
+    const loadAll = async () => {
       const pass = async (step: number) => {
         const batch: Promise<void>[] = []
         for (let i = 0; i < frames; i += step) {
@@ -312,7 +375,7 @@ function Film({
       }
       if (await pass(10)) return
       await pass(1)
-    })()
+    }
 
     // Hidden tabs never run animation frames, so the spring would sit still
     // while the page scrolls underneath it; paint straight from the scroll
@@ -327,8 +390,14 @@ function Film({
     size()
     window.addEventListener("resize", size)
     window.addEventListener("scroll", onScroll, { passive: true })
+    // Restored scroll position (back navigation) is intent already.
+    if (window.scrollY > 0) start()
+    else
+      for (const e of INTENT)
+        window.addEventListener(e, start, { passive: true })
     return () => {
       disposed = true
+      for (const e of INTENT) window.removeEventListener(e, start)
       paintRef.current = () => {}
       window.removeEventListener("resize", size)
       window.removeEventListener("scroll", onScroll)
@@ -343,7 +412,9 @@ function Film({
     ? undefined
     : "0 1px 2px rgba(0,0,0,0.9), 0 2px 12px rgba(0,0,0,0.7), 0 0 40px rgba(0,0,0,0.55)"
   const subColor = isLight ? "#0b0b0d" : "rgba(255,255,255,0.94)"
-  const subShadow = isLight ? undefined : "0 1px 2px rgba(0,0,0,0.95), 0 0 20px rgba(0,0,0,0.7)"
+  const subShadow = isLight
+    ? undefined
+    : "0 1px 2px rgba(0,0,0,0.95), 0 0 20px rgba(0,0,0,0.7)"
   const scrim = isLight
     ? "linear-gradient(90deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.14) 34%, rgba(255,255,255,0.14) 66%, rgba(255,255,255,0.72) 100%)"
     : "linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 36%, rgba(0,0,0,0.2) 64%, rgba(0,0,0,0.8) 100%)"
@@ -351,14 +422,22 @@ function Film({
   const seg = texts.length > 0 ? (TEXT_OUT - TEXT_IN) / texts.length : 1
 
   return (
-    <section ref={rootRef} className="full-bleed relative" style={{ height: "620vh" }}>
+    <section
+      ref={rootRef}
+      className="full-bleed relative"
+      style={{ height: "620vh" }}
+    >
       <div className="sticky top-0 h-svh w-full overflow-hidden bg-black">
         {/* L0 + L1 — poster (also the SSR/pre-JS paint) under the scrubbed
             canvas, moved together as one camera. */}
         <motion.div
           aria-hidden
           className="absolute inset-0 will-change-transform"
-          style={{ scale: cameraScale, filter: cameraFilter, transformOrigin: "50% 55%" }}
+          style={{
+            scale: cameraScale,
+            filter: cameraFilter,
+            transformOrigin: "50% 55%",
+          }}
         >
           <Image
             key={reel.intro}
@@ -369,7 +448,10 @@ function Film({
             sizes="100vw"
             className="object-cover"
           />
-          <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+          <canvas
+            ref={canvasRef}
+            className="invisible absolute inset-0 h-full w-full"
+          />
         </motion.div>
 
         {/* readability scrim — keeps big type legible over bright or dark
@@ -416,7 +498,9 @@ function Film({
             progress={progress}
             start={TEXT_IN + i * seg}
             end={TEXT_IN + (i + 1) * seg}
-            side={i === texts.length - 1 ? "center" : i % 2 === 0 ? "left" : "right"}
+            side={
+              i === texts.length - 1 ? "center" : i % 2 === 0 ? "left" : "right"
+            }
             hookShadow={hookShadow}
             subColor={subColor}
             subShadow={subShadow}
@@ -450,7 +534,9 @@ function Film({
           className="pointer-events-none absolute inset-0 z-30"
           style={{
             opacity: settle,
-            background: isLight ? "oklch(0.965 0.008 82)" : "oklch(0.19 0.015 54)",
+            background: isLight
+              ? "oklch(0.965 0.008 82)"
+              : "oklch(0.19 0.015 54)",
           }}
         />
 
@@ -472,7 +558,11 @@ function Film({
           <motion.span
             className="ml-2 inline-block"
             animate={{ y: [0, 7], opacity: [1, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: [0.16, 1, 0.3, 1] }}
+            transition={{
+              duration: 1.5,
+              repeat: Infinity,
+              ease: [0.16, 1, 0.3, 1],
+            }}
           >
             ↓
           </motion.span>
@@ -510,9 +600,20 @@ function FilmLine({
   const sign = side === "center" ? 0 : side === "left" ? -1 : 1
   const center = side === "center"
 
-  const opacity = useTransform(progress, range, [0, 1, 1, 0], { ease: smoothstep })
-  const x = useTransform(progress, range, [sign * 64, 0, 0, sign * 44], { ease: smoothstep })
-  const scale = useTransform(progress, range, [0.92, 1, 1, 0.95], { ease: smoothstep })
+  const opacity = useTransform(progress, range, [0, 1, 1, 0], {
+    ease: smoothstep,
+  })
+  const x = useTransform(progress, range, [sign * 64, 0, 0, sign * 44], {
+    ease: smoothstep,
+  })
+  const scale = useTransform(progress, range, [0.92, 1, 1, 0.95], {
+    ease: smoothstep,
+  })
+  // Hidden rather than merely transparent while out of its window: a
+  // transparent line still counts as layout shift when the web font swaps in.
+  const visibility = useTransform(opacity, (o) =>
+    o > 0.001 ? "visible" : "hidden",
+  )
 
   return (
     <div
@@ -529,6 +630,7 @@ function FilmLine({
       <motion.div
         style={{
           opacity,
+          visibility,
           x,
           scale,
           // The final line sits dead-centre over the close-up ball where the
@@ -546,7 +648,9 @@ function FilmLine({
         <p
           className={[
             "font-display font-semibold leading-[0.98] tracking-[-0.015em] text-balance text-white",
-            center ? "text-5xl sm:text-6xl lg:text-7xl" : "text-4xl sm:text-6xl lg:text-7xl",
+            center
+              ? "text-5xl sm:text-6xl lg:text-7xl"
+              : "text-4xl sm:text-6xl lg:text-7xl",
           ].join(" ")}
           style={{
             color: center ? "#fff" : undefined,

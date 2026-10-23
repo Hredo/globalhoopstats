@@ -13,10 +13,12 @@ function subscribe(callback: () => void): () => void {
   return () => mq.removeEventListener("change", callback)
 }
 
-function getServerSnapshot(): boolean {
-  return true
-}
-
-export function useReducedMotion(): boolean {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+/**
+ * `serverValue` is what the server render (and hydration) assumes. The safe
+ * default is `true`; pass `false` where swapping the markup after hydration
+ * costs more than a few frames of motion for reduced-motion visitors — the
+ * homepage hero, whose poster is the LCP element and must not be re-mounted.
+ */
+export function useReducedMotion(serverValue = true): boolean {
+  return useSyncExternalStore(subscribe, getSnapshot, () => serverValue)
 }

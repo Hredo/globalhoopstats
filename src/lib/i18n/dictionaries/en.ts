@@ -1521,6 +1521,20 @@ export const en = {
       "Get the full-screen app experience with offline support.",
     installAction: "Install",
   },
+  notFoundPage: {
+    eyebrow: "404 · Shot missed",
+    title: "Airball.",
+    body: "This page doesn't exist. The link may be broken, the player may have changed teams, or the season is still being loaded.",
+    shotLine: "PAGE  0-1 FG · 0 PTS",
+    shotAlt:
+      "Shot chart: a single shot from beyond the arc that misses the rim entirely.",
+    players: "Browse players",
+    compare: "Compare players",
+    home: "Back to home",
+    gameTitle: "Since you're on the court",
+    gameBody:
+      "Jump the defenders and dunk when a hoop comes by. Click the court, then Space or ↑ to jump; hold it to reach the rim.",
+  },
   cookies: {
     bannerAria: "Cookie notice",
     message:
