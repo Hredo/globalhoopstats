@@ -43,7 +43,9 @@ function pickNumber(row: Raw, keys: string[]): number | undefined {
 async function fetchHtml(url: string): Promise<string> {
   // Routed through the shared polite fetcher (identifiable UA, per-host rate
   // limiting, Retry-After handling). Only the language hint is ACB-specific.
-  return fetchText(url, { headers: { "Accept-Language": "es-ES,es;q=0.9,en;q=0.8" } })
+  return fetchText(url, {
+    headers: { "Accept-Language": "es-ES,es;q=0.9,en;q=0.8" },
+  })
 }
 
 function unescapeJsonString(s: string): string {
@@ -161,17 +163,24 @@ function extractRscObject(rsc: string, key: string): Raw | null {
 }
 
 function extractRscArray(rsc: string, key: string): Raw[] {
+  // The key is not unique in the payload: since 2026-10 acb.com ships an i18n
+  // dictionary (`"teams":"Equipos"`) ahead of the data, so take the first
+  // occurrence that actually holds an array.
   const marker = `"${key}":`
-  const idx = rsc.indexOf(marker)
-  if (idx < 0) return []
-  const span = findBalancedArray(rsc, idx + marker.length)
-  if (!span) return []
-  const text = rsc.slice(span.start, span.end + 1)
-  try {
-    return JSON.parse(text) as Raw[]
-  } catch {
-    return []
+  for (
+    let idx = rsc.indexOf(marker);
+    idx >= 0;
+    idx = rsc.indexOf(marker, idx + marker.length)
+  ) {
+    const span = findBalancedArray(rsc, idx + marker.length)
+    if (!span) continue
+    try {
+      return JSON.parse(rsc.slice(span.start, span.end + 1)) as Raw[]
+    } catch {
+      return []
+    }
   }
+  return []
 }
 
 function unwrapTeam(t: Raw): Raw {
@@ -410,7 +419,7 @@ async function fetchAllRosters(teams: AcbTeam[]): Promise<Map<string, Roster>> {
 /** Normalises ACB team names that differ from the EuroLeague / BR counterpart so
  *  the orchestrator's `slugify` produces the same slug for the same club. */
 const SHARED_TEAM_NAME: Partial<Record<string, string>> = {
-  "Barça": "Barcelona",
+  Barça: "Barcelona",
   "Kosner Baskonia": "Baskonia",
 }
 
@@ -599,9 +608,10 @@ export const acbAdapter: SourceAdapter = {
       const tsPct =
         fgaTotal > 0
           ? Number(
-              (Math.round(pts * g) / (2 * (fgaTotal + 0.44 * ftaTotal))).toFixed(
-                3,
-              ),
+              (
+                Math.round(pts * g) /
+                (2 * (fgaTotal + 0.44 * ftaTotal))
+              ).toFixed(3),
             )
           : null
       out.push({
