@@ -1,4 +1,5 @@
 import {
+  FetchError,
   fetchJson,
   fetchText,
   fetchTextIfPublished,
@@ -86,6 +87,17 @@ async function fetchBrHtml(url: string): Promise<string | null> {
   })
 }
 
+/**
+ * BR only supplements the NBA sync (advanced metrics, coaches, standings); the
+ * players and box-score totals come from stats.nba.com. A BR refusal — a 403
+ * IP jail, a 429, an outage — degrades to "no BR data this run" instead of
+ * failing the whole league. Parser bugs are not FetchErrors and still throw.
+ */
+function skipBr<T>(what: string, err: unknown): T[] {
+  if (!(err instanceof FetchError)) throw err
+  console.warn(`[nba] BR ${what} skipped — ${err.message}`)
+  return []
+}
 
 function getRowCells(row: string): Map<string, string> {
   const cells = new Map<string, string>()
@@ -130,7 +142,9 @@ const SEASON_END_YEAR = nbaSeasonYearEnd()
 /** playerindex height, e.g. "6-8" (feet-inches) → centimetres. */
 function parseFeetInches(raw: unknown): number | undefined {
   if (raw == null) return undefined
-  const m = String(raw).trim().match(/^(\d+)\s*-\s*(\d+(?:\.\d+)?)$/)
+  const m = String(raw)
+    .trim()
+    .match(/^(\d+)\s*-\s*(\d+(?:\.\d+)?)$/)
   if (!m) return undefined
   const inches = Number(m[1]) * 12 + Number(m[2])
   return inches > 0 ? Math.round(inches * 2.54) : undefined
@@ -279,7 +293,12 @@ export const nbaAdapter: SourceAdapter = {
     const indexRows = readResultSet(indexPayload, "PlayerIndex")
 
     // Optional enrichment; a failure here must not cost us the roster.
-    type Bio = { age?: number; heightCm?: number; weightKg?: number; country?: string }
+    type Bio = {
+      age?: number
+      heightCm?: number
+      weightKg?: number
+      country?: string
+    }
     const bioById = new Map<string, Bio>()
     try {
       const bioUrl =
@@ -295,8 +314,10 @@ export const nbaAdapter: SourceAdapter = {
         const weightLbs = Number(r.PLAYER_WEIGHT ?? 0)
         bioById.set(String(r.PLAYER_ID), {
           age: r.AGE != null ? Number(r.AGE) : undefined,
-          heightCm: heightInches > 0 ? Math.round(heightInches * 2.54) : undefined,
-          weightKg: weightLbs > 0 ? Math.round(weightLbs * 0.453592) : undefined,
+          heightCm:
+            heightInches > 0 ? Math.round(heightInches * 2.54) : undefined,
+          weightKg:
+            weightLbs > 0 ? Math.round(weightLbs * 0.453592) : undefined,
           country: r.COUNTRY ? String(r.COUNTRY) : undefined,
         })
       }
@@ -308,7 +329,9 @@ export const nbaAdapter: SourceAdapter = {
     const out: SourcePlayer[] = []
     for (const r of indexRows) {
       const id = r.PERSON_ID
-      const first = r.PLAYER_FIRST_NAME ? String(r.PLAYER_FIRST_NAME).trim() : ""
+      const first = r.PLAYER_FIRST_NAME
+        ? String(r.PLAYER_FIRST_NAME).trim()
+        : ""
       const last = r.PLAYER_LAST_NAME ? String(r.PLAYER_LAST_NAME).trim() : ""
       const fullName = `${first} ${last}`.trim()
       if (id == null || !fullName) continue
@@ -430,20 +453,15 @@ export const nbaAdapter: SourceAdapter = {
         const cells = getRowCells(row)
         const playerName = cells.get("player") ?? cells.get("name_display")
         if (!playerName) continue
-        advByPlayerName.set(
-          normalizeName(playerName),
-          {
-            per: toNumberOrNull(cells.get("per")) ?? null,
-            winShares: toNumberOrNull(cells.get("ws")) ?? null,
-            bpm: toNumberOrNull(cells.get("bpm")) ?? null,
-          },
-        )
+        advByPlayerName.set(normalizeName(playerName), {
+          per: toNumberOrNull(cells.get("per")) ?? null,
+          winShares: toNumberOrNull(cells.get("ws")) ?? null,
+          bpm: toNumberOrNull(cells.get("bpm")) ?? null,
+        })
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      console.warn(
-        `[nba] BR advanced stats unavailable — ${message}`,
-      )
+      console.warn(`[nba] BR advanced stats unavailable — ${message}`)
     }
 
     const out: ExtractedPlayerStat[] = []
@@ -490,7 +508,12 @@ export const nbaAdapter: SourceAdapter = {
 
   async fetchCoaches(): Promise<SourceCoach[]> {
     const url = `${BR_BASE}/leagues/NBA_${SEASON_END_YEAR}_coaches.html`
-    const html = await fetchBrHtml(url)
+    let html: string | null
+    try {
+      html = await fetchBrHtml(url)
+    } catch (err) {
+      return skipBr("coaches", err)
+    }
     if (!html) {
       console.warn(`[nba] ${SEASON_END_YEAR} coaches page not published yet`)
       return []
@@ -527,7 +550,12 @@ export const nbaAdapter: SourceAdapter = {
 
   async fetchTeamStats(): Promise<SourceTeamStats[]> {
     const url = `${BR_BASE}/leagues/NBA_${SEASON_END_YEAR}.html`
-    const html = await fetchBrHtml(url)
+    let html: string | null
+    try {
+      html = await fetchBrHtml(url)
+    } catch (err) {
+      return skipBr("standings", err)
+    }
     if (!html) {
       console.warn(`[nba] ${SEASON_END_YEAR} season page not published yet`)
       return []

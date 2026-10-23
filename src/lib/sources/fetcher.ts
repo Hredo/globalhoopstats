@@ -25,6 +25,21 @@ const MIN_HOST_INTERVAL_MS = Number(
   process.env.SCRAPER_MIN_HOST_INTERVAL_MS ?? 1200,
 )
 
+/**
+ * Hosts that publish a stricter limit than our default gap. Sports-Reference
+ * (basketball-reference.com) allows ~20 requests/minute and jails an offending
+ * IP for up to a day, answering 403 until the jail lifts — the default 1.2 s
+ * gap (~50/min) is the likely cause of the 403s the production sync started
+ * getting there in 2026-10. 3.5 s ≈ 17/min.
+ */
+const HOST_MIN_INTERVAL_MS: Record<string, number> = {
+  "www.basketball-reference.com": 3_500,
+}
+
+export function minIntervalFor(host: string): number {
+  return Math.max(MIN_HOST_INTERVAL_MS, HOST_MIN_INTERVAL_MS[host] ?? 0)
+}
+
 const hostChains = new Map<string, Promise<void>>()
 const lastHostHit = new Map<string, number>()
 
@@ -45,7 +60,7 @@ async function withHostSlot<T>(host: string, fn: () => Promise<T>): Promise<T> {
   const prev = hostChains.get(host) ?? Promise.resolve()
   const run = prev.then(async () => {
     const since = Date.now() - (lastHostHit.get(host) ?? 0)
-    const wait = MIN_HOST_INTERVAL_MS - since
+    const wait = minIntervalFor(host) - since
     if (wait > 0) await sleep(wait)
     try {
       return await fn()
@@ -88,6 +103,17 @@ export type FetchInit = {
   backoffMs?: number
 }
 
+/**
+ * Whether a failed request is worth repeating. A 4xx is the server's answer,
+ * not a hiccup: retrying a 403 only adds hits to an IP the source has already
+ * blocked and keeps the block alive. Timeouts, 408, 429 and 5xx are transient.
+ */
+export function isRetryable(err: unknown): boolean {
+  if (!(err instanceof FetchError) || err.status === undefined) return true
+  if (err.status === 408 || err.status === 429) return true
+  return err.status < 400 || err.status >= 500
+}
+
 /** Parse an HTTP `Retry-After` header (delta-seconds or HTTP-date) into ms. */
 function parseRetryAfter(value: string | null): number | undefined {
   if (!value) return undefined
@@ -103,7 +129,8 @@ function parseRetryAfter(value: string | null): number | undefined {
 /**
  * Polite, identifiable HTTP fetch returning the raw response body as text.
  * Applies: honest UA, per-host rate limiting, timeout, bounded retries with
- * backoff, and respect for the server's `Retry-After` on 429/503.
+ * backoff (transient failures only), and respect for the server's
+ * `Retry-After` on 429/503.
  */
 async function politeFetch(url: string, init: FetchInit = {}): Promise<string> {
   const {
@@ -142,9 +169,11 @@ async function politeFetch(url: string, init: FetchInit = {}): Promise<string> {
             headers: finalHeaders,
             signal: controller.signal,
           })
+          // The host goes in the message: "HTTP 403" alone in the admin sync
+          // log cannot say which of a league's sources refused us.
           if (res.status === 429 || res.status === 503) {
             throw new FetchError(
-              `HTTP ${res.status} ${res.statusText}`,
+              `HTTP ${res.status} ${res.statusText} from ${host}`,
               res.status,
               url,
               parseRetryAfter(res.headers.get("retry-after")),
@@ -152,7 +181,7 @@ async function politeFetch(url: string, init: FetchInit = {}): Promise<string> {
           }
           if (!res.ok) {
             throw new FetchError(
-              `HTTP ${res.status} ${res.statusText}`,
+              `HTTP ${res.status} ${res.statusText} from ${host}`,
               res.status,
               url,
             )
@@ -164,6 +193,7 @@ async function politeFetch(url: string, init: FetchInit = {}): Promise<string> {
       })
     } catch (err) {
       lastError = err
+      if (!isRetryable(err)) break
       if (attempt < retries) {
         const retryAfter =
           err instanceof FetchError ? err.retryAfterMs : undefined
