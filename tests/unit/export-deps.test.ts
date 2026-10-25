@@ -54,10 +54,26 @@ describe("patched transitive dependencies stay patched", () => {
     }
   })
 
-  it("resolves undici above the cache-directive disclosure fixes", () => {
+  it("resolves undici above the 2026-10 content-encoding/EventSource/SRI fixes", () => {
     const versions = resolvedVersions("undici")
     for (const v of versions) {
-      expect(atLeast(v, "7.29.1"), `undici ${v} is below 7.29.1`).toBe(true)
+      expect(atLeast(v, "7.30.1"), `undici ${v} is below 7.30.1`).toBe(true)
+    }
+  })
+
+  it("resolves every zod copy above the oversized-collection memory fix", () => {
+    const versions = resolvedVersions("zod")
+    expect(versions.length).toBeGreaterThan(0)
+    for (const v of versions) {
+      expect(atLeast(v, "4.6.6"), `zod ${v} is below 4.6.6`).toBe(true)
+    }
+  })
+
+  it("resolves nodemailer above the addressparser recipient-injection fixes", () => {
+    const versions = resolvedVersions("nodemailer")
+    expect(versions.length).toBeGreaterThan(0)
+    for (const v of versions) {
+      expect(atLeast(v, "10.1.4"), `nodemailer ${v} is below 10.1.4`).toBe(true)
     }
   })
 

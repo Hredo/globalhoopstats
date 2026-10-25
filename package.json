@@ -76,14 +76,14 @@
     "motion": "^14.0.0",
     "mysql2": "^3.23.2",
     "next": "^15.5.28",
-    "nodemailer": "^10.0.9",
+    "nodemailer": "^10.1.4",
     "p-limit": "^7.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "three": "^0.185.0",
     "web-push": "^3.6.7",
     "xlsx-js-style": "^1.2.0",
-    "zod": "^4.4.3"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.0.0",
