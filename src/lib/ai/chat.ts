@@ -181,7 +181,8 @@ export function vendorRetryDelayMs(
   return undefined
 }
 
-const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 /** The shape `withThrottleRetry` needs to see. Both dispatchers return it. */
 export type ThrottleAware = {
@@ -261,6 +262,54 @@ function repetitionControls(provider: AiProvider): Record<string, number> {
   return { frequency_penalty: 0.4, presence_penalty: 0.1 }
 }
 
+/**
+ * Rewrite a request body after the vendor rejected one of its optional
+ * parameters with a 400, or return null when there is nothing left to drop.
+ *
+ * Optional knobs are where vendors disagree, and a model that refuses one is
+ * still a model that would answer without it. OpenAI's reasoning models (GPT-5
+ * onwards) refuse `max_tokens` in favour of `max_completion_tokens` and accept
+ * only the default temperature; a few hosts refuse the penalties. Each 400
+ * names the parameter, so each retry removes exactly that one — never the
+ * model or the prompt.
+ */
+export function adaptToRejection(
+  body: Record<string, unknown>,
+  detail: string,
+): Record<string, unknown> | null {
+  const text = detail.toLowerCase()
+  const next = { ...body }
+  if (
+    text.includes("penalty") &&
+    ("frequency_penalty" in next || "presence_penalty" in next)
+  ) {
+    delete next.frequency_penalty
+    delete next.presence_penalty
+    return next
+  }
+  if ("max_tokens" in next && text.includes("max_tokens")) {
+    next.max_completion_tokens = next.max_tokens
+    delete next.max_tokens
+    return next
+  }
+  if (
+    "max_completion_tokens" in next &&
+    text.includes("max_completion_tokens")
+  ) {
+    next.max_tokens = next.max_completion_tokens
+    delete next.max_completion_tokens
+    return next
+  }
+  if ("temperature" in next && text.includes("temperature")) {
+    delete next.temperature
+    return next
+  }
+  return null
+}
+
+/** One per optional knob `adaptToRejection` can drop. */
+const MAX_ADAPTATIONS = 3
+
 /** OpenAI, OpenAI-compatible vendors, and local Ollama all share this shape. */
 async function chatOpenAiCompatible(input: ChatInput): Promise<ChatResult> {
   const isLocal = input.provider.kind === "local"
@@ -289,32 +338,39 @@ async function chatOpenAiCompatible(input: ChatInput): Promise<ChatResult> {
     headers["X-Title"] = "globalhoopstats"
   }
 
-  const base: Record<string, unknown> = {
+  // OpenAI deprecated `max_tokens` for `max_completion_tokens`, which every
+  // current OpenAI model accepts; the compatible vendors still expect the old
+  // name. Either way `adaptToRejection` swaps it if the model disagrees.
+  const tokenField =
+    input.provider.kind === "openai" ? "max_completion_tokens" : "max_tokens"
+  let body: Record<string, unknown> = {
     model: input.model,
-    messages: [
-      { role: "system", content: input.system },
-      ...input.messages,
-    ],
-    max_tokens: input.maxTokens ?? 700,
+    messages: [{ role: "system", content: input.system }, ...input.messages],
+    [tokenField]: input.maxTokens ?? 700,
     temperature: input.temperature ?? 0.6,
     stream: false,
+    ...repetitionControls(input.provider),
   }
 
   return withTimeout(async (signal) => {
-    const post = (body: Record<string, unknown>) =>
+    const post = (payload: Record<string, unknown>) =>
       fetch(`${baseUrl}/chat/completions`, {
         method: "POST",
         headers,
         signal,
-        body: JSON.stringify(body),
+        body: JSON.stringify(payload),
       })
 
-    let res = await post({ ...base, ...repetitionControls(input.provider) })
-    if (res.status === 400) {
-      // A vendor that rejects the penalties (they are optional in the spec and
-      // a few models refuse them) must still answer, just without the guard.
-      const detail = (await res.clone().text().catch(() => "")).toLowerCase()
-      if (detail.includes("penalty")) res = await post(base)
+    let res = await post(body)
+    for (let i = 0; i < MAX_ADAPTATIONS && res.status === 400; i++) {
+      const detail = await res
+        .clone()
+        .text()
+        .catch(() => "")
+      const adapted = adaptToRejection(body, detail)
+      if (!adapted) break
+      body = adapted
+      res = await post(body)
     }
     if (!res.ok) {
       const raw = await res.text().catch(() => "")
@@ -351,18 +407,34 @@ async function chatAnthropic(input: ChatInput): Promise<ChatResult> {
     }
     if (input.webSearch) {
       // Anthropic server-side web search tool (billed to the user's key).
-      body.tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }]
+      body.tools = [
+        { type: "web_search_20250305", name: "web_search", max_uses: 5 },
+      ]
     }
-    const res = await fetch(`${input.provider.baseUrl}/v1/messages`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": input.apiKey as string,
-        "anthropic-version": "2023-06-01",
-      },
-      signal,
-      body: JSON.stringify(body),
-    })
+    const post = (payload: Record<string, unknown>) =>
+      fetch(`${input.provider.baseUrl}/v1/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": input.apiKey as string,
+          "anthropic-version": "2023-06-01",
+        },
+        signal,
+        body: JSON.stringify(payload),
+      })
+    let res = await post(body)
+    if (res.status === 400) {
+      // Same rule as the OpenAI path: a model that refuses a sampling knob
+      // still answers without it.
+      const adapted = adaptToRejection(
+        body,
+        await res
+          .clone()
+          .text()
+          .catch(() => ""),
+      )
+      if (adapted) res = await post(adapted)
+    }
     if (!res.ok) {
       const raw = await res.text().catch(() => "")
       return {
@@ -462,7 +534,11 @@ async function dispatch(input: ChatInput): Promise<ChatResult> {
     const code =
       (err as NodeJS.ErrnoException)?.code ??
       ((err as { cause?: NodeJS.ErrnoException })?.cause?.code || undefined)
-    if (code === "ECONNREFUSED" || code === "ECONNRESET" || code === "ENOTFOUND") {
+    if (
+      code === "ECONNREFUSED" ||
+      code === "ECONNRESET" ||
+      code === "ENOTFOUND"
+    ) {
       return {
         ok: false,
         error:

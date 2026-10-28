@@ -465,7 +465,8 @@ Each user configures **their own provider and model** at `/ai-setup` (`user_api_
 ships no default provider in the environment: the **output quality depends on the model the user picks** (see *AI engine
 quality ceiling* memory). The owner uses local Ollama 8B.
 
-- `src/lib/ai/providers.ts` — provider catalog.
+- `src/lib/ai/providers.ts` — provider catalog: where keys may be sent (base URLs), key/docs/pricing links and last-resort fallback models. Hand-written on purpose; `pnpm ai:catalog` diffs it against models.dev (moved base URLs, retired fallbacks, new providers, dead links).
+- `src/lib/ai/catalog-live.ts` — newest models per provider from the public models.dev catalogue (no key), cached in memory 12 h and served by `GET /api/ai/catalog` to the AI-keys page and `/ai-setup`. Display only — it never decides a URL or sees a key.
 - `src/lib/ai/user-provider.ts` — resolves the effective "engine" per user/request (provider + model + decrypted key).
 - `src/lib/ai/chat.ts` — `chatComplete()`: a unified OpenAI‑compatible client; `supportsNativeWebSearch()` enables
   native web search when the provider allows it (Anthropic/Gemini), avoiding an external search backend.

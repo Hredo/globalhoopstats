@@ -54,6 +54,20 @@ function clean(models: AiModel[]): AiModel[] {
   return rankModels(out)
 }
 
+/**
+ * Credential failures, including the ones vendors send with a 400 (Gemini
+ * answers a bad key with `400 API_KEY_INVALID`).
+ */
+export function isAuthFailure(
+  status: number | undefined,
+  error: string,
+): boolean {
+  if (status === 401 || status === 403) return true
+  return /api[_ ]?key[_ ]?invalid|invalid[_ ]?(api[_ ]?)?key|api key not valid|incorrect api key|unauthori[sz]ed|invalid.*token/i.test(
+    error,
+  )
+}
+
 async function failure(res: Response, name: string): Promise<ModelListResult> {
   const detail = (await res.text().catch(() => "")).slice(0, 200)
   return {
@@ -172,7 +186,8 @@ export async function listProviderModels(
       return await listOpenAiCompatible(provider, null, safe)
     }
     if (!apiKey) return { ok: false, error: "Missing API key." }
-    if (provider.kind === "anthropic") return await listAnthropic(provider, apiKey)
+    if (provider.kind === "anthropic")
+      return await listAnthropic(provider, apiKey)
     if (provider.kind === "google") return await listGoogle(provider, apiKey)
     return await listOpenAiCompatible(provider, apiKey, provider.baseUrl)
   } catch (err) {
