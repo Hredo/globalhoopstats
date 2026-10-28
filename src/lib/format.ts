@@ -46,3 +46,32 @@ export function getInitials(name: string, max = 2): string {
     .join("")
     .toUpperCase()
 }
+
+// Connectors that stay lowercase inside a club name ("Bàsquet de Menorca").
+const NAME_CONNECTORS = new Set(["de", "del", "la", "las", "el", "els", "los", "les", "y", "i", "e"])
+// Short tokens that are words, not initials ("San Fernando", "Son Servera").
+const SHORT_WORDS = new Set(["san", "son", "sur", "mar", "rio", "río", "oro", "sol", "can", "ca"])
+
+/**
+ * Display casing for a club name.
+ *
+ * The FEB feeds publish team names in capitals ("BIELE ISB") while every other
+ * league ships mixed case, so a list mixing them reads as shouting. Only an
+ * all-caps name is rewritten; tokens of up to three letters ("CB", "ISB") are
+ * kept as written, since they are almost always initials.
+ */
+export function displayTeamName(name: string): string {
+  const trimmed = name.trim()
+  if (!/\p{L}/u.test(trimmed) || trimmed !== trimmed.toUpperCase()) return trimmed
+  return trimmed
+    .split(/(\s+)/)
+    .map((word, i) => {
+      if (/^\s+$/.test(word)) return word
+      const letters = word.replace(/[^\p{L}]/gu, "")
+      const lower = word.toLowerCase()
+      if (i > 0 && NAME_CONNECTORS.has(lower)) return lower
+      if (letters.length <= 3 && !SHORT_WORDS.has(lower)) return word
+      return lower.replace(/(^|[-'’.])(\p{L})/gu, (_, sep, ch) => sep + ch.toUpperCase())
+    })
+    .join("")
+}

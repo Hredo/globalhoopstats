@@ -10,7 +10,7 @@ import type { LinkedPlayer } from "@/lib/playbook/types"
 import { PLAYER_DRAG_MIME } from "@/components/playbook/editor"
 import type { EditorState, PlayDispatch } from "@/components/playbook/play-state"
 
-type TeamOption = { id: string; name: string; slug: string; leagueSlug: string }
+import type { TeamOption } from "@/types/teams"
 
 type RosterHit = {
   slug: string
@@ -66,8 +66,10 @@ export function RosterPanel({
   }, [])
 
   const leagues = useMemo(() => {
-    const set = new Set(teams.map((x) => x.leagueSlug))
-    return [...set].sort()
+    const names = new Map(teams.map((x) => [x.leagueSlug, x.leagueName]))
+    return [...names]
+      .map(([slug, name]) => ({ slug, name }))
+      .sort((a, b) => a.name.localeCompare(b.name))
   }, [teams])
 
   const leagueTeams = useMemo(
@@ -172,8 +174,8 @@ export function RosterPanel({
         >
           <option value="">{t("playbook.roster.allLeagues")}</option>
           {leagues.map((l) => (
-            <option key={l} value={l}>
-              {l.toUpperCase().replace(/-/g, " ")}
+            <option key={l.slug} value={l.slug}>
+              {l.name}
             </option>
           ))}
         </select>

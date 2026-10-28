@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import type { TeamOption } from "@/types/teams"
 import { useT } from "@/lib/i18n/provider"
 
-const TEAMS_CACHE_KEY = "ai-advisor:teams-cache"
+// v2: options carry the league's display name; older cached lists do not.
+const TEAMS_CACHE_KEY = "ai-advisor:teams-cache:v2"
 const TEAMS_CACHE_TTL_MS = 10 * 60 * 1000 // 10 min
 
 type CachedTeams = { ts: number; data: TeamOption[] }
@@ -79,11 +80,13 @@ export function TeamSelector({
     }
   }, [])
 
-  const filtered = query.trim()
+  const needle = query.trim().toLowerCase()
+  const filtered = needle
     ? teams.filter(
         (t) =>
-          t.name.toLowerCase().includes(query.toLowerCase()) ||
-          t.leagueSlug.toLowerCase().includes(query.toLowerCase()),
+          t.name.toLowerCase().includes(needle) ||
+          t.leagueName.toLowerCase().includes(needle) ||
+          t.leagueSlug.toLowerCase().includes(needle),
       )
     : teams
 
@@ -295,7 +298,7 @@ export function TeamSelector({
                   >
                     <span className="flex-1 truncate">{team.name}</span>
                     <span className="shrink-0 rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-ink-400">
-                      {team.leagueSlug}
+                      {team.leagueName}
                     </span>
                     {isSelected && (
                       <svg

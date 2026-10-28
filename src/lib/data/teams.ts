@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db/client"
 import { leagues, players, playerSeasonStats, seasons, teams } from "@/lib/db/schema"
 import type { CoachListItem } from "@/lib/data/staff"
 import { cached } from "@/lib/data/cache"
+import { displayTeamName } from "@/lib/format"
 import { leagueSlugsFor } from "@/lib/league-groups"
 import { resolveLeagueName } from "@/lib/sources/types"
 import { ALL_SEASONS } from "@/lib/data/players"
@@ -256,26 +257,52 @@ export async function listTeams(
   return listTeamsCached(resolved)
 }
 
-export type TeamOption = { id: string; name: string; slug: string; leagueSlug: string }
+export type TeamOption = {
+  id: string
+  name: string
+  slug: string
+  leagueSlug: string
+  /** Current display name of the league ("Primera FEB"), never the slug. */
+  leagueName: string
+}
 
 /**
  * Team picker options.
  *
- * `season` defaults to the newest one, so the AI advisor, the playbook roster
- * panel and the trade screen offer the clubs that exist NOW. Callers that must
- * cover history — the sitemap and `generateStaticParams`, which have to keep
- * archived team pages reachable — pass `ALL_SEASONS`.
+ * By default every league contributes the clubs of ITS newest season with
+ * data, so the AI advisor and the playbook roster panel offer the clubs that
+ * exist now even while one competition has rolled over and another has not —
+ * a single global "latest season" would silently drop every league still on
+ * the previous one. An explicit `season` applies to every league; callers that
+ * must cover history — the sitemap and `generateStaticParams`, which have to
+ * keep archived team pages reachable — pass `ALL_SEASONS`.
  */
-export async function listTeamOptions(
+async function listTeamOptionsUncached(
   limit = 300,
   season?: string,
 ): Promise<TeamOption[]> {
   const db = getDb()
-  const wanted = season ?? (await latestSeasonName())
-  const seasonCondition =
-    wanted === ALL_SEASONS
-      ? undefined
-      : inArray(seasons.name, seasonNameVariants(wanted))
+  let seasonCondition: SQL | undefined
+  if (season === ALL_SEASONS) {
+    seasonCondition = undefined
+  } else if (season) {
+    seasonCondition = inArray(seasons.name, seasonNameVariants(season))
+  } else {
+    const pairs = await db
+      .selectDistinct({ leagueId: playerSeasonStats.leagueId, season: seasons.name })
+      .from(playerSeasonStats)
+      .innerJoin(seasons, eq(playerSeasonStats.seasonId, seasons.id))
+    const latest = latestSeasonByLeague(pairs)
+    if (latest.size === 0) return []
+    seasonCondition = or(
+      ...[...latest].map(([leagueId, label]) =>
+        and(
+          eq(playerSeasonStats.leagueId, leagueId),
+          inArray(seasons.name, seasonNameVariants(label)),
+        ),
+      ),
+    )
+  }
   const tl = db.$with("tl").as(
     db
       .selectDistinct({
@@ -293,14 +320,46 @@ export async function listTeamOptions(
       name: teams.name,
       slug: teams.slug,
       leagueSlug: leagues.slug,
+      leagueName: leagues.name,
     })
     .from(teams)
     .innerJoin(tl, eq(teams.id, tl.teamId))
     .innerJoin(leagues, eq(tl.leagueId, leagues.id))
     .orderBy(asc(teams.name))
     .limit(limit)
-  return rows
+  return toTeamOptions(rows)
 }
+
+/** Newest season label per league, folding legacy `E20xx` names. */
+export function latestSeasonByLeague(
+  pairs: { leagueId: string; season: string }[],
+): Map<string, string> {
+  const latest = new Map<string, string>()
+  for (const { leagueId, season } of pairs) {
+    const label = canonicalSeasonLabel(season)
+    const prev = latest.get(leagueId)
+    if (!prev || compareSeasonsDesc(label, prev) < 0) latest.set(leagueId, label)
+  }
+  return latest
+}
+
+/** Display names for league and club, sorted the way a reader scans them. */
+export function toTeamOptions(rows: TeamOption[]): TeamOption[] {
+  return rows
+    .map((r) => ({
+      ...r,
+      name: displayTeamName(r.name),
+      leagueName: resolveLeagueName(r.leagueSlug, r.leagueName),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }))
+}
+
+export const listTeamOptions = cached(
+  listTeamOptionsUncached,
+  "team-options:v2",
+  ["teams", "player-season-stats"],
+  300,
+)
 
 // Only the fields the roster UI (PlayerCard) and the AI advisor actually
 // consume; the full PlayerListItem would otherwise be serialized into the

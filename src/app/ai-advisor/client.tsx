@@ -18,6 +18,7 @@ import { AdvisorTour, TOUR_EVENT } from "@/app/ai-advisor/tour"
 // NOTE: Import kept for when paywall is re-enabled.
 // import { PaywallModal } from "@/components/auth/paywall-modal"
 import type { TeamOption } from "@/types/teams"
+import { resolveLeagueName } from "@/lib/sources/types"
 import type { Reaction } from "@/app/ai-advisor/message-actions"
 
 type Message = {
@@ -232,6 +233,7 @@ export default function AIAdvisorClient() {
           name: conv.teamName,
           slug: conv.teamSlug,
           leagueSlug: conv.leagueSlug,
+          leagueName: resolveLeagueName(conv.leagueSlug, conv.leagueSlug),
         }
         setSelectedTeam(teamOption)
         idRef.current = 0
