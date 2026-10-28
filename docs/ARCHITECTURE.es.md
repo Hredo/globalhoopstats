@@ -364,8 +364,16 @@ Mecánica de idioma:
 - **PWA** con Serwist (`next.config.mjs` envuelve la config con `withSerwist`). El service worker se sirve desde
   `app/serwist/` y los artefactos `public/sw*` están **gitignored** y se **generan en cada build** (por eso `public/`
   puede verse vacío en local).
-- **SEO**: sitemap, `robots`, OpenGraph y **JSON‑LD** (`src/lib/seo/structured-data.ts`). Hay tests anti‑XSS sobre el
-  JSON‑LD (`tests/unit/json-ld-xss.test.ts`).
+- **SEO**: sitemap (ISR, cada hora), `robots`, OpenGraph y **JSON‑LD** (`src/lib/seo/structured-data.ts`): Organization +
+  WebSite/SearchAction (layout), ProfilePage/Person (jugadores, fechado con la última sync de su liga), SportsTeam con
+  plantilla y entrenador principal, SportsOrganization + **Dataset** (páginas de liga, citando al editor original desde
+  `SOURCE_UPSTREAM` en `src/lib/sources/types.ts`), BreadcrumbList. Hay tests anti‑XSS sobre el JSON‑LD
+  (`tests/unit/json-ld-xss.test.ts`) y de forma (`tests/unit/seo-structured-data.test.ts`).
+- **Buscadores de IA / agentes (GEO)**: `robots.txt` nombra los crawlers de IA (`AI_CRAWLERS` en `src/lib/site.ts`) con
+  las mismas reglas que `*`; `/llms.txt` y `/llms-full.txt` (`src/lib/seo/llms.ts`, ISR cada hora) describen ligas,
+  cifras, fuentes, frescura y cómo citar; `/openapi.json` (`src/lib/api/openapi.ts`) describe `/api/v1` — un test falla
+  si se añade una ruta v1 sin documentarla. Las fichas de jugador llevan una frase citable con la línea de la
+  temporada, la fuente y la fecha de actualización.
 
 ---
 

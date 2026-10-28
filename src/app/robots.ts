@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next"
-import { SITE } from "@/lib/site"
+import { AI_CRAWLERS, SITE } from "@/lib/site"
 
 /**
  * Only `/api/` is disallowed, and that is deliberate.
@@ -15,15 +15,19 @@ import { SITE } from "@/lib/site"
  *   Search Console instead of being dropped cleanly.
  *
  * Keep private pages out with `noindex` in their metadata, not with a line here.
+ *
+ * The AI crawlers get a group of their own. `*` already lets them in; naming
+ * them is for the audits (and the CDN "block AI bots" toggles) that read a
+ * missing entry as a missing opt-in. A named group REPLACES `*` for that bot,
+ * so it carries the same rules. The API description is at /openapi.json,
+ * outside /api/, so it needs no exception here.
  */
 export default function robots(): MetadataRoute.Robots {
+  const rules = { allow: "/", disallow: ["/api/"] }
   return {
     rules: [
-      {
-        userAgent: "*",
-        allow: "/",
-        disallow: ["/api/"],
-      },
+      { userAgent: "*", ...rules },
+      { userAgent: [...AI_CRAWLERS], ...rules },
     ],
     sitemap: `${SITE.url}/sitemap.xml`,
     host: SITE.url,

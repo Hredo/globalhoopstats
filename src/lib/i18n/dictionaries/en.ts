@@ -746,6 +746,13 @@ export const en = {
     metaSeasonPoints:
       "{season} season: {ppg} points per game over {games} games.",
     metaTail: "Shooting splits, advanced metrics and head-to-head comparisons.",
+    summaryFull:
+      "{name} ({team}) averages {ppg} points, {rpg} rebounds and {apg} assists per game over {games} games in the {league} {season} season.",
+    summaryPoints:
+      "{name} ({team}) averages {ppg} points per game over {games} games in the {league} {season} season.",
+    summarySource:
+      "Source: {source}, compiled by globalhoopstats · updated {date}.",
+    summarySourceNoDate: "Source: {source}, compiled by globalhoopstats.",
     seasonGames: "Season {season} · {games} games",
     production: "Production",
     points: "Points",
@@ -1782,6 +1789,8 @@ export const en = {
     errors: "Errors",
     errorsBody:
       "401 missing or invalid key · 404 unknown player · 400 bad parameters · 429 quota exceeded.",
+    openapiBody:
+      "The OpenAPI 3.1 spec describes every endpoint for client generators and AI agents; the site map for language models is at llms.txt:",
   },
 } as const
 

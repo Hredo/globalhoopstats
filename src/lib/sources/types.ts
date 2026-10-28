@@ -88,6 +88,33 @@ export const SOURCE_META: Record<
 }
 
 /**
+ * Who publishes each league's numbers before we normalise them — named on the
+ * public pages, in llms.txt and in the Dataset JSON-LD so a citation can credit
+ * the original publisher as well as this site. Keep in step with DATA-SOURCES.md.
+ */
+export const SOURCE_UPSTREAM: Record<SourceId, { name: string; url: string }> =
+  {
+    nba: {
+      name: "NBA.com / Basketball-Reference",
+      url: "https://www.nba.com/stats",
+    },
+    euroleague: {
+      name: "Basketball-Reference",
+      url: "https://www.basketball-reference.com/international/euroleague/",
+    },
+    acb: { name: "ACB.com", url: "https://www.acb.com" },
+    "leb-oro": { name: "FEB", url: "https://baloncestoenvivo.feb.es" },
+    "leb-plata": { name: "FEB", url: "https://baloncestoenvivo.feb.es" },
+    eba: { name: "FEB", url: "https://baloncestoenvivo.feb.es" },
+  }
+
+export function upstreamFor(
+  slug: string,
+): { name: string; url: string } | null {
+  return slug in SOURCE_UPSTREAM ? SOURCE_UPSTREAM[slug as SourceId] : null
+}
+
+/**
  * Resolve the canonical display name for a league by its slug.
  * Falls back to the DB-stored name when the slug is unknown so that
  * data-layer queries always show the correct name regardless of what

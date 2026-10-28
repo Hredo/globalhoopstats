@@ -770,6 +770,14 @@ export const es: Messages = {
     metaSeasonPoints:
       "Temporada {season}: {ppg} puntos por partido en {games} partidos.",
     metaTail: "Porcentajes de tiro, métricas avanzadas y comparativas.",
+    summaryFull:
+      "{name} ({team}) promedia {ppg} puntos, {rpg} rebotes y {apg} asistencias por partido en {games} partidos de la {league} {season}.",
+    summaryPoints:
+      "{name} ({team}) promedia {ppg} puntos por partido en {games} partidos de la {league} {season}.",
+    summarySource:
+      "Fuente: {source}, datos compilados por globalhoopstats · actualizado el {date}.",
+    summarySourceNoDate:
+      "Fuente: {source}, datos compilados por globalhoopstats.",
     seasonGames: "Temporada {season} · {games} partidos",
     production: "Producción",
     points: "Puntos",
@@ -1820,5 +1828,7 @@ export const es: Messages = {
     errors: "Errores",
     errorsBody:
       "401 clave ausente o inválida · 404 jugador desconocido · 400 parámetros incorrectos · 429 cuota superada.",
+    openapiBody:
+      "La especificación OpenAPI 3.1 describe cada endpoint para generadores de clientes y agentes de IA; el mapa del sitio para modelos de lenguaje está en llms.txt:",
   },
 }

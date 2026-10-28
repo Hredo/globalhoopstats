@@ -101,6 +101,8 @@ export default async function TeamDetailPage({
       leagueName: team.league.name,
       logoUrl: team.logoUrl,
       city: team.city,
+      athletes: team.roster.map((p) => ({ name: p.fullName, slug: p.slug })),
+      coach: team.staff.find((c) => c.role === "head_coach")?.fullName ?? null,
     }),
     breadcrumbJsonLd([
       { name: t("nav.teams"), path: "/teams" },
