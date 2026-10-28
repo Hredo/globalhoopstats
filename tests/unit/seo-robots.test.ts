@@ -1,11 +1,16 @@
 import { describe, it, expect } from "vitest"
 import robots from "@/app/robots"
+import { AI_CRAWLERS } from "@/lib/site"
 
 function disallowed(): string[] {
   const { rules } = robots()
   const list = Array.isArray(rules) ? rules : [rules]
   return list.flatMap((r) =>
-    r.disallow == null ? [] : Array.isArray(r.disallow) ? r.disallow : [r.disallow],
+    r.disallow == null
+      ? []
+      : Array.isArray(r.disallow)
+        ? r.disallow
+        : [r.disallow],
   )
 }
 
@@ -41,5 +46,33 @@ describe("robots.txt", () => {
   it("keeps the JSON API out of the crawl and points at the sitemap", () => {
     expect(disallowed()).toContain("/api/")
     expect(robots().sitemap).toMatch(/\/sitemap\.xml$/)
+  })
+
+  // A named group replaces `*` for that bot, so the AI group must carry the
+  // same rules — otherwise naming a crawler would quietly open /api/ to it.
+  it("names the AI crawlers with the same rules as everyone else", () => {
+    const { rules } = robots()
+    const list = Array.isArray(rules) ? rules : [rules]
+    const ai = list.find(
+      (r) => Array.isArray(r.userAgent) && r.userAgent.includes("GPTBot"),
+    )
+    expect(ai).toBeDefined()
+    for (const bot of [
+      "OAI-SearchBot",
+      "ClaudeBot",
+      "PerplexityBot",
+      "Google-Extended",
+    ]) {
+      expect(ai!.userAgent).toContain(bot)
+    }
+    expect(ai!.allow).toBe("/")
+    expect(ai!.disallow).toEqual(["/api/"])
+    expect(new Set(AI_CRAWLERS).size).toBe(AI_CRAWLERS.length)
+  })
+
+  it("leaves the files written for agents crawlable", () => {
+    for (const page of ["/llms.txt", "/llms-full.txt", "/openapi.json"]) {
+      expect(disallowed().some((path) => page.startsWith(path))).toBe(false)
+    }
   })
 })
