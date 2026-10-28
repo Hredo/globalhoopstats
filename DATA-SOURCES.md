@@ -15,6 +15,10 @@ companion crawler page at [`/bot`](src/app/bot/page.tsx)).
 | ACB (Liga Endesa) | `acb.com` | HTML |
 | Primera FEB · Segunda FEB · Tercera FEB | `baloncestoenvivo.feb.es` (FEB) | HTML (ASP.NET) |
 
+The public pages credit these publishers (player pages' source line, the league
+Dataset JSON-LD, `/llms.txt`) from `SOURCE_UPSTREAM` in
+[`types.ts`](src/lib/sources/types.ts) — change it together with this table.
+
 Per-league adapters live in [`src/lib/sources/`](src/lib/sources); each one
 normalizes its source into the shared `SourceAdapter` interface
 ([`types.ts`](src/lib/sources/types.ts)). **All adapters route their HTTP through

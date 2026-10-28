@@ -26,7 +26,14 @@ import { MarketValueCard } from "@/components/market/market-value-card"
 import { PlayerLeagueSwitcher } from "@/components/ui/league-switcher"
 import { SeasonSwitcher } from "@/components/ui/season-select"
 import { JsonLd } from "@/components/marketing/json-ld"
-import { breadcrumbJsonLd, playerJsonLd } from "@/lib/seo/structured-data"
+import {
+  breadcrumbJsonLd,
+  playerJsonLd,
+  profilePageJsonLd,
+} from "@/lib/seo/structured-data"
+import { getSyncTimesBySource } from "@/lib/data/sync"
+import { upstreamFor } from "@/lib/sources/types"
+import type { Locale } from "@/lib/i18n/config"
 import { pageSeo } from "@/lib/seo/metadata"
 import { HighlightsSection } from "./highlights"
 import { PlayerAi } from "@/components/players/player-ai"
@@ -100,6 +107,71 @@ function seasonMetaLine(
     rpg: per(season.reboundsTotal),
     apg: per(season.assistsTotal),
   })
+}
+
+/**
+ * The page's answer sentence: who, for whom, how much, over how many games,
+ * from which source and as of when — written so an answer engine (or a
+ * journalist) can quote it whole. The tiles carry the same numbers, but as
+ * separate labels a reader has to reassemble.
+ */
+function citableSummary({
+  name,
+  team,
+  league,
+  leagueSlug,
+  season,
+  lastSync,
+  locale,
+  t,
+}: {
+  name: string
+  team: string | null
+  league: string
+  leagueSlug: string
+  season: PlayerSeasonLine | undefined
+  lastSync: Date | null
+  locale: Locale
+  t: (path: string, vars?: Record<string, string | number>) => string
+}): string | null {
+  if (!season || season.gamesPlayed <= 0 || season.pointsTotal == null) {
+    return null
+  }
+  const tag = locale === "es" ? "es-ES" : "en-US"
+  const per = (total: number) =>
+    (total / season.gamesPlayed).toLocaleString(tag, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    })
+  const vars = {
+    name,
+    team: team ?? t("playerProfile.metaFreeAgent"),
+    league,
+    season: season.seasonName,
+    games: season.gamesPlayed,
+    ppg: per(season.pointsTotal),
+  }
+  const stats =
+    season.reboundsTotal == null || season.assistsTotal == null
+      ? t("playerProfile.summaryPoints", vars)
+      : t("playerProfile.summaryFull", {
+          ...vars,
+          rpg: per(season.reboundsTotal),
+          apg: per(season.assistsTotal),
+        })
+  const source = upstreamFor(leagueSlug)?.name ?? league
+  const credit = lastSync
+    ? t("playerProfile.summarySource", {
+        source,
+        date: lastSync.toLocaleDateString(tag, {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          timeZone: "UTC",
+        }),
+      })
+    : t("playerProfile.summarySourceNoDate", { source })
+  return `${stats} ${credit}`
 }
 
 function formatHeight(cm: number | null): string {
@@ -230,7 +302,7 @@ export default async function PlayerPage({ params, searchParams }: Props) {
 
   // League-season percentiles in all three bases (one cached field read), and
   // the one-level-up projection for the player's newest real season.
-  const [pctPace, pct40, pctGame, projection] = await Promise.all([
+  const [pctPace, pct40, pctGame, projection, syncTimes] = await Promise.all([
     season
       ? getPlayerPercentiles(
           profile.id,
@@ -256,21 +328,39 @@ export default async function PlayerPage({ params, searchParams }: Props) {
         )
       : null,
     projectPlayer(profile.slug),
+    getSyncTimesBySource(),
   ])
+  const lastSync = syncTimes.get(selLeague.slug) ?? null
+  const summary = citableSummary({
+    name: profile.fullName,
+    team: selTeam?.name ?? null,
+    league: selLeague.name,
+    leagueSlug: selLeague.slug,
+    season,
+    lastSync,
+    locale,
+    t,
+  })
 
   const structuredData = [
-    playerJsonLd({
-      fullName: profile.fullName,
-      slug: profile.slug,
-      position: profile.position,
-      nationality: profile.nationality,
-      heightCm: profile.heightCm,
-      weightKg: profile.weightKg,
-      photoUrl: profile.imageUrl,
-      teamName: selTeam?.name ?? null,
-      teamPath: selTeam ? `/teams/${selLeague.slug}/${selTeam.slug}` : null,
-      leagueName: selLeague.name,
-    }),
+    profilePageJsonLd(
+      {
+        ...playerJsonLd({
+          fullName: profile.fullName,
+          slug: profile.slug,
+          position: profile.position,
+          nationality: profile.nationality,
+          heightCm: profile.heightCm,
+          weightKg: profile.weightKg,
+          photoUrl: profile.imageUrl,
+          teamName: selTeam?.name ?? null,
+          teamPath: selTeam ? `/teams/${selLeague.slug}/${selTeam.slug}` : null,
+          leagueName: selLeague.name,
+        }),
+        ...(summary ? { description: summary } : {}),
+      },
+      lastSync,
+    ),
     breadcrumbJsonLd([
       { name: t("nav.players"), path: "/players" },
       { name: profile.fullName, path: `/players/${profile.slug}` },
@@ -484,6 +574,11 @@ export default async function PlayerPage({ params, searchParams }: Props) {
                     unit="PER"
                   />
                 </div>
+                {summary ? (
+                  <p className="mt-3 max-w-3xl text-[13px] leading-relaxed text-ink-300">
+                    {summary}
+                  </p>
+                ) : null}
 
                 <h3 className="gh-eyebrow mb-3 mt-5 sm:mt-6">
                   {t("playerProfile.shooting")}
