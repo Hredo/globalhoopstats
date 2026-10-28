@@ -6,7 +6,8 @@ import {
   readRateLimit,
 } from "@/lib/security/ai-advisor"
 
-const MAX_OPTIONS = 500
+// Every league's current clubs fit comfortably; the cap only guards the payload.
+const MAX_OPTIONS = 1000
 
 export async function GET(req: Request) {
   const ip = clientIp(req)

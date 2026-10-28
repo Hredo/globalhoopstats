@@ -1,4 +1,5 @@
 import { describePoint } from "@/lib/playbook/geometry"
+import { resolveLeagueName } from "@/lib/sources/types"
 import type { Play, PlayElement, PlayFrame } from "@/lib/playbook/types"
 
 function elementName(el: PlayElement | undefined): string {
@@ -100,7 +101,7 @@ export function describePlay(play: Play): string {
   if (play.description) lines.push(`Coach's description: ${play.description}`)
   if (play.team)
     lines.push(
-      `Designed for: ${play.team.name} (${play.team.leagueSlug.toUpperCase()})`,
+      `Designed for: ${play.team.name} (${resolveLeagueName(play.team.leagueSlug, play.team.leagueSlug.toUpperCase())})`,
     )
   lines.push(
     `Court: ${play.courtType === "half" ? "half court" : "full court"}`,

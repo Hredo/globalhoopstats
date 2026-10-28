@@ -1,6 +1,7 @@
 import jsPDF from "jspdf"
 import { createRoot } from "react-dom/client"
 import { flushSync } from "react-dom"
+import { resolveLeagueName } from "@/lib/sources/types"
 import { StaticFrame } from "@/components/playbook/editor"
 import { SCALE, courtLength } from "@/lib/playbook/geometry"
 import {
@@ -176,7 +177,7 @@ export async function exportPlayPdf({
     `${play.frames.length} ${s.framesLabel}`,
   ]
   if (play.team) {
-    metaParts.push(`${s.teamLabel}: ${play.team.name} (${play.team.leagueSlug.toUpperCase()})`)
+    metaParts.push(`${s.teamLabel}: ${play.team.name} (${resolveLeagueName(play.team.leagueSlug, play.team.leagueSlug.toUpperCase())})`)
   }
   doc.text(metaParts.join("   ·   "), MARGIN, y)
   y += 9
