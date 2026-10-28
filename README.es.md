@@ -200,6 +200,7 @@ Todas las variables están explicadas en [.env.example](.env.example). En produc
 | `pnpm db:push` · `pnpm db:studio` | Aplicar el esquema de Drizzle · explorar los datos |
 | `pnpm sync:elite` · `pnpm sync:feb` · `pnpm sync:<liga>` | Cargar ligas |
 | `pnpm probe:season` | Ver qué fuentes publican ya la nueva temporada |
+| `pnpm ai:catalog` | Comparar el catálogo de proveedores de IA con models.dev y comprobar sus enlaces |
 | `pnpm db:dedupe-players` | Fusionar personas duplicadas entre ligas |
 | `pnpm backfill:*` | Rellenos puntuales (biografías, colores, zonas de tiro…) |
 | `pnpm capture:showcase` | Regrabar los clips de producto de la portada ([Vídeos](#vídeos-e-imágenes)) |

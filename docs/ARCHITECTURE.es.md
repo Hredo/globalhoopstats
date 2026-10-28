@@ -464,7 +464,8 @@ Cada usuario configura **su propio proveedor y modelo** en `/ai-setup` (`user_ap
 no trae un proveedor por defecto en el entorno: la **calidad del output depende del modelo que elija el usuario** (ver
 memoria *AI engine quality ceiling*). El dueño usa Ollama local 8B.
 
-- `src/lib/ai/providers.ts` — catálogo de proveedores.
+- `src/lib/ai/providers.ts` — catálogo de proveedores: a dónde se pueden enviar las claves (URLs base), enlaces de clave/docs/precios y modelos de reserva. Escrito a mano a propósito; `pnpm ai:catalog` lo compara con models.dev (URLs movidas, modelos retirados, proveedores nuevos, enlaces rotos).
+- `src/lib/ai/catalog-live.ts` — los modelos más nuevos de cada proveedor según el catálogo público de models.dev (sin clave), en memoria 12 h y servidos por `GET /api/ai/catalog` a la página de claves y a `/ai-setup`. Solo para mostrar: nunca decide una URL ni ve una clave.
 - `src/lib/ai/user-provider.ts` — resuelve el "engine" efectivo por usuario/request (proveedor + modelo + clave
   descifrada).
 - `src/lib/ai/chat.ts` — `chatComplete()`: cliente unificado OpenAI‑compatible; `supportsNativeWebSearch()` habilita

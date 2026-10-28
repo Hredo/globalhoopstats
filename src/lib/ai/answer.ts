@@ -31,7 +31,11 @@ import {
   mentionsAnySubject,
   trimDegeneratedOutput,
 } from "@/lib/ai/degeneration"
-import { inventsFigures, isDataDump, unsupportedFigures } from "@/lib/ai/grounding"
+import {
+  inventsFigures,
+  isDataDump,
+  unsupportedFigures,
+} from "@/lib/ai/grounding"
 import { cleanLlmOutput } from "@/lib/security/ai-advisor"
 import type { Locale } from "@/lib/i18n/config"
 
@@ -154,10 +158,7 @@ function groundingSource(req: GroundedRequest): string {
   return req.groundingSource ?? req.data
 }
 
-function verify(
-  text: string,
-  req: GroundedRequest,
-): Rejection | null {
+function verify(text: string, req: GroundedRequest): Rejection | null {
   if (text.trim().length === 0) return "empty"
   // An outline of headings the model never filled in. The single most common
   // failure on an 8B, and it reads as a broken page rather than a bad answer.
@@ -198,7 +199,11 @@ function citesSource(text: string): boolean {
  * "try again" a model reproduces its answer, told "you invented €5.2M, every
  * figure must come from the data" it usually does not.
  */
-function correction(rejection: Rejection, locale: Locale, detail: string): string {
+function correction(
+  rejection: Rejection,
+  locale: Locale,
+  detail: string,
+): string {
   const es = locale === "es"
   const lead = es
     ? "Tu respuesta anterior no vale. Escríbela otra vez, entera, corrigiendo esto:"
@@ -215,7 +220,7 @@ function correction(rejection: Rejection, locale: Locale, detail: string): strin
           "no hablaste de las personas sobre las que te preguntaron. Usa sus nombres tal y como aparecen en los datos.",
         "invented-figures": `te inventaste cifras que no están en los datos${detail}. Cada número que escribas tiene que salir del bloque de datos, tal cual o redondeado; si lo sacas de una fuente externa, cita el enlace con [nombre](url).`,
         "data-dump":
-          "te limitaste a copiar los datos que te pasaron en lugar de interpretarlos. No hagas listas de \"etiqueta: valor\". Escribe frases que digan qué significan esos números para el equipo, y usa como mucho tres o cuatro cifras en toda la respuesta.",
+          'te limitaste a copiar los datos que te pasaron en lugar de interpretarlos. No hagas listas de "etiqueta: valor". Escribe frases que digan qué significan esos números para el equipo, y usa como mucho tres o cuatro cifras en toda la respuesta.',
         "asks-for-input":
           "le pediste información al lector en vez de contestarle. No puede responderte: esto es un botón, no una conversación. Contesta con lo que tienes y, si algo te falta, dilo en media frase y sigue.",
       }
@@ -230,7 +235,7 @@ function correction(rejection: Rejection, locale: Locale, detail: string): strin
           "you did not write about the people you were asked about. Use their names exactly as they appear in the data.",
         "invented-figures": `you invented figures that are not in the data${detail}. Every number you write has to come from the data block, exactly or rounded; if it comes from an outside source, cite the link as [name](url).`,
         "data-dump":
-          "you copied the data back instead of interpreting it. No \"label: value\" lists. Write sentences that say what those numbers mean for the team, and use three or four figures in the whole answer at most.",
+          'you copied the data back instead of interpreting it. No "label: value" lists. Write sentences that say what those numbers mean for the team, and use three or four figures in the whole answer at most.',
         "asks-for-input":
           "you asked the reader for information instead of answering them. They cannot reply — this is a button, not a conversation. Answer with what you have, and if something is missing say so in half a sentence and move on.",
       }
@@ -258,7 +263,12 @@ export async function generateGroundedAnswer(
     maxTokens: number = baseTokens,
   ): Promise<
     | { kind: "provider-error"; error: string }
-    | { kind: "candidate"; text: string; model: string; rejection: Rejection | null }
+    | {
+        kind: "candidate"
+        text: string
+        model: string
+        rejection: Rejection | null
+      }
   > => {
     const result = await chatComplete({
       provider: req.engine.provider,
@@ -374,7 +384,7 @@ export async function generateGroundedAnswer(
  * That is English, it is truncated mid-word, and it tells a coach nothing
  * about what to do next. The status code carries all the meaning we need.
  */
-function describeProviderError(raw: string, locale: Locale): string {
+export function describeProviderError(raw: string, locale: Locale): string {
   const es = locale === "es"
   const text = raw.toLowerCase()
 
@@ -397,12 +407,18 @@ function describeProviderError(raw: string, locale: Locale): string {
         : "You have hit your AI provider's usage limit.") + when
     )
   }
-  if (/model_not_found|\b404\b|does not exist|no such model|decommissioned/.test(text)) {
+  if (
+    /model_not_found|\b404\b|does not exist|no such model|decommissioned/.test(
+      text,
+    )
+  ) {
     return es
       ? "El modelo que tienes seleccionado ya no existe en tu proveedor. Elige otro en tus ajustes de IA."
       : "The model you have selected no longer exists at your provider. Pick another one in your AI settings."
   }
-  if (/\b401\b|\b403\b|invalid.?api.?key|unauthorized|authentication/.test(text)) {
+  if (
+    /\b401\b|\b403\b|invalid.?api.?key|unauthorized|authentication/.test(text)
+  ) {
     return es
       ? "Tu clave de API no es válida o no tiene permiso para este modelo. Revísala en tus ajustes de IA."
       : "Your API key is not valid, or has no access to this model. Check it in your AI settings."
@@ -418,7 +434,7 @@ function describeProviderError(raw: string, locale: Locale): string {
   if (/internal reasoning/.test(text)) {
     return es
       ? "El modelo que tienes seleccionado se ha gastado toda la respuesta razonando por dentro y no ha llegado a escribir nada. Elige en Ajustes un modelo que no piense en voz alta (los que llevan «thinking», «reasoning» o «-r1» en el nombre son los que hacen esto)."
-      : "The model you have selected spent its whole response reasoning internally and never wrote an answer. Pick a model that does not think out loud in your AI settings — the ones with \"thinking\", \"reasoning\" or \"-r1\" in the name are the ones that do this."
+      : 'The model you have selected spent its whole response reasoning internally and never wrote an answer. Pick a model that does not think out loud in your AI settings — the ones with "thinking", "reasoning" or "-r1" in the name are the ones that do this.'
   }
   // The engine is not answering the door at all. Nearly always a local Ollama
   // that is not running, and it used to come out as the generic "the provider

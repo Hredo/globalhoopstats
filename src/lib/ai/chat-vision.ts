@@ -1,5 +1,9 @@
 import type { AiProvider } from "@/lib/ai/providers"
-import { vendorRetryDelayMs, withThrottleRetry } from "@/lib/ai/chat"
+import {
+  adaptToRejection,
+  vendorRetryDelayMs,
+  withThrottleRetry,
+} from "@/lib/ai/chat"
 
 const TIMEOUT_MS = 180_000
 
@@ -53,25 +57,43 @@ async function visionOpenAiCompatible(
     })
   }
 
+  const tokenField =
+    input.provider.kind === "openai" ? "max_completion_tokens" : "max_tokens"
+  let body: Record<string, unknown> = {
+    model: input.model,
+    messages: [
+      { role: "system", content: input.system },
+      { role: "user", content },
+    ],
+    [tokenField]: input.maxTokens ?? 2000,
+    temperature: input.temperature ?? 0.3,
+    stream: false,
+  }
+
   return withTimeout(async (signal) => {
-    const res = await fetch(`${input.provider.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${input.apiKey}`,
-      },
-      signal,
-      body: JSON.stringify({
-        model: input.model,
-        messages: [
-          { role: "system", content: input.system },
-          { role: "user", content },
-        ],
-        max_tokens: input.maxTokens ?? 2000,
-        temperature: input.temperature ?? 0.3,
-        stream: false,
-      }),
-    })
+    const post = (payload: Record<string, unknown>) =>
+      fetch(`${input.provider.baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${input.apiKey}`,
+        },
+        signal,
+        body: JSON.stringify(payload),
+      })
+    let res = await post(body)
+    for (let i = 0; i < 2 && res.status === 400; i++) {
+      const adapted = adaptToRejection(
+        body,
+        await res
+          .clone()
+          .text()
+          .catch(() => ""),
+      )
+      if (!adapted) break
+      body = adapted
+      res = await post(body)
+    }
     if (!res.ok) {
       const raw = await res.text().catch(() => "")
       return {

@@ -12,12 +12,14 @@ import {
 import {
   AI_PROVIDERS,
   getProvider,
+  modelPageUrl,
   providersForFeature,
   resolveModel,
   type AiFeature,
   type AiModel,
   type AiProvider,
 } from "@/lib/ai/providers"
+import type { LiveCatalog, LiveProvider } from "@/lib/ai/catalog-live"
 import { useLocale, useT } from "@/lib/i18n/provider"
 import { providerCopy } from "@/lib/ai/provider-copy"
 
@@ -45,7 +47,118 @@ type LiveState = "idle" | "loading" | "live" | "failed"
 /** Stable empty reference so memos downstream do not invalidate every render. */
 const EMPTY_MODELS: AiModel[] = []
 
-type Note = { type: "success" | "error" | "info"; msg: string }
+type Note = {
+  type: "success" | "error" | "info"
+  msg: string
+  /** Secondary lines: model count, the vendor's own (redacted) words. */
+  extra?: string[]
+}
+
+/**
+ * Newest models per provider from /api/ai/catalog. A cold server cache answers
+ * `pending` while it downloads, so ask once more a little later.
+ */
+function useLiveCatalog(): LiveCatalog | null {
+  const [catalog, setCatalog] = useState<LiveCatalog | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    let retry: ReturnType<typeof setTimeout> | undefined
+    const load = async (attempt: number) => {
+      try {
+        const res = await fetch("/api/ai/catalog")
+        const data = (await res.json()) as
+          | ({ ok: true } & LiveCatalog)
+          | { ok: false; pending?: boolean }
+        if (cancelled) return
+        if (data.ok) {
+          setCatalog({ fetchedAt: data.fetchedAt, providers: data.providers })
+        } else if (data.pending && attempt < 2) {
+          retry = setTimeout(() => void load(attempt + 1), 15_000)
+        }
+      } catch {
+        // Display-only data: without it the cards simply show less.
+      }
+    }
+    void load(0)
+    return () => {
+      cancelled = true
+      if (retry) clearTimeout(retry)
+    }
+  }, [])
+  return catalog
+}
+
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${Math.round(n / 100_000) / 10}M`
+  if (n >= 1_000) return `${Math.round(n / 1_000)}K`
+  return String(n)
+}
+
+/** "Newest" chips plus the vendor's own links, shared by both card kinds. */
+function ProviderLive({
+  provider,
+  live,
+}: {
+  provider: AiProvider
+  live: LiveProvider | undefined
+}) {
+  const t = useT()
+  const latest = live?.latest ?? []
+  return (
+    <div className="mt-3 space-y-2">
+      {latest.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-ink-500">
+            {t("account.aiKeys.latestModels")}
+          </span>
+          {latest.map((m) => (
+            <a
+              key={m.id}
+              href={modelPageUrl(provider, m.id)}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={[
+                m.id,
+                m.released,
+                m.contextTokens
+                  ? t("account.aiKeys.contextTag", {
+                      tokens: formatTokens(m.contextTokens),
+                    })
+                  : null,
+                m.reasoning ? t("account.aiKeys.reasoningTag") : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              className="rounded-md bg-white/[0.04] px-2 py-0.5 font-mono text-[11px] text-ink-300 transition hover:bg-white/[0.08] hover:text-ink-100"
+            >
+              {m.name}
+            </a>
+          ))}
+        </div>
+      ) : null}
+      <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px]">
+        <a
+          href={provider.docsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-ink-400 hover:text-ink-200 hover:underline"
+        >
+          {t("account.aiKeys.docsLink")}
+        </a>
+        {provider.pricingUrl ? (
+          <a
+            href={provider.pricingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-ink-400 hover:text-ink-200 hover:underline"
+          >
+            {t("account.aiKeys.pricingLink")}
+          </a>
+        ) : null}
+      </div>
+    </div>
+  )
+}
 
 export function ApiKeysManager() {
   const t = useT()
@@ -59,12 +172,16 @@ export function ApiKeysManager() {
   const [loading, setLoading] = useState(true)
   const [ollama, setOllama] = useState<OllamaStatus>("checking")
   const [ollamaModels, setOllamaModels] = useState<string[]>([])
+  const live = useLiveCatalog()
 
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/account/api-keys", { cache: "no-store" })
       if (!res.ok) return
-      const data = (await res.json()) as { keys: KeyStatus[]; settings: Settings }
+      const data = (await res.json()) as {
+        keys: KeyStatus[]
+        settings: Settings
+      }
       const map: Record<string, KeyStatus> = {}
       for (const k of data.keys) map[k.provider] = k
       setKeys(map)
@@ -144,6 +261,7 @@ export function ApiKeysManager() {
                   key={p.id}
                   provider={p}
                   status={keys[p.id] ?? null}
+                  live={live?.providers[p.id]}
                   onChanged={load}
                 />
               ) : (
@@ -158,6 +276,13 @@ export function ApiKeysManager() {
             )}
           </div>
         )}
+        {live ? (
+          <p className="mt-3 text-[11px] text-ink-500">
+            {t("account.aiKeys.liveSource", {
+              date: new Date(live.fetchedAt).toLocaleDateString(),
+            })}
+          </p>
+        ) : null}
       </AccountSection>
     </>
   )
@@ -230,7 +355,11 @@ function EngineSelectors({
           readiness={readiness}
           installedLocalModels={installedLocalModels}
           onChange={(provider, model) =>
-            setDraft((d) => ({ ...d, advisorProvider: provider, advisorModel: model }))
+            setDraft((d) => ({
+              ...d,
+              advisorProvider: provider,
+              advisorModel: model,
+            }))
           }
         />
         <FeaturePicker
@@ -241,7 +370,11 @@ function EngineSelectors({
           readiness={readiness}
           installedLocalModels={installedLocalModels}
           onChange={(provider, model) =>
-            setDraft((d) => ({ ...d, compareProvider: provider, compareModel: model }))
+            setDraft((d) => ({
+              ...d,
+              compareProvider: provider,
+              compareModel: model,
+            }))
           }
         />
       </div>
@@ -516,10 +649,12 @@ function ProviderHeader({
 function KeyProviderCard({
   provider,
   status,
+  live,
   onChanged,
 }: {
   provider: AiProvider
   status: KeyStatus | null
+  live: LiveProvider | undefined
   onChanged: () => void | Promise<void>
 }) {
   const t = useT()
@@ -569,13 +704,46 @@ function KeyProviderCard({
           key: value.trim() || undefined,
         }),
       })
-      const data = await res.json().catch(() => ({}))
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean
+        model?: string
+        modelCount?: number | null
+        latencyMs?: number
+        keyValid?: boolean
+        error?: string
+        detail?: string
+      }
+      const count =
+        typeof data.modelCount === "number"
+          ? [t("account.aiKeys.testModelCount", { count: data.modelCount })]
+          : []
       if (data.ok) {
-        setNote({ type: "success", msg: t("account.aiKeys.testOk") })
+        setNote({
+          type: "success",
+          msg: data.model
+            ? t("account.aiKeys.testOkDetail", {
+                model: data.model,
+                ms: data.latencyMs ?? 0,
+              })
+            : t("account.aiKeys.testOk"),
+          extra: count,
+        })
       } else {
+        const headline =
+          data.keyValid && data.model
+            ? t("account.aiKeys.testKeyValidModelFailed", { model: data.model })
+            : null
         setNote({
           type: "error",
-          msg: data.error ?? t("account.aiKeys.testFailed"),
+          msg: [headline, data.error ?? t("account.aiKeys.testFailed")]
+            .filter(Boolean)
+            .join(" "),
+          extra: [
+            ...count,
+            ...(data.detail
+              ? [`${t("account.aiKeys.testDetail")}: ${data.detail}`]
+              : []),
+          ],
         })
       }
     } catch {
@@ -622,6 +790,7 @@ function KeyProviderCard({
       <p className="mt-2.5 text-[12px] leading-relaxed text-ink-400">
         {providerCopy(provider.id, locale).blurb}
       </p>
+      <ProviderLive provider={provider} live={live} />
 
       <div className="mt-3 space-y-2">
         <div className="relative">
@@ -650,7 +819,19 @@ function KeyProviderCard({
           </button>
         </div>
 
-        {note ? <StatusNote type={note.type}>{note.msg}</StatusNote> : null}
+        {note ? (
+          <StatusNote type={note.type}>
+            {note.msg}
+            {note.extra?.map((line) => (
+              <span
+                key={line}
+                className="mt-1 block break-words text-[11px] opacity-80"
+              >
+                {line}
+              </span>
+            ))}
+          </StatusNote>
+        ) : null}
 
         <div className="flex flex-wrap items-center gap-2">
           <button

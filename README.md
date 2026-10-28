@@ -198,6 +198,7 @@ Every variable is documented in [.env.example](.env.example). In production
 | `pnpm db:push` · `pnpm db:studio` | Apply the Drizzle schema · browse the data |
 | `pnpm sync:elite` · `pnpm sync:feb` · `pnpm sync:<league>` | Ingest leagues |
 | `pnpm probe:season` | Check which sources already publish the new season |
+| `pnpm ai:catalog` | Check the AI provider catalogue against models.dev and verify its links |
 | `pnpm db:dedupe-players` | Merge duplicated people across leagues |
 | `pnpm backfill:*` | Targeted backfills (bios, colours, shot zones…) |
 | `pnpm capture:showcase` | Re-record the homepage product clips ([Media](#media)) |
