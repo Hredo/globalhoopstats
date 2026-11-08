@@ -21,6 +21,7 @@ import { slugify, uniqueSlug } from "@/lib/sync/slug"
 import { tierForSlug, type LeagueTier } from "@/lib/leagues-tier"
 import { normalizeName } from "@/lib/sync/entity-matcher"
 import { isSyncCancelled } from "@/lib/sync/controller"
+import { fetchShotZonesSafely, writeShotZones } from "@/lib/sync/shot-zones"
 import { CURRENT_SEASON_LABEL } from "@/lib/seasons"
 import {
   chunkIds,
@@ -159,6 +160,13 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
         verdict.reasons,
       )
     }
+
+    // Shot locations come from a separate, slower per-game feed: read them only
+    // once the batch has passed the gate, and still before the transaction.
+    const sourceShotZones = await fetchShotZonesSafely(
+      adapter,
+      `[${adapter.displayName}]`,
+    )
 
     // Last checkpoint before any write: the scrape above is the long "running"
     // window, so a Stop pressed during it must leave the DB untouched.
@@ -422,6 +430,16 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
         totals.stats++
       }
 
+      if (sourceShotZones) {
+        const written = await writeShotZones(db, sourceShotZones, {
+          leagueId,
+          seasonId,
+          playerIdBySourceId,
+          teamIdBySourceId,
+        })
+        console.log(`[${adapter.displayName}] shot zones written (${written})`)
+      }
+
       /* ---- Roster rows for squad members with no stat line ---- */
       // Rosters are read out of player_season_stats, so a confirmed squad with
       // no games played yet needs a row of its own — otherwise a new season
@@ -476,7 +494,10 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
         for (const chunk of chunkIds(departed)) {
           await db.execute(sql`
             DELETE FROM player_season_stats
-            WHERE id IN (${sql.join(chunk.map((id) => sql`${id}`), sql`, `)})
+            WHERE id IN (${sql.join(
+              chunk.map((id) => sql`${id}`),
+              sql`, `,
+            )})
           `)
         }
         totals.departures += departed.length
@@ -559,7 +580,10 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
         for (const chunk of chunkIds(goneIds)) {
           await db.execute(sql`
             DELETE FROM coaches
-            WHERE id IN (${sql.join(chunk.map((id) => sql`${id}`), sql`, `)})
+            WHERE id IN (${sql.join(
+              chunk.map((id) => sql`${id}`),
+              sql`, `,
+            )})
           `)
         }
         totals.departures += goneIds.length

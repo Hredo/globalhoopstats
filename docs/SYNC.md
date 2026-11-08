@@ -65,7 +65,11 @@ In **hPanel → Advanced → Cron Jobs** the two jobs are:
 ```cron
 0 5 * * *  curl -fsS -m 60 -X POST -H @/home/<USER>/.cron-auth.hdr https://globalhoopstats.es/api/cron/sync?sources=nba,acb,euroleague
 0 6 * * 1  curl -fsS -m 60 -X POST -H @/home/<USER>/.cron-auth.hdr https://globalhoopstats.es/api/cron/sync?sources=leb-oro,leb-plata,eba
+0 */4 * * *  curl -fsS -m 60 -X POST -H @/home/<USER>/.cron-auth.hdr https://globalhoopstats.es/api/cron/highlights?limit=10
 ```
+
+The third line keeps player highlights fresh between syncs (see below); it is
+optional, the after-sync step already refreshes a batch every night.
 
 `~/.cron-auth.hdr` contains the line `X-Cron-Secret: <CRON_SECRET>` and is
 written (mode 0600) by the app itself on boot from its own env
@@ -102,14 +106,21 @@ off-season is essentially July–August (NBA also sleeps in September). Pass
 
 The same detached job that runs the sync (cron or admin panel) then calls
 `afterSync()` (`src/lib/ops/after-sync.ts`), so production needs **no extra
-cron lines**:
+cron lines** (the highlights cron above is optional):
 
 1. **Follow alerts** (`src/lib/alerts/engine.ts`) — every followed player/team
    is compared with the snapshot stored on its follow row; changes (team
    change, threshold crossed, arrivals/departures, coaching change) become
    notifications, pushed to subscribed devices and sent as one email digest.
    Manual re-run: `POST /api/cron/alerts` with the cron secret.
-2. **Backup** (`src/lib/ops/backup.ts`) — at most once every 20 h, a gzip'd
+2. **Highlights** (`src/lib/data/videos.ts`) — re-searches YouTube for the 30
+   players whose clip was checked longest ago (top-tier leagues first) and
+   keeps the newest relevant upload. A clip is re-checked after 3 days; a
+   profile visit also triggers that re-check in the background. With
+   `YOUTUBE_API_KEY` set it uses the YouTube Data API (`order=date`, capped at
+   90 searches/day to stay inside the default quota), otherwise Invidious.
+   Manual / extra runs: `POST /api/cron/highlights?limit=N`.
+3. **Backup** (`src/lib/ops/backup.ts`) — at most once every 20 h, a gzip'd
    NDJSON dump of every non-ephemeral table into `BACKUP_DIR` (default
    `~/backups/ghs`), then read back end to end (every line parses, per-table
    counts match, SHA-256 recorded). Keeps `BACKUP_KEEP` (14) files. Status in

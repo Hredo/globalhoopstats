@@ -7,6 +7,15 @@ import {
 import { pickBestCandidateWithHuggingFace } from "./rerank"
 import { decodeEntities, stripTags } from "@/lib/sources/html-text"
 
+const YOUTUBE_SEARCH_ENDPOINT = "https://www.googleapis.com/youtube/v3/search"
+const YOUTUBE_TIMEOUT_MS = 8_000
+/**
+ * search.list costs 100 of the default 10,000 daily quota units. Stay under it
+ * so a busy day falls back to Invidious instead of failing every lookup.
+ */
+const YOUTUBE_DAILY_SEARCHES = 90
+/** "Latest highlights" means this window first; older clips only as a fallback. */
+const RECENT_WINDOW_MS = 365 * 24 * 60 * 60_000
 const DDG_ENDPOINT = "https://html.duckduckgo.com/html/"
 const DDG_TIMEOUT_MS = 6_000
 const INVIDIOUS_TIMEOUT_MS = 6_000
@@ -39,6 +48,78 @@ type InvidiousVideo = {
   title?: string
   videoId?: string
   author?: string
+  /** Upload time, unix seconds. */
+  published?: number
+}
+
+let apiDay = ""
+let apiSearches = 0
+
+/** Official YouTube Data API, newest first. Null when unconfigured or out of budget. */
+async function searchYouTubeApi(
+  opts: SearchOptions,
+): Promise<YouTubeCandidate[] | null> {
+  const key = process.env.YOUTUBE_API_KEY?.trim()
+  if (!key) return null
+  const today = new Date().toISOString().slice(0, 10)
+  if (today !== apiDay) {
+    apiDay = today
+    apiSearches = 0
+  }
+  if (apiSearches >= YOUTUBE_DAILY_SEARCHES) return null
+  apiSearches++
+
+  const params = new URLSearchParams({
+    part: "snippet",
+    type: "video",
+    order: "date",
+    maxResults: "15",
+    videoEmbeddable: "true",
+    publishedAfter: new Date(Date.now() - RECENT_WINDOW_MS).toISOString(),
+    q: buildInvidiousQuery(opts),
+    key,
+  })
+  try {
+    const res = await fetch(`${YOUTUBE_SEARCH_ENDPOINT}?${params}`, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(YOUTUBE_TIMEOUT_MS),
+    })
+    if (!res.ok) return null
+    const json = (await res.json()) as {
+      items?: {
+        id?: { videoId?: string }
+        snippet?: {
+          title?: string
+          description?: string
+          channelTitle?: string
+          publishedAt?: string
+        }
+      }[]
+    }
+    const out: YouTubeCandidate[] = []
+    for (const item of json.items ?? []) {
+      const videoId = item.id?.videoId
+      const title = item.snippet?.title
+      if (!videoId || !title) continue
+      const published = item.snippet?.publishedAt
+        ? new Date(item.snippet.publishedAt)
+        : undefined
+      out.push({
+        videoId,
+        title: decodeEntities(title),
+        snippet: decodeEntities(
+          `${item.snippet?.channelTitle ?? ""} ${item.snippet?.description ?? ""}`,
+        ).trim(),
+        publishedAt:
+          published && !Number.isNaN(published.getTime())
+            ? published
+            : undefined,
+      })
+    }
+    return out
+  } catch {
+    return null
+  }
 }
 
 async function searchInvidious(
@@ -49,7 +130,7 @@ async function searchInvidious(
   for (const base of INVIDIOUS_INSTANCES) {
     const url =
       `${base}/api/v1/search?q=${encodeURIComponent(query)}` +
-      `&type=video&fields=title,videoId,author`
+      `&type=video&sort=upload_date&date=year&fields=title,videoId,author,published`
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), INVIDIOUS_TIMEOUT_MS)
     try {
@@ -71,6 +152,10 @@ async function searchInvidious(
           videoId: v.videoId,
           title: v.title,
           snippet: v.author ?? "",
+          publishedAt:
+            typeof v.published === "number" && v.published > 0
+              ? new Date(v.published * 1000)
+              : undefined,
         })
         if (out.length >= MAX_CANDIDATES) break
       }
@@ -144,7 +229,6 @@ function parseDdgHtml(html: string): DdgResult[] {
   return results
 }
 
-
 function decodeDdgUrl(u: string): string {
   if (u.startsWith("/") || u.startsWith("//")) {
     try {
@@ -203,15 +287,56 @@ function scoreCandidate(
   return score
 }
 
+/**
+ * A dated candidate counts as this player's highlight when the title names
+ * them (surname, plus first name, club or a highlight word) and is not an
+ * interview or news piece. Among those, the newest wins.
+ */
+export function pickNewestRelevant(
+  candidates: YouTubeCandidate[],
+  playerName: string,
+  teamName?: string | null,
+): YouTubeCandidate | null {
+  const tokens = playerName
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((p) => p.length >= 2)
+  const surname = tokens[tokens.length - 1]
+  if (!surname) return null
+  const surnameRe = new RegExp(`\\b${escapeRegExp(surname)}\\b`, "i")
+  const firstRe =
+    tokens.length > 1
+      ? new RegExp(`\\b${escapeRegExp(tokens[0]!)}\\b`, "i")
+      : null
+  const teamRe = teamName ? buildNameRegex(teamName) : null
+  const relevant = candidates.filter((c) => {
+    if (!c.publishedAt || !surnameRe.test(c.title)) return false
+    if (NEGATIVE_HINTS.test(c.title)) return false
+    return (
+      firstRe?.test(c.title) ||
+      HIGHLIGHT_HINTS.test(c.title) ||
+      teamRe?.test(`${c.title} ${c.snippet}`) ||
+      false
+    )
+  })
+  relevant.sort((a, b) => b.publishedAt!.getTime() - a.publishedAt!.getTime())
+  return relevant[0] ?? null
+}
+
 export async function findPlayerHighlight(
   opts: SearchOptions,
 ): Promise<Highlight | null> {
   let candidates: YouTubeCandidate[] = []
-  let source = "invidious"
+  let source = "youtube-api"
 
-  const invidiousResults = await searchInvidious(opts)
-  if (invidiousResults && invidiousResults.length > 0) {
+  const apiResults = await searchYouTubeApi(opts)
+  const invidiousResults =
+    apiResults && apiResults.length > 0 ? null : await searchInvidious(opts)
+  if (apiResults && apiResults.length > 0) {
+    candidates = apiResults
+  } else if (invidiousResults && invidiousResults.length > 0) {
     candidates = invidiousResults
+    source = "invidious"
   } else {
     const ddgQuery = buildDdgQuery(opts)
     const ddgResults = await searchDuckDuckGo(ddgQuery)
@@ -219,6 +344,9 @@ export async function findPlayerHighlight(
     source = "ddg-heuristic"
     if (candidates.length === 0) return null
   }
+
+  const newest = pickNewestRelevant(candidates, opts.playerName, opts.teamName)
+  if (newest) return toHighlight(newest, source)
 
   const nameRe = buildNameRegex(opts.playerName)
   const teamRe = opts.teamName ? buildNameRegex(opts.teamName) : null
@@ -243,11 +371,16 @@ export async function findPlayerHighlight(
     }
   }
 
+  return toHighlight(best, source)
+}
+
+function toHighlight(c: YouTubeCandidate, source: string): Highlight {
   return {
-    videoId: best.videoId,
-    title: best.title,
-    thumbnailUrl: youtubeThumbnail(best.videoId),
+    videoId: c.videoId,
+    title: c.title,
+    thumbnailUrl: youtubeThumbnail(c.videoId),
     source,
+    publishedAt: c.publishedAt ?? null,
   }
 }
 

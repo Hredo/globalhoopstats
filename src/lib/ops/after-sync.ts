@@ -1,17 +1,29 @@
 /**
  * Work that runs after a data sync, in the same detached job, so production
- * needs no extra cron lines: alerts for followers, then the nightly backup
- * (at most once every 20 hours, whichever sync triggers it).
+ * needs no extra cron lines: alerts for followers, a batch of stale YouTube
+ * highlights, then the nightly backup (at most once every 20 hours, whichever
+ * sync triggers it).
  */
 import { runAlerts } from "@/lib/alerts/engine"
+import { refreshStaleHighlights } from "@/lib/data/videos"
 import { backupIsFresh, runBackup } from "@/lib/ops/backup"
 
 export async function afterSync(tag: string): Promise<void> {
   try {
     const r = await runAlerts()
-    console.log(`[${tag}] alerts: ${r.notifications} notifications, ${r.pushed} pushed, ${r.emailed} emailed`)
+    console.log(
+      `[${tag}] alerts: ${r.notifications} notifications, ${r.pushed} pushed, ${r.emailed} emailed`,
+    )
   } catch (err) {
     console.error(`[${tag}] alerts failed:`, err)
+  }
+  try {
+    const h = await refreshStaleHighlights(30)
+    console.log(
+      `[${tag}] highlights: checked ${h.checked}, ${h.updated} new clip(s)`,
+    )
+  } catch (err) {
+    console.error(`[${tag}] highlights failed:`, err)
   }
   try {
     if (!(await backupIsFresh())) {

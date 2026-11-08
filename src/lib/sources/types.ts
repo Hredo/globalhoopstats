@@ -1,4 +1,5 @@
 import { CURRENT_SEASON_START_YEAR, seasonLabel } from "@/lib/seasons"
+import type { SourceShotZones } from "@/lib/sources/shot-zones"
 
 export type SourceId =
   | "nba"
@@ -226,6 +227,8 @@ export type SourceAdapter = {
   fetchStats(): Promise<ExtractedPlayerStat[]>
   fetchCoaches(): Promise<SourceCoach[]>
   fetchTeamStats(): Promise<SourceTeamStats[]>
+  /** Per-zone shooting, only where the league publishes shot locations. */
+  fetchShotZones?(): Promise<SourceShotZones[]>
   fetchTeamDetails?(
     teamIds: string[],
   ): Promise<Map<string, Partial<SourceTeam> & Record<string, unknown>>>

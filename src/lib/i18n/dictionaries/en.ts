@@ -793,7 +793,7 @@ export const en = {
     shotVolume: "{count} field-goal attempts",
     shotNoData: "No shot-location data",
     shotNoDataHint:
-      "Zone splits come from EuroLeague's official shot feed. This player's league doesn't publish shot coordinates yet.",
+      "Zones come from the EuroLeague and NBA official shot-by-shot logs and refresh on every sync. This player has no recorded shots this season yet.",
     shotCold: "Cold",
     shotHot: "Hot",
     shotLegendNote:

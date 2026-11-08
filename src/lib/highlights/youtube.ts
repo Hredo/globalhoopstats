@@ -4,6 +4,8 @@ export type YouTubeCandidate = {
   videoId: string
   title: string
   snippet: string
+  /** Upload date, when the search backend reports one. */
+  publishedAt?: Date
 }
 
 export type Highlight = {
@@ -11,6 +13,7 @@ export type Highlight = {
   title: string
   thumbnailUrl: string
   source: string
+  publishedAt: Date | null
 }
 
 export type StoredVideo = {

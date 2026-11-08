@@ -25,6 +25,17 @@ normalizes its source into the shared `SourceAdapter` interface
 the shared polite fetcher** ([`fetcher.ts`](src/lib/sources/fetcher.ts)) — no
 adapter calls `fetch` directly.
 
+**Shot charts** (`player_season_stats.shot_zones`) are filled on every sync by
+the adapters that implement `fetchShotZones`
+([`shot-zones.ts`](src/lib/sources/shot-zones.ts)): EuroLeague from
+`live.euroleague.net/api/Points` (one request per played game, cached per
+process once the game has settled; 2 s between requests) and the NBA from
+`stats.nba.com/stats/shotchartdetail` (one request per team). A failed shot
+read never fails the league's sync — the previous zones stay. ACB
+(`api2.acb.com`) and FEB (`livestats.api` on `intrafeb.feb.es`) do draw shot
+charts on their live sites, but only through APIs that require an access key or
+token, so they are **not** read: that would be bypassing access control.
+
 ## Principles
 
 1. **Identifiable, honest crawler.** Every request carries the
