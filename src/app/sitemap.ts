@@ -40,6 +40,11 @@ const STATIC_ROUTES: Array<{
   { path: "/privacy", changeFrequency: "monthly", priority: 0.3 },
 ]
 
+// Without this the sitemap is prerendered once at build time and served
+// unchanged until the next deploy, so players added by a sync between deploys
+// were never submitted. Hourly is plenty: it only moves when a sync lands.
+export const revalidate = 3600
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
 

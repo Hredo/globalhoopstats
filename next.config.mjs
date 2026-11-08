@@ -75,6 +75,13 @@ const nextConfig = {
           { key: "X-XSS-Protection", value: "0" },
         ],
       },
+      {
+        // The API description is meant to be loaded by docs viewers and client
+        // generators on other sites. Listed after the global rule so this value
+        // wins over its `same-origin` (Next applies the last match per key).
+        source: "/openapi.json",
+        headers: [{ key: "Cross-Origin-Resource-Policy", value: "cross-origin" }],
+      },
     ]
   },
 }

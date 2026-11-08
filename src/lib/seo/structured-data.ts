@@ -97,6 +97,94 @@ export function leagueJsonLd(l: {
   return data
 }
 
+/**
+ * schema.org ProfilePage around a player's Person. `dateModified` is the
+ * league's last successful sync — the date an answer engine quotes as
+ * "as of", and the freshness signal Google reads for profile pages.
+ */
+export function profilePageJsonLd(
+  person: JsonLdObject,
+  dateModified: Date | null,
+): JsonLdObject {
+  const mainEntity = { ...person }
+  delete mainEntity["@context"]
+  return {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    url: mainEntity.url,
+    ...(dateModified ? { dateModified: dateModified.toISOString() } : {}),
+    mainEntity,
+  }
+}
+
+/**
+ * schema.org Dataset for a league-season: what Google Dataset Search and the
+ * answer engines index as "a table of numbers someone can cite". The creator is
+ * this site (the normalised compilation); `isBasedOn` credits the publisher the
+ * raw numbers come from.
+ */
+export function datasetJsonLd(d: {
+  leagueName: string
+  leagueSlug: string
+  season: string
+  description: string
+  teams: number
+  players: number
+  dateModified: Date | null
+  upstream: { name: string; url: string } | null
+  locale: string
+}): JsonLdObject {
+  const data: JsonLdObject = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    name: `${d.leagueName} ${d.season} — player and team statistics`,
+    description: d.description,
+    url: `${SITE.url}/leagues/${d.leagueSlug}`,
+    inLanguage: d.locale,
+    isAccessibleForFree: true,
+    keywords: [
+      d.leagueName,
+      `${d.leagueName} ${d.season}`,
+      "basketball statistics",
+      "estadísticas baloncesto",
+    ],
+    temporalCoverage: d.season,
+    variableMeasured: [
+      "games played",
+      "minutes per game",
+      "points per game",
+      "rebounds per game",
+      "assists per game",
+      "field goal percentage",
+      "three-point percentage",
+      "free throw percentage",
+      "true shooting percentage",
+      "player efficiency rating (PER)",
+    ],
+    size: `${d.teams} teams, ${d.players} players`,
+    creator: { "@type": "Organization", name: SITE.name, url: SITE.url },
+    publisher: { "@type": "Organization", name: SITE.name, url: SITE.url },
+    usageInfo: `${SITE.url}/terms`,
+    distribution: [
+      {
+        "@type": "DataDownload",
+        encodingFormat: "application/json",
+        contentUrl: `${SITE.url}/api/v1/players?league=${d.leagueSlug}`,
+        description: "Public read API (API key required). Spec: /openapi.json",
+      },
+    ],
+  }
+  if (d.dateModified) data.dateModified = d.dateModified.toISOString()
+  if (d.upstream) {
+    data.isBasedOn = {
+      "@type": "CreativeWork",
+      name: d.upstream.name,
+      url: d.upstream.url,
+    }
+  }
+  return data
+}
+
 /** schema.org SportsTeam for a team page. */
 export function teamJsonLd(t: {
   name: string
@@ -105,6 +193,9 @@ export function teamJsonLd(t: {
   leagueName: string
   logoUrl?: string | null
   city?: string | null
+  /** The roster, so an agent can resolve "who plays for X" from the page. */
+  athletes?: Array<{ name: string; slug: string }>
+  coach?: string | null
 }): JsonLdObject {
   const data: JsonLdObject = {
     "@context": "https://schema.org",
@@ -120,5 +211,13 @@ export function teamJsonLd(t: {
   }
   if (t.logoUrl) data.logo = t.logoUrl
   if (t.city) data.location = { "@type": "Place", name: t.city }
+  if (t.athletes?.length) {
+    data.athlete = t.athletes.map((a) => ({
+      "@type": "Person",
+      name: a.name,
+      url: `${SITE.url}/players/${a.slug}`,
+    }))
+  }
+  if (t.coach) data.coach = { "@type": "Person", name: t.coach }
   return data
 }

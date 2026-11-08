@@ -4,10 +4,9 @@ export const SITE = {
   // Canonical production URL. Reads NEXT_PUBLIC_SITE_URL (set to the live domain
   // on Hostinger) and falls back to the real domain — NOT the .com — so the
   // canonical tag, sitemap, robots, OpenGraph and JSON-LD all point to .es.
-  url: (process.env.NEXT_PUBLIC_SITE_URL ?? "https://globalhoopstats.es").replace(
-    /\/+$/,
-    "",
-  ),
+  url: (
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://globalhoopstats.es"
+  ).replace(/\/+$/, ""),
   // Always points to the production domain for legal documents, regardless of
   // the local dev environment. The official business address is the .es domain.
   urlOfficial: "https://globalhoopstats.es",
@@ -76,6 +75,33 @@ export const SEO_KEYWORDS = [
  * social presence (a real ranking/knowledge-panel signal). Fill in as accounts
  * are created; empty strings are filtered out before rendering.
  */
+/**
+ * AI search, answer and assistant crawlers, welcomed by name in robots.txt.
+ * Being the source these engines cite is the point of the data pages.
+ */
+export const AI_CRAWLERS = [
+  // OpenAI: search index, user-triggered fetches, training
+  "OAI-SearchBot",
+  "ChatGPT-User",
+  "GPTBot",
+  // Anthropic
+  "Claude-SearchBot",
+  "Claude-User",
+  "ClaudeBot",
+  // Perplexity
+  "PerplexityBot",
+  "Perplexity-User",
+  // Google (Gemini / AI Overviews grounding) and Apple Intelligence
+  "Google-Extended",
+  "Applebot-Extended",
+  // Others that answer questions with citations
+  "Amazonbot",
+  "DuckAssistBot",
+  "MistralAI-User",
+  "Meta-ExternalAgent",
+  "CCBot",
+] as const
+
 export const SITE_SOCIAL: string[] = [
   // "https://twitter.com/globalhoopstats",
   // "https://www.instagram.com/globalhoopstats",

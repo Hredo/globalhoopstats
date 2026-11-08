@@ -7,7 +7,6 @@ import Link from "next/link"
 import { TradeScenarioCard } from "@/components/market/trade-scenario-card"
 import { PlayerSearchPopover } from "@/components/market/player-search-popover"
 import { AiAnalysisDisplay } from "@/components/market/ai-analysis-display"
-import { exportTradePdf } from "@/components/market/export-pdf"
 import { ValuationBadge } from "@/components/market/valuation-badge"
 import { SmartImage } from "@/components/ui/smart-image"
 import { PersonAvatar } from "@/components/ui/person-avatar"
@@ -319,7 +318,9 @@ export default function TradePage() {
   })()
 
   // ── PDF export ──
-  const exportPdf = () => {
+  const exportPdf = async () => {
+    // jspdf weighs several MB, so it only loads when someone actually exports.
+    const { exportTradePdf } = await import("@/components/market/export-pdf")
     if (mode === "simular" && result) {
       const analyses: Record<number, string> = {}
       Object.entries(scenarioAi).forEach(([k, v]) => {

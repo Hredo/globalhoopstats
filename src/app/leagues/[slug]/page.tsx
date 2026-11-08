@@ -10,8 +10,14 @@ import { listLeagueOverviews, listLeagueTopScorers } from "@/lib/data/leagues"
 import { getSyncTimesBySource } from "@/lib/data/sync"
 import { listTeams } from "@/lib/data/teams"
 import { getT } from "@/lib/i18n/server"
+import { upstreamFor } from "@/lib/sources/types"
+import { LEAGUE_ALIASES as ALSO_KNOWN_AS } from "@/lib/seo/llms"
 import { pageSeo } from "@/lib/seo/metadata"
-import { breadcrumbJsonLd, leagueJsonLd } from "@/lib/seo/structured-data"
+import {
+  breadcrumbJsonLd,
+  datasetJsonLd,
+  leagueJsonLd,
+} from "@/lib/seo/structured-data"
 
 /**
  * One landing page per league — the page that can rank for "estadísticas Liga
@@ -25,19 +31,8 @@ export const revalidate = 600
 
 type Params = { slug: string }
 
-/**
- * The name people type into Google is often not the one we display: the ACB
- * shows under its sponsor name (Liga Endesa), and FEB renamed its leagues in
- * 2025 while everyone still searches "LEB Oro". Both go in the title; only a
- * `former` name is called "formerly" in the prose.
- */
-const ALSO_KNOWN_AS: Record<string, { name: string; former: boolean }> = {
-  acb: { name: "Liga ACB", former: false },
-  "leb-oro": { name: "LEB Oro", former: true },
-  "leb-plata": { name: "LEB Plata", former: true },
-  eba: { name: "Liga EBA", former: true },
-}
-
+// ALSO_KNOWN_AS: the search names (Liga ACB, LEB Oro…) go in the title too;
+// only a `former` name is called "formerly" in the prose.
 function formerName(slug: string): string | null {
   const aka = ALSO_KNOWN_AS[slug]
   return aka?.former ? aka.name : null
@@ -114,19 +109,35 @@ export default async function LeaguePage({
       ? t("leaguePage.introLeader", {
           name: leader.fullName,
           team: leader.team?.name ?? "—",
-          ppg: leader.ppg.toFixed(1),
+          ppg: leader.ppg.toLocaleString(locale === "es" ? "es-ES" : "en-US", {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1,
+          }),
         })
       : null,
   ]
     .filter(Boolean)
     .join(" ")
 
+  const upstream = upstreamFor(slug)
+  const lastSyncAt = syncTimes.get(league.slug) ?? null
   const structuredData = [
     leagueJsonLd({
       name: league.name,
       slug: league.slug,
       alternateName: ALSO_KNOWN_AS[slug]?.name ?? null,
       logoUrl: league.logoUrl,
+    }),
+    datasetJsonLd({
+      leagueName: league.name,
+      leagueSlug: league.slug,
+      season,
+      description: intro,
+      teams: league.teamCount,
+      players: league.playerCount,
+      dateModified: lastSyncAt,
+      upstream,
+      locale,
     }),
     breadcrumbJsonLd([
       { name: t("nav.leagues"), path: "/leagues" },
@@ -179,7 +190,9 @@ export default async function LeaguePage({
                     <thead>
                       <tr className="border-b border-hairline text-left font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">
                         <th className="pb-2 pr-3">#</th>
-                        <th className="pb-2 pr-3">{t("leaguePage.colPlayer")}</th>
+                        <th className="pb-2 pr-3">
+                          {t("leaguePage.colPlayer")}
+                        </th>
                         <th className="pb-2 pr-3">{t("leaguePage.colTeam")}</th>
                         <th className="pb-2 text-right">
                           {t("leaguePage.colPpg")}
@@ -232,11 +245,7 @@ export default async function LeaguePage({
           </FadeIn>
 
           <FadeIn delay={0.05}>
-            <LeagueOverview
-              data={league}
-              index={0}
-              lastSyncAt={syncTimes.get(league.slug) ?? null}
-            />
+            <LeagueOverview data={league} index={0} lastSyncAt={lastSyncAt} />
           </FadeIn>
         </div>
 
