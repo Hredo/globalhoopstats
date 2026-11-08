@@ -10,6 +10,7 @@ import {
   BorderStyle,
 } from "docx"
 import type { AdvisorOutput } from "@/lib/ai/local-advisor"
+import { slugify } from "@/lib/sync/slug"
 
 type ChatMessage = {
   id: number
@@ -258,12 +259,7 @@ export async function POST(request: NextRequest) {
 
     const buffer = await Packer.toBuffer(doc)
 
-    const safeName = team.name
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "team"
+    const safeName = slugify(team.name) || "team"
     const now = new Date()
     const pad = (n: number) => String(n).padStart(2, "0")
     const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`

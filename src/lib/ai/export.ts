@@ -3,6 +3,7 @@ import { saveAs } from "file-saver"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import type { AdvisorOutput } from "@/lib/ai/local-advisor"
+import { trimDashes } from "@/lib/sync/slug"
 
 export type ChatMessage = {
   id: number
@@ -229,12 +230,12 @@ function timestamp(date: Date = new Date()): string {
 
 function safeFilePart(value: string): string {
   return (
-    value
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-zA-Z0-9-_]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .toLowerCase() || "team"
+    trimDashes(
+      value
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9-_]+/g, "-"),
+    ).toLowerCase() || "team"
   )
 }
 

@@ -1,4 +1,5 @@
 import { saveAs } from "file-saver"
+import { slugify } from "@/lib/sync/slug"
 import type { ChatMessage, TeamContext } from "./export"
 
 const FILE_BASE = "signing-advisor"
@@ -152,12 +153,7 @@ export function exportToMarkdown(payload: {
 }): void {
   const md = buildMarkdown(payload.team, payload.messages)
   const blob = new Blob([md], { type: "text/markdown;charset=utf-8" })
-  const safeName = payload.team.name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") || "team"
+  const safeName = slugify(payload.team.name) || "team"
   const now = new Date()
   const pad = (n: number) => String(n).padStart(2, "0")
   const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`

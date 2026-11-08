@@ -48,8 +48,9 @@ token, so they are **not** read: that would be bypassing access control.
    requests/minute, so it is spaced 3.5 s. FEB enrichment adds extra jitter on top.
 3. **Respect back-pressure.** We honor `Retry-After` and back off on 429/503.
    A 4xx refusal (403, 404…) is never retried: retrying a block only prolongs it.
-   On the NBA, Basketball-Reference is a supplement (advanced metrics, coaches,
+   On the NBA, Basketball-Reference is a supplement (advanced metrics,
    standings), so a BR refusal skips those parts and the league still syncs.
+   The NBA coaching staff comes from stats.nba.com (`commonteamroster`).
    BR jails datacenter IPs: from 2026-10-23 it answered the production server
    with a 403 on the first request, which is why EuroLeague and ACB no longer
    use it at all and read their own leagues' sites instead.

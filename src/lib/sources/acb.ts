@@ -8,7 +8,7 @@ import {
   SOURCE_META,
 } from "@/lib/sources/types"
 import { fetchText } from "@/lib/sources/fetcher"
-import { parseBirthdate, parseHeightToCm } from "@/lib/sync/slug"
+import { parseBirthdate, parseHeightToCm, trimDashes } from "@/lib/sync/slug"
 
 const ACB_BASE = "https://www.acb.com"
 const ACB_LIGA = "/es/liga"
@@ -255,12 +255,13 @@ async function resolveSlug(clubId: number, teams?: AcbTeam[]): Promise<string> {
   const list = teams ?? (await fetchTeamsList())
   const t = list.find((x) => x.clubId === clubId)
   if (!t) return `club-${clubId}`
-  const slug = t.name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+  const slug = trimDashes(
+    t.name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-"),
+  )
   const result = `${slug}-${clubId}`
   slugCache.set(clubId, result)
   return result
