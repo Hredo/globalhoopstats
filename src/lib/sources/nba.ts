@@ -173,6 +173,27 @@ function normalizeName(s: string): string {
     .trim()
 }
 
+/** One `commonteamroster` "Coaches" row → a bench member. */
+export function mapNbaCoach(row: NbaRow): SourceCoach | null {
+  const id = row.COACH_ID
+  const teamId = row.TEAM_ID
+  const fullName = row.COACH_NAME ? String(row.COACH_NAME).trim() : ""
+  if (id == null || teamId == null || !fullName) return null
+  const type = String(row.COACH_TYPE ?? "").toLowerCase()
+  const role: SourceCoach["role"] =
+    type === "head coach"
+      ? "head_coach"
+      : type.includes("assistant coach")
+        ? "assistant_coach"
+        : "staff"
+  return {
+    sourceId: `nba-coach-${id}-${teamId}`,
+    fullName,
+    role,
+    teamSourceId: String(teamId),
+  }
+}
+
 export const nbaAdapter: SourceAdapter = {
   id: "nba",
   displayName: SOURCE_META.nba.displayName,
@@ -511,44 +532,31 @@ export const nbaAdapter: SourceAdapter = {
     return out
   },
 
+  /**
+   * Each club's bench from `commonteamroster`, the official roster endpoint.
+   * BR's coaches page used to be the source, but BR 403-jails the server and
+   * it only ever listed head coaches, so every NBA team page lost its staff.
+   */
   async fetchCoaches(): Promise<SourceCoach[]> {
-    const url = `${BR_BASE}/leagues/NBA_${SEASON_END_YEAR}_coaches.html`
-    let html: string | null
-    try {
-      html = await fetchBrHtml(url)
-    } catch (err) {
-      return skipBr("coaches", err)
-    }
-    if (!html) {
-      console.warn(`[nba] ${SEASON_END_YEAR} coaches page not published yet`)
-      return []
-    }
-    const tableHtml = extractTableById(html, "NBA_coaches")
-    const rows = rowsFromTable(tableHtml)
+    const season = SOURCE_META.nba.seasonCode
+    const teamIds = [...new Set(Object.values(NBA_TEAM_CODES))]
     const out: SourceCoach[] = []
-    const seen = new Set<string>()
-    for (const row of rows) {
-      const cells = getRowCells(row)
-      const name = cells.get("coach")
-      if (!name) continue
-      const coachId = name.toLowerCase().replace(/[^a-z0-9]+/g, "-")
-      const teamHref =
-        row.match(/<a[^>]*href=(?:"|')(\/teams\/[^"']+\.html)(?:"|')/)?.[1] ??
-        undefined
-      const teamCode = teamHref?.match(/\/teams\/([^/]+)\//)?.[1]
-      const role = (cells.get("role") ?? "head_coach").toLowerCase()
-      const normalizedRole: SourceCoach["role"] = role.includes("assistant")
-        ? "assistant_coach"
-        : "head_coach"
-      const key = `${coachId}-${teamCode ?? "fa"}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      out.push({
-        sourceId: key,
-        fullName: name,
-        role: normalizedRole,
-        teamSourceId: teamCode ? nbaCodeToId(teamCode) : undefined,
-      })
+    for (const id of teamIds) {
+      try {
+        const url = `${BASE_URL}/commonteamroster?LeagueID=00&Season=${season}&TeamID=${id}`
+        const payload = await fetchJson<NbaEnvelope>(url, {
+          headers: NBA_HEADERS,
+        })
+        for (const row of readResultSet(payload, "Coaches")) {
+          const c = mapNbaCoach(row)
+          if (c) out.push(c)
+        }
+        await sleep(250)
+      } catch (err) {
+        // One club's roster failing must not cost the other 29 their staff.
+        const message = err instanceof Error ? err.message : String(err)
+        console.warn(`[nba] coaches for team ${id} skipped — ${message}`)
+      }
     }
     return out
   },
