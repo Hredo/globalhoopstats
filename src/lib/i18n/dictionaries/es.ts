@@ -818,7 +818,7 @@ export const es: Messages = {
     shotVolume: "{count} tiros de campo",
     shotNoData: "Sin datos de localización de tiro",
     shotNoDataHint:
-      "El desglose por zonas proviene del feed oficial de tiros de la EuroLeague. La liga de este jugador aún no publica coordenadas de tiro.",
+      "Las zonas salen del registro oficial tiro a tiro de la EuroLeague y la NBA, y se actualizan en cada sincronización. Este jugador todavía no tiene tiros registrados esta temporada.",
     shotCold: "Frío",
     shotHot: "Caliente",
     shotLegendNote:

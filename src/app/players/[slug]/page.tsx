@@ -598,7 +598,9 @@ export default async function PlayerPage({ params, searchParams }: Props) {
                   />
                 </div>
 
-                {selLeague.slug === "euroleague" || selLeague.slug === "nba" ? (
+                {season.shotZones ||
+                selLeague.slug === "euroleague" ||
+                selLeague.slug === "nba" ? (
                   <div className="mt-5">
                     <ShotChart zones={season.shotZones ?? null} />
                   </div>

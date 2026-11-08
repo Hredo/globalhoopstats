@@ -13,7 +13,12 @@ import {
   type SourceTeamStats,
   SOURCE_META,
 } from "@/lib/sources/types"
-import { nbaCodeToId } from "@/lib/sources/nba-teams"
+import { NBA_TEAM_CODES, nbaCodeToId } from "@/lib/sources/nba-teams"
+import {
+  nbaShotZone,
+  ShotZoneTally,
+  type SourceShotZones,
+} from "@/lib/sources/shot-zones"
 import { decodeEntities, stripTags } from "@/lib/sources/html-text"
 
 const BASE_URL = "https://stats.nba.com/stats"
@@ -633,5 +638,56 @@ export const nbaAdapter: SourceAdapter = {
       }
     }
     return out
+  },
+
+  async fetchShotZones(): Promise<SourceShotZones[]> {
+    // One shotchartdetail call per team keeps each response small; the API
+    // already labels every shot with its zone, so no geometry is needed here.
+    const season = SOURCE_META.nba.seasonCode
+    const tally = new ShotZoneTally()
+    const teamIds = [...new Set(Object.values(NBA_TEAM_CODES))].map(String)
+    for (const teamId of teamIds) {
+      const params = new URLSearchParams({
+        ContextMeasure: "FGA",
+        LeagueID: "00",
+        Season: season,
+        SeasonType: "Regular Season",
+        PlayerID: "0",
+        TeamID: teamId,
+        Period: "0",
+        Month: "0",
+        OpponentTeamID: "0",
+        LastNGames: "0",
+        PlayerPosition: "",
+        GameSegment: "",
+        Location: "",
+        Outcome: "",
+        SeasonSegment: "",
+        VsConference: "",
+        VsDivision: "",
+        RookieYear: "",
+        DateFrom: "",
+        DateTo: "",
+        GameID: "",
+      })
+      const payload = await fetchJson<NbaEnvelope>(
+        `${BASE_URL}/shotchartdetail?${params}`,
+        { headers: NBA_HEADERS, timeoutMs: 60_000 },
+      )
+      for (const shot of readResultSet(payload, "Shot_Chart_Detail")) {
+        const zone = nbaShotZone(
+          String(shot.SHOT_ZONE_BASIC ?? ""),
+          String(shot.SHOT_ZONE_AREA ?? ""),
+        )
+        if (!zone || shot.PLAYER_ID == null) continue
+        tally.add(
+          String(shot.PLAYER_ID),
+          String(shot.TEAM_ID ?? teamId),
+          zone,
+          Number(shot.SHOT_MADE_FLAG) === 1 ? 1 : 0,
+        )
+      }
+    }
+    return tally.lines()
   },
 }

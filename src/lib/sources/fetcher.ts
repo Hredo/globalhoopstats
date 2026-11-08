@@ -34,6 +34,9 @@ const MIN_HOST_INTERVAL_MS = Number(
  */
 const HOST_MIN_INTERVAL_MS: Record<string, number> = {
   "www.basketball-reference.com": 3_500,
+  // EuroLeague's shot-by-shot feed answers 429 when read faster than ~1 game
+  // every 1.8 s (one request per game played).
+  "live.euroleague.net": 2_000,
 }
 
 export function minIntervalFor(host: string): number {

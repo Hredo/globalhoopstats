@@ -28,6 +28,7 @@ import { revalidateCacheTags } from "@/lib/sync/revalidate"
 import { slugify, uniqueSlug } from "@/lib/sync/slug"
 import { tierForName, tierForSlug, type LeagueTier } from "@/lib/leagues-tier"
 import { isSyncCancelled } from "@/lib/sync/controller"
+import { fetchShotZonesSafely, writeShotZones } from "@/lib/sync/shot-zones"
 import { CURRENT_SEASON_LABEL } from "@/lib/seasons"
 import {
   chunkIds,
@@ -104,8 +105,6 @@ function emptyTotals(): LeagueSyncTotals {
     departures: 0,
   }
 }
-
-
 
 function statColumns(s: ExtractedPlayerStat) {
   return {
@@ -299,6 +298,17 @@ async function syncLeague(
         })
       totals.statsUpserted++
     }
+
+    const shotZones = await fetchShotZonesSafely(adapter, tag)
+    if (shotZones) {
+      const written = await writeShotZones(db, shotZones, {
+        leagueId,
+        seasonId,
+        playerIdBySourceId,
+        teamIdBySourceId,
+      })
+      console.log(`${tag} shot zones written (${written})`)
+    }
     console.log(
       `${tag} stats upserted (${totals.statsUpserted}, skipped ${totals.statsSkipped})`,
     )
@@ -348,7 +358,11 @@ async function syncLeague(
     // stays untouched, because it is history and still true.
     const squadVerdict = pruneVerdict(rosterPairs.size, MIN_PAIRS_TO_PRUNE)
     if (squadVerdict.prune) {
-      const stored = await rawRows<{ id: string; player_id: string; team_id: string }>(
+      const stored = await rawRows<{
+        id: string
+        player_id: string
+        team_id: string
+      }>(
         db.execute(sql`
           SELECT id, player_id, team_id
           FROM player_season_stats
@@ -363,7 +377,10 @@ async function syncLeague(
       for (const chunk of chunkIds(departed)) {
         await db.execute(sql`
           DELETE FROM player_season_stats
-          WHERE id IN (${sql.join(chunk.map((id) => sql`${id}`), sql`, `)})
+          WHERE id IN (${sql.join(
+            chunk.map((id) => sql`${id}`),
+            sql`, `,
+          )})
         `)
       }
       totals.departures += departed.length
@@ -372,7 +389,9 @@ async function syncLeague(
           `${departed.length} departure(s) removed from this season`,
       )
     } else {
-      console.warn(`${tag} squad reconciliation SKIPPED — ${squadVerdict.reason}`)
+      console.warn(
+        `${tag} squad reconciliation SKIPPED — ${squadVerdict.reason}`,
+      )
     }
 
     /* ---- Coaches ---- */
@@ -449,7 +468,10 @@ async function syncLeague(
       for (const chunk of chunkIds(goneIds)) {
         await db.execute(sql`
           DELETE FROM coaches
-          WHERE id IN (${sql.join(chunk.map((id) => sql`${id}`), sql`, `)})
+          WHERE id IN (${sql.join(
+            chunk.map((id) => sql`${id}`),
+            sql`, `,
+          )})
         `)
       }
       totals.departures += goneIds.length

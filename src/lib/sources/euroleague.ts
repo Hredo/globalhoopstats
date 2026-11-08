@@ -8,6 +8,11 @@ import {
   SOURCE_META,
 } from "@/lib/sources/types"
 import { fetchJson } from "@/lib/sources/fetcher"
+import {
+  classifyShotZone,
+  ShotZoneTally,
+  type SourceShotZones,
+} from "@/lib/sources/shot-zones"
 
 /*
  * EuroLeague comes from the competition's own public API — the JSON feed
@@ -23,6 +28,8 @@ const SEASON = SOURCE_META.euroleague.seasonCode
 const SEASON_YEAR = SOURCE_META.euroleague.season
 const V2_SEASON = `${API}/v2/competitions/E/seasons/${SEASON}`
 const V3 = `${API}/v3/competitions/E`
+/** Shot-by-shot play feed (court coordinates for every field-goal attempt). */
+const LIVE = "https://live.euroleague.net/api"
 const PAGE = 200
 
 /** Canonical names keyed by EuroLeague club code — keeps slugs stable across sponsor renames. */
@@ -135,6 +142,37 @@ type ApiStandingRow = {
 }
 
 type ApiRound = { round: number; minGameStartDate: string }
+
+type ApiGame = { gameCode: number; played: boolean; utcDate?: string }
+
+/** One play from live.euroleague.net/api/Points; ids and codes come space-padded. */
+export type ApiShotRow = {
+  ID_PLAYER?: string
+  TEAM?: string
+  ID_ACTION?: string
+  COORD_X?: number
+  COORD_Y?: number
+}
+
+const SHOT_ACTIONS = new Set(["2FGM", "2FGA", "3FGM", "3FGA"])
+
+/** Field-goal attempts of one game, bucketed per (player, club) and zone. */
+export function euroleagueGameShotZones(rows: ApiShotRow[]): SourceShotZones[] {
+  const tally = new ShotZoneTally()
+  for (const row of rows) {
+    const action = row.ID_ACTION?.trim() ?? ""
+    if (!SHOT_ACTIONS.has(action)) continue
+    // The play feed prefixes person codes with "P"; the people API does not.
+    const player = row.ID_PLAYER?.trim().replace(/^P/, "")
+    const team = row.TEAM?.trim()
+    const x = Number(row.COORD_X)
+    const y = Number(row.COORD_Y)
+    if (!player || !team || !Number.isFinite(x) || !Number.isFinite(y)) continue
+    const zone = classifyShotZone(x, y, action.startsWith("3"))
+    tally.add(player, team, zone, action.endsWith("M") ? 1 : 0)
+  }
+  return tally.lines()
+}
 
 /**
  * "MOTLEY, JOHNATHAN" → "Johnathan Motley". The feed keeps names as
@@ -343,6 +381,49 @@ const people = () =>
     ),
   )
 
+/*
+ * A finished game's shots never change, so each one is fetched once per server
+ * process; a sync only pays for the games played since the last one. Games that
+ * ended under three hours ago are re-read, in case the feed was still settling.
+ */
+const finishedGameShots = new Map<string, SourceShotZones[]>()
+const SETTLED_MS = 3 * 60 * 60_000
+
+async function seasonShotZones(): Promise<SourceShotZones[]> {
+  const games = (
+    await fetchJson<{ data: ApiGame[] }>(`${V2_SEASON}/games`)
+  ).data.filter((g) => g.played && Number.isFinite(g.gameCode))
+  const tally = new ShotZoneTally()
+  let failed = 0
+  for (const game of games) {
+    const key = `${SEASON}:${game.gameCode}`
+    let lines = finishedGameShots.get(key)
+    if (!lines) {
+      try {
+        const feed = await fetchJson<{ Rows?: ApiShotRow[] }>(
+          `${LIVE}/Points?gamecode=${game.gameCode}&seasoncode=${SEASON}`,
+        )
+        lines = euroleagueGameShotZones(feed.Rows ?? [])
+      } catch (err) {
+        failed++
+        console.warn(
+          `[euroleague] shots for game ${game.gameCode} unavailable: ${err instanceof Error ? err.message : err}`,
+        )
+        continue
+      }
+      const ended = game.utcDate ? Date.parse(game.utcDate) : NaN
+      if (Number.isFinite(ended) && Date.now() - ended > SETTLED_MS)
+        finishedGameShots.set(key, lines)
+    }
+    tally.addAll(lines)
+  }
+  // Season totals missing games would overwrite complete numbers with smaller
+  // ones; skip the write and let the next sync pick the gaps up.
+  if (games.length > 0 && failed / games.length > 0.05)
+    throw new Error(`shots missing for ${failed}/${games.length} games`)
+  return tally.lines()
+}
+
 const v3Stats = (kind: string) =>
   `${V3}/statistics/${kind}?seasonMode=Single&seasonCode=${SEASON}&statisticMode=accumulated`
 
@@ -429,4 +510,6 @@ export const euroleagueAdapter: SourceAdapter = {
       opponents.teams ?? [],
     )
   },
+
+  fetchShotZones: seasonShotZones,
 }
