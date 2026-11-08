@@ -78,6 +78,11 @@ minimumReleaseAgeExclude:
 # source-map-js: postcss under Next and svgo (build tooling); 1.2.2 fixes the
 #   indexed-section-offset event-loop DoS.
 # js-yaml, svgo: eslint config and @svgr/webpack — dev/build tooling only.
+# glob, minimatch: @serwist/build (service-worker manifest, dev only) pins
+#   glob 13.0.6, which brings minimatch 10.x. glob 14.0.2 / minimatch 11.0.1
+#   fix GHSA-3g3m-2fjr-6pw4 and GHSA-g3hv-75wg-m249; serwist only calls
+#   globSync(pattern, { cwd, follow, ignore }), unchanged in 14. minimatch 3.x
+#   (eslint) is outside the advisory's >=7 range, whatever the dashboard says.
 #
 # Each entry pins the LOWEST safe release rather than the newest, so the blast
 # radius stays small.
@@ -96,6 +101,8 @@ overrides:
   svgo@>=3.0.0 <3.3.5: ^3.3.5
   undici@>=7.0.0 <7.30.1: ^7.30.1
   zod@>=4.0.0 <4.6.6: ^4.6.6
+  glob@>=9.0.0 <14.0.2: ^14.0.2
+  minimatch@>=7.0.0 <11.0.1: ^11.0.1
   browserslist@<4.28.7: ^4.28.7
   baseline-browser-mapping@>=2.0.0 <2.11.0: ^2.11.0
   fflate@>=0.6.0 <0.6.11: ^0.6.11
