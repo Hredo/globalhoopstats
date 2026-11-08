@@ -44,7 +44,17 @@ export async function recordError(input: {
 }): Promise<void> {
   const err = input.error instanceof Error ? input.error : new Error(String(input.error))
   const message = scrub(err.message || err.name || "Unknown error").slice(0, 2000)
-  const stack = err.stack ? scrub(err.stack).slice(0, 20_000) : null
+  // Drizzle's "Failed query" only names the SQL; the driver's reason (a dropped
+  // connection, a timeout) is on `cause`, and without it the row says nothing.
+  const cause = err.cause instanceof Error ? err.cause : null
+  const causeCode = (cause as { code?: string } | null)?.code
+  const fullStack = [
+    err.stack,
+    cause && `Caused by: ${causeCode ? `[${causeCode}] ` : ""}${cause.stack ?? cause.message}`,
+  ]
+    .filter(Boolean)
+    .join("\n")
+  const stack = fullStack ? scrub(fullStack).slice(0, 20_000) : null
   const digest = (err as { digest?: string }).digest?.slice(0, 64) ?? null
   const fingerprint = errorFingerprint(input.kind, input.route, message)
   const now = new Date()

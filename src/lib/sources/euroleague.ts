@@ -7,111 +7,25 @@ import {
   type SourceTeamStats,
   SOURCE_META,
 } from "@/lib/sources/types"
-import { fetchTextIfPublished } from "@/lib/sources/fetcher"
-import {
-  brSlugToEuroleagueCode,
-  euroleagueTeamLogoUrl,
-} from "@/lib/sources/euroleague-teams"
-import {
-  EUROLEAGUE_COACHES_2025_26,
-  EUROLEAGUE_COACHES_SEASON,
-} from "@/lib/sources/euroleague-static"
-import {
-  parseBirthdate,
-  parseHeightToCm,
-  parseWeightToKg,
-} from "@/lib/sync/slug"
-import { decodeEntities, stripTags } from "@/lib/sources/html-text"
+import { fetchJson } from "@/lib/sources/fetcher"
 
-const BR_BASE = "https://www.basketball-reference.com"
-const BR_LEAGUE_PATH = "/international/euroleague"
-const SEASON = SOURCE_META.euroleague.seasonCode
-
-const SEASON_START_YEAR = (() => {
-  const m = SEASON.match(/E(\d{4})/)
-  return m ? Number(m[1]) : 2024
-})()
-
-// Basketball-Reference labels a EuroLeague season by its END year, so the page
-// for the 2025-26 season (start year 2025, code E2025) lives at `/2026.html`.
-// Fetching the start year returns the PREVIOUS season — the bug that left the DB
-// a year behind. Always request the end year.
-const BR_YEAR = SEASON_START_YEAR + 1
-const BR_SEASON_SUFFIX = String(BR_YEAR)
-
-/**
- * A Basketball-Reference EuroLeague page, or null when it is not published.
- *
- * Every EuroLeague read in this adapter is a season page, so before BR opens
- * the season all of them 404. That is a competition whose data is not out yet,
- * and each caller returns an empty list: the quality gate then blocks the write
- * with "0 teams scraped" and last season's rows are left exactly as they were.
+/*
+ * EuroLeague comes from the competition's own public API — the JSON feed
+ * euroleaguebasketball.net is built on. It used to be scraped from
+ * Basketball-Reference, which jails datacenter IPs: from 2026-10-23 every
+ * production sync got a 403 on its first request and EuroLeague stopped
+ * updating. The official feed also lists every club in the competition (BR's
+ * slugs missed the new ones) and real staff, so there is no static fallback.
  */
-async function fetchHtml(url: string): Promise<string | null> {
-  // Shared polite fetcher — note EuroLeague pulls from basketball-reference.com,
-  // the same host as the NBA adapter, so the per-host throttle stops a parallel
-  // sync from double-hammering Basketball Reference.
-  return fetchTextIfPublished(url, {
-    headers: { "Accept-Language": "en-US,en;q=0.9" },
-  })
-}
 
-/** Log once per read that the season page is not out yet. */
-function warnUnpublished(what: string): void {
-  console.warn(
-    `[euroleague] ${BR_YEAR} ${what} page not published yet — nothing scraped`,
-  )
-}
+const API = "https://api-live.euroleague.net"
+const SEASON = SOURCE_META.euroleague.seasonCode
+const SEASON_YEAR = SOURCE_META.euroleague.season
+const V2_SEASON = `${API}/v2/competitions/E/seasons/${SEASON}`
+const V3 = `${API}/v3/competitions/E`
+const PAGE = 200
 
-
-function getRowCells(row: string): Map<string, string> {
-  const cells = new Map<string, string>()
-  const cellRe = /<t[hd]\b[^>]*\bdata-stat="([^"]+)"[^>]*>([\s\S]*?)<\/t[hd]>/g
-  let m: RegExpExecArray | null
-  while ((m = cellRe.exec(row)) !== null) {
-    const stat = m[1]
-    const inner = stripTags(m[2]).trim()
-    cells.set(stat, decodeEntities(inner))
-  }
-  return cells
-}
-
-function toNumberOrNull(s: string | undefined): number | undefined {
-  if (s === undefined || s === "") return undefined
-  const n = Number(s)
-  return Number.isFinite(n) ? n : undefined
-}
-
-function percentileToDecimal(s: string | undefined): number | undefined {
-  if (s === undefined || s === "") return undefined
-  const n = Number(s)
-  return Number.isFinite(n) ? Number(n.toFixed(3)) : undefined
-}
-
-function extractTableById(html: string, id: string): string {
-  const re = new RegExp(`<table[^>]*\\bid="${id}"[\\s\\S]*?<\\/table>`, "i")
-  const m = html.match(re)
-  return m ? m[0] : ""
-}
-
-function rowsFromTable(tableHtml: string): string[] {
-  if (!tableHtml) return []
-  return tableHtml.match(/<tr\b[^>]*>[\s\S]*?<\/tr>/g) ?? []
-}
-
-function extractPlayerId(href: string | undefined): string | undefined {
-  if (!href) return undefined
-  const m = href.match(/\/international\/players\/([^/.]+)\.html/)
-  return m ? m[1] : undefined
-}
-
-function extractTeamSlug(href: string | undefined): string | undefined {
-  if (!href) return undefined
-  const m = href.match(/\/international\/teams\/([^/]+)\//)
-  return m ? m[1] : undefined
-}
-
-/** Canonical names keyed by EuroLeague team code — keeps slugs stable across BR naming changes. */
+/** Canonical names keyed by EuroLeague club code — keeps slugs stable across sponsor renames. */
 const CANONICAL_TEAM_NAMES: Record<string, string> = {
   BER: "ALBA Berlin",
   IST: "Anadolu Efes",
@@ -134,322 +48,385 @@ const CANONICAL_TEAM_NAMES: Record<string, string> = {
   VAL: "Valencia Basket",
 }
 
+const POSITION_CODES: Record<string, string> = {
+  Guard: "G",
+  Forward: "F",
+  Center: "C",
+}
+
+type ApiClubRef = {
+  code: string
+  name: string
+  abbreviatedName?: string
+  images?: { crest?: string }
+}
+
+type ApiClub = ApiClubRef & {
+  website?: string
+  country?: { code: string; name: string }
+}
+
+export type ApiPerson = {
+  person: {
+    code: string
+    name: string
+    country?: { code: string; name: string } | null
+    height?: number
+    weight?: number
+    birthDate?: string | null
+    images?: { headshot?: string } | null
+  }
+  /**
+   * "J" player, "E" head coach, "A" assistant coach. The rest (doctors, team
+   * managers, followers, the score crew) is not bench staff and is skipped.
+   */
+  type: string
+  active: boolean
+  dorsal?: string
+  positionName?: string | null
+  club?: ApiClubRef | null
+  images?: { headshot?: string } | null
+}
+
+export type ApiPlayerStatLine = {
+  player: {
+    code: string
+    name: string
+    team: { code: string; name: string }
+  }
+  gamesPlayed: number
+  minutesPlayed: number
+  pointsScored: number
+  twoPointersMade: number
+  twoPointersAttempted: number
+  threePointersMade: number
+  threePointersAttempted: number
+  freeThrowsMade: number
+  freeThrowsAttempted: number
+  offensiveRebounds: number
+  defensiveRebounds: number
+  totalRebounds: number
+  assists: number
+  steals: number
+  turnovers: number
+  blocks: number
+  foulsCommited: number
+}
+
+type ApiTeamStatLine = {
+  team: { code: string }
+  gamesPlayed: number
+  pointsScored: number
+  twoPointersAttempted: number
+  threePointersAttempted: number
+  freeThrowsAttempted: number
+  offensiveRebounds: number
+  turnovers: number
+}
+
+type ApiStandingRow = {
+  position: number
+  gamesPlayed: number
+  gamesWon: number
+  gamesLost: number
+  pointsFor: number
+  pointsAgainst: number
+  club: ApiClubRef
+}
+
+type ApiRound = { round: number; minGameStartDate: string }
+
+/**
+ * "MOTLEY, JOHNATHAN" → "Johnathan Motley". The feed keeps names as
+ * "SURNAME, GIVEN" in capitals; the matcher compares case-insensitively, so
+ * this only shapes how a brand-new player's name is stored.
+ */
+export function euroleagueDisplayName(raw: string): string {
+  const [surname, given] = raw.split(",").map((s) => s.trim())
+  const ordered = given ? `${given} ${surname}` : (surname ?? "")
+  return ordered
+    .toLowerCase()
+    .replace(
+      /(^|[\s\-'’.])(\p{L})/gu,
+      (_, sep: string, ch: string) => sep + ch.toUpperCase(),
+    )
+    .replace(/\bMc(\p{L})/gu, (_, ch: string) => `Mc${ch.toUpperCase()}`)
+    .replace(/\b(Ii|Iii|Iv)$/u, (s) => s.toUpperCase())
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+export function mapEuroleaguePlayer(p: ApiPerson): SourcePlayer | null {
+  if (p.type !== "J" || !p.person?.code) return null
+  const fullName = euroleagueDisplayName(p.person.name)
+  if (!fullName) return null
+  return {
+    sourceId: p.person.code,
+    fullName,
+    birthdate: p.person.birthDate ? p.person.birthDate.slice(0, 10) : undefined,
+    nationality: p.person.country?.name || undefined,
+    position: p.positionName
+      ? (POSITION_CODES[p.positionName] ?? p.positionName)
+      : undefined,
+    jerseyNumber: p.dorsal || undefined,
+    heightCm: p.person.height || undefined,
+    weightKg: p.person.weight || undefined,
+    // A player who left mid-season stays in the feed as inactive; he keeps his
+    // stat line with that club but is no longer on its roster.
+    teamSourceId: p.active ? p.club?.code : undefined,
+  }
+}
+
+export function mapEuroleagueCoach(p: ApiPerson): SourceCoach | null {
+  if (p.type !== "E" && p.type !== "A") return null
+  if (!p.active || !p.person?.code || !p.club?.code) return null
+  const fullName = euroleagueDisplayName(p.person.name)
+  if (!fullName) return null
+  return {
+    sourceId: `${p.club.code}-${p.person.code}`,
+    fullName,
+    role: p.type === "E" ? "head_coach" : "assistant_coach",
+    teamSourceId: p.club.code,
+    nationality: p.person.country?.name || undefined,
+  }
+}
+
+export function mapEuroleagueStatLine(
+  s: ApiPlayerStatLine,
+): ExtractedPlayerStat {
+  const fgm = s.twoPointersMade + s.threePointersMade
+  const fga = s.twoPointersAttempted + s.threePointersAttempted
+  const tsDenominator = 2 * (fga + 0.44 * s.freeThrowsAttempted)
+  return {
+    playerSourceId: s.player.code,
+    season: SEASON_YEAR,
+    teamSourceId: s.player.team.code,
+    gamesPlayed: s.gamesPlayed,
+    minutesTotal: Math.round(s.minutesPlayed),
+    pointsTotal: s.pointsScored,
+    reboundsTotal: s.totalRebounds,
+    assistsTotal: s.assists,
+    stealsTotal: s.steals,
+    blocksTotal: s.blocks,
+    fgMade: fgm,
+    fgAttempted: fga,
+    threeMade: s.threePointersMade,
+    threeAttempted: s.threePointersAttempted,
+    ftMade: s.freeThrowsMade,
+    ftAttempted: s.freeThrowsAttempted,
+    offensiveRebounds: s.offensiveRebounds,
+    defensiveRebounds: s.defensiveRebounds,
+    foulsTotal: s.foulsCommited,
+    plusMinus: null,
+    per: null,
+    trueShootingPct:
+      tsDenominator > 0
+        ? Number((s.pointsScored / tsDenominator).toFixed(3))
+        : null,
+    winShares: null,
+    bpm: null,
+  }
+}
+
+/** Possession estimate shared by both ends of the floor. */
+function possessions(t: ApiTeamStatLine): number {
+  const fga = t.twoPointersAttempted + t.threePointersAttempted
+  return fga - t.offensiveRebounds + t.turnovers + 0.4 * t.freeThrowsAttempted
+}
+
+export function buildEuroleagueTeamStats(
+  standings: ApiStandingRow[],
+  totals: ApiTeamStatLine[],
+  opponents: ApiTeamStatLine[],
+): SourceTeamStats[] {
+  const totalsByCode = new Map(totals.map((t) => [t.team.code, t]))
+  const oppByCode = new Map(opponents.map((t) => [t.team.code, t]))
+  const round1 = (n: number) =>
+    Number.isFinite(n) ? Number(n.toFixed(1)) : undefined
+  return standings.map((row) => {
+    const code = row.club.code
+    const gp = row.gamesWon + row.gamesLost
+    const t = totalsByCode.get(code)
+    const o = oppByCode.get(code)
+    let offRtg: number | undefined
+    let defRtg: number | undefined
+    let pace: number | undefined
+    if (t && t.gamesPlayed > 0 && possessions(t) > 0) {
+      const poss = possessions(t)
+      offRtg = round1((100 * t.pointsScored) / poss)
+      if (o) defRtg = round1((100 * o.pointsScored) / poss)
+      // Possessions per game, scaled from 40 to 48 minutes so it reads on the
+      // same scale as the NBA's pace.
+      pace = round1(((poss / t.gamesPlayed) * 48) / 40)
+    }
+    return {
+      teamSourceId: code,
+      season: SEASON_YEAR,
+      gamesPlayed: gp,
+      wins: row.gamesWon,
+      losses: row.gamesLost,
+      winPct: gp > 0 ? Number((row.gamesWon / gp).toFixed(3)) : undefined,
+      pointsFor: gp > 0 ? round1(row.pointsFor / gp) : undefined,
+      pointsAgainst: gp > 0 ? round1(row.pointsAgainst / gp) : undefined,
+      position: row.position,
+      pace,
+      offRtg,
+      defRtg,
+      netRtg:
+        offRtg != null && defRtg != null ? round1(offRtg - defRtg) : undefined,
+    }
+  })
+}
+
+/** The latest regular-season round that has already tipped off, if any. */
+export function currentEuroleagueRound(
+  rounds: ApiRound[],
+  now = new Date(),
+): number | null {
+  let latest: number | null = null
+  for (const r of rounds) {
+    if (
+      new Date(r.minGameStartDate) <= now &&
+      (latest === null || r.round > latest)
+    ) {
+      latest = r.round
+    }
+  }
+  return latest
+}
+
+/* ---- feed reads, memoised per sync so the five adapter calls share them ---- */
+
+let cache: { at: number; reads: Map<string, Promise<unknown>> } | null = null
+const CACHE_MS = 10 * 60_000
+
+function read<T>(key: string, load: () => Promise<T>): Promise<T> {
+  if (!cache || Date.now() - cache.at > CACHE_MS)
+    cache = { at: Date.now(), reads: new Map() }
+  const hit = cache.reads.get(key)
+  if (hit) return hit as Promise<T>
+  const p = load()
+  cache.reads.set(key, p)
+  // A failed read must not stick for the next sync.
+  p.catch(() => cache?.reads.delete(key))
+  return p
+}
+
+async function paged<T>(
+  url: (offset: number) => string,
+  pick: (page: unknown) => T[],
+): Promise<T[]> {
+  const out: T[] = []
+  for (let offset = 0; ; offset += PAGE) {
+    const page = await fetchJson<{ total?: number }>(url(offset))
+    const items = pick(page)
+    out.push(...items)
+    if (items.length < PAGE || (page.total != null && out.length >= page.total))
+      break
+  }
+  return out
+}
+
+const clubs = () =>
+  read(
+    "clubs",
+    async () =>
+      (await fetchJson<{ data: ApiClub[] }>(`${V2_SEASON}/clubs?limit=100`))
+        .data,
+  )
+
+const people = () =>
+  read("people", () =>
+    paged<ApiPerson>(
+      (offset) => `${V2_SEASON}/people?limit=${PAGE}&offset=${offset}`,
+      (page) => (page as { data: ApiPerson[] }).data ?? [],
+    ),
+  )
+
+const v3Stats = (kind: string) =>
+  `${V3}/statistics/${kind}?seasonMode=Single&seasonCode=${SEASON}&statisticMode=accumulated`
+
+const playerStats = () =>
+  read("playerStats", () =>
+    paged<ApiPlayerStatLine>(
+      (offset) =>
+        `${v3Stats("players/traditional")}&limit=${PAGE}&offset=${offset}`,
+      (page) => (page as { players: ApiPlayerStatLine[] }).players ?? [],
+    ),
+  )
+
 export const euroleagueAdapter: SourceAdapter = {
   id: "euroleague",
   displayName: SOURCE_META.euroleague.displayName,
   country: SOURCE_META.euroleague.country,
-  season: SOURCE_META.euroleague.season,
+  season: SEASON_YEAR,
   seasonCode: SEASON,
   seasonLabel: SOURCE_META.euroleague.seasonLabel,
 
   async fetchTeams(): Promise<SourceTeam[]> {
-    const url = `${BR_BASE}${BR_LEAGUE_PATH}/${BR_YEAR}.html`
-    const html = await fetchHtml(url)
-    if (!html) {
-      warnUnpublished("season")
-      return []
-    }
-    const standingsHtml = extractTableById(html, "elg_standings")
-    const rows = rowsFromTable(standingsHtml)
-    const out: SourceTeam[] = []
-    const seen = new Set<string>()
-    for (const row of rows) {
-      const teamCell = row.match(
-        /<a[^>]*href=(?:"|')(\/international\/teams\/[^"']+\.html)(?:"|')[^>]*>([\s\S]*?)<\/a>/,
-      )
-      if (!teamCell) continue
-      const name = decodeEntities(stripTags(teamCell[2]).trim())
-      const slug = extractTeamSlug(teamCell[1])
-      const teamCode = brSlugToEuroleagueCode(slug)
-      if (!teamCode || !name || seen.has(teamCode)) continue
-      seen.add(teamCode)
-      out.push({
-        sourceId: teamCode,
-        name: CANONICAL_TEAM_NAMES[teamCode] ?? name,
-        country: "EU",
-        logoUrl: euroleagueTeamLogoUrl(teamCode),
-      })
-    }
-    return out
+    return (await clubs()).map((c) => ({
+      sourceId: c.code,
+      name: CANONICAL_TEAM_NAMES[c.code] ?? c.name,
+      shortName: c.abbreviatedName,
+      country: "EU",
+      logoUrl: c.images?.crest,
+      websiteUrl: c.website || undefined,
+    }))
   },
 
   async fetchPlayers(): Promise<SourcePlayer[]> {
-    const url = `${BR_BASE}${BR_LEAGUE_PATH}/${BR_YEAR}_totals.html`
-    const html = await fetchHtml(url)
-    if (!html) {
-      warnUnpublished("totals")
-      return []
+    // One entry per (person, club): prefer the club he is on now.
+    const byCode = new Map<string, SourcePlayer>()
+    for (const p of await people()) {
+      const mapped = mapEuroleaguePlayer(p)
+      if (!mapped) continue
+      const prior = byCode.get(mapped.sourceId)
+      if (!prior || (!prior.teamSourceId && mapped.teamSourceId))
+        byCode.set(mapped.sourceId, mapped)
     }
-    const tableHtml = extractTableById(html, `totals-stats-${BR_SEASON_SUFFIX}`)
-    const rows = rowsFromTable(tableHtml)
-    const out: SourcePlayer[] = []
-    const seen = new Set<string>()
-    for (const row of rows) {
-      const cells = getRowCells(row)
-      const playerLink = row.match(
-        /<a[^>]*href=(?:"|')(\/international\/players\/[^"']+\.html)(?:"|')/,
-      )
-      const id = extractPlayerId(playerLink?.[1])
-      const name = cells.get("player")
-      if (!id || !name || seen.has(id)) continue
-      seen.add(id)
-      const teamHref =
-        row.match(
-          /<a[^>]*href=(?:"|')(\/international\/teams\/[^"']+\.html)(?:"|')/,
-        )?.[1] ?? undefined
-      const teamCode = brSlugToEuroleagueCode(extractTeamSlug(teamHref))
-      out.push({
-        sourceId: id,
-        fullName: name,
-        birthdate: parseBirthdate(cells.get("birth_date")),
-        nationality: cells.get("nationality"),
-        position: cells.get("pos"),
-        heightCm:
-          toNumberOrNull(cells.get("height")) ??
-          parseHeightToCm(cells.get("height")),
-        weightKg:
-          toNumberOrNull(cells.get("weight")) ??
-          parseWeightToKg(cells.get("weight")),
-        teamSourceId: teamCode,
-        photoUrl: undefined,
-      })
-    }
-    return out
+    return [...byCode.values()]
   },
 
   async fetchStats(): Promise<ExtractedPlayerStat[]> {
-    const url = `${BR_BASE}${BR_LEAGUE_PATH}/${BR_YEAR}_totals.html`
-    const html = await fetchHtml(url)
-    if (!html) {
-      warnUnpublished("totals")
-      return []
-    }
-    const tableHtml = extractTableById(html, `totals-stats-${BR_SEASON_SUFFIX}`)
-    const rows = rowsFromTable(tableHtml)
-    const out: ExtractedPlayerStat[] = []
-    for (const row of rows) {
-      const cells = getRowCells(row)
-      const playerLink = row.match(
-        /<a[^>]*href=(?:"|')(\/international\/players\/[^"']+\.html)(?:"|')/,
-      )
-      const id = extractPlayerId(playerLink?.[1])
-      if (!id) continue
-      const teamHref =
-        row.match(
-          /<a[^>]*href=(?:"|')(\/international\/teams\/[^"']+\.html)(?:"|')/,
-        )?.[1] ?? undefined
-      const teamCode = brSlugToEuroleagueCode(extractTeamSlug(teamHref))
-      const fgm = toNumberOrNull(cells.get("fg"))
-      const fga = toNumberOrNull(cells.get("fga"))
-      const threeM = toNumberOrNull(cells.get("fg3"))
-      const threeA = toNumberOrNull(cells.get("fg3a"))
-      const ftm = toNumberOrNull(cells.get("ft"))
-      const fta = toNumberOrNull(cells.get("fta"))
-      const pts = toNumberOrNull(cells.get("pts"))
-      const tsPct = fga && fga > 0 && pts != null
-        ? Number((pts / (2 * (fga + 0.44 * (fta ?? 0)))).toFixed(3))
-        : null
-      out.push({
-        playerSourceId: id,
-        season: SOURCE_META.euroleague.season,
-        teamSourceId: teamCode,
-        gamesPlayed: toNumberOrNull(cells.get("g")) ?? 0,
-        minutesTotal: toNumberOrNull(cells.get("mp")) ?? null,
-        pointsTotal: pts ?? null,
-        reboundsTotal: toNumberOrNull(cells.get("trb")) ?? null,
-        assistsTotal: toNumberOrNull(cells.get("ast")) ?? null,
-        stealsTotal: toNumberOrNull(cells.get("stl")) ?? null,
-        blocksTotal: toNumberOrNull(cells.get("blk")) ?? null,
-        fgMade: fgm ?? null,
-        fgAttempted: fga ?? null,
-        threeMade: threeM ?? null,
-        threeAttempted: threeA ?? null,
-        ftMade: ftm ?? null,
-        ftAttempted: fta ?? null,
-        offensiveRebounds: toNumberOrNull(cells.get("orb")) ?? null,
-        defensiveRebounds: toNumberOrNull(cells.get("drb")) ?? null,
-        foulsTotal: toNumberOrNull(cells.get("pf")) ?? null,
-        plusMinus: null,
-        per: toNumberOrNull(cells.get("per")) ?? null,
-        trueShootingPct: tsPct,
-        winShares: toNumberOrNull(cells.get("ws")) ?? null,
-        bpm: toNumberOrNull(cells.get("bpm")) ?? null,
-      })
-    }
-    return out
+    // Before tip-off the feed has no lines: rosters sync, stats arrive later.
+    return (await playerStats())
+      .filter((s) => s.gamesPlayed > 0)
+      .map(mapEuroleagueStatLine)
   },
 
   async fetchCoaches(): Promise<SourceCoach[]> {
-    const url = `${BR_BASE}${BR_LEAGUE_PATH}/${BR_YEAR}.html`
-    const html = await fetchHtml(url)
-    if (!html) {
-      warnUnpublished("season")
-      return []
-    }
-    const tableHtml = extractTableById(html, "coaches")
-    const rows = rowsFromTable(tableHtml)
-    const out: SourceCoach[] = []
     const seen = new Set<string>()
-    for (const row of rows) {
-      const cells = getRowCells(row)
-      const name = cells.get("coach")
-      if (!name) continue
-      const coachId = name.toLowerCase().replace(/[^a-z0-9]+/g, "-")
-      const teamHref =
-        row.match(
-          /<a[^>]*href=(?:"|')(\/international\/teams\/[^"']+\.html)(?:"|')/,
-        )?.[1] ?? undefined
-      const teamCode = brSlugToEuroleagueCode(extractTeamSlug(teamHref))
-      const role = (cells.get("role") ?? "head_coach").toLowerCase()
-      const normalizedRole: SourceCoach["role"] = role.includes("assistant")
-        ? "assistant_coach"
-        : "head_coach"
-      const key = `${coachId}-${teamCode ?? "fa"}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      out.push({
-        sourceId: key,
-        fullName: name,
-        role: normalizedRole,
-        teamSourceId: teamCode,
-      })
-    }
-    if (out.length > 0) return out
-    // BR has no coaches table for EuroLeague — fall back to static data.
-    //
-    // That table is hand-curated for ONE season. Serving it for a later season
-    // would silently publish a stale bench as if it were this year's staff, so
-    // it is only used for the season it was written for; other seasons return
-    // nothing and `backfill-coach-wikidata.ts` fills them in.
-    if (SEASON !== EUROLEAGUE_COACHES_SEASON) return out
-    for (const [teamCode, coaches] of Object.entries(EUROLEAGUE_COACHES_2025_26)) {
-      for (const c of coaches) {
-        const key = `${teamCode}-${c.fullName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`
-        if (seen.has(key)) continue
-        seen.add(key)
-        out.push({
-          sourceId: key,
-          fullName: c.fullName,
-          role: c.role,
-          teamSourceId: teamCode,
-        })
-      }
+    const out: SourceCoach[] = []
+    for (const p of await people()) {
+      const c = mapEuroleagueCoach(p)
+      if (!c || seen.has(c.sourceId)) continue
+      seen.add(c.sourceId)
+      out.push(c)
     }
     return out
   },
 
   async fetchTeamStats(): Promise<SourceTeamStats[]> {
-    const url = `${BR_BASE}${BR_LEAGUE_PATH}/${BR_YEAR}.html`
-    const html = await fetchHtml(url)
-    if (!html) {
-      warnUnpublished("season")
-      return []
-    }
-
-    const standingsHtml = extractTableById(html, "elg_standings")
-    const standingsRows = rowsFromTable(standingsHtml)
-    const standingsByCode = new Map<
-      string,
-      {
-        wins: number
-        losses: number
-        pointsFor: number | undefined
-        pointsAgainst: number | undefined
-        position: number
-      }
-    >()
-    let position = 0
-    for (const row of standingsRows) {
-      const teamHref =
-        row.match(
-          /<a[^>]*href=(?:"|')(\/international\/teams\/[^"']+\.html)(?:"|')/,
-        )?.[1] ?? undefined
-      const teamCode = brSlugToEuroleagueCode(extractTeamSlug(teamHref))
-      if (!teamCode) continue
-      const cells = getRowCells(row)
-      const w = toNumberOrNull(cells.get("wins|regular-season"))
-      const l = toNumberOrNull(cells.get("losses|regular-season"))
-      const pts = toNumberOrNull(cells.get("pts_per_g|regular-season"))
-      const oppPts = toNumberOrNull(cells.get("opp_pts_per_g|regular-season"))
-      position++
-      standingsByCode.set(teamCode, {
-        wins: Math.round(w ?? 0),
-        losses: Math.round(l ?? 0),
-        pointsFor: pts,
-        pointsAgainst: oppPts,
-        position,
-      })
-    }
-
-    const totalsHtml = extractTableById(html, "team_stats_totals")
-    const totalsRows = rowsFromTable(totalsHtml)
-    type Totals = {
-      fga: number
-      orb: number
-      drb: number
-      tov: number
-      fta: number
-      pts: number
-      g: number
-    }
-    const totalsByCode = new Map<string, Totals>()
-    for (const row of totalsRows) {
-      const teamHref =
-        row.match(
-          /<a[^>]*href=(?:"|')(\/international\/teams\/[^"']+\.html)(?:"|')/,
-        )?.[1] ?? undefined
-      const teamCode = brSlugToEuroleagueCode(extractTeamSlug(teamHref))
-      if (!teamCode) continue
-      const cells = getRowCells(row)
-      totalsByCode.set(teamCode, {
-        fga: toNumberOrNull(cells.get("fga")) ?? 0,
-        orb: toNumberOrNull(cells.get("orb")) ?? 0,
-        drb: toNumberOrNull(cells.get("drb")) ?? 0,
-        tov: toNumberOrNull(cells.get("tov")) ?? 0,
-        fta: toNumberOrNull(cells.get("fta")) ?? 0,
-        pts: toNumberOrNull(cells.get("pts")) ?? 0,
-        g: toNumberOrNull(cells.get("g")) ?? 0,
-      })
-    }
-
-    const out: SourceTeamStats[] = []
-    for (const [teamCode, st] of standingsByCode) {
-      const t = totalsByCode.get(teamCode)
-      const gp = st.wins + st.losses
-      let offRtg: number | undefined
-      let defRtg: number | undefined
-      let netRtg: number | undefined
-      let pace: number | undefined
-      if (t && t.g > 0 && t.fga > 0) {
-        const teamPoss = t.fga - t.orb + t.tov + 0.4 * t.fta
-        const teamPossPerG = teamPoss / t.g
-        offRtg = Number((100 * (t.pts / teamPoss)).toFixed(1))
-        const oppPossPerG = teamPossPerG
-        const oppPts = (st.pointsAgainst ?? 0) * t.g
-        defRtg = Number((100 * (oppPts / teamPoss)).toFixed(1))
-        netRtg = Number((offRtg - defRtg).toFixed(1))
-        pace = Number(((48 * (2 * teamPossPerG)) / 40).toFixed(1))
-        if (!Number.isFinite(offRtg)) offRtg = undefined
-        if (!Number.isFinite(defRtg)) defRtg = undefined
-        if (!Number.isFinite(netRtg)) netRtg = undefined
-        if (!Number.isFinite(pace)) pace = undefined
-      }
-      out.push({
-        teamSourceId: teamCode,
-        season: SOURCE_META.euroleague.season,
-        gamesPlayed: gp,
-        wins: st.wins,
-        losses: st.losses,
-        winPct: gp > 0 ? Number((st.wins / gp).toFixed(3)) : undefined,
-        pointsFor: st.pointsFor,
-        pointsAgainst: st.pointsAgainst,
-        position: st.position,
-        pace,
-        offRtg,
-        defRtg,
-        netRtg,
-      })
-    }
-    return out
+    const rounds = (
+      await fetchJson<{ data: ApiRound[] }>(`${V2_SEASON}/rounds`)
+    ).data
+    const round = currentEuroleagueRound(rounds)
+    if (round === null) return []
+    const [standings, totals, opponents] = await Promise.all([
+      fetchJson<{ teams: ApiStandingRow[] }>(
+        `${V3}/seasons/${SEASON}/rounds/${round}/basicstandings`,
+      ),
+      fetchJson<{ teams: ApiTeamStatLine[] }>(
+        `${v3Stats("teams/traditional")}&limit=100`,
+      ),
+      fetchJson<{ teams: ApiTeamStatLine[] }>(
+        `${v3Stats("teams/opponentsTraditional")}&limit=100`,
+      ),
+    ])
+    return buildEuroleagueTeamStats(
+      standings.teams ?? [],
+      totals.teams ?? [],
+      opponents.teams ?? [],
+    )
   },
 }

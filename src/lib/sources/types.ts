@@ -99,8 +99,8 @@ export const SOURCE_UPSTREAM: Record<SourceId, { name: string; url: string }> =
       url: "https://www.nba.com/stats",
     },
     euroleague: {
-      name: "Basketball-Reference",
-      url: "https://www.basketball-reference.com/international/euroleague/",
+      name: "EuroLeague Basketball",
+      url: "https://www.euroleaguebasketball.net/euroleague/",
     },
     acb: { name: "ACB.com", url: "https://www.acb.com" },
     "leb-oro": { name: "FEB", url: "https://baloncestoenvivo.feb.es" },
