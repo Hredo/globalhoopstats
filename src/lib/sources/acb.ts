@@ -7,9 +7,8 @@ import {
   type ExtractedPlayerStat,
   SOURCE_META,
 } from "@/lib/sources/types"
-import { fetchText, fetchTextIfPublished } from "@/lib/sources/fetcher"
+import { fetchText } from "@/lib/sources/fetcher"
 import { parseBirthdate, parseHeightToCm } from "@/lib/sync/slug"
-import { stripTags } from "@/lib/sources/html-text"
 
 const ACB_BASE = "https://www.acb.com"
 const ACB_LIGA = "/es/liga"
@@ -162,10 +161,15 @@ function extractRscObject(rsc: string, key: string): Raw | null {
   }
 }
 
-function extractRscArray(rsc: string, key: string): Raw[] {
+function extractRscArray(
+  rsc: string,
+  key: string,
+  accept: (items: Raw[]) => boolean = () => true,
+): Raw[] {
   // The key is not unique in the payload: since 2026-10 acb.com ships an i18n
   // dictionary (`"teams":"Equipos"`) ahead of the data, so take the first
-  // occurrence that actually holds an array.
+  // occurrence that actually holds an array (and, when `accept` is given, the
+  // one holding the rows the caller is after).
   const marker = `"${key}":`
   for (
     let idx = rsc.indexOf(marker);
@@ -174,11 +178,13 @@ function extractRscArray(rsc: string, key: string): Raw[] {
   ) {
     const span = findBalancedArray(rsc, idx + marker.length)
     if (!span) continue
+    let items: Raw[]
     try {
-      return JSON.parse(rsc.slice(span.start, span.end + 1)) as Raw[]
+      items = JSON.parse(rsc.slice(span.start, span.end + 1)) as Raw[]
     } catch {
       return []
     }
+    if (accept(items)) return items
   }
   return []
 }
@@ -217,7 +223,11 @@ type AcbClubInfo = {
   city?: string
 }
 
-async function fetchTeamsList(): Promise<AcbTeam[]> {
+function fetchTeamsList(): Promise<AcbTeam[]> {
+  return memoised("teams", readTeamsList)
+}
+
+async function readTeamsList(): Promise<AcbTeam[]> {
   const html = await fetchHtml(`${ACB_BASE}${ACB_LIGA}/equipos`)
   const rsc = getRscPayload(html)
   const teamsRaw = extractRscArray(rsc, "teams")
@@ -348,41 +358,30 @@ type Roster = {
     arenaCapacity?: number
     websiteUrl?: string
   }
-  stats: {
-    position?: number
-    wins?: number
-    losses?: number
-    pointsFor?: number
-    pointsAgainst?: number
-  }
 }
 
-async function fetchTeamStatsHtml(clubId: number): Promise<Roster["stats"]> {
-  const slug = await resolveSlug(clubId)
-  try {
-    const html = await fetchHtml(`${ACB_BASE}${ACB_LIGA}/equipos/${slug}`)
-    const out: Roster["stats"] = {}
-    const re =
-      /__label"[^>]*>([^<]+)<\/span>[\s\S]{0,400}?__resumenStandingsFieldValue[^>]*>\s*(\d[\d.,]*)/g
-    let m: RegExpExecArray | null
-    while ((m = re.exec(html)) !== null) {
-      const label = m[1].trim()
-      const numStr = m[2].replace(/\./g, "").replace(",", ".")
-      const n = Number(numStr)
-      if (!Number.isFinite(n)) continue
-      if (label.startsWith("Posición")) out.position = Math.round(n)
-      else if (label === "Victorias") out.wins = Math.round(n)
-      else if (label === "Derrotas") out.losses = Math.round(n)
-      else if (label === "Puntos a favor") out.pointsFor = n
-      else if (label === "Puntos en contra") out.pointsAgainst = n
-    }
-    return out
-  } catch {
-    return {}
-  }
+/**
+ * One sync calls fetchTeams, fetchPlayers, fetchCoaches and fetchStats in turn,
+ * and each needs the club list and every roster: without this they were read
+ * four times over (~150 requests, four minutes). Kept for ten minutes, so the
+ * next scheduled sync always reads fresh pages; a failed read is not kept.
+ */
+const MEMO_MS = 10 * 60_000
+const memo = new Map<string, { at: number; value: Promise<unknown> }>()
+function memoised<T>(key: string, load: () => Promise<T>): Promise<T> {
+  const hit = memo.get(key)
+  if (hit && Date.now() - hit.at < MEMO_MS) return hit.value as Promise<T>
+  const value = load()
+  memo.set(key, { at: Date.now(), value })
+  value.catch(() => memo.delete(key))
+  return value
 }
 
-async function fetchAllRosters(teams: AcbTeam[]): Promise<Map<string, Roster>> {
+function fetchAllRosters(teams: AcbTeam[]): Promise<Map<string, Roster>> {
+  return memoised("rosters", () => readAllRosters(teams))
+}
+
+async function readAllRosters(teams: AcbTeam[]): Promise<Map<string, Roster>> {
   const out = new Map<string, Roster>()
   for (const t of teams) {
     try {
@@ -405,12 +404,11 @@ async function fetchAllRosters(teams: AcbTeam[]): Promise<Map<string, Roster>> {
         arenaCapacity: ci?.stadiumCapacity,
         websiteUrl: ci?.webUrl,
       }
-      const stats = await fetchTeamStatsHtml(t.clubId)
-      out.set(t.sourceId, { players, coaches, details, stats })
+      out.set(t.sourceId, { players, coaches, details })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       console.warn(`[acb] failed team ${t.sourceId}: ${message}`)
-      out.set(t.sourceId, { players: [], coaches: [], details: {}, stats: {} })
+      out.set(t.sourceId, { players: [], coaches: [], details: {} })
     }
   }
   return out
@@ -469,187 +467,150 @@ export const acbAdapter: SourceAdapter = {
   },
 
   async fetchTeamStats(): Promise<SourceTeamStats[]> {
-    const teams = await fetchTeamsList()
-    const data = await fetchAllRosters(teams)
-    const out: SourceTeamStats[] = []
-    for (const t of teams) {
-      const r = data.get(t.sourceId)
-      if (!r?.stats) continue
-      const {
-        wins = 0,
-        losses = 0,
-        pointsFor,
-        pointsAgainst,
-        position,
-      } = r.stats
-      const gp = wins + losses
-      if (gp === 0 && position == null) continue
-      out.push({
-        teamSourceId: t.sourceId,
-        season: SEASON_YEAR,
-        gamesPlayed: gp,
-        wins,
-        losses,
-        winPct: gp > 0 ? Number((wins / gp).toFixed(3)) : undefined,
-        pointsFor:
-          pointsFor != null ? Number((pointsFor / gp).toFixed(1)) : undefined,
-        pointsAgainst:
-          pointsAgainst != null
-            ? Number((pointsAgainst / gp).toFixed(1))
-            : undefined,
-        position,
-      })
-    }
-    return out
+    const html = await fetchHtml(`${ACB_BASE}${ACB_LIGA}/clasificacion`)
+    return parseAcbStandings(getRscPayload(html), SEASON_YEAR)
   },
 
   async fetchStats(): Promise<ExtractedPlayerStat[]> {
-    // Basketball-Reference files an ACB season under its END year, so 2026-27
-    // is `/2027_per_game.html`. The old hand-written ladder had to gain a
-    // branch every summer and silently fell through to the raw label when it
-    // did not, which returned a 404 and an empty stat set.
-    const brYear = String(SEASON_YEAR + 1)
-    const brUrl = `https://www.basketball-reference.com/international/spain-liga-acb/${brYear}_per_game.html`
-    // Basketball-Reference publishes a season's page once it starts. Before
-    // then this 404s, and that is a preseason with confirmed squads and no
-    // stats — not a broken scrape. Rosters still sync; stats arrive later.
-    const brHtml = await fetchTextIfPublished(brUrl, {
-      headers: { "Accept-Language": "es-ES,es;q=0.9,en;q=0.8" },
-    })
-    if (brHtml === null) {
-      console.warn(
-        `[acb] ${brYear} stats page is not published yet — rosters only`,
-      )
-      return []
-    }
-    const brRe = new RegExp(
-      `<table[^>]*\\bid="per_game-stats-${brYear}"[\\s\\S]*?<\\/table>`,
-      "i",
-    )
-    const brTableMatch = brHtml.match(brRe)
-    if (!brTableMatch) return []
-    const brRows = brTableMatch[0].match(/<tr\b[^>]*>[\s\S]*?<\/tr>/g) ?? []
-
-    const acbPlayers = await this.fetchPlayers()
-    const nameToAcbId = new Map<string, string>()
-    for (const p of acbPlayers)
-      nameToAcbId.set(normalizeName(p.fullName), p.sourceId)
-    const resolvePlayerId = (brName: string): string | undefined => {
-      const key = normalizeName(brName)
-      const exact = nameToAcbId.get(key)
-      if (exact) return exact
-      // BR sometimes uses nicknames or drops second surnames; accept the
-      // roster player only when last name + first initial are unambiguous.
-      const tokens = key.split(" ").filter(Boolean)
-      const last = tokens[tokens.length - 1]
-      const initial = tokens[0]?.[0]
-      if (!last || !initial) return undefined
-      const hits = acbPlayers.filter((p) => {
-        const pt = normalizeName(p.fullName).split(" ").filter(Boolean)
-        return pt.includes(last) && pt[0]?.[0] === initial
-      })
-      return hits.length === 1 ? hits[0].sourceId : undefined
-    }
+    // Each club's /estadisticas page on acb.com carries its players' season
+    // totals, keyed by the same player ids as the roster. These used to come
+    // from Basketball-Reference, which answers the production server with a
+    // 403 (it jails datacenter IPs) and took the whole ACB sync down with it.
     const teams = await fetchTeamsList()
-    // BR uses short anglicized team names ("Baskonia") while the ACB feed has
-    // official ones ("Baskonia Vitoria-Gasteiz"); index every alias normalized
-    // and fall back to token containment so those stat rows are not dropped.
-    const teamNameToId = new Map<string, string>()
-    for (const t of teams) {
-      for (const alias of [t.name, t.shortName, t.abbreviation]) {
-        if (alias) teamNameToId.set(normalizeName(alias), t.sourceId)
-      }
-    }
-    const resolveTeamId = (brName: string): string | undefined => {
-      const key = normalizeName(brName)
-      const exact = teamNameToId.get(key)
-      if (exact) return exact
-      const tokens = key.split(" ").filter((w) => w.length > 2)
-      if (tokens.length === 0) return undefined
-      const hits = teams.filter((t) => {
-        const hay = normalizeName(`${t.name} ${t.shortName}`)
-        return tokens.every((w) => hay.includes(w))
-      })
-      return hits.length === 1 ? hits[0].sourceId : undefined
-    }
-
     const out: ExtractedPlayerStat[] = []
-    for (const row of brRows) {
-      const cells = new Map<string, string>()
-      const cellRe =
-        /<t[hd]\b[^>]*\bdata-stat="([^"]+)"[^>]*>([\s\S]*?)<\/t[hd]>/g
-      let cm: RegExpExecArray | null
-      while ((cm = cellRe.exec(row)) !== null)
-        cells.set(cm[1], stripTags(cm[2]).trim())
-      const playerName = cells.get("player")
-      if (!playerName) continue
-      const acbId = resolvePlayerId(playerName)
-      if (!acbId) continue
-      const teamName = cells.get("team_name")?.replace(/\*+$/, "").trim()
-      const teamSourceId = teamName ? resolveTeamId(teamName) : undefined
-      const g = Number(cells.get("g")) || 0
-      const mp = Number(cells.get("mp_per_g")) || 0
-      const pts = Number(cells.get("pts_per_g")) || 0
-      const reb = Number(cells.get("trb_per_g")) || 0
-      const ast = Number(cells.get("ast_per_g")) || 0
-      const stl = Number(cells.get("stl_per_g")) || 0
-      const blk = Number(cells.get("blk_per_g")) || 0
-      const fgmPct = Number(cells.get("fg_per_g")) || 0
-      const fgaPct = Number(cells.get("fga_per_g")) || 0
-      const threeMPct = Number(cells.get("fg3_per_g")) || 0
-      const threeAPct = Number(cells.get("fg3a_per_g")) || 0
-      const ftmPct = Number(cells.get("ft_per_g")) || 0
-      const ftaPct = Number(cells.get("fta_per_g")) || 0
-      const orbPct = Number(cells.get("orb_per_g")) || 0
-      const drbPct = Number(cells.get("drb_per_g")) || 0
-      const pfPct = Number(cells.get("pf_per_g")) || 0
-      const fgaTotal = Math.round(fgaPct * g)
-      const ftaTotal = Math.round(ftaPct * g)
-      const tsPct =
-        fgaTotal > 0
-          ? Number(
-              (
-                Math.round(pts * g) /
-                (2 * (fgaTotal + 0.44 * ftaTotal))
-              ).toFixed(3),
-            )
-          : null
-      out.push({
-        playerSourceId: acbId,
-        season: SEASON_YEAR,
-        teamSourceId,
-        gamesPlayed: g,
-        minutesTotal: Math.round(mp * g),
-        pointsTotal: Math.round(pts * g),
-        reboundsTotal: Math.round(reb * g),
-        assistsTotal: Math.round(ast * g),
-        stealsTotal: Math.round(stl * g),
-        blocksTotal: Math.round(blk * g),
-        fgMade: Math.round(fgmPct * g),
-        fgAttempted: fgaTotal,
-        threeMade: Math.round(threeMPct * g),
-        threeAttempted: Math.round(threeAPct * g),
-        ftMade: Math.round(ftmPct * g),
-        ftAttempted: ftaTotal,
-        offensiveRebounds: Math.round(orbPct * g),
-        defensiveRebounds: Math.round(drbPct * g),
-        foulsTotal: Math.round(pfPct * g),
-        plusMinus: null,
-        per: null,
-        trueShootingPct: tsPct,
-        winShares: null,
-        bpm: null,
-      })
+    for (const t of teams) {
+      const slug = await resolveSlug(t.clubId, teams)
+      const html = await fetchHtml(
+        `${ACB_BASE}${ACB_LIGA}/equipos/${slug}/estadisticas`,
+      )
+      out.push(
+        ...parseAcbTeamStats(getRscPayload(html), t.sourceId, SEASON_YEAR),
+      )
     }
     return out
   },
 }
 
-function normalizeName(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
+/**
+ * Season totals from a club's /estadisticas RSC payload.
+ *
+ * The page defaults to the current edition, but between seasons it can still
+ * show the last one; its rows carry an `editionId`, and the payload's edition
+ * list says which season that id is. Rows from any other season are dropped,
+ * which before tip-off leaves the stats empty and the rosters still syncing.
+ */
+export function parseAcbTeamStats(
+  rsc: string,
+  teamSourceId: string,
+  seasonStartYear: number,
+): ExtractedPlayerStat[] {
+  const rows = extractRscArray(rsc, "players", (items) =>
+    items.some((r) => r && typeof r === "object" && "totals" in r),
+  )
+  const editionYear = new Map<number, number>()
+  for (const m of rsc.matchAll(/"id":(\d+),"seasonStartYear":(\d{4})/g)) {
+    editionYear.set(Number(m[1]), Number(m[2]))
+  }
+  const out: ExtractedPlayerStat[] = []
+  for (const row of rows) {
+    const p = row.player as Raw | undefined
+    const tot = row.totals as Raw | undefined
+    const id = p && pickString(p, ["id"])
+    if (!p || !id || !tot) continue
+    const edition = pickNumber(p, ["editionId"])
+    if (edition != null && editionYear.get(edition) !== seasonStartYear)
+      continue
+    const n = (k: string) => pickNumber(tot, [k]) ?? 0
+    const games = n("numGames")
+    if (games === 0) continue
+    const fga = n("twoPointersAttempted") + n("threePointersAttempted")
+    const fta = n("freeThrowsAttempted")
+    const pts = n("points")
+    out.push({
+      playerSourceId: `acb-${id}`,
+      season: seasonStartYear,
+      teamSourceId,
+      gamesPlayed: games,
+      // acb.com counts playing time in seconds.
+      minutesTotal: Math.round(n("timePlayed") / 60),
+      pointsTotal: pts,
+      reboundsTotal: n("rebounds"),
+      assistsTotal: n("assists"),
+      stealsTotal: n("steals"),
+      blocksTotal: n("blocks"),
+      fgMade: n("twoPointersMade") + n("threePointersMade"),
+      fgAttempted: fga,
+      threeMade: n("threePointersMade"),
+      threeAttempted: n("threePointersAttempted"),
+      ftMade: n("freeThrowsMade"),
+      ftAttempted: fta,
+      offensiveRebounds: n("offensiveRebounds"),
+      defensiveRebounds: n("defensiveRebounds"),
+      foulsTotal: n("personalFouls"),
+      plusMinus: pickNumber(tot, ["plusMinus"]) ?? null,
+      per: null,
+      trueShootingPct:
+        fga + fta > 0
+          ? Number((pts / (2 * (fga + 0.44 * fta))).toFixed(3))
+          : null,
+      winShares: null,
+      bpm: null,
+    })
+  }
+  return out
+}
+
+/**
+ * The Liga Endesa table from /clasificacion: one row per club with games, wins,
+ * losses and point totals. Clubs that have not played yet are left out, so a
+ * preseason sync writes no table rather than a column of zeros.
+ */
+export function parseAcbStandings(
+  rsc: string,
+  seasonStartYear: number,
+): SourceTeamStats[] {
+  const rows = extractRscArray(rsc, "standings", (items) =>
+    items.some((r) => r && typeof r === "object" && "wins" in r),
+  )
+  // React's flight format writes a repeated object once and later copies as a
+  // path to it ("$43:props:data:standings:0:rounds:7:matchData:homeTeam"), so
+  // most rows' `team` is such a path into this same array.
+  const resolve = (value: unknown): Raw => {
+    for (let hops = 0; typeof value === "string" && hops < 5; hops++) {
+      const path = value.split(":standings:")[1]
+      if (!path) return {}
+      let node: unknown = rows
+      for (const step of path.split(":")) {
+        node = (node as Record<string, unknown> | undefined)?.[step]
+      }
+      value = node
+    }
+    return value && typeof value === "object" ? (value as Raw) : {}
+  }
+  const out: SourceTeamStats[] = []
+  for (const row of rows) {
+    const clubId = pickNumber(resolve(row.team), ["clubId"])
+    const wins = pickNumber(row, ["wins"]) ?? 0
+    const losses = pickNumber(row, ["losses"]) ?? 0
+    const gp = pickNumber(row, ["matchesPlayed"]) ?? wins + losses
+    if (!clubId || gp === 0) continue
+    const pointsFor = pickNumber(row, ["pointsFor"])
+    const pointsAgainst = pickNumber(row, ["pointsAgainst"])
+    out.push({
+      teamSourceId: `acb-${clubId}`,
+      season: seasonStartYear,
+      gamesPlayed: gp,
+      wins,
+      losses,
+      winPct: Number((wins / gp).toFixed(3)),
+      pointsFor:
+        pointsFor != null ? Number((pointsFor / gp).toFixed(1)) : undefined,
+      pointsAgainst:
+        pointsAgainst != null
+          ? Number((pointsAgainst / gp).toFixed(1))
+          : undefined,
+      position: pickNumber(row, ["position"]),
+    })
+  }
+  return out
 }

@@ -32,6 +32,13 @@ export function getDb(): DrizzleDb {
     decimalNumbers: true,
     // Shared hosting caps concurrent connections hard; stay well under it.
     connectionLimit: 5,
+    // Hostinger's MariaDB drops a connection after 20 s idle (wait_timeout=20),
+    // and a query sent on one of those dead sockets fails as "Failed query" on
+    // whatever page drew it. mysql2 only reaps idle connections when maxIdle is
+    // below connectionLimit (it defaults to equal, so it never did); with the
+    // reaper on, a connection idle for 10 s is closed by us first.
+    maxIdle: 2,
+    idleTimeout: 10_000,
     enableKeepAlive: true,
     keepAliveInitialDelay: 10_000,
   })

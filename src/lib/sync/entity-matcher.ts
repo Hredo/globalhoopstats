@@ -83,6 +83,17 @@ export function normalizeName(input: string): string {
     .trim()
 }
 
+/**
+ * Drop a trailing generational suffix so "Wade Baldwin IV" and "Wade Baldwin"
+ * compare on the surname: one feed prints it and another leaves it off.
+ */
+const NAME_SUFFIXES = new Set(["jr", "sr", "ii", "iii", "iv", "v"])
+function withoutSuffix(tokens: string[]): string[] {
+  return tokens.length > 2 && NAME_SUFFIXES.has(tokens[tokens.length - 1]!)
+    ? tokens.slice(0, -1)
+    : tokens
+}
+
 function nameTokens(normalized: string): string[] {
   return normalized.split(" ").filter((t) => t.length > 1)
 }
@@ -124,13 +135,19 @@ export class EntityMatcher {
    * conflicting tier later in the run is correctly kept separate.
    */
   register(candidate: MatchCandidate, tier?: LeagueTier): void {
-    const c: MatchCandidate = { ...candidate, tiers: tier ? [tier] : candidate.tiers }
+    const c: MatchCandidate = {
+      ...candidate,
+      tiers: tier ? [tier] : candidate.tiers,
+    }
     this.index(c)
     if (tier) {
-      this.decisions.set(this.cacheKey(tier, normalizeName(candidate.fullName)), {
-        kind: "existing",
-        playerId: candidate.id,
-      })
+      this.decisions.set(
+        this.cacheKey(tier, normalizeName(candidate.fullName)),
+        {
+          kind: "existing",
+          playerId: candidate.id,
+        },
+      )
     }
   }
 
@@ -190,7 +207,9 @@ export class EntityMatcher {
     // Exact normalized-name hit, but only a tier-COMPATIBLE one. A blocked
     // exact match (e.g. EBA "Daniel García" vs the existing ACB one) falls
     // through to NEW rather than fusing two different people.
-    const exact = (this.byExactName.get(key) ?? []).filter((c) => this.compatible(c, tier))
+    const exact = (this.byExactName.get(key) ?? []).filter((c) =>
+      this.compatible(c, tier),
+    )
     if (exact.length > 0) {
       this.stats.exactMatches++
       return { kind: "existing", playerId: exact[0]!.id }
@@ -252,13 +271,15 @@ export class EntityMatcher {
    */
   private heuristic(key: string, candidates: MatchCandidate[]): MatchDecision {
     this.stats.heuristicFallbacks++
-    const tokens = key.split(" ").filter(Boolean)
+    const tokens = withoutSuffix(key.split(" ").filter(Boolean))
     const last = tokens[tokens.length - 1]
     const initial = tokens[0]?.[0]
     if (!last || !initial) return { kind: "new" }
 
     const strong = candidates.filter((c) => {
-      const cTokens = normalizeName(c.fullName).split(" ").filter(Boolean)
+      const cTokens = withoutSuffix(
+        normalizeName(c.fullName).split(" ").filter(Boolean),
+      )
       return cTokens[cTokens.length - 1] === last && cTokens[0]?.[0] === initial
     })
     if (strong.length === 1) {

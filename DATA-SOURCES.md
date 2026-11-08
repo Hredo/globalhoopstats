@@ -11,8 +11,8 @@ companion crawler page at [`/bot`](src/app/bot/page.tsx)).
 | League(s) | Source | Method |
 | --- | --- | --- |
 | NBA | `stats.nba.com`, Basketball-Reference | JSON API + HTML |
-| EuroLeague | Basketball-Reference (`/international/euroleague`) | HTML |
-| ACB (Liga Endesa) | `acb.com` | HTML |
+| EuroLeague | `api-live.euroleague.net` (the competition's own public API) | JSON API |
+| ACB (Liga Endesa) | `acb.com` (rosters, `/estadisticas`, `/clasificacion`) | HTML (Next.js RSC payload) |
 | Primera FEB · Segunda FEB · Tercera FEB | `baloncestoenvivo.feb.es` (FEB) | HTML (ASP.NET) |
 
 Per-league adapters live in [`src/lib/sources/`](src/lib/sources); each one
@@ -35,8 +35,9 @@ adapter calls `fetch` directly.
    A 4xx refusal (403, 404…) is never retried: retrying a block only prolongs it.
    On the NBA, Basketball-Reference is a supplement (advanced metrics, coaches,
    standings), so a BR refusal skips those parts and the league still syncs.
-   EuroLeague and ACB stats come only from BR; a BR block there fails the league
-   and the quality gate keeps the last good data.
+   BR jails datacenter IPs: from 2026-10-23 it answered the production server
+   with a 403 on the first request, which is why EuroLeague and ACB no longer
+   use it at all and read their own leagues' sites instead.
 4. **Public data only.** We do not bypass paywalls, authentication or access
    controls; we collect only statistics already published openly.
 5. **Add value, don't redistribute raw.** Our product is the cross-league

@@ -18,8 +18,8 @@ function botUserAgent(): string {
 /**
  * Per-host politeness. We serialise every request to a given host and keep a
  * minimum gap between them, so we never send a source a burst of parallel
- * traffic — even when two leagues that share a host (EuroLeague + NBA both pull
- * from basketball-reference.com) sync at the same time.
+ * traffic — even when two leagues that share a host (the three FEB divisions
+ * all read baloncestoenvivo.feb.es) sync at the same time.
  */
 const MIN_HOST_INTERVAL_MS = Number(
   process.env.SCRAPER_MIN_HOST_INTERVAL_MS ?? 1200,
