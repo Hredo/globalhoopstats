@@ -1,12 +1,25 @@
+/**
+ * Strip leading and trailing dashes in linear time. `/^-+|-+$/` looks
+ * equivalent but backtracks quadratically on a long run of dashes that is not
+ * at the end, and these strings come from user input and scraped pages.
+ */
+export function trimDashes(input: string): string {
+  let start = 0
+  let end = input.length
+  while (start < end && input[start] === "-") start++
+  while (end > start && input[end - 1] === "-") end--
+  return input.slice(start, end)
+}
+
 export function slugify(input: string): string {
-  return input
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80)
+  return trimDashes(
+    input
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-"),
+  ).slice(0, 80)
 }
 
 export function uniqueSlug(

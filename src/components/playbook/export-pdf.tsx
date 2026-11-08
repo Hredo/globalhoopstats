@@ -2,6 +2,7 @@ import jsPDF from "jspdf"
 import { createRoot } from "react-dom/client"
 import { flushSync } from "react-dom"
 import { resolveLeagueName } from "@/lib/sources/types"
+import { slugify } from "@/lib/sync/slug"
 import { StaticFrame } from "@/components/playbook/editor"
 import { SCALE, courtLength } from "@/lib/playbook/geometry"
 import {
@@ -307,12 +308,5 @@ export async function exportPlayPdf({
 }
 
 function slugifyName(name: string): string {
-  return (
-    name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "jugada"
-  )
+  return slugify(name) || "jugada"
 }

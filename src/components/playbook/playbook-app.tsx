@@ -26,6 +26,7 @@ import {
 } from "@/lib/playbook/types"
 import { EXTRA_TEMPLATES } from "@/lib/playbook/templates.extra"
 import { PHOTO_IMPORT_ENABLED } from "@/lib/playbook/features"
+import { trimDashes } from "@/lib/sync/slug"
 import { PlayEditor, Timeline, Toolbar, ToolRail, type Tool } from "@/components/playbook/editor"
 import { usePlayState } from "@/components/playbook/play-state"
 import { RosterPanel } from "@/components/playbook/roster-panel"
@@ -411,7 +412,7 @@ export function PlaybookApp() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `${base.replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "playbook"}.json`
+    a.download = `${trimDashes(base.replace(/[^\w-]+/g, "-")).slice(0, 60) || "playbook"}.json`
     document.body.appendChild(a)
     a.click()
     a.remove()

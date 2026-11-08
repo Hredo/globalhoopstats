@@ -90,7 +90,6 @@
     "@eslint/eslintrc": "^3.0.0",
     "@playwright/test": "1.61.1",
     "@serwist/turbopack": "^9.5.11",
-    "@svgr/webpack": "^8.1.0",
     "@tailwindcss/postcss": "^4.0.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
