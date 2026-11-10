@@ -1064,6 +1064,13 @@ export const listLeagues = cached(
   600,
 )
 
+/**
+ * Slugs whose /players/<slug> page renders a profile.
+ *
+ * A player row with no season line has no page (`getPlayerBySlug` returns
+ * null for it), so listing it in the sitemap submitted a "not found" URL to
+ * Google — about one in twenty of the catalogue.
+ */
 export async function listAllPlayerSlugs(
   limit = 5000,
 ): Promise<Array<{ slug: string }>> {
@@ -1071,6 +1078,30 @@ export async function listAllPlayerSlugs(
   return db
     .select({ slug: players.slug })
     .from(players)
+    .where(
+      sql`exists (select 1 from ${playerSeasonStats} where ${playerSeasonStats.playerId} = ${players.id})`,
+    )
     .orderBy(asc(players.slug))
     .limit(limit)
 }
+
+/**
+ * Whether /players/<slug> has a profile to render — the same condition as
+ * `getPlayerBySlug`, as one indexed lookup. The route's layout asks this
+ * before anything streams, which is what lets a missing player answer 404.
+ */
+export const playerPageExists = cached(
+  async (slug: string): Promise<boolean> => {
+    const db = getDb()
+    const [row] = await db
+      .select({ id: players.id })
+      .from(players)
+      .innerJoin(playerSeasonStats, eq(playerSeasonStats.playerId, players.id))
+      .where(eq(players.slug, slug))
+      .limit(1)
+    return Boolean(row)
+  },
+  "playerPageExists:v1",
+  ["players", "player-season-stats"],
+  3600,
+)

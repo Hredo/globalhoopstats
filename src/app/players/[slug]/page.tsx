@@ -652,6 +652,9 @@ export default async function PlayerPage({ params, searchParams }: Props) {
               </div>
               <Link
                 href={`/projection?player=${profile.slug}`}
+                // Canonicalises to /projection: nothing for a crawler here,
+                // and following it spends a fetch a real profile needed.
+                rel="nofollow"
                 className="inline-flex items-center gap-2 rounded-lg border border-hairline px-3.5 py-2 text-xs font-semibold text-ink-200 transition hover:border-brand-500/40 hover:text-ink-50"
               >
                 {t("scouting.projection.cta")}
@@ -670,6 +673,10 @@ export default async function PlayerPage({ params, searchParams }: Props) {
                     <Link
                       key={c.id}
                       href={`/compare?a=${profile.slug}&b=${c.slug}`}
+                      // Six of these per profile is ~26 000 URLs that all
+                      // canonicalise to /compare. Search Console showed Google
+                      // queueing them while 1 300 real pages sat undiscovered.
+                      rel="nofollow"
                       className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2.5 text-sm transition hover:border-brand-500/40 hover:bg-white/[0.05] sm:px-4 sm:py-3"
                     >
                       <span className="truncate font-semibold text-ink-100">

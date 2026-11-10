@@ -55,7 +55,16 @@ export async function getPlayerVideo(
     }
   }
 
-  return refreshPlayerVideo(playerId, hints)
+  // No clip on file: search after the response, never during it. The search
+  // waits on third parties for up to eight seconds, and most of the catalogue
+  // (the FEB tiers) has no clip to find — so every one of those profiles took
+  // eight seconds to answer, on every request, crawlers included.
+  if (Date.now() - (missedAt.get(playerId) ?? 0) > HIGHLIGHT_STALE_MS) {
+    // Stamped up front so concurrent requests queue one search, not one each.
+    missedAt.set(playerId, Date.now())
+    after(() => refreshPlayerVideo(playerId, hints).then(() => undefined))
+  }
+  return null
 }
 
 /**

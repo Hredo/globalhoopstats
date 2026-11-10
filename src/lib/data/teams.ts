@@ -547,3 +547,25 @@ export const getTeamBySlug = cached(
   ["teams", "players", "coaches", "player-season-stats"],
   3600,
 )
+
+/**
+ * Whether /teams/<league>/<slug> has a club to render — the identity lookup of
+ * `getTeamBySlug` on its own. The route's layout asks this before anything
+ * streams, which is what lets a missing team answer 404.
+ */
+export const teamPageExists = cached(
+  async (leagueSlug: string, slug: string): Promise<boolean> => {
+    const db = getDb()
+    const [row] = await db
+      .select({ id: teams.id })
+      .from(teams)
+      .innerJoin(playerSeasonStats, eq(playerSeasonStats.teamId, teams.id))
+      .innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
+      .where(and(eq(leagues.slug, leagueSlug), eq(teams.slug, slug)))
+      .limit(1)
+    return Boolean(row)
+  },
+  "teamPageExists:v1",
+  ["teams", "player-season-stats"],
+  3600,
+)
