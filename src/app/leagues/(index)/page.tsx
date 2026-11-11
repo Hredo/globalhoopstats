@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 import { FadeIn } from "@/components/animations/fade-in"
 import { getGlobalLeagueCounts, listLeagueOverviews } from "@/lib/data/leagues"
 import { getSyncTimesBySource } from "@/lib/data/sync"
@@ -8,23 +9,38 @@ import { DirectoryHero } from "@/components/ui/directory-hero"
 import { leagueAccent } from "@/components/ui/league-badge"
 import { getT } from "@/lib/i18n/server"
 import { pageSeo } from "@/lib/seo/metadata"
+import { resolveGender } from "@/lib/gender-server"
+import { GenderToggle } from "@/components/ui/gender-toggle"
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata(props: {
+  searchParams: Promise<{ gender?: string }>
+}): Promise<Metadata> {
   const { t, locale } = await getT()
+  const women =
+    (await resolveGender((await props.searchParams).gender)) === "women"
   return pageSeo({
     locale,
-    path: "/leagues",
-    title: t("directory.leagues.metaTitle"),
-    description: t("directory.leagues.metaDescription"),
+    path: women ? "/leagues?gender=women" : "/leagues",
+    title: t(
+      women ? "directory.leagues.metaTitleWomen" : "directory.leagues.metaTitle",
+    ),
+    description: t(
+      women
+        ? "directory.leagues.metaDescriptionWomen"
+        : "directory.leagues.metaDescription",
+    ),
   })
 }
 
 export const revalidate = 600
 
-export default async function LeaguesPage() {
+export default async function LeaguesPage(props: {
+  searchParams: Promise<{ gender?: string }>
+}) {
+  const gender = await resolveGender((await props.searchParams).gender)
   const [leagues, counts, syncTimes] = await Promise.all([
-    listLeagueOverviews(),
-    getGlobalLeagueCounts(),
+    listLeagueOverviews(gender),
+    getGlobalLeagueCounts(gender),
     getSyncTimesBySource(),
   ])
   const { t } = await getT()
@@ -42,18 +58,30 @@ export default async function LeaguesPage() {
             </span>
           </>
         }
-        description={t("directory.leagues.description")}
+        description={t(
+          gender === "women"
+            ? "directory.leagues.descriptionWomen"
+            : "directory.leagues.description",
+        )}
         accents={accents}
       />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-      <FadeIn delay={0.1} className="mt-8">
+      <div className="mt-6 flex justify-end">
+        <Suspense
+          fallback={<div className="h-9 w-[84px] rounded-full bg-white/[0.03]" />}
+        >
+          <GenderToggle value={gender} />
+        </Suspense>
+      </div>
+
+      <FadeIn key={`stats-${gender}`} delay={0.1} className="mt-4">
         <GlobalStatsBand counts={counts} />
       </FadeIn>
 
       <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-3">
         {leagues.map((lg, i) => (
-          <FadeIn key={lg.id} delay={0.05 * (i + 1)} y={20}>
+          <FadeIn key={`${gender}-${lg.id}`} delay={0.05 * (i + 1)} y={20}>
             <LeagueOverview
               data={lg}
               index={i}

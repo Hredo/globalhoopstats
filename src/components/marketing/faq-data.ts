@@ -19,7 +19,7 @@ const FAQ_DATA_EN: FaqItem[] = [
   {
     question: "Which leagues are currently covered?",
     answer:
-      "The NBA, EuroLeague, Liga ACB, Primera FEB, Segunda FEB and Tercera FEB (Spain's full FEB ladder). That's six leagues under one roof with normalized stats across all of them.",
+      "The NBA, EuroLeague, Liga ACB, Primera FEB, Segunda FEB and Tercera FEB (Spain's full FEB ladder) on the men's side, and on the women's side Liga Femenina Endesa, Liga Femenina Challenge and Liga Femenina 2, plus the national final phase of Primera Nacional Femenina. Nine leagues under one roof with normalized stats, and men's and women's kept apart: you switch between them, they are never mixed in a ranking or a comparison.",
   },
   {
     question: "How do you make cross-league comparisons fair?",
@@ -67,7 +67,7 @@ const FAQ_DATA_ES: FaqItem[] = [
   {
     question: "¿Qué ligas están disponibles actualmente?",
     answer:
-      "La NBA, la EuroLeague, la Liga ACB, Primera FEB, Segunda FEB y Tercera FEB (los seis escalones del baloncesto profesional español). Seis ligas bajo un mismo techo con estadísticas normalizadas entre todas ellas.",
+      "La NBA, la EuroLeague, la Liga ACB, Primera FEB, Segunda FEB y Tercera FEB en masculino, y en femenino la Liga Femenina Endesa, la Liga Femenina Challenge y la Liga Femenina 2, además de la fase final nacional de Primera Nacional Femenina. Nueve ligas bajo un mismo techo con estadísticas normalizadas, y masculino y femenino siempre por separado: se cambia de uno a otro, nunca se mezclan en un ranking ni en una comparación.",
   },
   {
     question: "¿Cómo hacéis justas las comparaciones entre ligas?",

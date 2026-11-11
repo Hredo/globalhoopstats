@@ -54,6 +54,8 @@ export type AdvisorOutput = {
 
 function getLeagueBadge(league: string): string {
   const lname = league.toLowerCase()
+  // Before the "endesa" test below: Liga Femenina Endesa is not the ACB.
+  if (lname.includes("femenina")) return league
   if (lname.includes("nba")) return "NBA"
   if (lname.includes("acb") || lname.includes("endesa")) return "ACB"
   return "EuroLeague"

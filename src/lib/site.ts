@@ -11,7 +11,7 @@ export const SITE = {
   // the local dev environment. The official business address is the .es domain.
   urlOfficial: "https://globalhoopstats.es",
   description:
-    "Cross-league basketball intelligence across the NBA, EuroLeague, Liga ACB and Spain's FEB pyramid (Primera, Segunda, Tercera): box scores, advanced splits, percentiles and projections, side-by-side comparisons, market valuations, trade simulator, an animated playbook, player alerts and shared shortlists, a public API and an AI scouting advisor — all in one console.",
+    "Cross-league basketball intelligence across the NBA, EuroLeague, Liga ACB, Spain's FEB pyramid (Primera, Segunda, Tercera) and its women's leagues (Liga Femenina Endesa, Challenge, Liga Femenina 2): box scores, advanced splits, percentiles and projections, side-by-side comparisons, market valuations, trade simulator, an animated playbook, player alerts and shared shortlists, a public API and an AI scouting advisor — all in one console.",
   tagline: "Hoops, decoded.",
   taglineShort: "Global basketball intelligence",
   locale: "en",
@@ -56,6 +56,13 @@ export const SEO_KEYWORDS = [
   "estadísticas Primera FEB",
   "estadísticas Segunda FEB",
   "estadísticas Tercera FEB",
+  "estadísticas Liga Femenina Endesa",
+  "estadísticas Liga Femenina Challenge",
+  "estadísticas Liga Femenina 2",
+  "estadísticas baloncesto femenino",
+  "jugadoras baloncesto femenino",
+  "women's basketball stats Spain",
+  "Liga Femenina Endesa stats",
   "baloncesto español",
   "comparar jugadores baloncesto",
   "valoración de mercado jugadores",

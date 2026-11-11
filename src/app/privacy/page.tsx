@@ -262,6 +262,16 @@ export default async function PrivacyPage() {
                   <td className="py-3 pr-4">{es ? "Preferencia" : "Preference"}</td>
                   <td className="py-3">1 {es ? "año" : "year"}</td>
                 </tr>
+                <tr className="border-b border-hairline/50">
+                  <td className="py-3 pr-4 font-mono text-[13px]">ghs_gender</td>
+                  <td className="py-3 pr-4">
+                    {es
+                      ? "Recuerda si estás viendo las ligas masculinas o las femeninas al pasar de una sección a otra."
+                      : "Remembers whether you are browsing the men's or the women's leagues as you move between sections."}
+                  </td>
+                  <td className="py-3 pr-4">{es ? "Preferencia" : "Preference"}</td>
+                  <td className="py-3">1 {es ? "año" : "year"}</td>
+                </tr>
               </tbody>
             </table>
           </div>

@@ -1,4 +1,13 @@
-import { and, eq, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm"
+import {
+  and,
+  eq,
+  inArray,
+  isNotNull,
+  isNull,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm"
 import pLimit from "p-limit"
 import { getDb } from "@/lib/db/client"
 import {
@@ -12,6 +21,11 @@ import {
 import { resolveLeagueName } from "@/lib/sources/types"
 import { cached } from "@/lib/data/cache"
 import { canonicalSeasonLabel, compareSeasonsDesc } from "@/lib/seasons"
+import {
+  genderForLeagueSlug,
+  leagueSlugsForGender,
+  type Gender,
+} from "@/lib/gender"
 
 export type LeagueTeamLogo = {
   name: string
@@ -147,6 +161,19 @@ async function fetchCounts(
   }
 }
 
+/**
+ * Qualifying sample for a leaders list: five games, or as many as the
+ * competition has when it is shorter than that (a three-game final phase, or
+ * the first weeks of a season) — otherwise its leaders would be nobody.
+ */
+function qualifiedGames(leagueId: string, seasonId: string): SQL {
+  return sql`${playerSeasonStats.gamesPlayed} >= least(5, (
+    select coalesce(max(pss_q.games_played), 0)
+    from player_season_stats pss_q
+    where pss_q.league_id = ${leagueId} and pss_q.season_id = ${seasonId}
+  ))`
+}
+
 async function fetchTopScorers(
   db: ReturnType<typeof getDb>,
   leagueId: string,
@@ -173,7 +200,7 @@ async function fetchTopScorers(
         eq(playerSeasonStats.leagueId, leagueId),
         eq(playerSeasonStats.seasonId, seasonId),
         isNotNull(playerSeasonStats.pointsTotal),
-        sql`${playerSeasonStats.gamesPlayed} >= 5`,
+        qualifiedGames(leagueId, seasonId),
       ),
     )
     .orderBy(
@@ -260,7 +287,7 @@ async function fetchTopPlayer(
         eq(playerSeasonStats.leagueId, leagueId),
         eq(playerSeasonStats.seasonId, seasonId),
         sql`${column} is not null`,
-        sql`${playerSeasonStats.gamesPlayed} >= 5`,
+        qualifiedGames(leagueId, seasonId),
       ),
     )
     .orderBy(orderExpr)
@@ -283,10 +310,14 @@ async function fetchTopPlayer(
   return null
 }
 
+/**
+ * One overview card per league. Pass a gender to get only that side (what the
+ * visitor-facing pages do); omit it for every league (sitemap, llms.txt).
+ */
 export const listLeagueOverviews = cached(
-  async (): Promise<LeagueOverview[]> => {
+  async (gender?: Gender): Promise<LeagueOverview[]> => {
   const db = getDb()
-  const baseRows = await db
+  const allRows = await db
     .select({
       id: leagues.id,
       slug: leagues.slug,
@@ -296,6 +327,15 @@ export const listLeagueOverviews = cached(
     })
     .from(leagues)
     .orderBy(ascLabel(leagues.name))
+  const baseRows = gender
+    ? allRows.filter((row) => genderForLeagueSlug(row.slug) === gender)
+    : allRows
+  // Men's cards keep their long-standing alphabetical order; the women's ones
+  // read top-down the pyramid (alphabetical would open with Liga Femenina 2).
+  if (gender === "women") {
+    const order = leagueSlugsForGender("women")
+    baseRows.sort((a, b) => order.indexOf(a.slug) - order.indexOf(b.slug))
+  }
 
   const limit = pLimit(3)
   const overviews = await Promise.all(
@@ -364,10 +404,40 @@ function ascLabel(column: typeof leagues.name) {
   return sql`lower(${column}) asc`
 }
 
+/**
+ * Headline totals. Without a gender this is the whole catalogue (home, login);
+ * with one, only what belongs to that side's leagues.
+ */
 export const getGlobalLeagueCounts = cached(
-  async (): Promise<GlobalLeagueCounts> => {
+  async (gender?: Gender): Promise<GlobalLeagueCounts> => {
     try {
       const db = getDb()
+      if (gender) {
+        const slugs = leagueSlugsForGender(gender)
+        const [l] = await db
+          .select({ c: sql<number>`count(*)` })
+          .from(leagues)
+          .where(inArray(leagues.slug, slugs))
+        const [pt] = await db
+          .select({
+            p: sql<number>`count(distinct ${playerSeasonStats.playerId})`,
+            t: sql<number>`count(distinct ${playerSeasonStats.teamId})`,
+          })
+          .from(playerSeasonStats)
+          .innerJoin(leagues, eq(leagues.id, playerSeasonStats.leagueId))
+          .where(inArray(leagues.slug, slugs))
+        const [c] = await db
+          .select({ c: sql<number>`count(*)` })
+          .from(coaches)
+          .innerJoin(leagues, eq(leagues.id, coaches.leagueId))
+          .where(inArray(leagues.slug, slugs))
+        return {
+          leagues: Number(l?.c ?? 0),
+          players: Number(pt?.p ?? 0),
+          teams: Number(pt?.t ?? 0),
+          coaches: Number(c?.c ?? 0),
+        }
+      }
       const [l] = await db.select({ c: sql<number>`count(*)` }).from(leagues)
       const [p] = await db.select({ c: sql<number>`count(*)` }).from(players)
       const [t] = await db.select({ c: sql<number>`count(*)` }).from(teams)

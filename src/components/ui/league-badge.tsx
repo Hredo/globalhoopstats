@@ -44,6 +44,31 @@ const ACCENTS: Record<string, LeagueAccent> = {
     glow: "0 0 44px -10px oklch(0.7 0.11 200 / 0.45)",
     short: "3F",
   },
+  // Women's leagues: their own three hues, clear of the six above.
+  "lf-endesa": {
+    color: "oklch(0.7 0.15 300)",
+    text: "oklch(0.8 0.12 300)",
+    glow: "0 0 44px -10px oklch(0.7 0.15 300 / 0.5)",
+    short: "LF",
+  },
+  "lf-challenge": {
+    color: "oklch(0.74 0.14 150)",
+    text: "oklch(0.82 0.12 150)",
+    glow: "0 0 44px -10px oklch(0.74 0.14 150 / 0.45)",
+    short: "LFC",
+  },
+  "primera-nacional-femenina": {
+    color: "oklch(0.72 0.1 20)",
+    text: "oklch(0.82 0.08 20)",
+    glow: "0 0 44px -10px oklch(0.72 0.1 20 / 0.45)",
+    short: "1NF",
+  },
+  lf2: {
+    color: "oklch(0.7 0.11 265)",
+    text: "oklch(0.8 0.09 265)",
+    glow: "0 0 44px -10px oklch(0.7 0.11 265 / 0.45)",
+    short: "LF2",
+  },
 }
 
 const FALLBACK: LeagueAccent = {

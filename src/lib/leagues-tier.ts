@@ -1,3 +1,5 @@
+import { isWomenLeague } from "@/lib/gender"
+
 /**
  * League "tier" classification used for identity resolution.
  *
@@ -27,16 +29,32 @@ export const FEB_LEAGUE_NAMES = new Set([
   "tercera feb",
 ])
 
-export type LeagueTier = "feb" | "top"
+/** Display names of the women's competitions (all published by FEB). */
+export const WOMEN_LEAGUE_NAMES = new Set([
+  "liga femenina endesa",
+  "liga femenina challenge",
+  "liga femenina 2",
+  "primera nacional femenina",
+])
+
+/**
+ * "women" is its own tier: the three women's leagues share FEB licence ids and
+ * players move between them every summer, so they merge freely with each other
+ * — and never with a men's record, whatever the name says.
+ */
+export type LeagueTier = "feb" | "top" | "women"
 
 /** Tier for a league SLUG (e.g. "eba" -> "feb", "acb" -> "top"). */
 export function tierForSlug(slug: string): LeagueTier {
+  if (isWomenLeague(slug)) return "women"
   return FEB_LEAGUE_SLUGS.has(slug) ? "feb" : "top"
 }
 
 /** Tier for a league DISPLAY NAME (e.g. "Tercera FEB" -> "feb"). */
 export function tierForName(name: string): LeagueTier {
-  return FEB_LEAGUE_NAMES.has(name.trim().toLowerCase()) ? "feb" : "top"
+  const key = name.trim().toLowerCase()
+  if (WOMEN_LEAGUE_NAMES.has(key)) return "women"
+  return FEB_LEAGUE_NAMES.has(key) ? "feb" : "top"
 }
 
 /**
@@ -52,5 +70,13 @@ export function tiersConflict(
   const sb = new Set(b)
   const febVsTop = (x: Set<LeagueTier>, y: Set<LeagueTier>) =>
     x.has("feb") && y.has("top")
-  return febVsTop(sa, sb) || febVsTop(sb, sa)
+  // A women's record never absorbs a men's one, nor the other way round.
+  const womenVsMen = (x: Set<LeagueTier>, y: Set<LeagueTier>) =>
+    x.has("women") && (y.has("feb") || y.has("top"))
+  return (
+    febVsTop(sa, sb) ||
+    febVsTop(sb, sa) ||
+    womenVsMen(sa, sb) ||
+    womenVsMen(sb, sa)
+  )
 }

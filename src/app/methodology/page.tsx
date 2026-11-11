@@ -146,7 +146,7 @@ function renderContent(index: number, es: boolean) {
 
 const enContent: React.ReactNode[][] = [
   [
-    "We aggregate statistics that are publicly available on each competition\u2019s official website. We cover the NBA, EuroLeague, ACB (Liga Endesa) and Spain\u2019s FEB ladder: Primera FEB, Segunda FEB and Tercera FEB. Each competition is collected by its own adapter that normalizes its format into a shared model.",
+    "We aggregate statistics that are publicly available on each competition\u2019s official website. We cover the NBA, EuroLeague, ACB (Liga Endesa) and Spain\u2019s FEB ladder: Primera FEB, Segunda FEB and Tercera FEB \u2014 plus the Spanish women\u2019s leagues: Liga Femenina Endesa, Liga Femenina Challenge, Liga Femenina 2 and the national final phase of Primera Nacional Femenina (its regular season is run region by region and has no common published statistics). Men\u2019s and women\u2019s leagues are never mixed in a listing, comparison or ranking. Each competition is collected by its own adapter that normalizes its format into a shared model.",
     <>
       We collect the data with an identified, respectful crawler (rate-limited, honoring servers\u2019 headers, public data only). The details are on our{" "}
       <Link href="/bot" className="text-brand-400 underline decoration-1 underline-offset-2 transition hover:text-brand-300">crawler policy</Link>.
@@ -176,7 +176,7 @@ const enContent: React.ReactNode[][] = [
 
 const esContent: React.ReactNode[][] = [
   [
-    "Agregamos estadísticas que son de acceso público en las webs oficiales de cada competición. Cubrimos NBA, EuroLeague, ACB (Liga Endesa) y el escalafón FEB de España: Primera FEB, Segunda FEB y Tercera FEB. Cada competición se recoge con un adaptador propio que normaliza su formato a un modelo común.",
+    "Agregamos estadísticas que son de acceso público en las webs oficiales de cada competición. Cubrimos NBA, EuroLeague, ACB (Liga Endesa) y el escalafón FEB de España: Primera FEB, Segunda FEB y Tercera FEB — además de las ligas femeninas españolas: Liga Femenina Endesa, Liga Femenina Challenge, Liga Femenina 2 y la fase final nacional de Primera Nacional Femenina (su liga regular se juega por autonomías y no tiene estadísticas publicadas en común). Las ligas masculinas y femeninas no se mezclan nunca en un listado, una comparación o un ranking. Cada competición se recoge con un adaptador propio que normaliza su formato a un modelo común.",
     <>
       Recogemos los datos con un rastreador identificado y respetuoso (límite de frecuencia, respeto a las cabeceras de los servidores y solo datos públicos). Los detalles están en nuestra{" "}
       <Link href="/bot" className="text-brand-400 underline decoration-1 underline-offset-2 transition hover:text-brand-300">política del rastreador</Link>.

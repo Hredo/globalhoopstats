@@ -24,6 +24,12 @@ const ACTIVE_MONTHS: Record<SourceId, readonly number[]> = {
   "leb-oro": [9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
   "leb-plata": [9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
   eba: [9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
+  // Women's leagues: Supercopa late Sep → finals May.
+  "lf-endesa": [9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
+  "lf-challenge": [9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
+  lf2: [9, 10, 11, 12, 1, 2, 3, 4, 5, 6],
+  // National final phase only: played in early June. `--force` for a backfill.
+  "primera-nacional-femenina": [6],
 }
 
 /** Whether `source` is within its active competition window on `date`. */

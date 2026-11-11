@@ -10,6 +10,7 @@ import {
 } from "@/lib/db/schema"
 import { cached } from "@/lib/data/cache"
 import { leagueSlugsFor } from "@/lib/league-groups"
+import { genderForLeagueSlug, type Gender } from "@/lib/gender"
 import { resolveLeagueName } from "@/lib/sources/types"
 import { latestSeasonName } from "@/lib/data/seasons"
 import {
@@ -919,10 +920,9 @@ async function runAutocomplete(
 
   const conditions = []
   if (pattern) conditions.push(like(foldedNameExpr, pattern))
-  if (options.league) {
-    const slugs = leagueSlugsFor(options.league)
-    if (slugs) conditions.push(inArray(leagues.slug, slugs))
-  }
+  // Always scoped: no league means the men's leagues, "women" the women's.
+  const slugs = leagueSlugsFor(options.league)
+  if (slugs) conditions.push(inArray(leagues.slug, slugs))
   const season = options.season ?? (await latestSeasonName(options.league))
   if (season !== ALL_SEASONS) {
     conditions.push(inArray(seasons.name, seasonNameVariants(season)))
@@ -1102,6 +1102,30 @@ export const playerPageExists = cached(
     return Boolean(row)
   },
   "playerPageExists:v1",
+  ["players", "player-season-stats"],
+  3600,
+)
+
+/**
+ * Which side a player belongs to, from the leagues they have rows in. Null for
+ * an unknown slug. Compare, trade and the AI surfaces ask this first: whatever
+ * is built around a woman reads women's leagues only, and likewise for a man.
+ */
+export const getPlayerGender = cached(
+  async (slug: string): Promise<Gender | null> => {
+    if (!slug) return null
+    const db = getDb()
+    const rows = await db
+      .select({ leagueSlug: leagues.slug })
+      .from(players)
+      .innerJoin(playerSeasonStats, eq(playerSeasonStats.playerId, players.id))
+      .innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
+      .where(eq(players.slug, slug))
+      .limit(1)
+    const leagueSlug = rows[0]?.leagueSlug
+    return leagueSlug ? genderForLeagueSlug(leagueSlug) : null
+  },
+  "player-gender:v1",
   ["players", "player-season-stats"],
   3600,
 )

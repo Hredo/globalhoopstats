@@ -16,6 +16,7 @@ import { PersonAvatar } from "@/components/ui/person-avatar"
 import { useLocale, useT } from "@/lib/i18n/provider"
 import { localizeNationality, localizePosition } from "@/lib/i18n/player-labels"
 import { LeagueSelect, SelectControl } from "@/components/ui/filter-controls"
+import { useBrowsingGender } from "@/components/ui/gender-toggle"
 
 export type AutocompleteSort = "points" | "assists" | "rebounds" | "name"
 
@@ -159,6 +160,7 @@ export const PlayerSearch = forwardRef<PlayerSearchHandle, PlayerSearchProps>(
     const [activeIdx, setActiveIdx] = useState(-1)
     const [open, setOpen] = useState(false)
     const [isMac, setIsMac] = useState(false)
+    const browsing = useBrowsingGender(open)
 
     const inputRef = useRef<HTMLInputElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
@@ -217,7 +219,7 @@ export const PlayerSearch = forwardRef<PlayerSearchHandle, PlayerSearchProps>(
       return () => {
         if (debounceRef.current) clearTimeout(debounceRef.current)
       }
-    }, [q, league, sort, isModal])
+    }, [q, league, sort, isModal, browsing])
 
     useEffect(() => {
       if (!isModal) return
@@ -350,7 +352,12 @@ export const PlayerSearch = forwardRef<PlayerSearchHandle, PlayerSearchProps>(
                   panel is intentionally not clipped so the league menu can
                   overflow over the results below it. */}
               <div className="relative z-20 flex flex-wrap items-center gap-2 border-b border-white/5 px-4 py-3">
-                <LeagueSelect value={league} onChange={setLeague} t={t} />
+                <LeagueSelect
+                  value={league}
+                  onChange={setLeague}
+                  t={t}
+                  gender={browsing}
+                />
                 <SelectControl
                   ariaLabel={t("directory.sortByAria")}
                   value={sort}

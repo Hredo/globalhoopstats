@@ -8,6 +8,10 @@ export type SourceId =
   | "leb-oro"
   | "leb-plata"
   | "eba"
+  | "lf-endesa"
+  | "lf-challenge"
+  | "lf2"
+  | "primera-nacional-femenina"
 
 /**
  * Season every adapter scrapes, as a start year.
@@ -20,6 +24,20 @@ export const CURRENT_SEASON = CURRENT_SEASON_START_YEAR
 
 /** Label written to `seasons.name` — shared by every league. */
 export const CURRENT_SEASON_CODE = seasonLabel(CURRENT_SEASON)
+
+/**
+ * Newest edition of a competition that is only played as a June final phase
+ * (start year). The edition of season Y is published in June of Y+1, so from
+ * the season's opening until then the latest one that exists is Y-1's. Never
+ * ahead of the configured season.
+ */
+export function finalPhaseSeason(now: Date = new Date()): number {
+  const year = now.getFullYear()
+  const played = now.getMonth() + 1 >= 6 ? year - 1 : year - 2
+  return Math.min(played, CURRENT_SEASON)
+}
+
+const FINAL_PHASE_SEASON = finalPhaseSeason()
 
 /**
  * Per-source identity.
@@ -86,6 +104,38 @@ export const SOURCE_META: Record<
     seasonLabel: CURRENT_SEASON_CODE,
     season: CURRENT_SEASON,
   },
+  // Women's pyramid (see src/lib/gender.ts). Same FEB feed as the men's
+  // feeder divisions, a different competition id.
+  "lf-endesa": {
+    displayName: "Liga Femenina Endesa",
+    country: "ES",
+    seasonCode: CURRENT_SEASON_CODE,
+    seasonLabel: CURRENT_SEASON_CODE,
+    season: CURRENT_SEASON,
+  },
+  "lf-challenge": {
+    displayName: "Liga Femenina Challenge",
+    country: "ES",
+    seasonCode: CURRENT_SEASON_CODE,
+    seasonLabel: CURRENT_SEASON_CODE,
+    season: CURRENT_SEASON,
+  },
+  lf2: {
+    displayName: "Liga Femenina 2",
+    country: "ES",
+    seasonCode: CURRENT_SEASON_CODE,
+    seasonLabel: CURRENT_SEASON_CODE,
+    season: CURRENT_SEASON,
+  },
+  // Only its national final phase exists as one feed, and that is played in
+  // June: until then the newest edition is last season's.
+  "primera-nacional-femenina": {
+    displayName: "Primera Nacional Femenina",
+    country: "ES",
+    seasonCode: seasonLabel(FINAL_PHASE_SEASON),
+    seasonLabel: seasonLabel(FINAL_PHASE_SEASON),
+    season: FINAL_PHASE_SEASON,
+  },
 }
 
 /**
@@ -107,6 +157,13 @@ export const SOURCE_UPSTREAM: Record<SourceId, { name: string; url: string }> =
     "leb-oro": { name: "FEB", url: "https://baloncestoenvivo.feb.es" },
     "leb-plata": { name: "FEB", url: "https://baloncestoenvivo.feb.es" },
     eba: { name: "FEB", url: "https://baloncestoenvivo.feb.es" },
+    "lf-endesa": { name: "FEB", url: "https://baloncestoenvivo.feb.es" },
+    "lf-challenge": { name: "FEB", url: "https://baloncestoenvivo.feb.es" },
+    lf2: { name: "FEB", url: "https://baloncestoenvivo.feb.es" },
+    "primera-nacional-femenina": {
+      name: "FEB",
+      url: "https://baloncestoenvivo.feb.es",
+    },
   }
 
 export function upstreamFor(

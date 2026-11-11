@@ -89,7 +89,9 @@ export type ShotZoneKey =
  * (EuroLeague official feed). `m` = made, `a` = attempted. A null column means
  * no shot-location data exists for that league (ACB / FEB publish none).
  */
-export type ShotZonesJson = Partial<Record<ShotZoneKey, { m: number; a: number }>>
+export type ShotZonesJson = Partial<
+  Record<ShotZoneKey, { m: number; a: number }>
+>
 
 export const leagues = mysqlTable("leagues", {
   id: uuidPk(),
@@ -97,6 +99,9 @@ export const leagues = mysqlTable("leagues", {
   slug: varchar("slug", { length: IDX_LEN }).notNull().unique(),
   region: text("region").notNull(),
   logoUrl: text("logo_url"),
+  // "men" | "women". Mirrors genderForLeagueSlug() in src/lib/gender.ts; teams,
+  // players and staff inherit it through their league.
+  gender: varchar("gender", { length: 8 }).notNull().default("men"),
 })
 
 export const seasons = mysqlTable("seasons", {
@@ -339,7 +344,10 @@ export const users = mysqlTable(
     // sha256 of the single outstanding confirmation token (it is 256-bit
     // random, so a fast hash is enough and lets us look it up directly).
     emailVerifyTokenHash: varchar("email_verify_token_hash", { length: 64 }),
-    emailVerifyExpiresAt: datetime("email_verify_expires_at", { mode: "date", fsp: 3 }),
+    emailVerifyExpiresAt: datetime("email_verify_expires_at", {
+      mode: "date",
+      fsp: 3,
+    }),
     plan: text("plan").notNull().default("free"),
     role: text("role").notNull().default("user"),
     proSince: datetime("pro_since", { mode: "date", fsp: 3 }),

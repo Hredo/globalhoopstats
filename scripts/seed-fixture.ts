@@ -34,6 +34,7 @@ import { hashPassword } from "@/lib/auth/password"
 import { hashApiKey } from "@/lib/api/keys"
 import { CURRENT_SEASON_START_YEAR, seasonLabel } from "@/lib/seasons"
 import { eq } from "drizzle-orm"
+import { teamSlugFor } from "@/lib/gender"
 
 const url = process.env.DATABASE_URL ?? ""
 const host = (() => {
@@ -62,8 +63,10 @@ function rng(seed: number) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296
   }
 }
-const rand = rng(20261010)
-const pick = <T,>(xs: readonly T[]) => xs[Math.floor(rand() * xs.length)]!
+// Reassigned before the women's block so adding it left every men's number —
+// which the E2E suite asserts on — exactly where it was.
+let rand = rng(20261010)
+const pick = <T>(xs: readonly T[]) => xs[Math.floor(rand() * xs.length)]!
 const between = (lo: number, hi: number) => lo + rand() * (hi - lo)
 const slugify = (s: string) =>
   s
@@ -74,26 +77,191 @@ const slugify = (s: string) =>
     .replace(/(^-|-$)/g, "")
 
 const LEAGUES = [
-  { slug: "nba", name: "NBA", region: "USA", level: 1.0, city: ["Harbor", "Mesa", "Granite", "Lakeview", "Copper", "Summit"] },
-  { slug: "euroleague", name: "EuroLeague", region: "Europe", level: 0.9, city: ["Aurora", "Borealis", "Castellan", "Danube", "Elbe", "Fjord"] },
-  { slug: "acb", name: "Liga Endesa", region: "Spain", level: 0.74, city: ["Albar", "Brezo", "Cierzo", "Dunas", "Encina", "Faro"] },
-  { slug: "leb-oro", name: "Primera FEB", region: "Spain", level: 0.52, city: ["Galera", "Hontana", "Isla", "Jara", "Lindes", "Mirador"] },
-  { slug: "leb-plata", name: "Segunda FEB", region: "Spain", level: 0.4, city: ["Nogal", "Olmo", "Pinar", "Quejigo", "Robledo", "Sabina"] },
-  { slug: "eba", name: "Tercera FEB", region: "Spain", level: 0.28, city: ["Tejo", "Ulmo", "Vega", "Yedra", "Zarza", "Alcor"] },
+  {
+    slug: "nba",
+    name: "NBA",
+    region: "USA",
+    level: 1.0,
+    city: ["Harbor", "Mesa", "Granite", "Lakeview", "Copper", "Summit"],
+  },
+  {
+    slug: "euroleague",
+    name: "EuroLeague",
+    region: "Europe",
+    level: 0.9,
+    city: ["Aurora", "Borealis", "Castellan", "Danube", "Elbe", "Fjord"],
+  },
+  {
+    slug: "acb",
+    name: "Liga Endesa",
+    region: "Spain",
+    level: 0.74,
+    city: ["Albar", "Brezo", "Cierzo", "Dunas", "Encina", "Faro"],
+  },
+  {
+    slug: "leb-oro",
+    name: "Primera FEB",
+    region: "Spain",
+    level: 0.52,
+    city: ["Galera", "Hontana", "Isla", "Jara", "Lindes", "Mirador"],
+  },
+  {
+    slug: "leb-plata",
+    name: "Segunda FEB",
+    region: "Spain",
+    level: 0.4,
+    city: ["Nogal", "Olmo", "Pinar", "Quejigo", "Robledo", "Sabina"],
+  },
+  {
+    slug: "eba",
+    name: "Tercera FEB",
+    region: "Spain",
+    level: 0.28,
+    city: ["Tejo", "Ulmo", "Vega", "Yedra", "Zarza", "Alcor"],
+  },
 ] as const
 
-const FIRST = ["Adrián", "Bruno", "Carlos", "Dario", "Elías", "Fabio", "Gael", "Hugo", "Iker", "Jonás", "Kilian", "Leo", "Marco", "Nil", "Óscar", "Pau", "Quique", "Rubén", "Saúl", "Teo", "Unai", "Víctor", "Xavi", "Yeray", "Zaid", "Aaron", "Bastian", "Caleb", "Dorian", "Emil"]
-const LAST = ["Arenal", "Barroso", "Cuesta", "Delmonte", "Escobedo", "Ferrán", "Galdós", "Herrera", "Ibarra", "Jurado", "Lamela", "Montes", "Navas", "Olivera", "Prado", "Quintana", "Roldán", "Salcedo", "Torralba", "Urquiza", "Valcárcel", "Zamora", "Abreu", "Bermejo", "Carrasco", "Dorado"]
+/**
+ * Women's pyramid. The first three Liga Femenina Endesa cities are also men's
+ * Liga Endesa cities, and those clubs reuse the men's exact name — the case the
+ * `-femenino` team slug exists for.
+ */
+const WOMEN_LEAGUES = [
+  {
+    slug: "lf-endesa",
+    name: "Liga Femenina Endesa",
+    region: "Spain",
+    level: 0.74,
+    city: ["Albar", "Brezo", "Cierzo", "Ribera", "Solana", "Tormes"],
+  },
+  {
+    slug: "lf-challenge",
+    name: "Liga Femenina Challenge",
+    region: "Spain",
+    level: 0.52,
+    city: ["Almez", "Brisa", "Cantil", "Dehesa", "Espliego", "Fresno"],
+  },
+  {
+    slug: "lf2",
+    name: "Liga Femenina 2",
+    region: "Spain",
+    level: 0.38,
+    city: ["Gredos", "Hiedra", "Juncal", "Lavanda", "Mimbre", "Nava"],
+  },
+] as const
+
+const FIRST_W = [
+  "Ainhoa",
+  "Blanca",
+  "Carla",
+  "Daniela",
+  "Elena",
+  "Fátima",
+  "Gala",
+  "Helena",
+  "Irene",
+  "Julia",
+  "Kira",
+  "Laia",
+  "Marta",
+  "Nerea",
+  "Olaia",
+  "Paula",
+  "Queralt",
+  "Rocío",
+  "Sara",
+  "Teresa",
+  "Uxía",
+  "Vera",
+  "Ximena",
+  "Yaiza",
+  "Zoe",
+  "Alba",
+  "Berta",
+  "Candela",
+  "Dafne",
+  "Eider",
+]
+
+const FIRST = [
+  "Adrián",
+  "Bruno",
+  "Carlos",
+  "Dario",
+  "Elías",
+  "Fabio",
+  "Gael",
+  "Hugo",
+  "Iker",
+  "Jonás",
+  "Kilian",
+  "Leo",
+  "Marco",
+  "Nil",
+  "Óscar",
+  "Pau",
+  "Quique",
+  "Rubén",
+  "Saúl",
+  "Teo",
+  "Unai",
+  "Víctor",
+  "Xavi",
+  "Yeray",
+  "Zaid",
+  "Aaron",
+  "Bastian",
+  "Caleb",
+  "Dorian",
+  "Emil",
+]
+const LAST = [
+  "Arenal",
+  "Barroso",
+  "Cuesta",
+  "Delmonte",
+  "Escobedo",
+  "Ferrán",
+  "Galdós",
+  "Herrera",
+  "Ibarra",
+  "Jurado",
+  "Lamela",
+  "Montes",
+  "Navas",
+  "Olivera",
+  "Prado",
+  "Quintana",
+  "Roldán",
+  "Salcedo",
+  "Torralba",
+  "Urquiza",
+  "Valcárcel",
+  "Zamora",
+  "Abreu",
+  "Bermejo",
+  "Carrasco",
+  "Dorado",
+]
 const POSITIONS = ["PG", "SG", "SF", "PF", "C"] as const
 
-const SEASON_YEARS = [CURRENT_SEASON_START_YEAR - 2, CURRENT_SEASON_START_YEAR - 1, CURRENT_SEASON_START_YEAR]
+const SEASON_YEARS = [
+  CURRENT_SEASON_START_YEAR - 2,
+  CURRENT_SEASON_START_YEAR - 1,
+  CURRENT_SEASON_START_YEAR,
+]
 const TEAMS_PER_LEAGUE = 6
 const ROSTER = 12
 
 type StatLine = typeof playerSeasonStats.$inferInsert
 
 /** Box-score totals for a player of a given talent (0..1) in a league. */
-function statLine(talent: number, level: number, games: number, position: string): Omit<StatLine, "id" | "playerId" | "teamId" | "leagueId" | "seasonId"> {
+function statLine(
+  talent: number,
+  level: number,
+  games: number,
+  position: string,
+): Omit<StatLine, "id" | "playerId" | "teamId" | "leagueId" | "seasonId"> {
   // Production in a league scales with how far above that league's level the
   // player is: a talent of 0.6 dominates EBA and barely plays in the NBA.
   const edge = Math.max(0.05, 0.55 + (talent - level) * 1.6)
@@ -101,10 +269,19 @@ function statLine(talent: number, level: number, games: number, position: string
   const big = position === "PF" || position === "C"
   const guard = position === "PG" || position === "SG"
   const ppg = Math.max(0.5, edge * 17 * (mpg / 28) + between(-1.5, 1.5))
-  const rpg = Math.max(0.3, (big ? 6.5 : 3) * edge * (mpg / 28) + between(-0.6, 0.6))
-  const apg = Math.max(0.1, (guard ? 4.8 : 1.6) * edge * (mpg / 28) + between(-0.4, 0.4))
+  const rpg = Math.max(
+    0.3,
+    (big ? 6.5 : 3) * edge * (mpg / 28) + between(-0.6, 0.6),
+  )
+  const apg = Math.max(
+    0.1,
+    (guard ? 4.8 : 1.6) * edge * (mpg / 28) + between(-0.4, 0.4),
+  )
   const fga = ppg / 1.1
-  const fgPct = Math.min(0.62, Math.max(0.33, 0.42 + edge * 0.06 + between(-0.04, 0.04)))
+  const fgPct = Math.min(
+    0.62,
+    Math.max(0.33, 0.42 + edge * 0.06 + between(-0.04, 0.04)),
+  )
   const threeA = guard ? fga * 0.45 : big ? fga * 0.12 : fga * 0.35
   const threePct = Math.min(0.45, Math.max(0.25, 0.33 + between(-0.05, 0.06)))
   const fta = ppg * 0.28
@@ -118,7 +295,9 @@ function statLine(talent: number, level: number, games: number, position: string
     defensiveRebounds: tot(rpg * 0.72),
     assistsTotal: tot(apg),
     stealsTotal: tot(Math.max(0.1, 0.9 * edge + between(-0.2, 0.2))),
-    blocksTotal: tot(Math.max(0, (big ? 0.9 : 0.2) * edge + between(-0.1, 0.1))),
+    blocksTotal: tot(
+      Math.max(0, (big ? 0.9 : 0.2) * edge + between(-0.1, 0.1)),
+    ),
     fgAttempted: tot(fga),
     fgMade: tot(fga * fgPct),
     threeAttempted: tot(threeA),
@@ -162,14 +341,23 @@ async function main() {
     return s
   }
 
-  type SeedPlayer = { id: string; talent: number; position: string; league: number; team: string }
+  type SeedPlayer = {
+    id: string
+    talent: number
+    position: string
+    league: number
+    team: string
+  }
   const roster: SeedPlayer[][] = []
   const statRows: StatLine[] = []
   const teamIdsByLeague: string[][] = []
+  const menTeamNameByCity = new Map<string, string>()
 
   for (const [li, lg] of LEAGUES.entries()) {
     const leagueId = newId()
-    await db.insert(leagues).values({ id: leagueId, name: lg.name, slug: lg.slug, region: lg.region })
+    await db
+      .insert(leagues)
+      .values({ id: leagueId, name: lg.name, slug: lg.slug, region: lg.region })
 
     const teamRows = lg.city.slice(0, TEAMS_PER_LEAGUE).map((city) => {
       const name = `${city} ${pick(["Basket", "CB", "Club", "Atlético", "Union", "Racing"])}`
@@ -181,11 +369,19 @@ async function main() {
         arena: `Pabellón ${city}`,
         arenaCapacity: Math.round(between(800, 15000)),
         foundedYear: Math.round(between(1940, 2010)),
-        primaryColor: pick(["#c2410c", "#1d4ed8", "#15803d", "#7e22ce", "#b91c1c", "#0f766e"]),
+        primaryColor: pick([
+          "#c2410c",
+          "#1d4ed8",
+          "#15803d",
+          "#7e22ce",
+          "#b91c1c",
+          "#0f766e",
+        ]),
       }
     })
     await db.insert(teams).values(teamRows)
     teamIdsByLeague.push(teamRows.map((t) => t.id))
+    for (const t of teamRows) menTeamNameByCity.set(t.city, t.name)
 
     const list: SeedPlayer[] = []
     for (const team of teamRows) {
@@ -203,9 +399,27 @@ async function main() {
           heightCm: Math.round(between(180, 215)),
           weightKg: Math.round(between(78, 118)),
           birthdate: `${Math.round(between(1992, 2006))}-0${1 + Math.floor(rand() * 9)}-1${Math.floor(rand() * 9)}`,
-          nationality: pick(["España", "España", "España", "Francia", "Serbia", "Argentina", "EE. UU.", "Lituania"]),
+          nationality: pick([
+            "España",
+            "España",
+            "España",
+            "Francia",
+            "Serbia",
+            "Argentina",
+            "EE. UU.",
+            "Lituania",
+          ]),
         })
-        list.push({ id, talent: Math.min(1.05, Math.max(0.15, lg.level + between(-0.12, 0.14))), position, league: li, team: team.id })
+        list.push({
+          id,
+          talent: Math.min(
+            1.05,
+            Math.max(0.15, lg.level + between(-0.12, 0.14)),
+          ),
+          position,
+          league: li,
+          team: team.id,
+        })
       }
       for (const [si, s] of seasonRows.entries()) {
         await db.insert(teamSeasonStats).values({
@@ -240,7 +454,12 @@ async function main() {
           teamId: p.team,
           leagueId,
           seasonId: s.id,
-          ...statLine(p.talent + si * 0.02, lg.level, si === 2 ? 6 : Math.round(between(22, 34)), p.position),
+          ...statLine(
+            p.talent + si * 0.02,
+            lg.level,
+            si === 2 ? 6 : Math.round(between(22, 34)),
+            p.position,
+          ),
         })
       }
     }
@@ -249,7 +468,9 @@ async function main() {
   // Promotions: the best players of a league move one level up in the
   // following season — same person, new league. Within FEB and within the top
   // tier only (a FEB person is never an ACB/EL/NBA record; see leagues-tier.ts).
-  const leagueIds = (await db.select().from(leagues)).reduce<Record<string, string>>((acc, l) => ((acc[l.slug] = l.id), acc), {})
+  const leagueIds = (await db.select().from(leagues)).reduce<
+    Record<string, string>
+  >((acc, l) => ((acc[l.slug] = l.id), acc), {})
   const promotions: Array<[string, string]> = [
     ["eba", "leb-plata"],
     ["leb-plata", "leb-oro"],
@@ -258,19 +479,180 @@ async function main() {
   for (const [from, to] of promotions) {
     const fromIdx = LEAGUES.findIndex((l) => l.slug === from)
     const toIdx = LEAGUES.findIndex((l) => l.slug === to)
-    const best = [...roster[fromIdx]!].sort((a, b) => b.talent - a.talent).slice(0, 14)
+    const best = [...roster[fromIdx]!]
+      .sort((a, b) => b.talent - a.talent)
+      .slice(0, 14)
     for (const p of best) {
       const toTeam = pick(teamIdsByLeague[toIdx]!)
       // Last season → the new league; the current season too.
       for (const si of [1, 2]) {
         const season = seasonRows[si]!
-        const idx = statRows.findIndex((r) => r.playerId === p.id && r.seasonId === season.id)
+        const idx = statRows.findIndex(
+          (r) => r.playerId === p.id && r.seasonId === season.id,
+        )
         statRows[idx] = {
           playerId: p.id,
           teamId: toTeam,
           leagueId: leagueIds[to]!,
           seasonId: season.id,
-          ...statLine(p.talent + si * 0.02, LEAGUES[toIdx]!.level, si === 2 ? 6 : Math.round(between(20, 32)), p.position),
+          ...statLine(
+            p.talent + si * 0.02,
+            LEAGUES[toIdx]!.level,
+            si === 2 ? 6 : Math.round(between(20, 32)),
+            p.position,
+          ),
+        }
+      }
+    }
+  }
+
+  // Women's leagues, drawn from their own generator (see `rand` above).
+  rand = rng(20261111)
+  const womenRoster: SeedPlayer[][] = []
+  const womenTeamIds: string[][] = []
+  const womenLeagueIds: string[] = []
+  for (const [li, lg] of WOMEN_LEAGUES.entries()) {
+    const leagueId = newId()
+    womenLeagueIds.push(leagueId)
+    await db
+      .insert(leagues)
+      .values({
+        id: leagueId,
+        name: lg.name,
+        slug: lg.slug,
+        region: lg.region,
+        gender: "women",
+      })
+
+    const teamRows = lg.city.map((city) => {
+      const name =
+        menTeamNameByCity.get(city) ??
+        `${city} ${pick(["Basket", "CB", "Club", "Atlético", "Union", "Racing"])}`
+      return {
+        id: newId(),
+        name,
+        slug: uniqueSlug(teamSlugFor(slugify(name), "women")),
+        city,
+        arena: `Pabellón ${city}`,
+        arenaCapacity: Math.round(between(600, 6000)),
+        foundedYear: Math.round(between(1960, 2015)),
+        primaryColor: pick([
+          "#c2410c",
+          "#1d4ed8",
+          "#15803d",
+          "#7e22ce",
+          "#b91c1c",
+          "#0f766e",
+        ]),
+      }
+    })
+    await db.insert(teams).values(teamRows)
+    womenTeamIds.push(teamRows.map((t) => t.id))
+
+    const list: SeedPlayer[] = []
+    for (const team of teamRows) {
+      for (let i = 0; i < ROSTER; i++) {
+        const first = pick(FIRST_W)
+        const last = `${pick(LAST)} ${pick(LAST)}`
+        const id = newId()
+        const position = POSITIONS[i % POSITIONS.length]!
+        await db.insert(players).values({
+          id,
+          firstName: first,
+          lastName: last,
+          slug: uniqueSlug(`${first} ${last}`),
+          position,
+          heightCm: Math.round(between(165, 200)),
+          weightKg: Math.round(between(58, 92)),
+          birthdate: `${Math.round(between(1992, 2006))}-0${1 + Math.floor(rand() * 9)}-1${Math.floor(rand() * 9)}`,
+          nationality: pick([
+            "España",
+            "España",
+            "España",
+            "Francia",
+            "Serbia",
+            "Argentina",
+            "EE. UU.",
+            "Lituania",
+          ]),
+        })
+        list.push({
+          id,
+          talent: Math.min(
+            1.05,
+            Math.max(0.15, lg.level + between(-0.12, 0.14)),
+          ),
+          position,
+          league: li,
+          team: team.id,
+        })
+      }
+      for (const [si, s] of seasonRows.entries()) {
+        await db.insert(teamSeasonStats).values({
+          teamId: team.id,
+          seasonId: s.id,
+          leagueId,
+          gamesPlayed: si === 2 ? 6 : 30,
+          wins: 0,
+          losses: 0,
+          pace: Number(between(66, 74).toFixed(1)),
+        })
+        const coachName = `${pick([...FIRST, ...FIRST_W])} ${pick(LAST)}`
+        await db.insert(coaches).values({
+          teamId: team.id,
+          leagueId,
+          seasonId: s.id,
+          fullName: coachName,
+          slug: slugify(coachName),
+          role: "head_coach",
+          nationality: "España",
+        })
+      }
+    }
+    womenRoster.push(list)
+    for (const p of list) {
+      for (const [si, s] of seasonRows.entries()) {
+        statRows.push({
+          playerId: p.id,
+          teamId: p.team,
+          leagueId,
+          seasonId: s.id,
+          ...statLine(
+            p.talent + si * 0.02,
+            lg.level,
+            si === 2 ? 6 : Math.round(between(22, 30)),
+            p.position,
+          ),
+        })
+      }
+    }
+  }
+  // Promotions inside the women's pyramid: LF2 → Challenge → LF Endesa.
+  for (const [fromIdx, toIdx] of [
+    [2, 1],
+    [1, 0],
+  ] as const) {
+    const best = [...womenRoster[fromIdx]!]
+      .sort((a, b) => b.talent - a.talent)
+      .slice(0, 10)
+    for (const p of best) {
+      const toTeam = pick(womenTeamIds[toIdx]!)
+      for (const si of [1, 2]) {
+        const season = seasonRows[si]!
+        const idx = statRows.findIndex(
+          (r) => r.playerId === p.id && r.seasonId === season.id,
+        )
+        statRows[idx] = {
+          playerId: p.id,
+          teamId: toTeam,
+          leagueId: womenLeagueIds[toIdx]!,
+          seasonId: season.id,
+          ...statLine(
+            p.talent + si * 0.02,
+            WOMEN_LEAGUES[toIdx]!.level,
+            si === 2 ? 6 : Math.round(between(20, 30)),
+            p.position,
+          ),
         }
       }
     }
@@ -296,7 +678,10 @@ async function main() {
     // so E2E can exercise /api/v1 without going through the admin panel.
     const apiKey = process.env.SEED_API_KEY
     if (apiKey && /^ghs_[A-Za-z0-9_-]{43}$/.test(apiKey)) {
-      const [owner] = await db.select({ id: users.id }).from(users).where(eq(users.email, email))
+      const [owner] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, email))
       const keyHash = await hashApiKey(apiKey)
       await db.delete(apiClients).where(eq(apiClients.keyHash, keyHash))
       await db.insert(apiClients).values({
@@ -310,7 +695,9 @@ async function main() {
     }
   }
 
-  console.log(`  ${LEAGUES.length} leagues · ${seasonRows.length} seasons · ${roster.flat().length} players · ${statRows.length} stat lines`)
+  console.log(
+    `  ${LEAGUES.length + WOMEN_LEAGUES.length} leagues · ${seasonRows.length} seasons · ${roster.flat().length + womenRoster.flat().length} players · ${statRows.length} stat lines`,
+  )
 }
 
 main()

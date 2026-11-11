@@ -18,6 +18,8 @@ import { SmartImage } from "@/components/ui/smart-image"
 import { PersonAvatar } from "@/components/ui/person-avatar"
 import { useLocale, useT } from "@/lib/i18n/provider"
 import { localizeNationality, localizePosition } from "@/lib/i18n/player-labels"
+import { DEFAULT_GENDER, type Gender } from "@/lib/gender"
+import { scopeLeague } from "@/lib/league-groups"
 
 type LeagueInfo = { id: string; name: string; slug: string; region: string }
 type TeamInfo = {
@@ -45,6 +47,8 @@ type Props = {
   otherSlug: string | null
   /** Season in the URL, carried through so picking a player keeps it. */
   season?: string
+  /** Side of the comparison: the picker only offers players of this gender. */
+  gender?: Gender
 }
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -54,9 +58,19 @@ const SOURCE_LABEL: Record<string, string> = {
   "leb-oro": "Primera FEB",
   "leb-plata": "Segunda FEB",
   eba: "Tercera FEB",
+  "lf-endesa": "LF Endesa",
+  "lf-challenge": "LF Challenge",
+  lf2: "LF 2",
+  "primera-nacional-femenina": "1ª Nacional Fem.",
 }
 
-export function CompareSearch({ side, current, otherSlug, season }: Props) {
+export function CompareSearch({
+  side,
+  current,
+  otherSlug,
+  season,
+  gender = DEFAULT_GENDER,
+}: Props) {
   const router = useRouter()
   const t = useT()
   const locale = useLocale()
@@ -122,6 +136,7 @@ export function CompareSearch({ side, current, otherSlug, season }: Props) {
         // Search the season on screen, so the dropdown offers this season's
         // squads and not whoever once had the best numbers.
         if (season) params.set("season", season)
+        params.set("league", scopeLeague(null, gender))
         const r = await fetch(
           `/api/compare/players/search?${params.toString()}`,
           { signal: ctl.signal },
@@ -142,7 +157,7 @@ export function CompareSearch({ side, current, otherSlug, season }: Props) {
         if (myReq === requestIdRef.current) setLoading(false)
       }
     },
-    [otherSlug, season],
+    [otherSlug, season, gender],
   )
 
   useEffect(() => {

@@ -38,6 +38,8 @@ import {
 } from "@/lib/ai/grounding"
 import { cleanLlmOutput } from "@/lib/security/ai-advisor"
 import type { Locale } from "@/lib/i18n/config"
+import type { Gender } from "@/lib/gender"
+import { genderDirective } from "@/lib/ai/prompt-copy"
 
 export type AnswerEngine = {
   provider: AiProvider
@@ -89,6 +91,11 @@ export type GroundedRequest = {
    * the same request.
    */
   budgetMs?: number
+  /**
+   * Men's or women's basketball, when the surface knows which. Appends the
+   * matching directive to `system`, so every surface words it the same way.
+   */
+  gender?: Gender
 }
 
 /**
@@ -250,8 +257,16 @@ function correction(
  * want a user to read.
  */
 export async function generateGroundedAnswer(
-  req: GroundedRequest,
+  request: GroundedRequest,
 ): Promise<GroundedAnswer> {
+  const req: GroundedRequest = request.gender
+    ? {
+        ...request,
+        system: `${request.system}
+
+${genderDirective(request.gender, request.locale)}`,
+      }
+    : request
   const deadline = Date.now() + (req.budgetMs ?? ANSWER_BUDGET_MS)
   const remaining = () => deadline - Date.now()
 

@@ -1,7 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { LEAGUE_FILTER_TREE } from "@/lib/league-groups"
+import { leagueFilterTree } from "@/lib/league-groups"
+import { DEFAULT_GENDER, type Gender } from "@/lib/gender"
 import { leagueAccent } from "@/components/ui/league-badge"
 import type { ClientTranslator } from "@/lib/i18n/provider"
 
@@ -11,11 +12,14 @@ import type { ClientTranslator } from "@/lib/i18n/provider"
  * league/sort dropdowns look and behave identically everywhere.
  */
 
-export function flattenLeagueOptions(t: ClientTranslator) {
+export function flattenLeagueOptions(
+  t: ClientTranslator,
+  gender: Gender = DEFAULT_GENDER,
+) {
   const items: { value: string; label: string; depth: number }[] = [
     { value: "", label: t("directory.allLeagues"), depth: 0 },
   ]
-  for (const node of LEAGUE_FILTER_TREE) {
+  for (const node of leagueFilterTree(gender)) {
     if (node.children) {
       items.push({
         value: node.slug,
@@ -36,17 +40,23 @@ export function LeagueSelect({
   value,
   onChange,
   t,
+  gender = DEFAULT_GENDER,
 }: {
   value: string
   onChange: (value: string) => void
   t: ClientTranslator
+  /** Which side's leagues to offer. */
+  gender?: Gender
 }) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const options = useMemo(() => flattenLeagueOptions(t), [t])
+  const options = useMemo(
+    () => flattenLeagueOptions(t, gender),
+    [t, gender],
+  )
   const selectedLabel =
     options.find((o) => o.value === value)?.label ?? t("directory.allLeagues")
   const selectedAccent = value ? leagueAccent(value) : null

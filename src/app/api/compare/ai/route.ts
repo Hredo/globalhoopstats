@@ -20,6 +20,7 @@ import { houseStyle } from "@/lib/ai/prompt-copy"
 import { parseSeasonParam, THIN_SEASON_GAMES } from "@/lib/seasons"
 import type { ComparePlayer } from "@/lib/data/compare"
 import type { Locale } from "@/lib/i18n/config"
+import { genderForLeagueSlug } from "@/lib/gender"
 
 export const dynamic = "force-dynamic"
 
@@ -229,6 +230,16 @@ export async function POST(request: Request) {
 
   const locale = await getLocale()
 
+  // Never a man against a woman: the two sides share no scale, and the page
+  // does not offer the pairing either.
+  const gender = genderForLeagueSlug(a.league.slug)
+  if (genderForLeagueSlug(b.league.slug) !== gender) {
+    return NextResponse.json(
+      { error: "Players from men's and women's leagues cannot be compared." },
+      { status: 400 },
+    )
+  }
+
   try {
     const result = comparePlayers(a, b, locale)
 
@@ -261,6 +272,7 @@ export async function POST(request: Request) {
         ].join("\n"),
         subjects: [aName, bName],
         locale,
+        gender,
         maxTokens: 320,
         temperature: 0.6,
         // Current form and injuries decide a comparison as much as last

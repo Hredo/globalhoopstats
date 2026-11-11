@@ -7,6 +7,7 @@ import { actual, project, type Factors, type Projection } from "@/lib/scouting/p
 import { minutesPerGame } from "@/lib/scouting/metrics"
 import { tierForSlug } from "@/lib/leagues-tier"
 import { resolveLeagueName } from "@/lib/sources/types"
+import { genderForLeagueSlug, isWomenLeague } from "@/lib/gender"
 
 /** The next step up the ladder, as players actually move. */
 export const NEXT_LEVEL: Record<string, string | undefined> = {
@@ -15,9 +16,32 @@ export const NEXT_LEVEL: Record<string, string | undefined> = {
   "leb-oro": "acb",
   acb: "euroleague",
   euroleague: "nba",
+  // The women's ladder is its own: it never leads into a men's league.
+  "primera-nacional-femenina": "lf2",
+  lf2: "lf-challenge",
+  "lf-challenge": "lf-endesa",
 }
 
-export const PROJECTABLE_LEAGUES = ["nba", "euroleague", "acb", "leb-oro", "leb-plata", "eba"] as const
+export const PROJECTABLE_LEAGUES = [
+  "nba",
+  "euroleague",
+  "acb",
+  "leb-oro",
+  "leb-plata",
+  "eba",
+  "lf-endesa",
+  "lf-challenge",
+  "lf2",
+  "primera-nacional-femenina",
+] as const
+
+/** Where a player at the top of their ladder is projected by default. */
+function defaultTarget(fromSlug: string): string {
+  if (NEXT_LEVEL[fromSlug]) return NEXT_LEVEL[fromSlug]
+  if (fromSlug === "nba") return "euroleague"
+  if (fromSlug === "lf-endesa") return "lf-challenge"
+  return isWomenLeague(fromSlug) ? "lf-endesa" : "acb"
+}
 
 /** Most recent line with a real sample (≥ 8 games, ≥ 8 minutes a game). */
 export function baseLine(lines: PlayerLine[]): PlayerLine | null {
@@ -47,10 +71,15 @@ export async function projectPlayer(
   if (!p) return { error: "not_found" }
   const base = baseLine(p.lines)
   if (!base) return { error: "no_line" }
+  // A target on the other side is ignored: a woman is projected into women's
+  // leagues only, a man into men's.
   const toSlug =
-    target && (PROJECTABLE_LEAGUES as readonly string[]).includes(target) && target !== base.leagueSlug
+    target &&
+    (PROJECTABLE_LEAGUES as readonly string[]).includes(target) &&
+    target !== base.leagueSlug &&
+    genderForLeagueSlug(target) === genderForLeagueSlug(base.leagueSlug)
       ? target
-      : (NEXT_LEVEL[base.leagueSlug] ?? (base.leagueSlug === "nba" ? "euroleague" : "acb"))
+      : defaultTarget(base.leagueSlug)
   const factors = await getFactors(base.leagueSlug, toSlug)
   return {
     player: { slug: p.slug, fullName: p.fullName, position: p.position, imageUrl: p.imageUrl },

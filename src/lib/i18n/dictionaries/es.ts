@@ -56,7 +56,7 @@ export const es: Messages = {
       workspace: "Scouting",
     },
     items: {
-      players: { label: "Jugadores", desc: "Seis ligas en una sola escala" },
+      players: { label: "Jugadores", desc: "Ligas masculinas y femeninas en una sola escala" },
       teams: { label: "Equipos", desc: "Plantillas, staff y temporadas" },
       coaches: { label: "Entrenadores", desc: "Todos los banquillos" },
       leagues: { label: "Ligas", desc: "Líderes y contexto de cada liga" },
@@ -108,7 +108,7 @@ export const es: Messages = {
   },
   footer: {
     tagline:
-      "Inteligencia de baloncesto entre ligas. Jugadores, plantillas y cuerpo técnico de la NBA, EuroLeague, ACB y el escalafón FEB de España — un idioma, una consola.",
+      "Inteligencia de baloncesto entre ligas. Jugadores, plantillas y cuerpo técnico de la NBA, EuroLeague, ACB, el escalafón FEB y las ligas femeninas de España — un idioma, una consola.",
     explore: "Explorar",
     tools: "Herramientas",
     company: "Compañía",
@@ -134,22 +134,22 @@ export const es: Messages = {
   metadata: {
     tagline: "Baloncesto, descifrado.",
     description:
-      "Inteligencia de baloncesto entre ligas: NBA, EuroLeague, Liga ACB y la pirámide FEB española (Primera, Segunda, Tercera). Estadísticas, splits avanzados, percentiles y proyecciones, comparativas, valoraciones de mercado, simulador de traspasos, pizarra de jugadas animada, alertas de jugadores y shortlists compartidas, API pública y asesor de scouting con IA — todo en una consola.",
+      "Inteligencia de baloncesto entre ligas: NBA, EuroLeague, Liga ACB, la pirámide FEB española (Primera, Segunda, Tercera) y las ligas femeninas (Liga Femenina Endesa, Liga Femenina Challenge, Liga Femenina 2). Estadísticas, splits avanzados, percentiles y proyecciones, comparativas, valoraciones de mercado, simulador de traspasos, pizarra de jugadas animada, alertas de jugadores y shortlists compartidas, API pública y asesor de scouting con IA — todo en una consola.",
   },
   home: {
     metaTitle:
-      "globalhoopstats — Estadísticas de baloncesto: Liga ACB, FEB, EuroLeague y NBA",
+      "globalhoopstats — Estadísticas de baloncesto: ACB, FEB, Liga Femenina, EuroLeague y NBA",
     hero: {
-      eyebrow: "Seis ligas, un motor",
+      eyebrow: "Nueve ligas, un motor",
       titleLine1: "Comparativa de",
       titleLine2: "jugadores con IA.",
       description:
-        "Pregunta al asesor IA, compara entre seis ligas, valora a cualquier jugador y simula traspasos — y exporta informes listos para la sala de juntas. Todo en un mismo espacio.",
+        "Pregunta al asesor IA, compara entre nueve ligas masculinas y femeninas, valora a cualquier jugador y simula traspasos — y exporta informes listos para la sala de juntas. Todo en un mismo espacio.",
       browseDatabase: "Explora jugadores",
       comparePlayers: "Compara jugadores",
     },
     film: {
-      kicker: "globalhoopstats — seis ligas, un motor",
+      kicker: "globalhoopstats — nueve ligas, un motor",
       title: "Todo el baloncesto,",
       accent: "dentro de un balón.",
       scrollHint: "desliza",
@@ -270,10 +270,10 @@ export const es: Messages = {
     trustedBy: {
       aria: "Ligas cubiertas",
       eyebrow: "Cobertura",
-      titleA: "Seis ligas,",
+      titleA: "Nueve ligas,",
       titleB: "una sola base de datos.",
       description:
-        "NBA, EuroLeague y toda la pirámide española — normalizadas en un único modelo para que cualquier jugador se pueda comparar con cualquier otro, entre competiciones.",
+        "NBA, EuroLeague y toda la pirámide española, masculina y femenina — normalizadas en un único modelo para que cualquier jugador se pueda comparar con cualquier otro, entre competiciones.",
       live: "en vivo",
     },
     mobileInstall: {
@@ -527,6 +527,11 @@ export const es: Messages = {
     },
   },
   directory: {
+    gender: {
+      men: "Masculino",
+      women: "Femenino",
+      aria: "Cambiar entre ligas masculinas y femeninas",
+    },
     searchPlayers: "Buscar jugadores…",
     searchTeams: "Buscar equipos…",
     searchCoaches: "Buscar entrenadores…",
@@ -594,8 +599,14 @@ export const es: Messages = {
       description:
         "Cada atleta de seis ligas, normalizado a una sola escala. Busca, filtra y ordena por los números que importan.",
       statLabel: "Jugadores indexados",
+      descriptionWomen:
+        "Cada jugadora de la pirámide femenina española, normalizada a una sola escala. Busca, filtra y ordena por los números que importan.",
       metaTitle:
         "Estadísticas de jugadores de baloncesto — ACB, FEB, EuroLeague y NBA",
+      metaTitleWomen:
+        "Estadísticas de jugadoras de baloncesto femenino — Liga Femenina Endesa, Challenge y LF2",
+      metaDescriptionWomen:
+        "Estadísticas de cada jugadora de la Liga Femenina Endesa, Liga Femenina Challenge, Liga Femenina 2 y la fase final de Primera Nacional Femenina. Filtra por liga y temporada, ordena por puntos, rebotes o asistencias y abre el perfil completo de cada jugadora.",
       metaDescription:
         "Estadísticas de cada jugador de la Liga ACB, Primera, Segunda y Tercera FEB (antiguas LEB Oro, LEB Plata y Liga EBA), EuroLeague y NBA. Filtra por liga y temporada, ordena por puntos, rebotes o asistencias y abre perfiles avanzados.",
     },
@@ -605,8 +616,14 @@ export const es: Messages = {
       description:
         "Cada club de la NBA, EuroLeague, ACB y el escalafón FEB de España — abre cualquier escudo para ver su plantilla y cuerpo técnico al completo.",
       statLabel: "Equipos cubiertos",
+      descriptionWomen:
+        "Cada club de la Liga Femenina Endesa, Liga Femenina Challenge y Liga Femenina 2 — abre cualquier escudo para ver su plantilla y cuerpo técnico al completo.",
       metaTitle:
         "Equipos y plantillas de baloncesto — ACB, FEB, EuroLeague y NBA",
+      metaTitleWomen:
+        "Equipos y plantillas de baloncesto femenino — Liga Femenina Endesa, Challenge y LF2",
+      metaDescriptionWomen:
+        "Todos los clubes de la Liga Femenina Endesa, Liga Femenina Challenge y Liga Femenina 2, con su plantilla completa, las estadísticas de cada jugadora y el cuerpo técnico de cada temporada.",
       metaDescription:
         "Todos los clubes de la Liga ACB, Primera, Segunda y Tercera FEB (LEB Oro, LEB Plata, EBA), EuroLeague y NBA, con su plantilla completa, las estadísticas de cada jugador y el cuerpo técnico de cada temporada.",
     },
@@ -616,8 +633,14 @@ export const es: Messages = {
       description:
         "Entrenadores principales, asistentes y cuerpo técnico de la NBA, EuroLeague y Liga ACB — filtrados por rol y liga.",
       statLabel: "Cuerpo técnico indexado",
+      descriptionWomen:
+        "Entrenadores y cuerpo técnico de la Liga Femenina Endesa, Liga Femenina Challenge y Liga Femenina 2 — filtrados por rol y liga.",
       metaTitle:
         "Entrenadores de baloncesto y cuerpos técnicos — ACB, EuroLeague y NBA",
+      metaTitleWomen:
+        "Entrenadores y cuerpos técnicos de baloncesto femenino — Liga Femenina",
+      metaDescriptionWomen:
+        "Entrenadores y cuerpo técnico de la Liga Femenina Endesa, Liga Femenina Challenge y Liga Femenina 2, filtrables por rol y liga y enlazados a la plantilla de su club.",
       metaDescription:
         "Cada entrenador principal, asistente y miembro del cuerpo técnico de la Liga ACB, EuroLeague y NBA, filtrable por rol y liga y enlazado a la plantilla de su club.",
     },
@@ -627,8 +650,14 @@ export const es: Messages = {
       titleB: "de un vistazo.",
       description:
         "Seis ligas profesionales, un solo motor de scouting. Cada tarjeta combina la temporada en vivo con el número de equipos, jugadores y entrenadores y los líderes por partido en puntos, asistencias, rebotes y triples — además de accesos directos a cada plantilla y jugador.",
+      descriptionWomen:
+        "La pirámide femenina española, con el mismo motor de scouting. Cada tarjeta combina la temporada en vivo con el número de equipos, jugadoras y entrenadores y las líderes por partido en puntos, asistencias, rebotes y triples.",
       metaTitle:
         "Ligas de baloncesto — Liga ACB, Primera FEB, EuroLeague y NBA",
+      metaTitleWomen:
+        "Ligas de baloncesto femenino — Liga Femenina Endesa, Challenge y Liga Femenina 2",
+      metaDescriptionWomen:
+        "Liga Femenina Endesa, Liga Femenina Challenge, Liga Femenina 2 y Primera Nacional Femenina: máximas anotadoras, asistentes, reboteadoras y triplistas de la temporada, con todos sus equipos y jugadoras.",
       metaDescription:
         "Liga ACB, la escalera FEB (Primera FEB, Segunda FEB y Tercera FEB — antiguas LEB Oro, LEB Plata y Liga EBA), EuroLeague y NBA: máximos anotadores, asistentes, reboteadores y triplistas de la temporada, con todos sus equipos y jugadores.",
       statLeaguesLive: "ligas en vivo",
@@ -652,7 +681,7 @@ export const es: Messages = {
     seasonScope: "Ambos jugadores · {season}",
     metaTitle: "Comparar jugadores de baloncesto cara a cara",
     metaDescription:
-      "Pon a dos jugadores de la Liga ACB, FEB, EuroLeague o NBA cara a cara — puntos, rebotes, asistencias, porcentajes de tiro y métricas avanzadas, incluso entre ligas distintas.",
+      "Pon a dos jugadores de la Liga ACB, FEB, EuroLeague o NBA —o a dos jugadoras de la Liga Femenina— cara a cara — puntos, rebotes, asistencias, porcentajes de tiro y métricas avanzadas, incluso entre ligas distintas.",
     eyebrow: "Enfrentamiento",
     titleA: "Scouting",
     titleB: "cara a cara.",
@@ -905,7 +934,7 @@ export const es: Messages = {
       team: "Equipo",
       required: "Obligatorio",
       loadingTeams: "Cargando equipos…",
-      searchTeams: "Busca un equipo — NBA, EuroLeague, ACB…",
+      searchTeams: "Busca un equipo — NBA, EuroLeague, ACB, Liga Femenina…",
       noTeams: "No se han encontrado equipos",
       copy: "Copiar",
       like: "Me gusta",
@@ -923,7 +952,7 @@ export const es: Messages = {
       tourFinish: "Terminar",
       tourTeamTitle: "Elige un equipo",
       tourTeamBody:
-        "Todo empieza aquí. Busca cualquier club de la NBA, la EuroLeague o la ACB: el asesor analiza su plantilla actual antes de responder.",
+        "Todo empieza aquí. Busca cualquier club de la NBA, la EuroLeague, la ACB o la Liga Femenina: el asesor analiza su plantilla actual antes de responder.",
       tourChatTitle: "Lee el análisis",
       tourChatBody:
         "Las respuestas aparecen aquí: un diagnóstico de la plantilla, el hueco que detecta el asesor y una lista de candidatos reales por prioridad.",
@@ -1377,7 +1406,7 @@ export const es: Messages = {
     },
     metaTitle: "Playbook de baloncesto — diseñador de jugadas animado con IA",
     metaDescription:
-      "Dibuja y anima jugadas de baloncesto con notación estándar de pizarra: más de 100 sistemas profesionales, plantillas reales de seis ligas, análisis táctico con IA, importación desde una foto de tu pizarra y exportación PNG/JSON. Gratis durante la beta.",
+      "Dibuja y anima jugadas de baloncesto con notación estándar de pizarra: más de 100 sistemas profesionales, plantillas reales de nueve ligas masculinas y femeninas, análisis táctico con IA, importación desde una foto de tu pizarra y exportación PNG/JSON. Gratis durante la beta.",
     page: {
       eyebrow: "Herramientas de entrenador",
       title: "Playbook.",
@@ -1813,7 +1842,7 @@ export const es: Messages = {
   developers: {
     title: "API de datos",
     eyebrow: "Para clubes, medios y desarrolladores",
-    lede: "Lee el catálogo normalizado (jugadores, equipos y ligas de seis competiciones) desde tus propias herramientas. Las claves se emiten bajo petición.",
+    lede: "Lee el catálogo normalizado (jugadores, equipos y ligas de diez competiciones masculinas y femeninas) desde tus propias herramientas. Las claves se emiten bajo petición.",
     request: "Pedir una clave",
     auth: "Autenticación",
     authBody:

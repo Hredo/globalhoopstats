@@ -17,6 +17,7 @@ import {
 } from "@/lib/security/ai-advisor"
 import { formatEur } from "@/lib/market/league-strength"
 import { valuationTierLabel } from "@/lib/market/valuation"
+import { genderForLeagueSlug } from "@/lib/gender"
 
 export const dynamic = "force-dynamic"
 
@@ -309,6 +310,26 @@ export async function POST(request: Request) {
 
   const locale = await getLocale()
 
+  // A deal is all men or all women. The page already searches one side only;
+  // this is the same rule for anything that posts here directly.
+  const sides = new Set(
+    [...(body.outgoing ?? []), ...(body.incoming ?? [])]
+      .map((p) => p.valuation?.leagueSlug)
+      .filter((slug): slug is string => Boolean(slug))
+      .map((slug) => genderForLeagueSlug(slug)),
+  )
+  if (sides.size > 1) {
+    return NextResponse.json(
+      {
+        error:
+          locale === "es"
+            ? "No se pueden mezclar jugadores de ligas masculinas y femeninas en un mismo traspaso."
+            : "Players from men's and women's leagues cannot be part of the same trade.",
+      },
+      { status: 400 },
+    )
+  }
+
   const engine = await resolveEngine(user.id, "advisor")
   if (!engine.ok) {
     const reasons: Record<string, string> =
@@ -375,6 +396,11 @@ export async function POST(request: Request) {
       data: buildPrompt(body, answerLocale),
       subjects: subjectNames(body),
       locale: answerLocale,
+      gender: genderForLeagueSlug(
+        [...body.outgoing, ...body.incoming].find(
+          (p) => p.valuation?.leagueSlug,
+        )?.valuation?.leagueSlug,
+      ),
       // Enough room to cover a multi-player package properly now that the
       // report is no longer capped at 180 words, but still short of the cap
       // the advisor gets — a trade note that runs long is a trade note nobody

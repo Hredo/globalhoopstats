@@ -5,6 +5,10 @@ export const LEAGUE_BASE_COLORS: Record<string, string> = {
   "leb-oro": "#C9A23D",
   "leb-plata": "#A8ABB8",
   eba: "#6BAEB2",
+  "lf-endesa": "#9B6FD0",
+  "lf-challenge": "#4FB57E",
+  lf2: "#6F86D6",
+  "primera-nacional-femenina": "#C98A7E",
 }
 
 export type TeamPalette = {

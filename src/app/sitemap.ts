@@ -26,6 +26,11 @@ const STATIC_ROUTES: Array<{
   { path: "/players", changeFrequency: "daily", priority: 0.9 },
   { path: "/teams", changeFrequency: "daily", priority: 0.8 },
   { path: "/coaches", changeFrequency: "weekly", priority: 0.7 },
+  // The women's side of each directory is its own page with its own canonical.
+  { path: "/leagues?gender=women", changeFrequency: "daily", priority: 0.9 },
+  { path: "/players?gender=women", changeFrequency: "daily", priority: 0.9 },
+  { path: "/teams?gender=women", changeFrequency: "daily", priority: 0.8 },
+  { path: "/coaches?gender=women", changeFrequency: "weekly", priority: 0.7 },
   { path: "/playbook", changeFrequency: "weekly", priority: 0.7 },
   { path: "/compare", changeFrequency: "monthly", priority: 0.6 },
   { path: "/projection", changeFrequency: "weekly", priority: 0.6 },

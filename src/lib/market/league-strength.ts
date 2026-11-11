@@ -16,6 +16,8 @@
  * they are easy to audit and retune as real data arrives.
  */
 
+import { genderForLeagueSlug } from "@/lib/gender"
+
 export type LeagueTier = 1 | 2 | 3 | 4 | 5 | 6
 
 export type LeagueEconomics = {
@@ -51,6 +53,16 @@ export type LeagueEconomics = {
  *
  * NBA is included for completeness but its economics are not EUR-native and it
  * is isolated from the Spanish/European market in adjacentLeagueSlugs().
+ *
+ * WOMEN'S LEAGUES are a separate market altogether (see src/lib/gender.ts).
+ * Their `strength` and `tier` are relative to the women's game only — they are
+ * never compared with a men's league, and adjacentLeagueSlugs() never crosses
+ * the line. Money is anchored to public reporting too, and is far thinner than
+ * the men's: Liga Femenina Endesa convenio minimum ~€17K (2023 agreement), top
+ * domestic salaries in the low six figures, leading budgets (Valencia Basket,
+ * Perfumerías Avenida, Casademont Zaragoza) around €1.5–3M and most of the
+ * league well under €1M; Challenge and LF2 are semi-pro. Conservative on
+ * purpose, like the men's lower divisions.
  */
 export const LEAGUE_ECONOMICS: Record<string, LeagueEconomics> = {
   nba: {
@@ -105,6 +117,42 @@ export const LEAGUE_ECONOMICS: Record<string, LeagueEconomics> = {
     tier: 5,
     valueCeiling: 20_000,
     salaryCeiling: 12_000,
+    budget: { min: 30_000, max: 200_000 },
+  },
+  "lf-endesa": {
+    slug: "lf-endesa",
+    label: "Liga Femenina Endesa",
+    strength: 0.74,
+    tier: 2,
+    valueCeiling: 250_000,
+    salaryCeiling: 150_000,
+    budget: { min: 350_000, max: 3_000_000 },
+  },
+  "lf-challenge": {
+    slug: "lf-challenge",
+    label: "Liga Femenina Challenge",
+    strength: 0.52,
+    tier: 3,
+    valueCeiling: 40_000,
+    salaryCeiling: 28_000,
+    budget: { min: 120_000, max: 600_000 },
+  },
+  "primera-nacional-femenina": {
+    slug: "primera-nacional-femenina",
+    label: "Primera Nacional Femenina",
+    strength: 0.26,
+    tier: 5,
+    valueCeiling: 6_000,
+    salaryCeiling: 4_000,
+    budget: { min: 10_000, max: 80_000 },
+  },
+  lf2: {
+    slug: "lf2",
+    label: "Liga Femenina 2",
+    strength: 0.38,
+    tier: 4,
+    valueCeiling: 15_000,
+    salaryCeiling: 10_000,
     budget: { min: 30_000, max: 200_000 },
   },
 }
@@ -175,6 +223,8 @@ export function adjacentLeagueSlugs(
     // not a realistic feeder/destination for the Spanish/European market, and
     // letting it leak in would just resurface NBA stars as "signings".
     if ((e.slug === "nba") !== (econ.slug === "nba")) continue
+    // Men's and women's markets never mix, whatever the tier numbers say.
+    if (genderForLeagueSlug(e.slug) !== genderForLeagueSlug(econ.slug)) continue
     if (Math.abs(e.tier - econ.tier) <= 1) out.push(e.slug)
   }
   // Stable order: by tier (strongest first), then slug.
@@ -190,6 +240,19 @@ const EUR = new Intl.NumberFormat("es-ES", {
   currency: "EUR",
   maximumFractionDigits: 0,
 })
+
+/**
+ * Drop every league that is not on `referenceSlug`'s side. Callers that accept
+ * a league list from outside (a query string, a request body) run it through
+ * here so a men's player can never be handed a women's pool, or vice versa.
+ */
+export function sameGenderLeagues(
+  leagueSlugs: readonly string[],
+  referenceSlug: string | null | undefined,
+): string[] {
+  const gender = genderForLeagueSlug(referenceSlug)
+  return leagueSlugs.filter((slug) => genderForLeagueSlug(slug) === gender)
+}
 
 /** Compact EUR label: "€1,2 M", "€350 K", "€18 K". */
 export function formatEur(value: number | null | undefined): string {

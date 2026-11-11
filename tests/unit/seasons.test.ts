@@ -12,7 +12,7 @@ import {
   seasonNameVariants,
   seasonStartYear,
 } from "@/lib/seasons"
-import { SOURCE_META } from "@/lib/sources/types"
+import { SOURCE_META, finalPhaseSeason } from "@/lib/sources/types"
 
 describe("season labels", () => {
   it("derives the label from a start year", () => {
@@ -88,10 +88,16 @@ describe("parseSeasonParam", () => {
 })
 
 describe("source season configuration", () => {
+  // Primera Nacional Femenina only exists as a June final phase, so from
+  // September to June its newest edition is the previous season's. It still
+  // uses the shared label format — it is the one source allowed to lag.
+  const FINAL_PHASE_ONLY = "primera-nacional-femenina"
+  const regular = Object.entries(SOURCE_META)
+    .filter(([id]) => id !== FINAL_PHASE_ONLY)
+    .map(([, meta]) => meta)
+
   it("gives every league the same season LABEL", () => {
-    const labels = new Set(
-      Object.values(SOURCE_META).map((m) => m.seasonLabel),
-    )
+    const labels = new Set(regular.map((m) => m.seasonLabel))
     // One shared label is what makes a global season filter possible at all.
     expect([...labels]).toEqual([CURRENT_SEASON_LABEL])
   })
@@ -104,8 +110,16 @@ describe("source season configuration", () => {
   })
 
   it("derives every source's season from the single knob", () => {
-    for (const meta of Object.values(SOURCE_META)) {
+    for (const meta of regular) {
       expect(meta.season).toBe(CURRENT_SEASON_START_YEAR)
     }
+  })
+
+  it("labels the final-phase source with the edition it can actually read", () => {
+    const meta = SOURCE_META[FINAL_PHASE_ONLY]
+    expect(meta.season).toBe(finalPhaseSeason())
+    expect(meta.season).toBeLessThanOrEqual(CURRENT_SEASON_START_YEAR)
+    expect(meta.seasonLabel).toBe(seasonLabel(meta.season))
+    expect(isSeasonLabel(meta.seasonLabel)).toBe(true)
   })
 })
