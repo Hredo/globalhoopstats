@@ -19,6 +19,13 @@ import { SITE } from "@/lib/site"
 export const LEAGUE_ALIASES: Record<string, { name: string; former: boolean }> =
   {
     acb: { name: "Liga ACB", former: false },
+    "lf-endesa": { name: "LF Endesa, women", former: false },
+    "lf-challenge": { name: "LF Challenge, women", former: false },
+    lf2: { name: "LF2, women", former: false },
+    "primera-nacional-femenina": {
+      name: "women, national final phase only",
+      former: false,
+    },
     "leb-oro": { name: "LEB Oro", former: true },
     "leb-plata": { name: "LEB Plata", former: true },
     eba: { name: "Liga EBA", former: true },
@@ -41,7 +48,18 @@ export type LlmsScorer = {
 }
 
 /** Order of the leagues in the file: top flight first, then down the pyramid. */
-const ORDER = ["nba", "euroleague", "acb", "leb-oro", "leb-plata", "eba"]
+const ORDER = [
+  "nba",
+  "euroleague",
+  "acb",
+  "leb-oro",
+  "leb-plata",
+  "eba",
+  "lf-endesa",
+  "lf-challenge",
+  "lf2",
+  "primera-nacional-femenina",
+]
 
 function sortLeagues(leagues: LlmsLeague[]): LlmsLeague[] {
   const rank = (slug: string) => {
@@ -87,7 +105,10 @@ function header(leagues: LlmsLeague[], generatedAt: Date): string[] {
     "> Cross-league basketball statistics for the NBA, EuroLeague, Liga ACB (Liga Endesa) and " +
       "Spain's FEB pyramid (Primera FEB, Segunda FEB, Tercera FEB — formerly LEB Oro, LEB Plata " +
       "and Liga EBA), normalised into one format with one profile per player across every league " +
-      "they have played in. Bilingual (Spanish/English); based in Spain.",
+      "they have played in. It also covers the Spanish women's leagues — Liga Femenina Endesa, Liga " +
+      "Femenina Challenge, Liga Femenina 2 and the national final phase of Primera Nacional " +
+      "Femenina — kept strictly apart from the men's: no listing, comparison or ranking mixes the " +
+      "two. Bilingual (Spanish/English); based in Spain.",
     "",
     `Coverage right now: ${leagues.length} leagues, ${teams} team-seasons and ${players} player-seasons` +
       (latest ? `; data last refreshed ${day(latest)}` : "") +

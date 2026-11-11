@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useT } from "@/lib/i18n/provider"
 import { PlayerPicker } from "@/components/workspace/player-picker"
 import { cn } from "@/components/ui/cn"
+import { genderForLeagueSlug } from "@/lib/gender"
 
 const LEAGUES: Array<[string, string]> = [
   ["nba", "NBA"],
@@ -12,6 +13,10 @@ const LEAGUES: Array<[string, string]> = [
   ["leb-oro", "Primera FEB"],
   ["leb-plata", "Segunda FEB"],
   ["eba", "Tercera FEB"],
+  ["lf-endesa", "LF Endesa"],
+  ["lf-challenge", "LF Challenge"],
+  ["lf2", "LF 2"],
+  ["primera-nacional-femenina", "1ª Nacional Fem."],
 ]
 
 export function ProjectionControls({
@@ -53,7 +58,12 @@ export function ProjectionControls({
             {t("scouting.projection.target")}
           </span>
           <div role="group" aria-label={t("scouting.projection.target")} className="flex flex-wrap gap-1.5">
-            {LEAGUES.filter(([slug]) => slug !== from).map(([slug, label]) => (
+            {LEAGUES.filter(
+              ([slug]) =>
+                slug !== from &&
+                // Only the ladder the player is on: men's or women's.
+                genderForLeagueSlug(slug) === genderForLeagueSlug(from),
+            ).map(([slug, label]) => (
               <button
                 key={slug}
                 type="button"

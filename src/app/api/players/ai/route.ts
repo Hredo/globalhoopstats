@@ -19,6 +19,7 @@ import { frameSeason, seasonPromptBlock } from "@/lib/ai/season-context"
 import { parseSeasonParam } from "@/lib/seasons"
 import type { ShotZonesJson, ShotZoneKey } from "@/lib/db/schema"
 import type { Locale } from "@/lib/i18n/config"
+import { genderForLeagueSlug } from "@/lib/gender"
 
 export const dynamic = "force-dynamic"
 
@@ -128,6 +129,7 @@ export async function POST(request: Request) {
 
         const answer = await generateGroundedAnswer({
           engine,
+          gender: genderForLeagueSlug(profile.league.slug),
           system: playerReportSystem(locale, {
             hasShotChart: Boolean(shotZones),
             canBrowse,

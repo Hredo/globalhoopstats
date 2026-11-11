@@ -6,6 +6,8 @@ import { Reveal } from "@/components/animations/reveal"
 import Link from "next/link"
 import { TradeScenarioCard } from "@/components/market/trade-scenario-card"
 import { PlayerSearchPopover } from "@/components/market/player-search-popover"
+import { genderForLeagueSlug } from "@/lib/gender"
+import { scopeLeague } from "@/lib/league-groups"
 import { AiAnalysisDisplay } from "@/components/market/ai-analysis-display"
 import { ValuationBadge } from "@/components/market/valuation-badge"
 import { SmartImage } from "@/components/ui/smart-image"
@@ -270,6 +272,12 @@ export default function TradePage() {
   // ── Proponer mode ──
   const [outgoing, setOutgoing] = useState<ValuablePlayer[]>([])
   const [incoming, setIncoming] = useState<ValuablePlayer[]>([])
+  // The first player in a proposal fixes its side: a deal is all men or all
+  // women, so the remaining slots only search that side's leagues.
+  const dealAnchor = outgoing[0] ?? incoming[0]
+  const dealScope = dealAnchor
+    ? scopeLeague(null, genderForLeagueSlug(dealAnchor.league.slug))
+    : undefined
   const [cashOutText, setCashOutText] = useState("")
   const [cashInText, setCashInText] = useState("")
 
@@ -972,6 +980,7 @@ export default function TradePage() {
                   onSelect={addOutgoing}
                   placeholder={t("trade.propose.addPlayer")}
                   side="left"
+                  leagueScope={dealScope}
                   excludeSlugs={[...outgoing.map((p) => p.slug), ...incoming.map((p) => p.slug)]}
                 />
               </div>
@@ -1064,6 +1073,7 @@ export default function TradePage() {
                   onSelect={addIncoming}
                   placeholder={t("trade.propose.addPlayer")}
                   side="right"
+                  leagueScope={dealScope}
                   excludeSlugs={[...outgoing.map((p) => p.slug), ...incoming.map((p) => p.slug)]}
                 />
               </div>

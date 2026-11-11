@@ -14,7 +14,7 @@
  *   pnpm exec tsx scripts/probe-season-sources.ts
  */
 import { fetchText, fetchJson } from "@/lib/sources/fetcher"
-import { FEB_CONFIGS } from "@/lib/sources/feb"
+import { FEB_CONFIGS, FEB_WOMEN_CONFIGS } from "@/lib/sources/feb"
 import { SOURCE_META } from "@/lib/sources/types"
 import { CURRENT_SEASON_LABEL, CURRENT_SEASON_START_YEAR } from "@/lib/seasons"
 
@@ -173,7 +173,9 @@ async function main() {
       `per_game-stats-${end}`,
     ),
   )
-  for (const cfg of FEB_CONFIGS) results.push(await probeFeb(cfg))
+  for (const cfg of [...FEB_CONFIGS, ...FEB_WOMEN_CONFIGS]) {
+    results.push(await probeFeb(cfg))
+  }
 
   for (const r of results) {
     console.log(

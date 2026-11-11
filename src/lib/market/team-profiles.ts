@@ -119,6 +119,14 @@ export async function leagueTeamProfiles(
  * to Primera/Segunda FEB, and coaches still use both.
  */
 const LEAGUE_ALIASES: Array<[string, RegExp]> = [
+  // Women's leagues first: "Liga Femenina Endesa" must not read as the ACB.
+  [
+    "primera-nacional-femenina",
+    /primera\s*nacional\s*femenina|1ª\s*nacional\s*fem/i,
+  ],
+  ["lf-challenge", /liga\s*femenina\s*challenge|\blf\s*challenge\b/i],
+  ["lf2", /liga\s*femenina\s*2\b|\blf\s*2\b/i],
+  ["lf-endesa", /liga\s*femenina|\blf\s*endesa\b/i],
   ["nba", /\bnba\b/i],
   ["euroleague", /\beuroleague\b|\beuroliga\b/i],
   ["acb", /\bacb\b|liga endesa/i],

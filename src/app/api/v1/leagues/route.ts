@@ -1,6 +1,7 @@
 import { apiJson, authenticateApi } from "@/lib/api/keys"
 import { listLeagues } from "@/lib/data/players"
 import { latestSeasonName } from "@/lib/data/seasons"
+import { genderForLeagueSlug } from "@/lib/gender"
 
 export const dynamic = "force-dynamic"
 
@@ -14,6 +15,7 @@ export async function GET(request: Request) {
       slug: l.slug,
       name: l.name,
       region: l.region,
+      gender: genderForLeagueSlug(l.slug),
       teams: l.teamCount,
       players: l.playerCount,
     })),

@@ -175,7 +175,7 @@ export async function refreshStaleHighlights(limit: number): Promise<{
       db.execute(sql`
         SELECT p.id, p.first_name, p.last_name,
                MIN(t.name) AS team, MIN(l.name) AS league,
-               MAX(l.slug IN ('nba', 'euroleague', 'acb')) AS top_tier,
+               MAX(l.slug IN ('nba', 'euroleague', 'acb', 'lf-endesa')) AS top_tier,
                (SELECT v.youtube_id FROM videos v WHERE v.player_id = p.id
                  ORDER BY v.created_at DESC LIMIT 1) AS youtube_id,
                (SELECT MAX(v.created_at) FROM videos v WHERE v.player_id = p.id) AS checked_at

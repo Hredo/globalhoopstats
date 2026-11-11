@@ -27,6 +27,7 @@ import {
 import { revalidateCacheTags } from "@/lib/sync/revalidate"
 import { slugify, uniqueSlug } from "@/lib/sync/slug"
 import { tierForName, tierForSlug, type LeagueTier } from "@/lib/leagues-tier"
+import { genderForLeagueSlug, teamSlugFor, type Gender } from "@/lib/gender"
 import { isSyncCancelled } from "@/lib/sync/controller"
 import { fetchShotZonesSafely, writeShotZones } from "@/lib/sync/shot-zones"
 import { CURRENT_SEASON_LABEL } from "@/lib/seasons"
@@ -90,7 +91,7 @@ type SyncContext = {
   matcher: EntityMatcher
   usedPlayerSlugs: Set<string>
   ensureSeason(code: string): Promise<string>
-  ensureTeam(team: SourceTeam): Promise<string>
+  ensureTeam(team: SourceTeam, gender: Gender): Promise<string>
 }
 
 function emptyTotals(): LeagueSyncTotals {
@@ -149,6 +150,7 @@ async function syncLeague(
 
   try {
     console.log(`${tag} sync started (season ${adapter.seasonCode})`)
+    const gender = genderForLeagueSlug(adapter.id)
 
     /* ---- League & season ---- */
     // Upsert, then read the id back: on a duplicate slug MySQL keeps the
@@ -160,9 +162,10 @@ async function syncLeague(
         name: adapter.displayName,
         slug: adapter.id,
         region: adapter.country,
+        gender,
       })
       .onDuplicateKeyUpdate({
-        set: { name: adapter.displayName, region: adapter.country },
+        set: { name: adapter.displayName, region: adapter.country, gender },
       })
     const [league] = await db
       .select({ id: leagues.id })
@@ -208,7 +211,7 @@ async function syncLeague(
     /* ---- Teams ---- */
     const teamIdBySourceId = new Map<string, string>()
     for (const st of sourceTeams) {
-      teamIdBySourceId.set(st.sourceId, await ctx.ensureTeam(st))
+      teamIdBySourceId.set(st.sourceId, await ctx.ensureTeam(st, gender))
     }
     totals.teams = teamIdBySourceId.size
     console.log(`${tag} teams ready (${totals.teams})`)
@@ -687,8 +690,12 @@ export async function startGlobalSync(
       }
       return pending
     },
-    async ensureTeam(team) {
-      const slug = slugify(team.name) || `team-${team.sourceId}`
+    async ensureTeam(team, gender) {
+      // Gender-scoped so a women's side never lands on the men's club row.
+      const slug = teamSlugFor(
+        slugify(team.name) || `team-${team.sourceId}`,
+        gender,
+      )
       let pending = teamPromises.get(slug)
       if (!pending) {
         pending = (async () => {

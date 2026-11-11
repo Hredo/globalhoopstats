@@ -37,6 +37,7 @@ point again if the sync ever moves to a dedicated worker machine.
 pnpm sync                 # all sources (in-season only)
 pnpm sync:elite           # nba acb euroleague
 pnpm sync:feb             # Primera FEB / Segunda FEB / Tercera FEB
+pnpm sync:women           # Liga Femenina Endesa / Challenge / Liga Femenina 2 / Primera Nacional Femenina
 pnpm sync:nba             # a single source
 pnpm sync nba acb --force # ignore the off-season skip (backfill)
 ```
@@ -59,13 +60,23 @@ times — never one nightly monolith.
 |-------|---------|----------|
 | Elite | `nba,acb,euroleague` | nightly at 05:00 |
 | FEB feeders | `leb-oro,leb-plata,eba` | weekly, Mondays at 06:00 |
+| Women's leagues | `lf-endesa,lf-challenge,lf2,primera-nacional-femenina` | weekly, Mondays at 07:00 |
 
-In **hPanel → Advanced → Cron Jobs** the two jobs are:
+In **hPanel → Advanced → Cron Jobs** the jobs are:
 
 ```cron
 0 5 * * *  curl -fsS -m 60 -X POST -H @/home/<USER>/.cron-auth.hdr https://globalhoopstats.es/api/cron/sync?sources=nba,acb,euroleague
 0 6 * * 1  curl -fsS -m 60 -X POST -H @/home/<USER>/.cron-auth.hdr https://globalhoopstats.es/api/cron/sync?sources=leb-oro,leb-plata,eba
+0 7 * * 1  curl -fsS -m 60 -X POST -H @/home/<USER>/.cron-auth.hdr https://globalhoopstats.es/api/cron/sync?sources=lf-endesa,lf-challenge,lf2,primera-nacional-femenina
 0 */4 * * *  curl -fsS -m 60 -X POST -H @/home/<USER>/.cron-auth.hdr https://globalhoopstats.es/api/cron/highlights?limit=10
+```
+
+`primera-nacional-femenina` is only a June final phase (see `DATA-SOURCES.md`), so the
+weekly job skips it every other month. To load the latest edition outside June — the first
+time, for instance — run it once with `force=1`:
+
+```bash
+curl -fsS -m 60 -X POST -H @/home/<USER>/.cron-auth.hdr "https://globalhoopstats.es/api/cron/sync?sources=primera-nacional-femenina&force=1"
 ```
 
 The third line keeps player highlights fresh between syncs (see below); it is

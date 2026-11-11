@@ -5,7 +5,11 @@
  * target. Results are grounded in the database (real, clickable players),
  * priced via the valuation model, and annotated with a cross-league note.
  */
-import { adjacentLeagueSlugs, translateRate } from "@/lib/market/league-strength"
+import {
+  adjacentLeagueSlugs,
+  sameGenderLeagues,
+  translateRate,
+} from "@/lib/market/league-strength"
 import { getMarketPlayerBySlug, getMarketPool, type MarketPlayer } from "@/lib/market/pool"
 
 export type SimilarPlayer = {
@@ -92,8 +96,13 @@ export async function findSimilarPlayers(
   const target = await getMarketPlayerBySlug(slug)
   if (!target) return null
 
-  const leagueSlugs =
-    opts.leagueSlugs ?? adjacentLeagueSlugs(target.league.slug, { includeSelf: true })
+  // Only leagues on the target's side: a woman is matched with women.
+  const requested = opts.leagueSlugs
+    ? sameGenderLeagues(opts.leagueSlugs, target.league.slug)
+    : []
+  const leagueSlugs = requested.length
+    ? requested
+    : adjacentLeagueSlugs(target.league.slug, { includeSelf: true })
   const pool = await getMarketPool(leagueSlugs)
 
   // Make sure the target is in the pool we standardise over.

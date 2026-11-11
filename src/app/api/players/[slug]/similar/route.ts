@@ -43,7 +43,12 @@ export async function GET(
   const samePositionOnly = url.searchParams.get("samePosition") === "1"
   const maxAgeRaw = Number(url.searchParams.get("maxAge"))
   const maxAge = Number.isFinite(maxAgeRaw) && maxAgeRaw > 0 ? maxAgeRaw : undefined
-  const leagueSlugs = leagueSlugsFor(url.searchParams.get("leagues")) ?? undefined
+  // Only when a filter was actually sent: with none, the default universe is
+  // the player's own league plus the adjacent ones, not a whole gender.
+  const leaguesParam = url.searchParams.get("leagues")
+  const leagueSlugs = leaguesParam
+    ? (leagueSlugsFor(leaguesParam) ?? undefined)
+    : undefined
 
   try {
     const result = await findSimilarPlayers(slug, {

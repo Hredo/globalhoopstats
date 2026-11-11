@@ -9,6 +9,9 @@ const LEAGUES = [
   { name: "Primera FEB", slug: "leb-oro" },
   { name: "Segunda FEB", slug: "leb-plata" },
   { name: "Tercera FEB", slug: "eba" },
+  { name: "LF Endesa", slug: "lf-endesa" },
+  { name: "LF Challenge", slug: "lf-challenge" },
+  { name: "Liga Femenina 2", slug: "lf2" },
 ]
 
 export async function TrustedBy() {

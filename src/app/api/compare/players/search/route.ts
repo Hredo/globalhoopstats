@@ -2,23 +2,18 @@ import { NextResponse } from "next/server"
 import { and, asc, eq, inArray, like, sql } from "drizzle-orm"
 import { getDb } from "@/lib/db/client"
 import { leagues, playerSeasonStats, players, seasons, teams } from "@/lib/db/schema"
-import { leagueSlugsFor } from "@/lib/league-groups"
 import { latestSeasonName } from "@/lib/data/seasons"
 import { ALL_SEASONS, parseSeasonParam, seasonNameVariants } from "@/lib/seasons"
 import { rateLimit, clientIp } from "@/lib/security/ai-advisor"
 import { foldAccents } from "@/lib/data/players"
+import { requestLeagueScope } from "@/lib/gender-server"
+import {
+  LEAGUE_FILTER_VALUES as LEAGUES,
+  leagueSlugsFor,
+} from "@/lib/league-groups"
 
 export const dynamic = "force-dynamic"
 
-const LEAGUES = new Set([
-  "nba",
-  "euroleague",
-  "acb",
-  "feb",
-  "leb-oro",
-  "leb-plata",
-  "eba",
-])
 const MAX_QUERY_LEN = 100
 const MAX_LEAGUE_LEN = 32
 
@@ -78,14 +73,15 @@ export async function GET(req: Request) {
       like(sql`lower(concat(${players.firstName}, ' ', ${players.lastName}))`, `%${q.toLowerCase()}%`),
     )
   }
-  if (LEAGUES.has(league)) {
-    const slugs = leagueSlugsFor(league)
-    if (slugs) conditions.push(inArray(leagues.slug, slugs))
-  }
+  // Always scoped to one side, never "everybody": the league asked for, else
+  // the side the visitor is browsing (the gender cookie).
+  const scope = requestLeagueScope(req, LEAGUES.has(league) ? league : null)
+  const slugs = leagueSlugsFor(scope)
+  if (slugs) conditions.push(inArray(leagues.slug, slugs))
   // Default to the newest season so the compare picker offers current squads;
   // an explicit `season` (including "all") lets a coach reach the archive.
   const requestedSeason = parseSeasonParam(url.searchParams.get("season"))
-  const season = requestedSeason ?? (await latestSeasonName(league || undefined))
+  const season = requestedSeason ?? (await latestSeasonName(scope))
   if (season !== ALL_SEASONS) {
     conditions.push(inArray(seasons.name, seasonNameVariants(season)))
   }

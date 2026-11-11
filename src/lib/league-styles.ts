@@ -59,6 +59,10 @@ const LABEL_OVERRIDES: Record<string, { base: LeagueThemeKey; label: string }> =
     "leb-oro": { base: "acb", label: "1F" },
     "leb-plata": { base: "acb", label: "2F" },
     eba: { base: "acb", label: "3F" },
+    "lf-endesa": { base: "acb", label: "LF" },
+    "lf-challenge": { base: "acb", label: "LFC" },
+    lf2: { base: "acb", label: "LF2" },
+    "primera-nacional-femenina": { base: "acb", label: "1NF" },
   }
 
 export function getLeagueTheme(slug: string | null | undefined): LeagueTheme {

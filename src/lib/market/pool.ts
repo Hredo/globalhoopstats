@@ -9,6 +9,8 @@ import { leagues, playerSeasonStats, players, seasons, teams } from "@/lib/db/sc
 import { cached } from "@/lib/data/cache"
 import { latestSeasonName } from "@/lib/data/seasons"
 import { seasonNameVariants } from "@/lib/seasons"
+import { genderForLeagueSlug } from "@/lib/gender"
+import { scopeLeague } from "@/lib/league-groups"
 import {
   estimateValuation,
   ageFromBirthdate,
@@ -31,6 +33,11 @@ export type MarketPlayer = {
   valuation: Valuation
 }
 
+/** The league-filter group ("men" / "women") a league belongs to. */
+function genderScope(leagueSlug: string | undefined): string {
+  return scopeLeague(null, genderForLeagueSlug(leagueSlug))
+}
+
 function pct(made: number | null, att: number | null): number | null {
   if (made == null || att == null || att <= 0) return null
   return made / att
@@ -43,7 +50,9 @@ async function loadPool(
 ): Promise<MarketPlayer[]> {
   if (leagueSlugs.length === 0) return []
   const db = getDb()
-  const wanted = season ?? (await latestSeasonName())
+  // The newest season of THESE leagues' side: the women's leagues may be a
+  // season behind (or ahead of) the men's while a rollover is in progress.
+  const wanted = season ?? (await latestSeasonName(genderScope(leagueSlugs[0])))
 
   const rows = await db
     .select({
@@ -165,20 +174,19 @@ export const getMarketPool = cached(
 
 async function loadMarketPlayer(slug: string): Promise<MarketPlayer | null> {
   const db = getDb()
-  const row = await db
-    .select({ leagueSlug: leagues.slug })
+  const rows = await db
+    .select({ leagueSlug: leagues.slug, seasonName: seasons.name })
     .from(players)
     .innerJoin(playerSeasonStats, eq(playerSeasonStats.playerId, players.id))
     .innerJoin(leagues, eq(playerSeasonStats.leagueId, leagues.id))
     .innerJoin(seasons, eq(playerSeasonStats.seasonId, seasons.id))
-    .where(
-      and(
-        eq(players.slug, slug),
-        inArray(seasons.name, seasonNameVariants(await latestSeasonName())),
-      ),
-    )
-    .limit(1)
-  const leagueSlug = row[0]?.leagueSlug
+    .where(eq(players.slug, slug))
+  if (rows.length === 0) return null
+  // Which side the player is on decides which "newest season" applies.
+  const current = new Set(
+    seasonNameVariants(await latestSeasonName(genderScope(rows[0]!.leagueSlug))),
+  )
+  const leagueSlug = rows.find((r) => current.has(r.seasonName))?.leagueSlug
   if (!leagueSlug) return null
   // Reuse the league pool (cached) and pick the player out of it — guarantees
   // identical valuation/stat handling as every other market read.

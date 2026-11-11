@@ -4,7 +4,10 @@
  * 2-/3-man packages whose combined value lands near V, so the global value of
  * the deal balances. Optionally constrained to positions you actually need.
  */
-import { adjacentLeagueSlugs } from "@/lib/market/league-strength"
+import {
+  adjacentLeagueSlugs,
+  sameGenderLeagues,
+} from "@/lib/market/league-strength"
 import { getMarketPlayerBySlug, getMarketPool, type MarketPlayer } from "@/lib/market/pool"
 import type { Locale } from "@/lib/i18n/config"
 
@@ -70,8 +73,15 @@ export async function buildTradeScenarios(
   const V = mine.valuation.eur
   if (V <= 0) return { outgoing: mine, scenarios: [] }
 
-  const leagues =
-    q.leagueSlugs ?? adjacentLeagueSlugs(mine.league.slug, { includeSelf: true })
+  // A requested league list is honoured only inside the player's own side: a
+  // man is traded for men, a woman for women. An empty result falls back to
+  // the default universe rather than to an empty market.
+  const requested = q.leagueSlugs
+    ? sameGenderLeagues(q.leagueSlugs, mine.league.slug)
+    : []
+  const leagues = requested.length
+    ? requested
+    : adjacentLeagueSlugs(mine.league.slug, { includeSelf: true })
   const pool = await getMarketPool(leagues)
 
   // Plausible trade pieces: from other teams, not absurdly more valuable than

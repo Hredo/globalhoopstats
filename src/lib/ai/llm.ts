@@ -24,6 +24,7 @@ import {
   looksLikeSmallTalk,
   type MarketOperation,
 } from "@/lib/ai/intent"
+import { genderForLeagueSlug } from "@/lib/gender"
 
 export type AdvisorHistoryMessage = {
   role: "user" | "assistant"
@@ -536,6 +537,7 @@ export async function generateAdvisorResponse(
     // answers.
     subjects: input.playerProfile ? [input.playerProfile.fullName] : [],
     locale: input.locale,
+    gender: genderForLeagueSlug(input.team.league.slug),
     // A hello does not need a thousand tokens, and giving a small model room
     // it does not need is an invitation to fill it.
     maxTokens: smallTalk ? 160 : 1100,

@@ -14,6 +14,14 @@ companion crawler page at [`/bot`](src/app/bot/page.tsx)).
 | EuroLeague | `api-live.euroleague.net` (the competition's own public API) | JSON API |
 | ACB (Liga Endesa) | `acb.com` (rosters, `/estadisticas`, `/clasificacion`) | HTML (Next.js RSC payload) |
 | Primera FEB · Segunda FEB · Tercera FEB | `baloncestoenvivo.feb.es` (FEB) | HTML (ASP.NET) |
+| Liga Femenina Endesa · Liga Femenina Challenge · Liga Femenina 2 (women) | `baloncestoenvivo.feb.es` (FEB) | HTML (ASP.NET) |
+| Primera Nacional Femenina (women) — **national final phase only** | `baloncestoenvivo.feb.es` (FEB) | HTML (ASP.NET) |
+
+Primera Nacional Femenina has no regular season we can read: it is played in regional groups
+run by each autonomous federation, on their own sites and mostly without player statistics.
+The one stage FEB publishes is the 16-club national final phase in early June (three games
+per club), so that is what the league holds — one edition per season, labelled with the
+season it closes, and synced only in June (`finalPhaseSeason` in `src/lib/sources/types.ts`).
 
 The public pages credit these publishers (player pages' source line, the league
 Dataset JSON-LD, `/llms.txt`) from `SOURCE_UPSTREAM` in

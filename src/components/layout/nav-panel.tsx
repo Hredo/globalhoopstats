@@ -5,7 +5,10 @@ import { useEffect, useState } from "react"
 import { NavIcon } from "@/components/layout/nav-icons"
 import { cn } from "@/components/ui/cn"
 import { useT } from "@/lib/i18n/provider"
-import { LEAGUE_FILTER_TREE } from "@/lib/league-groups"
+import {
+  LEAGUE_FILTER_TREE,
+  WOMEN_LEAGUE_FILTER_TREE,
+} from "@/lib/league-groups"
 import { isActivePath, type NavGroup, type NavItem } from "@/lib/nav/sections"
 import { useSession } from "@/lib/auth/use-session"
 
@@ -88,7 +91,9 @@ export function NavEntry({
 export function LeagueChips({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex flex-wrap gap-1.5">
-      {LEAGUE_FILTER_TREE.flatMap((n) => [n, ...(n.children ?? [])]).map((n) => (
+      {[...LEAGUE_FILTER_TREE, ...WOMEN_LEAGUE_FILTER_TREE]
+        .flatMap((n) => [n, ...(n.children ?? [])])
+        .map((n) => (
         <Link
           key={n.slug}
           href={`/players?league=${n.slug}`}

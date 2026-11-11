@@ -19,6 +19,7 @@ import {
 } from "@/lib/sync/quality-gate"
 import { slugify, uniqueSlug } from "@/lib/sync/slug"
 import { tierForSlug, type LeagueTier } from "@/lib/leagues-tier"
+import { genderForLeagueSlug, teamSlugFor } from "@/lib/gender"
 import { normalizeName } from "@/lib/sync/entity-matcher"
 import { isSyncCancelled } from "@/lib/sync/controller"
 import { fetchShotZonesSafely, writeShotZones } from "@/lib/sync/shot-zones"
@@ -92,6 +93,7 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
   try {
     /* ---- League ---- */
     const leagueSlug = adapter.id
+    const gender = genderForLeagueSlug(leagueSlug)
     // Upsert, then read the id back: on a duplicate slug MySQL keeps the
     // existing row's id, so the generated one below may not be the winner.
     await db
@@ -101,9 +103,10 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
         name: adapter.displayName,
         slug: leagueSlug,
         region: adapter.country,
+        gender,
       })
       .onDuplicateKeyUpdate({
-        set: { name: adapter.displayName, region: adapter.country },
+        set: { name: adapter.displayName, region: adapter.country, gender },
       })
     const [league] = await db
       .select({ id: leagues.id })
@@ -187,7 +190,11 @@ export async function runSync(adapter: SourceAdapter): Promise<SyncResult> {
       const teamIdBySourceId = new Map<string, string>()
 
       for (const st of sourceTeams) {
-        const baseSlug = slugify(st.name) || `team-${st.sourceId}`
+        // Gender-scoped so a women's side never lands on the men's club row.
+        const baseSlug = teamSlugFor(
+          slugify(st.name) || `team-${st.sourceId}`,
+          gender,
+        )
         let row = teamBySlug.get(baseSlug)
         const fillIns: Partial<typeof teams.$inferInsert> = {}
         if (st.foundedYear) fillIns.foundedYear = st.foundedYear

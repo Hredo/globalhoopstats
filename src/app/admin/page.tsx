@@ -13,6 +13,10 @@ const SYNC_SOURCES = [
   "leb-oro",
   "leb-plata",
   "eba",
+  "lf-endesa",
+  "lf-challenge",
+  "lf2",
+  "primera-nacional-femenina",
 ] as const
 
 type SyncStatus = {

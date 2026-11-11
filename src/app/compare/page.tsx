@@ -1,6 +1,9 @@
 import Link from "next/link"
 import type { Metadata } from "next"
 import { getPlayerForCompare } from "@/lib/data/compare"
+import { getPlayerGender } from "@/lib/data/players"
+import { resolveGender } from "@/lib/gender-server"
+import { scopeLeague } from "@/lib/league-groups"
 import { listSeasons, resolveSeasonName } from "@/lib/data/seasons"
 import { localizeNationality, localizePosition } from "@/lib/i18n/player-labels"
 import { SeasonSwitcher } from "@/components/ui/season-select"
@@ -36,23 +39,35 @@ export async function generateMetadata(): Promise<Metadata> {
   })
 }
 
-type Search = { a?: string; b?: string; season?: string }
+type Search = { a?: string; b?: string; season?: string; gender?: string }
 
 export default async function ComparePage(props: {
   searchParams: Promise<Search>
 }) {
   const sp = await props.searchParams
-  const aSlug = (sp.a ?? "").trim() || "nba-luka-doncic"
-  const bSlug = (sp.b ?? "").trim() || "nba-nikola-jokic"
+  // Player A decides which side this comparison lives on; with no player
+  // picked yet it is the side the visitor is browsing. The men's showcase pair
+  // is only a default for the men's side.
+  const browsing = await resolveGender(sp.gender)
+  const aParam = (sp.a ?? "").trim()
+  const bParam = (sp.b ?? "").trim()
+  const aSlug = aParam || (browsing === "men" ? "nba-luka-doncic" : "")
+  const gender = (aSlug ? await getPlayerGender(aSlug) : null) ?? browsing
+  let bSlug = bParam || (gender === "men" ? "nba-nikola-jokic" : "")
+  // A man is only ever compared with a man and a woman with a woman: a slot
+  // holding someone from the other side is emptied instead of rendered.
+  const genderB = bSlug ? await getPlayerGender(bSlug) : null
+  if (genderB && genderB !== gender) bSlug = ""
+  const scope = scopeLeague(null, gender)
   // ONE season for both sides. A comparison that reads one player's current
   // season against the other's last one is not a comparison.
-  const season = await resolveSeasonName(sp.season)
+  const season = await resolveSeasonName(sp.season, scope)
   const [playerA, playerB, marketA, marketB, allSeasons] = await Promise.all([
     getPlayerForCompare(aSlug, season),
     getPlayerForCompare(bSlug, season),
     getMarketPlayerBySlug(aSlug).catch(() => null),
     getMarketPlayerBySlug(bSlug).catch(() => null),
-    listSeasons(),
+    listSeasons(scope),
   ])
   const { t } = await getT()
 
@@ -124,6 +139,7 @@ export default async function ComparePage(props: {
             current={playerA}
             otherSlug={bSlug}
             season={season}
+            gender={gender}
           />
         </Reveal>
         <Reveal direction="left">
@@ -132,6 +148,7 @@ export default async function ComparePage(props: {
             current={playerB}
             otherSlug={aSlug}
             season={season}
+            gender={gender}
           />
         </Reveal>
       </div>

@@ -12,6 +12,7 @@
  * translated — the data itself (player names, league names) is language-neutral.
  */
 import type { Locale } from "@/lib/i18n/config"
+import type { Gender } from "@/lib/gender"
 
 /** Labels for the "user's team" data block. */
 export type TeamLabels = {
@@ -409,4 +410,25 @@ export function houseStyle(locale: Locale): string {
     es ? "## Formato" : "## Format",
     ...copy.formatRules.map((rule) => `- ${rule}`),
   ].join("\n")
+}
+
+/**
+ * Which side of the game an answer is about, appended to the system prompt by
+ * `generateGroundedAnswer` for every surface that knows it.
+ *
+ * The data handed to the model is already one-sided — pools, shortlists and
+ * league benchmarks never cross (see src/lib/gender.ts). This closes the other
+ * door: what the model adds from memory. Asked about a Liga Femenina guard, a
+ * model left alone reaches for ACB salaries and NBA comparisons, and writes
+ * about "him".
+ */
+export function genderDirective(gender: Gender, locale: Locale): string {
+  if (gender === "women") {
+    return locale === "es"
+      ? "BALONCESTO FEMENINO. Todas las personas de los datos son mujeres que juegan en las ligas femeninas españolas (Liga Femenina Endesa, Liga Femenina Challenge, Liga Femenina 2, Primera Nacional Femenina). Escribe en femenino: «la jugadora», «la base», «la pívot», «ella». Cualquier comparación, referencia de nivel, cifra de mercado o recomendación tiene que salir del baloncesto femenino; no traigas ligas, jugadores, salarios ni ejemplos del masculino."
+      : "WOMEN'S BASKETBALL. Everyone in the data is a woman playing in the Spanish women's leagues (Liga Femenina Endesa, Liga Femenina Challenge, Liga Femenina 2, Primera Nacional Femenina). Write about them as women: she, her. Every comparison, level benchmark, market figure and recommendation has to come from women's basketball; do not bring in men's leagues, players, salaries or examples."
+  }
+  return locale === "es"
+    ? "BALONCESTO MASCULINO. Todos los datos son de ligas masculinas; no traigas ligas, jugadoras ni ejemplos del baloncesto femenino."
+    : "MEN'S BASKETBALL. All the data is from men's leagues; do not bring in women's leagues, players or examples."
 }

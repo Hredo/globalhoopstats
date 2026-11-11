@@ -52,7 +52,7 @@ export default async function PlaybookPage() {
           featureList: [
             "Animated frame-by-frame play editor",
             "100+ professional set templates",
-            "Real rosters from six leagues",
+            "Real rosters from nine men's and women's leagues",
             "AI tactical analysis",
             "Photo import from whiteboard diagrams",
             "PNG and JSON export",

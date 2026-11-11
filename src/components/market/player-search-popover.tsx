@@ -24,6 +24,12 @@ type Props = {
   placeholder?: string
   side: "left" | "right" | "neutral"
   excludeSlugs?: string[]
+  /**
+   * League filter for the search ("men", "women" or a league slug). Set it once
+   * a deal has a player in it, so every other slot only offers players from
+   * the same side; without it the search follows the gender switch.
+   */
+  leagueScope?: string
 }
 
 /** Per-side accent so "entregas" (left/amber) and "recibes" (right/emerald)
@@ -60,6 +66,7 @@ export function PlayerSearchPopover({
   placeholder,
   side,
   excludeSlugs = [],
+  leagueScope,
 }: Props) {
   const t = useT()
   const locale = useLocale()
@@ -92,8 +99,11 @@ export function PlayerSearchPopover({
         // Valuations come from the current-season market pool, so offering a
         // past-season player here would hand back somebody with no value at
         // all and a trade that cannot be balanced.
+        const scope = leagueScope
+          ? `&league=${encodeURIComponent(leagueScope)}`
+          : ""
         const res = await fetch(
-          `/api/players/search?q=${encodeURIComponent(query)}&limit=12`,
+          `/api/players/search?q=${encodeURIComponent(query)}&limit=12${scope}`,
           { signal: ac.signal },
         )
         if (!res.ok) return
@@ -109,7 +119,7 @@ export function PlayerSearchPopover({
         setLoading(false)
       }
     },
-    [excludeSlugs],
+    [excludeSlugs, leagueScope],
   )
 
   useEffect(() => {

@@ -8,16 +8,14 @@ import {
   type ExtractedPlayerStat,
 } from "@/lib/sources/types"
 import { fetchText as politeFetch } from "@/lib/sources/fetcher"
-import { parseBirthdate, parseHeightToCm, parseWeightToKg } from "@/lib/sync/slug"
+import {
+  parseBirthdate,
+  parseHeightToCm,
+  parseWeightToKg,
+} from "@/lib/sync/slug"
 import { decodeEntities, stripTags } from "@/lib/sources/html-text"
 
 const BASE = "https://baloncestoenvivo.feb.es"
-// Both derived from SOURCE_META so the FEB competitions roll over with every
-// other league. They used to be typed in here by hand, which is how the three
-// FEB divisions ended up a season behind the rest of the site.
-const SEASON_YEAR = SOURCE_META["leb-oro"].season
-// The rankings page selects a season with the bare start year.
-const SEASON_T = String(SEASON_YEAR)
 
 // Enrichment adds one Equipo.aspx request per team plus one Jugador.aspx
 // request per leftover player, so pace those at roughly one every 2-3s.
@@ -31,10 +29,22 @@ function politePause(): Promise<void> {
 }
 
 export type FebConfig = {
-  id: "leb-oro" | "leb-plata" | "eba"
+  id:
+    | "leb-oro"
+    | "leb-plata"
+    | "eba"
+    | "lf-endesa"
+    | "lf-challenge"
+    | "lf2"
+    | "primera-nacional-femenina"
   displayName: string
   g: number
   nm: string
+  /**
+   * Which entries of the group dropdown to scrape. Defaults to the "Liga
+   * Regular" groups; a competition with no regular season names its own.
+   */
+  groupPattern?: RegExp
 }
 
 type Hiddens = Record<string, string>
@@ -43,7 +53,10 @@ type Select = {
   options: Array<{ value: string; text: string; selected: boolean }>
 }
 
-async function fetchText(url: string, init?: { method?: string; body?: string }): Promise<string> {
+async function fetchText(
+  url: string,
+  init?: { method?: string; body?: string },
+): Promise<string> {
   // Routed through the shared polite fetcher. The ASP.NET viewstate POSTs keep
   // working: method/body pass through and the Content-Type for form bodies is
   // set by the core fetcher. The local `politePause()` between enrichment
@@ -54,7 +67,6 @@ async function fetchText(url: string, init?: { method?: string; body?: string })
     headers: { "Accept-Language": "es-ES,es;q=0.9" },
   })
 }
-
 
 function parseHiddens(html: string): Hiddens {
   const out: Hiddens = {}
@@ -90,12 +102,14 @@ function findSelect(selects: Select[], predicate: (s: Select) => boolean) {
   return selects.find(predicate)
 }
 
-const isTeamOption = (value: string) => /^\d+$/.test(value) && Number(value) > 100000
+const isTeamOption = (value: string) =>
+  /^\d+$/.test(value) && Number(value) > 100000
 
 function teamSelect(selects: Select[]) {
   return findSelect(
     selects,
-    (s) => s.options.some((o) => o.value === "-1" && /equipo/i.test(o.text)) &&
+    (s) =>
+      s.options.some((o) => o.value === "-1" && /equipo/i.test(o.text)) &&
       s.options.some((o) => isTeamOption(o.value)),
   )
 }
@@ -111,13 +125,21 @@ function groupSelect(selects: Select[]): Select | undefined {
  * "Liga Regular Único". We scrape all of them — the playoff/permanencia phases
  * the dropdown also lists only repeat a handful of qualified teams.
  */
-function regularGroups(selects: Select[]): Array<{ value: string; text: string }> {
-  return (groupSelect(selects)?.options ?? []).filter((o) =>
-    /liga\s+regular/i.test(o.text) && /^-?\d+$/.test(o.value),
+function regularGroups(
+  selects: Select[],
+  pattern: RegExp = /liga\s+regular/i,
+): Array<{ value: string; text: string }> {
+  return (groupSelect(selects)?.options ?? []).filter(
+    (o) => pattern.test(o.text) && /^-?\d+$/.test(o.value),
   )
 }
 
-function buildPostBody(hiddens: Hiddens, selects: Select[], eventTarget: string, overrides: Record<string, string>): string {
+function buildPostBody(
+  hiddens: Hiddens,
+  selects: Select[],
+  eventTarget: string,
+  overrides: Record<string, string>,
+): string {
   const body = new URLSearchParams()
   for (const [k, v] of Object.entries(hiddens)) body.set(k, v)
   for (const s of selects) {
@@ -137,26 +159,41 @@ function toNum(s: string | undefined): number | undefined {
 }
 
 function titleCaseEs(s: string): string {
-  return s.toLowerCase().replace(/(^|[\s'-])([\p{L}])/gu, (_, sep, ch) => sep + ch.toUpperCase())
+  return s
+    .toLowerCase()
+    .replace(/(^|[\s'-])([\p{L}])/gu, (_, sep, ch) => sep + ch.toUpperCase())
 }
 
 function formatFebName(raw: string): string {
   const clean = decodeEntities(stripTags(raw).trim())
   const parts = clean.split(",")
-  const reordered = parts.length >= 2 ? `${parts[1]!.trim()} ${parts[0]!.trim()}` : clean
+  const reordered =
+    parts.length >= 2 ? `${parts[1]!.trim()} ${parts[0]!.trim()}` : clean
   return titleCaseEs(reordered.replace(/\s+/g, " ").trim())
 }
 
 function tdText(row: string, cls: string): string | undefined {
   const m = row.match(new RegExp(`class="${cls}"[^>]*>([\\s\\S]*?)</td>`, "i"))
   if (!m) return undefined
-  return decodeEntities(stripTags(m[1]!, " ")).replace(/\s+/g, " ").trim() || undefined
+  return (
+    decodeEntities(stripTags(m[1]!, " ")).replace(/\s+/g, " ").trim() ||
+    undefined
+  )
 }
 
 type FebPlayer = {
-  playerId: string; fullName: string; teamId: string; teamName: string
-  position?: string; heightCm?: number; weightKg?: number; nationality?: string
-  birthdate?: string; games?: number; ppg?: number; pointsTotal?: number
+  playerId: string
+  fullName: string
+  teamId: string
+  teamName: string
+  position?: string
+  heightCm?: number
+  weightKg?: number
+  nationality?: string
+  birthdate?: string
+  games?: number
+  ppg?: number
+  pointsTotal?: number
 }
 
 /** rankingsDropDownList values on rankings.aspx, keyed by what they fill. */
@@ -198,7 +235,8 @@ function fromCaps(s: string | undefined): string | undefined {
 /** "Camí de Bintaufa, 18 07702 Mahón (Illes Balears)" → "Mahón". */
 function cityFromAddress(address: string | undefined): string | undefined {
   const m = address?.match(/\b\d{5}\s+([^(]+?)\s*(?:\(|$)/)
-  return m ? fromCaps(m[1]!.trim()) : undefined
+  // FEB fills an unknown town with a placeholder ("17005 _ (Girona)").
+  return m && /\p{L}/u.test(m[1]!) ? fromCaps(m[1]!.trim()) : undefined
 }
 
 function ageFromBirthdate(iso: string | undefined): number | undefined {
@@ -208,7 +246,11 @@ function ageFromBirthdate(iso: string | undefined): number | undefined {
   const now = new Date()
   let age = now.getUTCFullYear() - birth.getUTCFullYear()
   const monthDiff = now.getUTCMonth() - birth.getUTCMonth()
-  if (monthDiff < 0 || (monthDiff === 0 && now.getUTCDate() < birth.getUTCDate())) age--
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && now.getUTCDate() < birth.getUTCDate())
+  )
+    age--
   return age > 0 && age < 100 ? age : undefined
 }
 
@@ -220,7 +262,11 @@ function mergeBio(p: FebPlayer, bio: FebBio): void {
   p.birthdate ??= bio.birthdate
 }
 
-function parseRoster(html: string, teamId: string, teamName: string): FebPlayer[] {
+function parseRoster(
+  html: string,
+  teamId: string,
+  teamName: string,
+): FebPlayer[] {
   const out: FebPlayer[] = []
   for (const rm of html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)) {
     const row = rm[1]!
@@ -231,13 +277,24 @@ function parseRoster(html: string, teamId: string, teamName: string): FebPlayer[
     const fullName = formatFebName(nameM[2]!)
     if (!fullName) continue
     out.push({
-      playerId: nameM[1]!, fullName, teamId, teamName,
+      playerId: nameM[1]!,
+      fullName,
+      teamId,
+      teamName,
       position: tdText(row, "puesto"),
-      heightCm: tdText(row, "altura") ? parseHeightToCm(tdText(row, "altura")!) : undefined,
+      heightCm: tdText(row, "altura")
+        ? parseHeightToCm(tdText(row, "altura")!)
+        : undefined,
       nationality: tdText(row, "nacionalidad"),
-      games: toNum(row.match(/class="partidos"[\s\S]*?<span[^>]*>\s*([\d.,]+)/i)?.[1]),
-      ppg: toNum(row.match(/class="media"[\s\S]*?<span[^>]*>\s*([\d.,]+)/i)?.[1]),
-      pointsTotal: toNum(row.match(/class="cantidad"[\s\S]*?<span[^>]*>\s*([\d.,]+)/i)?.[1]),
+      games: toNum(
+        row.match(/class="partidos"[\s\S]*?<span[^>]*>\s*([\d.,]+)/i)?.[1],
+      ),
+      ppg: toNum(
+        row.match(/class="media"[\s\S]*?<span[^>]*>\s*([\d.,]+)/i)?.[1],
+      ),
+      pointsTotal: toNum(
+        row.match(/class="cantidad"[\s\S]*?<span[^>]*>\s*([\d.,]+)/i)?.[1],
+      ),
     })
   }
   return out
@@ -251,9 +308,13 @@ function parseCategoryRows(html: string): Map<string, CategoryLine> {
   const out = new Map<string, CategoryLine>()
   for (const rm of html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)) {
     const row = rm[1]!
-    const idM = row.match(/class="nombre jugador"[\s\S]*?Jugador\.aspx\?i=\d+&(?:amp;)?c=(\d+)/i)
+    const idM = row.match(
+      /class="nombre jugador"[\s\S]*?Jugador\.aspx\?i=\d+&(?:amp;)?c=(\d+)/i,
+    )
     if (!idM) continue
-    const cell = row.match(/class="cantidad"[\s\S]*?<span[^>]*>\s*([^<]+?)\s*<\/span>/i)?.[1]
+    const cell = row.match(
+      /class="cantidad"[\s\S]*?<span[^>]*>\s*([^<]+?)\s*<\/span>/i,
+    )?.[1]
     if (!cell) continue
     const split = cell.match(/([\d.,]+)\s*\/\s*([\d.,]+)/)
     const clock = cell.match(/^(\d+):(\d{2})$/)
@@ -261,7 +322,9 @@ function parseCategoryRows(html: string): Map<string, CategoryLine> {
       out.set(idM[1]!, { made: toNum(split[1]), attempted: toNum(split[2]) })
     } else if (clock) {
       // Minutes render as "MIN:SS" totals.
-      out.set(idM[1]!, { total: Math.round(Number(clock[1]) + Number(clock[2]) / 60) })
+      out.set(idM[1]!, {
+        total: Math.round(Number(clock[1]) + Number(clock[2]) / 60),
+      })
     } else {
       const total = toNum(cell)
       if (total !== undefined) out.set(idM[1]!, { total })
@@ -276,10 +339,16 @@ function parsePointsRanking(html: string): Map<string, PointLine> {
   const out = new Map<string, PointLine>()
   for (const rm of html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)) {
     const row = rm[1]!
-    const nameM = row.match(/class="nombre jugador"[\s\S]*?Jugador\.aspx\?i=\d+&(?:amp;)?c=(\d+)/i)
+    const nameM = row.match(
+      /class="nombre jugador"[\s\S]*?Jugador\.aspx\?i=\d+&(?:amp;)?c=(\d+)/i,
+    )
     if (!nameM) continue
-    const games = toNum(row.match(/class="partidos"[\s\S]*?<span[^>]*>\s*([\d.,]+)/i)?.[1])
-    const ppg = toNum(row.match(/class="media"[\s\S]*?<span[^>]*>\s*([\d.,]+)/i)?.[1])
+    const games = toNum(
+      row.match(/class="partidos"[\s\S]*?<span[^>]*>\s*([\d.,]+)/i)?.[1],
+    )
+    const ppg = toNum(
+      row.match(/class="media"[\s\S]*?<span[^>]*>\s*([\d.,]+)/i)?.[1],
+    )
     if (games && games > 0) out.set(nameM[1]!, { games, ppg })
   }
   return out
@@ -294,7 +363,9 @@ function parseTeamRoster(html: string): Map<string, FebBio> {
   const out = new Map<string, FebBio>()
   for (const rm of html.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)) {
     const row = rm[1]!
-    const idM = row.match(/class="nombre jugador"[\s\S]*?Jugador\.aspx\?i=\d+&(?:amp;)?c=(\d+)/i)
+    const idM = row.match(
+      /class="nombre jugador"[\s\S]*?Jugador\.aspx\?i=\d+&(?:amp;)?c=(\d+)/i,
+    )
     if (!idM) continue
     out.set(idM[1]!, {
       position: tdText(row, "puesto"),
@@ -310,7 +381,9 @@ function parseTeamRoster(html: string): Map<string, FebBio> {
 /** Club logo, city (from the club address) and head coach on Equipo.aspx. */
 function parseTeamMeta(html: string): FebTeamMeta {
   const logo = html.match(/id="[^"]*logoEquipoImage"[^>]*src="([^"]+)"/)?.[1]
-  const address = html.match(/id="[^"]*_direccionLabel"[^>]*>([\s\S]*?)<\/span>/)?.[1]
+  const address = html.match(
+    /id="[^"]*_direccionLabel"[^>]*>([\s\S]*?)<\/span>/,
+  )?.[1]
   const meta: FebTeamMeta = {
     logoUrl: logo ? decodeEntities(logo) : undefined,
     city: cityFromAddress(
@@ -327,8 +400,12 @@ function parseTeamMeta(html: string): FebTeamMeta {
     if (name) {
       meta.coach = {
         fullName: titleCaseEs(decodeEntities(name).replace(/\s+/g, " ").trim()),
-        photoUrl: photoC ? `https://imagenes.feb.es/Foto.aspx?c=${photoC}` : undefined,
-        birthdate: parseBirthdate(seg.match(/<div class="fecha nacimiento">([^<]*)<\/div>/i)?.[1]),
+        photoUrl: photoC
+          ? `https://imagenes.feb.es/Foto.aspx?c=${photoC}`
+          : undefined,
+        birthdate: parseBirthdate(
+          seg.match(/<div class="fecha nacimiento">([^<]*)<\/div>/i)?.[1],
+        ),
       }
     }
   }
@@ -342,10 +419,13 @@ function parseTeamMeta(html: string): FebTeamMeta {
  */
 function parsePlayerPage(html: string): FebBio {
   const fields = new Map<string, string>()
-  const re = /<span[^>]*class="label"[^>]*>\s*([^<]+?)\s*<\/span>\s*<span[^>]*class="string"[^>]*>([\s\S]*?)<\/span>/gi
+  const re =
+    /<span[^>]*class="label"[^>]*>\s*([^<]+?)\s*<\/span>\s*<span[^>]*class="string"[^>]*>([\s\S]*?)<\/span>/gi
   let m: RegExpExecArray | null
   while ((m = re.exec(html)) !== null) {
-    const value = decodeEntities(stripTags(m[2]!, " ")).replace(/\s+/g, " ").trim()
+    const value = decodeEntities(stripTags(m[2]!, " "))
+      .replace(/\s+/g, " ")
+      .trim()
     if (value) fields.set(decodeEntities(m[1]!).trim().toLowerCase(), value)
   }
   return {
@@ -401,7 +481,9 @@ async function collectGroup(
   for (const [id, line] of parsePointsRanking(regHtml)) acc.points.set(id, line)
 
   const teams = teamSelect(selects)
-  const teamOptions = (teams?.options ?? []).filter((o) => isTeamOption(o.value))
+  const teamOptions = (teams?.options ?? []).filter((o) =>
+    isTeamOption(o.value),
+  )
   if (!teams || teamOptions.length === 0) {
     console.warn(`[feb:${cfg.id}] ${group.text}: no teams found`)
     return
@@ -416,12 +498,18 @@ async function collectGroup(
       await politePause()
       const html = await fetchText(url, {
         method: "POST",
-        body: buildPostBody(hiddens, selects, teams.name, { ...groupOverride, [teams.name]: opt.value }),
+        body: buildPostBody(hiddens, selects, teams.name, {
+          ...groupOverride,
+          [teams.name]: opt.value,
+        }),
       })
-      for (const p of parseRoster(html, opt.value, opt.text)) acc.byPlayer.set(p.playerId, p)
+      for (const p of parseRoster(html, opt.value, opt.text))
+        acc.byPlayer.set(p.playerId, p)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      console.warn(`[feb:${cfg.id}] ${group.text} team ${opt.value} failed: ${msg}`)
+      console.warn(
+        `[feb:${cfg.id}] ${group.text} team ${opt.value} failed: ${msg}`,
+      )
     }
   }
 
@@ -429,7 +517,9 @@ async function collectGroup(
   // open ranking view only lists the top 30, but filtering by team returns
   // every player of that club for the chosen category.
   if (categorySelect) {
-    for (const [key, catValue] of Object.entries(STAT_CATEGORIES) as Array<[StatCategoryKey, string]>) {
+    for (const [key, catValue] of Object.entries(STAT_CATEGORIES) as Array<
+      [StatCategoryKey, string]
+    >) {
       let rows = 0
       for (const opt of teamOptions) {
         try {
@@ -453,13 +543,17 @@ async function collectGroup(
           }
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err)
-          console.warn(`[feb:${cfg.id}] ${group.text} category ${key} team ${opt.value} failed: ${msg}`)
+          console.warn(
+            `[feb:${cfg.id}] ${group.text} category ${key} team ${opt.value} failed: ${msg}`,
+          )
         }
       }
       console.log(`[feb:${cfg.id}] ${group.text} category ${key}: ${rows} rows`)
     }
   } else {
-    console.warn(`[feb:${cfg.id}] ${group.text}: category select not found — stats limited to points`)
+    console.warn(
+      `[feb:${cfg.id}] ${group.text}: category select not found — stats limited to points`,
+    )
   }
 
   // Bio/club enrichment: one Equipo.aspx page per team covers its current
@@ -479,7 +573,9 @@ async function collectGroup(
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      console.warn(`[feb:${cfg.id}] ${group.text} equipo ${opt.value} failed: ${msg}`)
+      console.warn(
+        `[feb:${cfg.id}] ${group.text} equipo ${opt.value} failed: ${msg}`,
+      )
     }
   }
   console.log(
@@ -488,7 +584,8 @@ async function collectGroup(
 }
 
 async function collectData(cfg: FebConfig): Promise<FebData> {
-  const url = `${BASE}/rankings.aspx?g=${cfg.g}&t=${SEASON_T}&nm=${cfg.nm}`
+  // The rankings page selects a season with the bare start year.
+  const url = `${BASE}/rankings.aspx?g=${cfg.g}&t=${SOURCE_META[cfg.id].season}&nm=${cfg.nm}`
   const firstHtml = await fetchText(url)
   const baseHiddens = parseHiddens(firstHtml)
   const baseSelects = parseSelects(firstHtml)
@@ -500,26 +597,45 @@ async function collectData(cfg: FebConfig): Promise<FebData> {
   }
 
   const groupSel = groupSelect(baseSelects)
-  const groups = regularGroups(baseSelects)
+  const groups = regularGroups(baseSelects, cfg.groupPattern)
   if (!groupSel || groups.length === 0) {
-    console.warn(`[feb:${cfg.id}] no "Liga Regular" group found — nothing scraped`)
-    return { players: [], points: acc.points, teamMeta: acc.teamMeta, statLines: acc.statLines }
+    console.warn(
+      `[feb:${cfg.id}] no matching group found — nothing scraped`,
+    )
+    return {
+      players: [],
+      points: acc.points,
+      teamMeta: acc.teamMeta,
+      statLines: acc.statLines,
+    }
   }
   console.log(
     `[feb:${cfg.id}] ${groups.length} regular-season group(s): ${groups.map((g) => g.text).join(" · ")}`,
   )
   for (const group of groups) {
-    await collectGroup(url, cfg, baseHiddens, baseSelects, groupSel.name, group, acc)
+    await collectGroup(
+      url,
+      cfg,
+      baseHiddens,
+      baseSelects,
+      groupSel.name,
+      group,
+      acc,
+    )
   }
 
   // Ranked players already gone from their team's roster (transfers): fall
   // back to their own page. The i= param must be the team the license is
   // registered with, which is exactly the team their ranking row linked.
-  const leftovers = [...acc.byPlayer.values()].filter((p) => !p.position && !p.nationality)
+  const leftovers = [...acc.byPlayer.values()].filter(
+    (p) => !p.position && !p.nationality,
+  )
   for (const p of leftovers) {
     try {
       await politePause()
-      const html = await fetchText(`${BASE}/Jugador.aspx?i=${p.teamId}&c=${p.playerId}`)
+      const html = await fetchText(
+        `${BASE}/Jugador.aspx?i=${p.teamId}&c=${p.playerId}`,
+      )
       mergeBio(p, parsePlayerPage(html))
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -546,7 +662,7 @@ export function createFebAdapter(cfg: FebConfig): SourceAdapter {
     id: cfg.id,
     displayName: cfg.displayName,
     country: "ES",
-    season: SEASON_YEAR,
+    season: SOURCE_META[cfg.id].season,
     seasonCode: SOURCE_META[cfg.id].seasonCode,
     seasonLabel: SOURCE_META[cfg.id].seasonLabel,
 
@@ -570,8 +686,12 @@ export function createFebAdapter(cfg: FebConfig): SourceAdapter {
 
     async fetchPlayers(): Promise<SourcePlayer[]> {
       return (await data()).players.map((p) => ({
-        sourceId: `feb-${p.playerId}`, fullName: p.fullName, position: p.position,
-        heightCm: p.heightCm, weightKg: p.weightKg, nationality: p.nationality,
+        sourceId: `feb-${p.playerId}`,
+        fullName: p.fullName,
+        position: p.position,
+        heightCm: p.heightCm,
+        weightKg: p.weightKg,
+        nationality: p.nationality,
         teamSourceId: p.teamId ? `feb-${p.teamId}` : undefined,
         // The c= license id in Jugador.aspx links doubles as the photo key.
         photoUrl: `https://imagenes.feb.es/Foto.aspx?c=${p.playerId}`,
@@ -600,7 +720,7 @@ export function createFebAdapter(cfg: FebConfig): SourceAdapter {
             : null
         out.push({
           playerSourceId: `feb-${p.playerId}`,
-          season: SEASON_YEAR,
+          season: SOURCE_META[cfg.id].season,
           teamSourceId: p.teamId ? `feb-${p.teamId}` : undefined,
           gamesPlayed: games,
           pointsTotal:
@@ -619,8 +739,11 @@ export function createFebAdapter(cfg: FebConfig): SourceAdapter {
           offensiveRebounds: total("offensiveRebounds"),
           defensiveRebounds: total("defensiveRebounds"),
           foulsTotal: total("fouls"),
-          plusMinus: null, per: null, trueShootingPct: null,
-          winShares: null, bpm: null,
+          plusMinus: null,
+          per: null,
+          trueShootingPct: null,
+          winShares: null,
+          bpm: null,
         })
       }
       return out
@@ -642,7 +765,9 @@ export function createFebAdapter(cfg: FebConfig): SourceAdapter {
       }
       return out
     },
-    async fetchTeamStats(): Promise<SourceTeamStats[]> { return [] },
+    async fetchTeamStats(): Promise<SourceTeamStats[]> {
+      return []
+    },
   }
 }
 
@@ -650,6 +775,40 @@ export const FEB_CONFIGS: FebConfig[] = [
   { id: "leb-oro", displayName: "Primera FEB", g: 1, nm: "primerafeb" },
   { id: "leb-plata", displayName: "Segunda FEB", g: 2, nm: "segundafeb" },
   { id: "eba", displayName: "Tercera FEB", g: 3, nm: "tercerafeb" },
+]
+
+/**
+ * Women's competitions on the same FEB site. Liga Femenina Endesa and Challenge
+ * are single-group; Liga Femenina 2 splits into "Liga Regular A/B", which the
+ * group union above already flattens. Kept apart from FEB_CONFIGS so the men's
+ * sync targets stay exactly what they were.
+ */
+export const FEB_WOMEN_CONFIGS: FebConfig[] = [
+  {
+    id: "lf-endesa",
+    displayName: "Liga Femenina Endesa",
+    g: 4,
+    nm: "lfendesa",
+  },
+  {
+    id: "lf-challenge",
+    displayName: "Liga Femenina Challenge",
+    g: 67,
+    nm: "lfchallenge",
+  },
+  { id: "lf2", displayName: "Liga Femenina 2", g: 9, nm: "lf2" },
+  // Primera Nacional Femenina is run by the regional federations, each on its
+  // own site and most without player statistics, so there is no regular season
+  // to read. FEB publishes the one national stage — the 16-club final phase
+  // ("FASE FINAL-A FFA1" … "FFB4", three games each). The crossover entries
+  // the dropdown also lists repeat those clubs.
+  {
+    id: "primera-nacional-femenina",
+    displayName: "Primera Nacional Femenina",
+    g: 44,
+    nm: "fasefinal1divisinfemenin",
+    groupPattern: /^fase\s+final/i,
+  },
 ]
 
 export const febAdapters = FEB_CONFIGS.map(createFebAdapter)

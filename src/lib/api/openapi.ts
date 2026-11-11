@@ -108,6 +108,7 @@ export function buildOpenApiSpec() {
                   slug: { type: "string" },
                   name: { type: "string" },
                   region: { type: ["string", "null"] },
+                  gender: { type: "string", enum: ["men", "women"] },
                   teams: { type: "integer" },
                   players: { type: "integer" },
                 },

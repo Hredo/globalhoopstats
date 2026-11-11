@@ -56,7 +56,7 @@ export const en = {
       workspace: "Scouting",
     },
     items: {
-      players: { label: "Players", desc: "Six leagues on one scale" },
+      players: { label: "Players", desc: "Men's and women's leagues on one scale" },
       teams: { label: "Teams", desc: "Rosters, staff and seasons" },
       coaches: { label: "Coaches", desc: "Every bench, every league" },
       leagues: { label: "Leagues", desc: "Leaders and league context" },
@@ -96,7 +96,7 @@ export const en = {
   },
   footer: {
     tagline:
-      "Cross-league basketball intelligence. Players, rosters and staff from the NBA, EuroLeague, ACB and Spain's FEB ladder — one language, one console.",
+      "Cross-league basketball intelligence. Players, rosters and staff from the NBA, EuroLeague, ACB, Spain's FEB ladder and its women's leagues — one language, one console.",
     explore: "Explore",
     tools: "Tools",
     company: "Company",
@@ -122,22 +122,22 @@ export const en = {
   metadata: {
     tagline: "Hoops, decoded.",
     description:
-      "Cross-league basketball intelligence across the NBA, EuroLeague, Liga ACB and Spain's FEB pyramid (Primera, Segunda, Tercera): box scores, advanced splits, percentiles and projections, side-by-side comparisons, market valuations, trade simulator, an animated playbook, player alerts and shared shortlists, a public API and an AI scouting advisor — all in one console.",
+      "Cross-league basketball intelligence across the NBA, EuroLeague, Liga ACB, Spain's FEB pyramid (Primera, Segunda, Tercera) and its women's leagues (Liga Femenina Endesa, Liga Femenina Challenge, Liga Femenina 2): box scores, advanced splits, percentiles and projections, side-by-side comparisons, market valuations, trade simulator, an animated playbook, player alerts and shared shortlists, a public API and an AI scouting advisor — all in one console.",
   },
   home: {
     metaTitle:
-      "globalhoopstats — Basketball stats: Liga ACB, FEB, EuroLeague & NBA",
+      "globalhoopstats — Basketball stats: ACB, FEB, Liga Femenina, EuroLeague & NBA",
     hero: {
-      eyebrow: "Six leagues, one engine",
+      eyebrow: "Nine leagues, one engine",
       titleLine1: "AI-driven player",
       titleLine2: "comparison.",
       description:
-        "Ask the AI advisor, compare across six leagues, value any player and simulate trades — then export boardroom-ready reports. All in one workspace.",
+        "Ask the AI advisor, compare across nine men's and women's leagues, value any player and simulate trades — then export boardroom-ready reports. All in one workspace.",
       browseDatabase: "Browse players",
       comparePlayers: "Compare players",
     },
     film: {
-      kicker: "globalhoopstats — six leagues, one engine",
+      kicker: "globalhoopstats — nine leagues, one engine",
       title: "All of basketball,",
       accent: "inside one ball.",
       scrollHint: "scroll",
@@ -258,10 +258,10 @@ export const en = {
     trustedBy: {
       aria: "Leagues covered",
       eyebrow: "Coverage",
-      titleA: "Six leagues,",
+      titleA: "Nine leagues,",
       titleB: "one database.",
       description:
-        "NBA, EuroLeague and the full Spanish pyramid — normalised into a single model so any player can be compared with any other, across competitions.",
+        "NBA, EuroLeague and the full Spanish pyramid, men's and women's — normalised into a single model so any player can be compared with any other, across competitions.",
       live: "live",
     },
     mobileInstall: {
@@ -509,6 +509,11 @@ export const en = {
     },
   },
   directory: {
+    gender: {
+      men: "Men's",
+      women: "Women's",
+      aria: "Switch between men's and women's leagues",
+    },
     searchPlayers: "Search players…",
     searchTeams: "Search teams…",
     searchCoaches: "Search coaches…",
@@ -574,8 +579,14 @@ export const en = {
       title: "Players",
       description:
         "Every athlete across six leagues, normalized to one scale. Search, filter and rank by the numbers that matter.",
+      descriptionWomen:
+        "Every player in the Spanish women's pyramid, normalized to one scale. Search, filter and rank by the numbers that matter.",
       statLabel: "Players indexed",
       metaTitle: "Basketball player stats — Liga ACB, FEB, EuroLeague & NBA",
+      metaTitleWomen:
+        "Women's basketball player stats — Liga Femenina Endesa, Challenge & LF2",
+      metaDescriptionWomen:
+        "Stats for every player in Liga Femenina Endesa, Liga Femenina Challenge, Liga Femenina 2 and the Primera Nacional Femenina final phase. Filter by league and season, sort by points, rebounds or assists and open each full profile.",
       metaDescription:
         "Stats for every player in Liga ACB, Spain's FEB leagues (Primera, Segunda and Tercera FEB — formerly LEB Oro, LEB Plata and EBA), EuroLeague and NBA. Filter by league and season, rank by points, rebounds or assists and open advanced profiles.",
     },
@@ -584,8 +595,14 @@ export const en = {
       title: "Teams",
       description:
         "Every club across the NBA, EuroLeague, ACB and Spain's FEB ladder — open any crest for its full roster and staff.",
+      descriptionWomen:
+        "Every club in Liga Femenina Endesa, Liga Femenina Challenge and Liga Femenina 2 — open any crest for its full roster and staff.",
       statLabel: "Teams covered",
       metaTitle: "Basketball teams & rosters — Liga ACB, FEB, EuroLeague & NBA",
+      metaTitleWomen:
+        "Women's basketball teams & rosters — Liga Femenina Endesa, Challenge & LF2",
+      metaDescriptionWomen:
+        "Every club in Liga Femenina Endesa, Liga Femenina Challenge and Liga Femenina 2, with its full roster, per-player stats and coaching staff for every season.",
       metaDescription:
         "Every club in Liga ACB, Primera, Segunda and Tercera FEB (LEB Oro, LEB Plata, EBA), EuroLeague and NBA, with its full roster, per-player stats and coaching staff for every season.",
     },
@@ -594,8 +611,13 @@ export const en = {
       title: "Coaches",
       description:
         "Head coaches, assistants and staff across the NBA, EuroLeague and Liga ACB — filtered by role and league.",
+      descriptionWomen:
+        "Coaches and staff across Liga Femenina Endesa, Liga Femenina Challenge and Liga Femenina 2 — filtered by role and league.",
       statLabel: "Staff indexed",
       metaTitle: "Basketball coaches & staff — Liga ACB, EuroLeague & NBA",
+      metaTitleWomen: "Women's basketball coaches & staff — Liga Femenina",
+      metaDescriptionWomen:
+        "Coaches and staff across Liga Femenina Endesa, Liga Femenina Challenge and Liga Femenina 2, filterable by role and league and linked to their club's roster.",
       metaDescription:
         "Every head coach, assistant and staff member in Liga ACB, EuroLeague and the NBA, filterable by role and league, each linked to their club's roster.",
     },
@@ -605,7 +627,13 @@ export const en = {
       titleB: "at a glance.",
       description:
         "Six pro leagues, one scouting engine. Each card pairs the live season with team, player and coach counts and the current per-game leaders in points, assists, rebounds and three-point shooting — plus one-tap links into every roster and player.",
+      descriptionWomen:
+        "The Spanish women's pyramid on the same scouting engine. Each card pairs the live season with team, player and coach counts and the current per-game leaders in points, assists, rebounds and threes.",
       metaTitle: "Basketball leagues — Liga ACB, Primera FEB, EuroLeague & NBA",
+      metaTitleWomen:
+        "Women's basketball leagues — Liga Femenina Endesa, Challenge & Liga Femenina 2",
+      metaDescriptionWomen:
+        "Liga Femenina Endesa, Liga Femenina Challenge, Liga Femenina 2 and Primera Nacional Femenina: this season's per-game leaders in points, assists, rebounds and three-point shooting, with every team and player.",
       metaDescription:
         "Liga ACB, Spain's FEB ladder (Primera FEB, Segunda FEB, Tercera FEB — formerly LEB Oro, LEB Plata and EBA), EuroLeague and NBA: this season's per-game leaders in points, assists, rebounds and three-point shooting, with every team and player.",
       statLeaguesLive: "leagues live",
@@ -629,7 +657,7 @@ export const en = {
     seasonScope: "Both players · {season}",
     metaTitle: "Compare basketball players side by side",
     metaDescription:
-      "Put any two players from Liga ACB, FEB, EuroLeague or NBA side by side — points, rebounds, assists, shooting splits and advanced metrics, even across leagues.",
+      "Put any two players from Liga ACB, FEB, EuroLeague or NBA — or two from Spain's Liga Femenina — side by side — points, rebounds, assists, shooting splits and advanced metrics, even across leagues.",
     eyebrow: "Matchup",
     titleA: "Side-by-side",
     titleB: "scouting.",
@@ -877,7 +905,7 @@ export const en = {
       team: "Team",
       required: "Required",
       loadingTeams: "Loading teams…",
-      searchTeams: "Search for a team — NBA, EuroLeague, ACB…",
+      searchTeams: "Search for a team — NBA, EuroLeague, ACB, Liga Femenina…",
       noTeams: "No teams found",
       copy: "Copy",
       like: "Like",
@@ -895,7 +923,7 @@ export const en = {
       tourFinish: "Finish",
       tourTeamTitle: "Pick a team",
       tourTeamBody:
-        "Everything starts here. Search any club across the NBA, EuroLeague and ACB — the advisor analyses its current roster before answering.",
+        "Everything starts here. Search any club across the NBA, EuroLeague, ACB and Liga Femenina — the advisor analyses its current roster before answering.",
       tourChatTitle: "Read the analysis",
       tourChatBody:
         "Answers appear here: a roster diagnosis, the gap the advisor detects and a shortlist of real candidates ranked by priority.",
@@ -1344,7 +1372,7 @@ export const en = {
     },
     metaTitle: "Basketball Playbook — animated play designer with AI",
     metaDescription:
-      "Draw and animate basketball plays with standard coaching notation: 100+ pro set templates, real rosters from six leagues, AI tactical breakdowns, photo import from your whiteboard and PNG/JSON export. Free while in beta.",
+      "Draw and animate basketball plays with standard coaching notation: 100+ pro set templates, real rosters from nine men's and women's leagues, AI tactical breakdowns, photo import from your whiteboard and PNG/JSON export. Free while in beta.",
     page: {
       eyebrow: "Coaching tools",
       title: "Playbook.",
@@ -1774,7 +1802,7 @@ export const en = {
   developers: {
     title: "Data API",
     eyebrow: "For clubs, media and developers",
-    lede: "Read the normalized catalogue — players, teams and leagues across six competitions — from your own tools. Keys are issued on request.",
+    lede: "Read the normalized catalogue — players, teams and leagues across ten men's and women's competitions — from your own tools. Keys are issued on request.",
     request: "Request a key",
     auth: "Authentication",
     authBody:

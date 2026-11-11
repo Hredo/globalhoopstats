@@ -5,6 +5,8 @@ import { Suspense, useEffect, useRef, useState, useTransition } from "react"
 import { useT, useLocale } from "@/lib/i18n/provider"
 import { LeagueSelect, SelectControl } from "@/components/ui/filter-controls"
 import { SeasonSelect } from "@/components/ui/season-select"
+import { GenderToggle } from "@/components/ui/gender-toggle"
+import { DEFAULT_GENDER, type Gender } from "@/lib/gender"
 import { leagueAccent } from "@/components/ui/league-badge"
 
 const SORTS_PLAYERS = [
@@ -35,6 +37,8 @@ type Props = {
   seasons?: string[]
   /** Season currently rendered — resolved server-side, so never empty. */
   season?: string
+  /** Men's or women's side, resolved server-side (URL, then cookie). */
+  gender?: Gender
 }
 
 export function DirectoryControls({
@@ -44,6 +48,7 @@ export function DirectoryControls({
   showing,
   seasons,
   season,
+  gender,
 }: Props) {
   return (
     <Suspense
@@ -58,6 +63,7 @@ export function DirectoryControls({
         showing={showing}
         seasons={seasons}
         season={season}
+        gender={gender}
       />
     </Suspense>
   )
@@ -70,6 +76,7 @@ function DirectoryControlsInner({
   showing,
   seasons = [],
   season = "",
+  gender = DEFAULT_GENDER,
 }: Props) {
   const router = useRouter()
   const search = useSearchParams()
@@ -196,6 +203,8 @@ function DirectoryControlsInner({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 lg:ml-auto lg:flex-nowrap">
+        <GenderToggle value={gender} />
+
         <SeasonSelect
           seasons={seasons}
           value={season}
@@ -209,6 +218,7 @@ function DirectoryControlsInner({
           value={urlLeague}
           onChange={(v) => apply({ league: v || null })}
           t={t}
+          gender={gender}
         />
 
         {kind === "coaches" ? (

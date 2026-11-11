@@ -7,35 +7,50 @@ import { PlayersInfiniteView } from "@/components/players/players-infinite-view"
 import { DirectoryHero } from "@/components/ui/directory-hero"
 import { StickyFilterBar } from "@/components/ui/sticky-filter-bar"
 import { getT } from "@/lib/i18n/server"
+import { resolveGender } from "@/lib/gender-server"
+import { leagueSlugsForGender } from "@/lib/gender"
+import {
+  LEAGUE_FILTER_VALUES as LEAGUE_VALUES,
+  genderForFilter,
+  scopeLeague,
+} from "@/lib/league-groups"
 import { pageSeo } from "@/lib/seo/metadata"
 
 type SearchParams = Partial<
-  Record<keyof ListPlayersInput | "q" | "page" | "season", string>
+  Record<keyof ListPlayersInput | "q" | "page" | "season" | "gender", string>
 >
 
 export const revalidate = 300
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata(props: {
+  searchParams: Promise<SearchParams>
+}): Promise<Metadata> {
   const { t, locale } = await getT()
+  const sp = await props.searchParams
+  const league =
+    sp.league && LEAGUE_VALUES.has(sp.league) ? sp.league : undefined
+  const gender = league
+    ? genderForFilter(league)
+    : await resolveGender(sp.gender)
+  // The women's directory is a page of its own, not a duplicate of the men's:
+  // its own title, description and canonical, so it can be indexed.
+  const women = gender === "women"
   return pageSeo({
     locale,
-    path: "/players",
-    title: t("directory.players.metaTitle"),
-    description: t("directory.players.metaDescription"),
+    path: women ? "/players?gender=women" : "/players",
+    title: t(
+      women ? "directory.players.metaTitleWomen" : "directory.players.metaTitle",
+    ),
+    description: t(
+      women
+        ? "directory.players.metaDescriptionWomen"
+        : "directory.players.metaDescription",
+    ),
   })
 }
 
 const SORT_VALUES = new Set(["points", "rebounds", "assists", "name"])
 const ORDER_VALUES = new Set(["asc", "desc"])
-const LEAGUE_VALUES = new Set([
-  "nba",
-  "euroleague",
-  "acb",
-  "feb",
-  "leb-oro",
-  "leb-plata",
-  "eba",
-])
 const PAGE_SIZE = 30
 
 function parseInput(sp: SearchParams): ListPlayersInput {
@@ -69,11 +84,18 @@ export default async function PlayersPage(props: {
   const input = parseInput(sp)
   // Resolved server-side so an unknown or stale `?season=` silently falls back
   // to the newest one instead of rendering an empty directory.
+  // A picked league already says which side is meant; otherwise the switch
+  // (URL, then cookie) decides. `scope` is never empty, so men's and women's
+  // rows cannot share a listing.
+  const gender = input.league
+    ? genderForFilter(input.league)
+    : await resolveGender(sp.gender)
+  const scope = scopeLeague(input.league, gender)
   const [season, seasons] = await Promise.all([
-    resolveSeasonName(sp.season, input.league),
-    listSeasons(input.league),
+    resolveSeasonName(sp.season, scope),
+    listSeasons(scope),
   ])
-  const result = await listPlayers({ ...input, season })
+  const result = await listPlayers({ ...input, league: scope, season })
   const { t, locale } = await getT()
 
   return (
@@ -81,13 +103,20 @@ export default async function PlayersPage(props: {
       <DirectoryHero
         eyebrow={t("directory.players.eyebrow")}
         title={t("directory.players.title")}
-        description={t("directory.players.description")}
+        description={t(
+          gender === "women"
+            ? "directory.players.descriptionWomen"
+            : "directory.players.description",
+        )}
         stats={[
           {
             value: result.total.toLocaleString(locale === "es" ? "es-ES" : "en-US"),
             label: t("directory.players.statLabel"),
           },
-          { value: "6", label: t("directory.leaguesLabel") },
+          {
+            value: String(leagueSlugsForGender(gender).length),
+            label: t("directory.leaguesLabel"),
+          },
         ]}
       />
 
@@ -100,17 +129,18 @@ export default async function PlayersPage(props: {
           showing={result.items.length}
           seasons={seasons.map((s) => s.name)}
           season={season}
+          gender={gender}
         />
       </StickyFilterBar>
       <div className="mt-3 flex justify-end">
-        <ExportLinks league={input.league ?? ""} season={season} />
+        <ExportLinks league={scope} season={season} />
       </div>
 
       <PlayersInfiniteView
-        key={`${season}|${input.query ?? ""}|${input.league ?? ""}|${input.sort ?? "points"}|${input.order ?? "desc"}`}
+        key={`${season}|${input.query ?? ""}|${scope}|${input.sort ?? "points"}|${input.order ?? "desc"}`}
         initial={result}
         query={input.query ?? ""}
-        league={input.league ?? ""}
+        league={scope}
         sort={input.sort ?? "points"}
         order={input.order ?? "desc"}
         season={season}
