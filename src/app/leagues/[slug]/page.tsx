@@ -10,6 +10,7 @@ import { listLeagueOverviews, listLeagueTopScorers } from "@/lib/data/leagues"
 import { getSyncTimesBySource } from "@/lib/data/sync"
 import { listTeams } from "@/lib/data/teams"
 import { getT } from "@/lib/i18n/server"
+import { isWomenLeague } from "@/lib/gender"
 import { upstreamFor } from "@/lib/sources/types"
 import { LEAGUE_ALIASES as ALSO_KNOWN_AS } from "@/lib/seo/llms"
 import { pageSeo } from "@/lib/seo/metadata"
@@ -38,6 +39,16 @@ function formerName(slug: string): string | null {
   return aka?.former ? aka.name : null
 }
 
+/**
+ * Women's leagues read in the feminine in Spanish ("jugadoras", "máxima
+ * anotadora"); the keys only exist for the strings that change.
+ */
+function copyKey(slug: string) {
+  const women = isWomenLeague(slug)
+  return (key: string) =>
+    women ? `leaguePage.women.${key}` : `leaguePage.${key}`
+}
+
 async function findLeague(slug: string) {
   const overviews = await listLeagueOverviews()
   return overviews.find((l) => l.slug === slug) ?? null
@@ -61,13 +72,14 @@ export async function generateMetadata({
     players: league.playerCount,
     legacy: legacy ? t("leaguePage.legacySuffix", { legacy }) : "",
   }
+  const k = copyKey(slug)
   return pageSeo({
     path: `/leagues/${slug}`,
-    title: t("leaguePage.metaTitle", {
+    title: t(k("metaTitle"), {
       ...vars,
       league: aka ? `${league.name} (${aka.name})` : league.name,
     }),
-    description: t("leaguePage.metaDescription", vars),
+    description: t(k("metaDescription"), vars),
     locale,
   })
 }
@@ -88,6 +100,9 @@ export default async function LeaguePage({
     getT(),
   ])
   const legacy = formerName(slug)
+  const k = copyKey(slug)
+  const women = isWomenLeague(slug)
+  const finalPhaseOnly = slug === "primera-nacional-femenina"
   const season = league.seasonLabel ?? ""
   const number = (n: number) =>
     n.toLocaleString(locale === "es" ? "es-ES" : "en-US")
@@ -96,7 +111,7 @@ export default async function LeaguePage({
   // The intro is the page's own prose — what a searcher's query is matched
   // against — so it names the league, the season, the counts and the leader.
   const intro = [
-    t("leaguePage.intro", {
+    t(k("intro"), {
       league: league.name,
       season,
       teams: number(league.teamCount),
@@ -106,7 +121,7 @@ export default async function LeaguePage({
       ? t("leaguePage.introLegacy", { league: league.name, legacy })
       : null,
     leader
-      ? t("leaguePage.introLeader", {
+      ? t(k("introLeader"), {
           name: leader.fullName,
           team: leader.team?.name ?? "—",
           ppg: leader.ppg.toLocaleString(locale === "es" ? "es-ES" : "en-US", {
@@ -115,9 +130,16 @@ export default async function LeaguePage({
           }),
         })
       : null,
+    finalPhaseOnly ? t("leaguePage.finalPhaseNote") : null,
   ]
     .filter(Boolean)
     .join(" ")
+  // Same rule as the leaders query: five games, or the whole competition
+  // when it is shorter than that.
+  const minGames = Math.min(
+    5,
+    scorers.reduce((m, s) => Math.max(m, s.gamesPlayed), 0) || 5,
+  )
 
   const upstream = upstreamFor(slug)
   const lastSyncAt = syncTimes.get(league.slug) ?? null
@@ -140,7 +162,10 @@ export default async function LeaguePage({
       locale,
     }),
     breadcrumbJsonLd([
-      { name: t("nav.leagues"), path: "/leagues" },
+      {
+        name: t("nav.leagues"),
+        path: women ? "/leagues?gender=women" : "/leagues",
+      },
       { name: league.name, path: `/leagues/${league.slug}` },
     ]),
   ]
@@ -157,21 +182,24 @@ export default async function LeaguePage({
           { value: number(league.teamCount), label: t("leaguePage.statTeams") },
           {
             value: number(league.playerCount),
-            label: t("leaguePage.statPlayers"),
+            label: t(k("statPlayers")),
           },
         ]}
       />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <nav className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[11px] uppercase tracking-[0.16em] text-ink-300">
-          <Link href="/leagues" className="transition hover:text-brand-300">
-            ← {t("leaguePage.allLeagues")}
+          <Link
+            href={women ? "/leagues?gender=women" : "/leagues"}
+            className="transition hover:text-brand-300"
+          >
+            ← {t(k("allLeagues"))}
           </Link>
           <Link
             href={`/players?league=${slug}`}
             className="transition hover:text-brand-300"
           >
-            {t("leaguePage.allPlayers", { league: league.name })} →
+            {t(k("allPlayers"), { league: league.name })} →
           </Link>
         </nav>
 
@@ -179,10 +207,10 @@ export default async function LeaguePage({
           <FadeIn>
             <section className="gh-card p-5 sm:p-6">
               <h2 className="font-display text-xl font-bold text-ink-50">
-                {t("leaguePage.scorersTitle", { season })}
+                {t(k("scorersTitle"), { season })}
               </h2>
               <p className="mt-1 text-xs text-ink-400">
-                {t("leaguePage.scorersNote")}
+                {t("leaguePage.scorersNote", { games: minGames })}
               </p>
               {scorers.length > 0 ? (
                 <div className="mt-4 overflow-x-auto">
@@ -191,7 +219,7 @@ export default async function LeaguePage({
                       <tr className="border-b border-hairline text-left font-mono text-[10px] uppercase tracking-[0.14em] text-ink-400">
                         <th className="pb-2 pr-3">#</th>
                         <th className="pb-2 pr-3">
-                          {t("leaguePage.colPlayer")}
+                          {t(k("colPlayer"))}
                         </th>
                         <th className="pb-2 pr-3">{t("leaguePage.colTeam")}</th>
                         <th className="pb-2 text-right">

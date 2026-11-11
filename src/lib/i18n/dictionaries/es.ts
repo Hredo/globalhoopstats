@@ -869,13 +869,30 @@ export const es: Messages = {
     statTeams: "Equipos",
     statPlayers: "Jugadores",
     scorersTitle: "Máximos anotadores · {season}",
-    scorersNote: "Puntos por partido, mínimo 5 partidos jugados.",
+    scorersNote: "Puntos por partido, mínimo {games} partidos jugados.",
     colPlayer: "Jugador",
     colTeam: "Equipo",
     colPpg: "PPG",
     teamsTitle: "Equipos de la {league} · {season}",
     allPlayers: "Todos los jugadores de la {league}",
     allLeagues: "Todas las ligas",
+    women: {
+      metaTitle:
+        "Estadísticas {league} {season}: máximas anotadoras, equipos y jugadoras",
+      metaDescription:
+        "Estadísticas de la {league} en la temporada {season}: máximas anotadoras, reboteadoras y asistentes, los {teams} equipos con sus plantillas y las {players} jugadoras de la competición.",
+      intro:
+        "Estadísticas de la {league} en la temporada {season}: {teams} equipos y {players} jugadoras, con promedios por partido, porcentajes de tiro y métricas avanzadas de cada una.",
+      introLeader:
+        "Máxima anotadora: {name} ({team}), con {ppg} puntos por partido.",
+      statPlayers: "Jugadoras",
+      scorersTitle: "Máximas anotadoras · {season}",
+      colPlayer: "Jugadora",
+      allPlayers: "Todas las jugadoras de la {league}",
+      allLeagues: "Todas las ligas femeninas",
+    },
+    finalPhaseNote:
+      "Solo recoge la fase final nacional: la liga regular se juega por grupos autonómicos y no publica estadísticas comunes.",
   },
   teamProfile: {
     notFound: "Equipo no encontrado",
