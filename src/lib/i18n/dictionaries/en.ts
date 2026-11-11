@@ -841,13 +841,28 @@ export const en = {
     statTeams: "Teams",
     statPlayers: "Players",
     scorersTitle: "Top scorers · {season}",
-    scorersNote: "Points per game, minimum 5 games played.",
+    scorersNote: "Points per game, minimum {games} games played.",
     colPlayer: "Player",
     colTeam: "Team",
     colPpg: "PPG",
     teamsTitle: "{league} teams · {season}",
     allPlayers: "All {league} players",
     allLeagues: "All leagues",
+    women: {
+      metaTitle: "{league} stats {season}: top scorers, teams & players",
+      metaDescription:
+        "{league} stats for the {season} season: scoring, rebounding and assist leaders, all {teams} teams with their rosters and the {players} players in the competition.",
+      intro:
+        "{league} stats for the {season} season: {teams} teams and {players} players, with per-game averages, shooting splits and advanced metrics for every one of them.",
+      introLeader: "Top scorer: {name} ({team}), with {ppg} points per game.",
+      statPlayers: "Players",
+      scorersTitle: "Top scorers · {season}",
+      colPlayer: "Player",
+      allPlayers: "All {league} players",
+      allLeagues: "All women's leagues",
+    },
+    finalPhaseNote:
+      "Covers the national final phase only: the regular season is played in regional groups with no common published statistics.",
   },
   teamProfile: {
     notFound: "Team not found",

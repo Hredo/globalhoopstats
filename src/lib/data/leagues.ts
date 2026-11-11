@@ -40,6 +40,7 @@ export type LeagueScorer = {
   imageUrl: string | null
   team: { id: string; name: string; slug: string; logoUrl: string | null } | null
   ppg: number
+  gamesPlayed: number
 }
 
 export type LeagueStatHighlight = {
@@ -187,6 +188,7 @@ async function fetchTopScorers(
       slug: players.slug,
       imageUrl: players.imageUrl,
       ppg: sql<number>`round(${playerSeasonStats.pointsTotal} / nullif(${playerSeasonStats.gamesPlayed}, 0), 1)`,
+      gamesPlayed: playerSeasonStats.gamesPlayed,
       teamId: teams.id,
       teamName: teams.name,
       teamSlug: teams.slug,
@@ -223,6 +225,7 @@ async function fetchTopScorers(
     slug: r.slug,
     imageUrl: r.imageUrl,
     ppg: Number(r.ppg ?? 0),
+    gamesPlayed: Number(r.gamesPlayed ?? 0),
     team: r.teamId
       ? { id: r.teamId, name: r.teamName ?? "", slug: r.teamSlug ?? "", logoUrl: r.teamLogo }
       : null,
@@ -378,7 +381,7 @@ export const listLeagueOverviews = cached(
   return overviews
   },
   // v2: counts, badges and the season label are scoped to the newest season.
-  "listLeagueOverviews:v2",
+  "listLeagueOverviews:v3",
   ["leagues", "seasons", "player-season-stats", "teams", "coaches"],
   600,
 )
@@ -395,7 +398,7 @@ export const listLeagueTopScorers = cached(
     if (!season) return []
     return fetchTopScorers(db, leagueId, season.id, limit)
   },
-  "listLeagueTopScorers:v1",
+  "listLeagueTopScorers:v2",
   ["leagues", "seasons", "player-season-stats", "teams"],
   600,
 )

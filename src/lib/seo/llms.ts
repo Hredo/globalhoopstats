@@ -19,13 +19,6 @@ import { SITE } from "@/lib/site"
 export const LEAGUE_ALIASES: Record<string, { name: string; former: boolean }> =
   {
     acb: { name: "Liga ACB", former: false },
-    "lf-endesa": { name: "LF Endesa, women", former: false },
-    "lf-challenge": { name: "LF Challenge, women", former: false },
-    lf2: { name: "LF2, women", former: false },
-    "primera-nacional-femenina": {
-      name: "women, national final phase only",
-      former: false,
-    },
     "leb-oro": { name: "LEB Oro", former: true },
     "leb-plata": { name: "LEB Plata", former: true },
     eba: { name: "Liga EBA", former: true },
