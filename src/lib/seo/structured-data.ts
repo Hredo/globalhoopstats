@@ -1,6 +1,13 @@
+import type { Gender } from "@/lib/gender"
 import { SITE } from "@/lib/site"
 
 type JsonLdObject = Record<string, unknown>
+
+/** schema.org `gender` values (GenderType). */
+const SCHEMA_GENDER: Record<Gender, string> = {
+  men: "https://schema.org/Male",
+  women: "https://schema.org/Female",
+}
 
 /**
  * schema.org BreadcrumbList for a page's location in the site hierarchy.
@@ -35,6 +42,8 @@ export function playerJsonLd(p: {
   /** Site path of the team page, e.g. "/teams/acb/real-madrid". */
   teamPath?: string | null
   leagueName: string
+  /** Which side the player is on — women's pages say so to answer engines. */
+  gender?: Gender
 }): JsonLdObject {
   const data: JsonLdObject = {
     "@context": "https://schema.org",
@@ -45,6 +54,7 @@ export function playerJsonLd(p: {
       ? `Basketball Player (${p.position})`
       : "Basketball Player",
   }
+  if (p.gender) data.gender = SCHEMA_GENDER[p.gender]
   if (p.nationality) data.nationality = p.nationality
   if (p.birthdate) data.birthDate = p.birthdate
   if (p.photoUrl) data.image = p.photoUrl
@@ -67,6 +77,7 @@ export function playerJsonLd(p: {
       "@type": "SportsTeam",
       name: p.teamName,
       sport: "Basketball",
+      ...(p.gender ? { gender: SCHEMA_GENDER[p.gender] } : {}),
       ...(p.teamPath ? { url: `${SITE.url}${p.teamPath}` } : {}),
       memberOf: {
         "@type": "SportsOrganization",
@@ -133,6 +144,7 @@ export function datasetJsonLd(d: {
   dateModified: Date | null
   upstream: { name: string; url: string } | null
   locale: string
+  gender?: Gender
 }): JsonLdObject {
   const data: JsonLdObject = {
     "@context": "https://schema.org",
@@ -147,6 +159,13 @@ export function datasetJsonLd(d: {
       `${d.leagueName} ${d.season}`,
       "basketball statistics",
       "estadísticas baloncesto",
+      ...(d.gender === "women"
+        ? [
+            "women's basketball statistics",
+            "estadísticas baloncesto femenino",
+            "baloncesto femenino España",
+          ]
+        : []),
     ],
     temporalCoverage: d.season,
     variableMeasured: [
@@ -196,6 +215,9 @@ export function teamJsonLd(t: {
   /** The roster, so an agent can resolve "who plays for X" from the page. */
   athletes?: Array<{ name: string; slug: string }>
   coach?: string | null
+  /** Every staff member, head coach first; `coach` is kept for old callers. */
+  staff?: Array<{ name: string; role: string }>
+  gender?: Gender
 }): JsonLdObject {
   const data: JsonLdObject = {
     "@context": "https://schema.org",
@@ -209,6 +231,7 @@ export function teamJsonLd(t: {
       sport: "Basketball",
     },
   }
+  if (t.gender) data.gender = SCHEMA_GENDER[t.gender]
   if (t.logoUrl) data.logo = t.logoUrl
   if (t.city) data.location = { "@type": "Place", name: t.city }
   if (t.athletes?.length) {
@@ -218,6 +241,14 @@ export function teamJsonLd(t: {
       url: `${SITE.url}/players/${a.slug}`,
     }))
   }
-  if (t.coach) data.coach = { "@type": "Person", name: t.coach }
+  if (t.staff?.length) {
+    data.coach = t.staff.map((c) => ({
+      "@type": "Person",
+      name: c.name,
+      jobTitle: c.role,
+    }))
+  } else if (t.coach) {
+    data.coach = { "@type": "Person", name: t.coach }
+  }
   return data
 }

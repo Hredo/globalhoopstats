@@ -9,6 +9,7 @@
  */
 import { upstreamFor } from "@/lib/sources/types"
 import { SITE } from "@/lib/site"
+import { isWomenLeague } from "@/lib/gender"
 
 /**
  * The name people search for is often not the one we display: the ACB shows
@@ -22,6 +23,14 @@ export const LEAGUE_ALIASES: Record<string, { name: string; former: boolean }> =
     "leb-oro": { name: "LEB Oro", former: true },
     "leb-plata": { name: "LEB Plata", former: true },
     eba: { name: "Liga EBA", former: true },
+    // FEB's own short names, which is how the women's leagues are searched.
+    "lf-endesa": { name: "LF Endesa", former: false },
+    "lf-challenge": { name: "LF Challenge", former: false },
+    lf2: { name: "LF2", former: false },
+    "primera-nacional-femenina": {
+      name: "1ª División Femenina",
+      former: false,
+    },
   }
 
 export type LlmsLeague = {
@@ -124,13 +133,42 @@ const CITE = [
   `- Full definitions and how leagues are made comparable: [Methodology](${SITE.url}/methodology).`,
 ]
 
+/**
+ * The women's leagues get their own section: they are a separate world in the
+ * data (never mixed into a men's listing), and "Liga Femenina Endesa
+ * estadísticas" is a different search from "Liga Endesa estadísticas".
+ */
+function womenSection(leagues: LlmsLeague[]): string[] {
+  const women = sortLeagues(leagues.filter((l) => isWomenLeague(l.slug)))
+  if (women.length === 0) return []
+  const u = SITE.url
+  return [
+    "## Women's leagues",
+    "",
+    "Spain's women's pyramid, all published by FEB, kept apart from the men's: a player is " +
+      "only ever ranked, compared or projected against other women.",
+    "",
+    ...women.map(leagueLine),
+    "",
+    `- [Women's players](${u}/players?gender=women) · [Women's teams](${u}/teams?gender=women) · ` +
+      `[Women's coaches](${u}/coaches?gender=women) · [Women's leagues](${u}/leagues?gender=women)`,
+    "- Women's team URLs end in -femenino (the club's men's section keeps the bare slug).",
+    "- Primera Nacional Femenina: only its national final phase (June, 16 clubs) has a common " +
+      "public feed; the regular season is run by the regional federations.",
+    "",
+  ]
+}
+
 function sections(leagues: LlmsLeague[]): string[] {
   const u = SITE.url
   return [
     "## Leagues",
     "",
-    ...sortLeagues(leagues).map(leagueLine),
+    ...sortLeagues(leagues.filter((l) => !isWomenLeague(l.slug))).map(
+      leagueLine,
+    ),
     "",
+    ...womenSection(leagues),
     "## Directories",
     "",
     `- [Players](${u}/players): every player, filterable by league and season (?league=acb&season=2026-27); search with ?q=name`,

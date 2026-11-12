@@ -33,6 +33,7 @@ import {
 } from "@/lib/seo/structured-data"
 import { getSyncTimesBySource } from "@/lib/data/sync"
 import { upstreamFor } from "@/lib/sources/types"
+import { genderForLeagueSlug } from "@/lib/gender"
 import type { Locale } from "@/lib/i18n/config"
 import { pageSeo } from "@/lib/seo/metadata"
 import { HighlightsSection } from "./highlights"
@@ -59,7 +60,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!profile) return { title: t("playerProfile.notFound") }
   const vars = {
     name: profile.fullName,
-    position: profile.position ?? t("playerProfile.playerFallback"),
+    position:
+      profile.position ??
+      t(
+        genderForLeagueSlug(profile.league.slug) === "women"
+          ? "playerProfile.playerFallbackWomen"
+          : "playerProfile.playerFallback",
+      ),
     team: profile.team?.name ?? t("playerProfile.metaFreeAgent"),
     league: profile.league.name,
   }
@@ -192,23 +199,31 @@ function formatWeight(kg: number | null): string {
   return `${kg} kg (${Math.round(kg * 2.20462)} lb)`
 }
 
-function formatBirth(bd: string | null): string {
+/** "12 de marzo de 2001 (25 años)" / "March 12, 2001 (age 25)". */
+function formatBirth(
+  bd: string | null,
+  locale: Locale,
+  t: (path: string, vars?: Record<string, string | number>) => string,
+): string {
   if (!bd) return "—"
-  const d = new Date(bd)
+  const d = new Date(`${bd.slice(0, 10)}T00:00:00Z`)
   if (Number.isNaN(d.getTime())) return bd
-  return d.toLocaleDateString("en-US", {
+  const date = d.toLocaleDateString(locale === "es" ? "es-ES" : "en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: "UTC",
   })
+  const age = ageFrom(d)
+  return age == null ? date : `${date} (${t("playerProfile.age", { age })})`
 }
 
-function ageFrom(bd: string | null): number | null {
-  if (!bd) return null
-  const d = new Date(bd)
-  if (Number.isNaN(d.getTime())) return null
-  const ms = Date.now() - d.getTime()
-  return Math.floor(ms / (365.25 * 24 * 3600 * 1000))
+function ageFrom(d: Date): number | null {
+  const now = new Date()
+  let age = now.getUTCFullYear() - d.getUTCFullYear()
+  const m = now.getUTCMonth() - d.getUTCMonth()
+  if (m < 0 || (m === 0 && now.getUTCDate() < d.getUTCDate())) age--
+  return age > 0 && age < 100 ? age : null
 }
 
 type Candidate = {
@@ -352,10 +367,12 @@ export default async function PlayerPage({ params, searchParams }: Props) {
           nationality: profile.nationality,
           heightCm: profile.heightCm,
           weightKg: profile.weightKg,
+          birthdate: profile.birthdate,
           photoUrl: profile.imageUrl,
           teamName: selTeam?.name ?? null,
           teamPath: selTeam ? `/teams/${selLeague.slug}/${selTeam.slug}` : null,
           leagueName: selLeague.name,
+          gender: genderForLeagueSlug(selLeague.slug),
         }),
         ...(summary ? { description: summary } : {}),
       },
@@ -426,6 +443,10 @@ export default async function PlayerPage({ params, searchParams }: Props) {
                 <Row
                   k={t("playerProfile.weight")}
                   v={formatWeight(profile.weightKg)}
+                />
+                <Row
+                  k={t("playerProfile.birthdate")}
+                  v={formatBirth(profile.birthdate, locale, t)}
                 />
                 <Row
                   k={t("playerProfile.league")}

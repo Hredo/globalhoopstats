@@ -438,6 +438,8 @@ export type PlayerProfile = {
   position: string | null
   heightCm: number | null
   weightKg: number | null
+  /** ISO date (YYYY-MM-DD) when the source publishes it. */
+  birthdate: string | null
   imageUrl: string | null
   // Primary (most-active) league — kept so existing consumers (AI, OG images)
   // keep working without caring about multi-league.
@@ -471,6 +473,7 @@ export const getPlayerBySlug = cached(
       position: players.position,
       heightCm: players.heightCm,
       weightKg: players.weightKg,
+      birthdate: players.birthdate,
       imageUrl: players.imageUrl,
     })
     .from(players)
@@ -633,6 +636,7 @@ export const getPlayerBySlug = cached(
     position: p.position,
     heightCm: p.heightCm,
     weightKg: p.weightKg,
+    birthdate: p.birthdate,
     imageUrl: p.imageUrl,
     league: primary.league,
     team: primary.team,

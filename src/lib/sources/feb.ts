@@ -45,6 +45,13 @@ export type FebConfig = {
    * Regular" groups; a competition with no regular season names its own.
    */
   groupPattern?: RegExp
+  /**
+   * Read Jugador.aspx for every player still missing any bio field, not only
+   * the ones with no bio at all. Costs one request per incomplete player each
+   * sync, so it is on for the women's leagues (full player cards required)
+   * and off for the men's, whose Tercera FEB alone has ~1,500 players.
+   */
+  completeBio?: boolean
 }
 
 type Hiddens = Record<string, string>
@@ -260,6 +267,15 @@ function mergeBio(p: FebPlayer, bio: FebBio): void {
   p.weightKg ??= bio.weightKg
   p.nationality ??= bio.nationality
   p.birthdate ??= bio.birthdate
+}
+
+/**
+ * True while a bio field FEB does publish is still empty. Weight is left out on
+ * purpose: FEB fills it for no women's player (0 of 161 in LF Endesa,
+ * 2026-11-12), so counting it would re-read every player page each sync.
+ */
+export function missingBio(p: FebBio): boolean {
+  return !p.position || !p.heightCm || !p.nationality || !p.birthdate
 }
 
 function parseRoster(
@@ -624,12 +640,16 @@ async function collectData(cfg: FebConfig): Promise<FebData> {
     )
   }
 
-  // Ranked players already gone from their team's roster (transfers): fall
-  // back to their own page. The i= param must be the team the license is
-  // registered with, which is exactly the team their ranking row linked.
-  const leftovers = [...acc.byPlayer.values()].filter(
-    (p) => !p.position && !p.nationality,
-  )
+  // Players the team pages left without a bio fall back to their own page:
+  // transfers already gone from their team's roster and, with `completeBio`,
+  // roster rows FEB left partly blank (Equipo.aspx often omits a position or
+  // height that Jugador.aspx has). The
+  // i= param must be the team the license is registered with, which is exactly
+  // the team their ranking row linked.
+  const incomplete = cfg.completeBio
+    ? missingBio
+    : (p: FebPlayer) => !p.position && !p.nationality
+  const leftovers = [...acc.byPlayer.values()].filter(incomplete)
   for (const p of leftovers) {
     try {
       await politePause()
@@ -642,9 +662,10 @@ async function collectData(cfg: FebConfig): Promise<FebData> {
       console.warn(`[feb:${cfg.id}] jugador ${p.playerId} failed: ${msg}`)
     }
   }
+  const stillMissing = [...acc.byPlayer.values()].filter(missingBio).length
   console.log(
     `[feb:${cfg.id}] collected ${acc.byPlayer.size} players · ${acc.teamMeta.size} teams · ` +
-      `player-page fallbacks: ${leftovers.length}`,
+      `player-page fallbacks: ${leftovers.length} · still missing a bio field: ${stillMissing}`,
   )
   return {
     players: [...acc.byPlayer.values()],
@@ -692,6 +713,7 @@ export function createFebAdapter(cfg: FebConfig): SourceAdapter {
         heightCm: p.heightCm,
         weightKg: p.weightKg,
         nationality: p.nationality,
+        birthdate: p.birthdate,
         teamSourceId: p.teamId ? `feb-${p.teamId}` : undefined,
         // The c= license id in Jugador.aspx links doubles as the photo key.
         photoUrl: `https://imagenes.feb.es/Foto.aspx?c=${p.playerId}`,
@@ -789,14 +811,22 @@ export const FEB_WOMEN_CONFIGS: FebConfig[] = [
     displayName: "Liga Femenina Endesa",
     g: 4,
     nm: "lfendesa",
+    completeBio: true,
   },
   {
     id: "lf-challenge",
     displayName: "Liga Femenina Challenge",
     g: 67,
     nm: "lfchallenge",
+    completeBio: true,
   },
-  { id: "lf2", displayName: "Liga Femenina 2", g: 9, nm: "lf2" },
+  {
+    id: "lf2",
+    displayName: "Liga Femenina 2",
+    g: 9,
+    nm: "lf2",
+    completeBio: true,
+  },
   // Primera Nacional Femenina is run by the regional federations, each on its
   // own site and most without player statistics, so there is no regular season
   // to read. FEB publishes the one national stage — the 16-club final phase
@@ -808,6 +838,7 @@ export const FEB_WOMEN_CONFIGS: FebConfig[] = [
     g: 44,
     nm: "fasefinal1divisinfemenin",
     groupPattern: /^fase\s+final/i,
+    completeBio: true,
   },
 ]
 

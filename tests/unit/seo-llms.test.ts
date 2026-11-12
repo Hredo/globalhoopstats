@@ -104,3 +104,32 @@ describe("llms-full.txt", () => {
     expect(full).not.toContain("### NBA")
   })
 })
+
+describe("llms.txt women's leagues", () => {
+  const txt = buildLlmsTxt(
+    [
+      ...LEAGUES,
+      {
+        slug: "lf-endesa",
+        name: "Liga Femenina Endesa",
+        seasonLabel: "2026-27",
+        teamCount: 16,
+        playerCount: 161,
+        lastSync: null,
+      },
+    ],
+    NOW,
+  )
+
+  it("lists them in their own section, not among the men's leagues", () => {
+    const women = txt.indexOf("## Women's leagues")
+    expect(women).toBeGreaterThan(txt.indexOf("/leagues/eba"))
+    expect(txt.indexOf("/leagues/lf-endesa")).toBeGreaterThan(women)
+    expect(txt).toContain("[Liga Femenina Endesa (LF Endesa)]")
+    expect(txt).toContain(`${SITE.url}/players?gender=women`)
+  })
+
+  it("adds no women's section when there are no women's leagues", () => {
+    expect(buildLlmsTxt(LEAGUES, NOW)).not.toContain("## Women's leagues")
+  })
+})
