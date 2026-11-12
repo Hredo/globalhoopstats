@@ -160,6 +160,7 @@ export default async function LeaguePage({
       dateModified: lastSyncAt,
       upstream,
       locale,
+      gender: women ? "women" : "men",
     }),
     breadcrumbJsonLd([
       {

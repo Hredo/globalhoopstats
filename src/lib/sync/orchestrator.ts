@@ -232,6 +232,7 @@ async function syncLeague(
         // PHOTOS PAUSED (2026-07-03): players render typographic avatars
         // (PersonAvatar); uncomment to resume photo ingestion.
         // if (sp.photoUrl) fillIns.imageUrl = sp.photoUrl
+        if (sp.birthdate) fillIns.birthdate = sp.birthdate
         if (sp.nationality) fillIns.nationality = sp.nationality
         if (sp.position) fillIns.position = sp.position
         if (sp.heightCm) fillIns.heightCm = sp.heightCm
@@ -259,6 +260,7 @@ async function syncLeague(
         firstName,
         lastName,
         slug,
+        birthdate: sp.birthdate ?? null,
         nationality: sp.nationality ?? null,
         position: sp.position ?? null,
         heightCm: sp.heightCm ?? null,

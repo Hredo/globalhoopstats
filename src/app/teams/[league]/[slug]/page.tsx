@@ -8,6 +8,13 @@ import { getTeamBySlug, listTeamOptions } from "@/lib/data/teams"
 import { ALL_SEASONS, parseSeasonParam } from "@/lib/seasons"
 import { JsonLd } from "@/components/marketing/json-ld"
 import { breadcrumbJsonLd, teamJsonLd } from "@/lib/seo/structured-data"
+import { genderForLeagueSlug } from "@/lib/gender"
+
+const STAFF_ROLE_KEY = {
+  head_coach: "directory.roles.headCoach",
+  assistant_coach: "directory.roles.assistant",
+  staff: "directory.roles.staff",
+} as const
 import { pageSeo } from "@/lib/seo/metadata"
 import { getT } from "@/lib/i18n/server"
 
@@ -103,6 +110,13 @@ export default async function TeamDetailPage({
       city: team.city,
       athletes: team.roster.map((p) => ({ name: p.fullName, slug: p.slug })),
       coach: team.staff.find((c) => c.role === "head_coach")?.fullName ?? null,
+      staff: [...team.staff]
+        .sort(
+          (a, b) =>
+            Number(b.role === "head_coach") - Number(a.role === "head_coach"),
+        )
+        .map((c) => ({ name: c.fullName, role: t(STAFF_ROLE_KEY[c.role]) })),
+      gender: genderForLeagueSlug(team.league.slug),
     }),
     breadcrumbJsonLd([
       { name: t("nav.teams"), path: "/teams" },

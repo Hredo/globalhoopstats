@@ -23,6 +23,15 @@ The one stage FEB publishes is the 16-club national final phase in early June (t
 per club), so that is what the league holds — one edition per season, labelled with the
 season it closes, and synced only in June (`finalPhaseSeason` in `src/lib/sources/types.ts`).
 
+**Women's player cards are completed field by field.** FEB's team page (`Equipo.aspx`) often
+leaves a position, height or birth date blank that the player's own page
+(`Jugador.aspx`) has, so the women's configs set `completeBio`: every player still missing any of
+those fields gets one extra `Jugador.aspx` request per sync. Weight does not trigger it: FEB
+publishes no weight for the women's players. The men's FEB leagues keep the
+cheaper rule (only players with no bio at all), since Tercera FEB alone has ~1,500 players.
+**Staff:** FEB's public pages name only the head coach; assistants appear only in the
+token-protected live-stats API, which we do not read (see shot charts below).
+
 The public pages credit these publishers (player pages' source line, the league
 Dataset JSON-LD, `/llms.txt`) from `SOURCE_UPSTREAM` in
 [`types.ts`](src/lib/sources/types.ts) — change it together with this table.
