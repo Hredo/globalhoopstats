@@ -866,6 +866,8 @@ export const en = {
     },
     finalPhaseNote:
       "Covers the national final phase only: the regular season is played in regional groups with no common published statistics.",
+    finalPhaseNext:
+      "That is why it shows {season}, the latest edition played: the {next} final phase is held in June {year}.",
   },
   teamProfile: {
     notFound: "Team not found",
