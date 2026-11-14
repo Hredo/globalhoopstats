@@ -896,6 +896,8 @@ export const es: Messages = {
     },
     finalPhaseNote:
       "Solo recoge la fase final nacional: la liga regular se juega por grupos autonómicos y no publica estadísticas comunes.",
+    finalPhaseNext:
+      "Por eso muestra la {season}, la última edición jugada: la fase final de la {next} se disputa en junio de {year}.",
   },
   teamProfile: {
     notFound: "Equipo no encontrado",

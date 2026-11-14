@@ -12,6 +12,11 @@ import { listTeams } from "@/lib/data/teams"
 import { getT } from "@/lib/i18n/server"
 import { isWomenLeague } from "@/lib/gender"
 import { upstreamFor } from "@/lib/sources/types"
+import {
+  CURRENT_SEASON_START_YEAR,
+  seasonLabel,
+  seasonStartYear,
+} from "@/lib/seasons"
 import { LEAGUE_ALIASES as ALSO_KNOWN_AS } from "@/lib/seo/llms"
 import { pageSeo } from "@/lib/seo/metadata"
 import {
@@ -104,6 +109,13 @@ export default async function LeaguePage({
   const women = isWomenLeague(slug)
   const finalPhaseOnly = slug === "primera-nacional-femenina"
   const season = league.seasonLabel ?? ""
+  // The final phase of season Y is played in June of Y+1, so for most of the
+  // year the page shows the previous edition; say so instead of looking stale.
+  const shownStart = seasonStartYear(season)
+  const behindCurrent =
+    finalPhaseOnly &&
+    shownStart != null &&
+    shownStart < CURRENT_SEASON_START_YEAR
   const number = (n: number) =>
     n.toLocaleString(locale === "es" ? "es-ES" : "en-US")
   const leader = scorers[0]
@@ -131,6 +143,13 @@ export default async function LeaguePage({
         })
       : null,
     finalPhaseOnly ? t("leaguePage.finalPhaseNote") : null,
+    behindCurrent
+      ? t("leaguePage.finalPhaseNext", {
+          season,
+          next: seasonLabel(CURRENT_SEASON_START_YEAR),
+          year: String(CURRENT_SEASON_START_YEAR + 1),
+        })
+      : null,
   ]
     .filter(Boolean)
     .join(" ")
